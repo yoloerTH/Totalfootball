@@ -165,7 +165,8 @@
   [data-reveal] {
     transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
       transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-      clip-path 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+      -webkit-mask-position 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+      mask-position 0.9s cubic-bezier(0.16, 1, 0.3, 1);
   }
   /*
    * Content must never depend on JS to become visible. The reveal is opted
@@ -181,16 +182,32 @@
     transform: none;
   }
 
-  /* Headings wipe in left→right while rising, the type reveal from the videos. */
+  /*
+   * Headings wipe in left→right while rising, the type reveal from the videos.
+   *
+   * The wipe is a MASK, not a clip-path, and that is load-bearing rather than a
+   * style preference. Chrome folds an element's own clip-path into the rect it
+   * hands IntersectionObserver, so a heading starting at inset(0 100% 0 0) has
+   * zero intersecting area, never reports as intersecting, and therefore never
+   * receives .is-in — it stays invisible for the whole visit. (Safari does not,
+   * which is why this only ever showed up in Chrome.) A mask is paint-only and
+   * invisible to the observer, so the same wipe cannot deadlock its own trigger.
+   */
   .js [data-reveal='clip'] {
     opacity: 0;
     transform: translateY(18px);
-    clip-path: inset(0 100% 0 0);
+    -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 50%);
+    mask-image: linear-gradient(90deg, #000 50%, transparent 50%);
+    -webkit-mask-size: 200% 100%;
+    mask-size: 200% 100%;
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
   .js [data-reveal='clip'].is-in {
     opacity: 1;
     transform: none;
-    clip-path: inset(0 0 0 0);
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
   }
 
   /* For things that should arrive without moving, such as images and diagrams. */
