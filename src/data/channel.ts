@@ -23,6 +23,11 @@ export const CHANNEL = {
    */
   bestShortPlays: 2000000,
   bestShortPlaysLabel: '2M+',
+  /**
+   * Provenance only. It used to print under the proof strip and was removed
+   * (user, 2026-08-09) because a dated caption made living numbers look stale.
+   * Keep it updated when the figures change so we know how old they are.
+   */
   asOf: '2026-08-09',
 } as const
 

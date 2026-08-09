@@ -120,15 +120,6 @@ const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
           </dd>
         </div>
       </dl>
-      <p class="mt-8 text-xs text-ink-faint">
-        Figures as of {
-          new Date(CHANNEL.asOf).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })
-        }.
-      </p>
     </div>
   </section>
 
