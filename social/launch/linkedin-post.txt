@@ -1,0 +1,15 @@
+Football is not short of tactical analysis. It is short of analysis anyone can actually study.
+
+A twenty second clip is enough to show you a system. It is not enough to let you learn one. You watch it, you nod, and the next morning you could not draw it.
+
+We have published 88 animated tactical breakdowns to around 5 million views, and that gap is the one thing the format could never solve on its own. So we built the other half of it.
+
+Total Football now has a library on the web. Every system on its own page, split into numbered phases, with the diagram sitting beside an explanation of what is actually happening in it. Real pitch geometry, real distances, and not one frame of broadcast footage anywhere, because all of it is animated from scratch.
+
+The thinking behind it is simple. Video is how you get someone interested in a tactical idea. Diagrams and text are how they take it into a session on Tuesday.
+
+Free to read: totalfootball.naurra.ai
+
+Five systems are live and more go up every week. After that comes a course on how the breakdowns are actually produced, from the board engine to the pacing rules we pulled out of measuring every short we have published.
+
+The six slides below are the short version.
