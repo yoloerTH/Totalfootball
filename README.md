@@ -100,10 +100,10 @@ is env-driven so moving off the subdomain is a config change plus a 301 map.
 
 ## Email capture
 
-**Status: live and verified against the real database (2026-08-09).** The table
-exists, the grants and policy are correct, and all nine paths were tested end to
-end through the actual function. The only step left is deploying and setting the
-same variables in Netlify.
+**Status: live in production and verified there (2026-08-09).** The table
+exists, the grants and policy are correct, all nine paths were tested through
+the actual function, and a real signup posted to
+`https://totalfootball.naurra.ai/api/subscribe` was confirmed in the table.
 
 **Supabase project: `Bet` (`bewvowkkikxsjcfnkeot`).** Not a dedicated project,
 because the org is on the free plan and already has its two. It is safe: no
@@ -140,10 +140,9 @@ netlify dev        # site on :8888, functions included
 
 A POST to `/api/subscribe` on `localhost:4321` will always 404. That is expected.
 
-### Still to do: Netlify
+### Environment variables (already set on the Netlify project)
 
-**Set the environment variables** in Netlify (Site configuration → Environment
-variables). None are prefixed `PUBLIC_`, so none reach the browser:
+None are prefixed `PUBLIC_`, so none reach the browser:
 
 | Variable | Value |
 |---|---|
@@ -152,7 +151,7 @@ variables). None are prefixed `PUBLIC_`, so none reach the browser:
 | `ALLOWED_ORIGIN` | `https://totalfootball.naurra.ai` |
 | `PUBLIC_SITE_URL` | `https://totalfootball.naurra.ai` |
 
-Then deploy and submit one real address to confirm the row lands.
+Change them with `netlify env:set <NAME> "<value>" --context production`.
 
 ### What gets stored
 
@@ -191,16 +190,18 @@ rewrite instead. Check before shipping:
 npm run build && grep -ro '—' dist --include='*.html' --include='*.txt' --include='*.xml' | wc -l   # must be 0
 ```
 
-## Blocking before launch
+## Outstanding
 
-- **Netlify env vars + deploy.** The database side is done and verified; the
-  four variables above still need setting on the Netlify site, which does not
-  exist yet. Until then a deployed form would report a server error.
+- **Not yet git-backed.** Deploys currently run from this machine with
+  `netlify deploy --prod --build`. There is a local git repo with full history;
+  create an empty GitHub repo, push it, and connect it in Netlify to get
+  automatic deploys, previews and rollbacks.
 - `SOCIAL.facebook` and `SOCIAL.youtube` are empty in `src/lib/site.ts`, so the
   Organization `sameAs` is nearly bare. That is the main on-page entity signal
   and the naurra.ai audit named entity strength as the actual bottleneck.
-- `og-default.png` (1200×630) and `logo.png` are referenced by every page's
-  meta and by the Organization schema, but neither file exists yet.
+- Analytics runs without a consent banner, which holds up only while it stays
+  cookie-free. See the header comment in `src/components/Analytics.astro`
+  before changing anything there.
 - Placeholders marked `TODO(thanos)`: contact address and controller in
   `src/pages/privacy.astro`, governing entity in `src/pages/terms.astro`,
   follower count in `src/data/channel.ts`.
