@@ -1,5 +1,6 @@
 ---
 import Mark from './brand/Mark.astro'
+import NaurraCredit from './NaurraCredit.astro'
 import NewsletterForm from './NewsletterForm.astro'
 import { SOCIAL } from '../lib/site'
 
@@ -69,6 +70,15 @@ const social = [
         <p class="mt-4 max-w-[34ch] text-sm leading-relaxed text-ink-soft">
           Football tactics as diagrams. Every frame drawn from scratch, with no broadcast clips.
         </p>
+
+        {/*
+          The permanent credit. The floating badge (BaseLayout) tucks itself
+          away when this footer comes into view, so only one of the two is ever
+          on screen at once.
+        */}
+        <div class="mt-7 max-w-[34ch] border-t border-ink-hair pt-5">
+          <NaurraCredit variant="inline" />
+        </div>
       </div>
 
       {
