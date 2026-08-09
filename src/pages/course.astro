@@ -8,11 +8,17 @@
  * styles, and the measured pacing rules, so nothing here is a promise we
  * cannot keep.
  *
- * TODO(thanos): "who is it for" in one line, then this copy gets tightened
- * around it. Pricing stays off the page until the list says what it should be.
+ * The page now carries one commercial offer: early access at a founding rate of
+ * EUR 39/month, locked for the life of the membership, with limited positions.
+ * No payment is taken, so this collects a name and an email and nothing else.
+ * The count of places taken is deliberately NOT shown; it goes to the daily
+ * Telegram report instead (user, 2026-08-09).
+ *
+ * TODO(thanos): "who is it for" in one line, then this copy gets tightened.
  */
 import BaseLayout from '../layouts/BaseLayout.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
+import EarlyAccessForm from '../components/EarlyAccessForm.astro'
 import { abs } from '../lib/site'
 
 const modules = [
@@ -57,7 +63,7 @@ const breadcrumb = {
 
 <BaseLayout
   title="The course: how these videos get made"
-  description="The full pipeline behind Total Football: the board engine, the choreography, and the pacing rules measured across 88 published shorts. Join the waitlist."
+  description="How the Total Football breakdowns are made, end to end. Get early access and lock the founding rate of EUR 39 a month for life. Limited positions."
   path="/course/"
   structuredData={[breadcrumb]}
 >
@@ -74,8 +80,67 @@ const breadcrumb = {
           measuring what people actually watched.
         </p>
 
-        <div class="mt-11 max-w-xl">
-          <NewsletterForm source="course-waitlist" cta="Join the waitlist" />
+        <div class="mt-11 flex flex-wrap items-center gap-3">
+          <a href="#early-access" class="btn-primary">Get early access</a>
+          <span class="text-[13px] text-ink-soft">
+            Lock <strong class="font-bold text-ink">€39/month</strong> for life
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Early access ─────────────────────────────────────────────────
+      The one commercial offer on the site. It asks for a name as well as an
+      email because it is a held place rather than a mailing list, and the
+      price promise only means something if we know who it was made to. */}
+  <section id="early-access" class="scroll-mt-20 border-b border-ink-hair bg-paper-deep/40">
+    <div class="shell py-20 md:py-28">
+      <div class="grid gap-14 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">Early access · limited positions</p>
+          <h2 class="text-title font-black" data-reveal="clip">
+            Lock <span class="grad-text">€39/month</span> for life.
+          </h2>
+          <p class="mt-6 max-w-prose text-[17px] leading-relaxed text-ink-soft">
+            The course is still being built. Join now and you hold a place in the first intake at
+            €39 a month, and that rate stays yours for as long as you keep your membership, whatever
+            the price becomes later.
+          </p>
+
+          <ul class="mt-9 space-y-4">
+            {
+              [
+                ['€39 / month, locked', 'The founding rate. It never rises for you, even when it rises for everyone else.'],
+                ['Limited positions', 'The first intake is deliberately small so the feedback is real feedback.'],
+                ['First through the door', 'You get access the day it opens, before it is announced anywhere.'],
+                ['Nothing to pay today', 'No card, no deposit. You are holding a place and a price, not buying yet.'],
+              ].map(([title, body], i) => (
+                <li class="flex gap-4" data-reveal data-reveal-delay={i * 70}>
+                  <span
+                    class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-tf-gradient"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <strong class="block text-[15px] font-bold">{title}</strong>
+                    <span class="text-[15px] leading-relaxed text-ink-soft">{body}</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div
+          class="rounded-3xl border border-ink-hair bg-surface/60 p-8 shadow-paper md:p-10"
+          data-reveal="rise"
+        >
+          <div class="mb-8 flex items-baseline gap-3">
+            <span class="text-5xl font-black tabular-nums">€39</span>
+            <span class="text-[15px] font-semibold text-ink-soft">/ month, for life</span>
+          </div>
+          <div class="rule mb-8"></div>
+          <EarlyAccessForm />
         </div>
       </div>
     </div>
@@ -109,16 +174,14 @@ const breadcrumb = {
     <div class="shell py-20">
       <div class="grid gap-10 md:grid-cols-[1fr_auto] md:items-end">
         <div class="max-w-prose">
-          <p class="micro mb-5">No date yet</p>
-          <h2 class="text-section font-black">
-            The list decides what this costs and when it ships.
-          </h2>
+          <p class="micro mb-5">Not ready to commit?</p>
+          <h2 class="text-section font-black">Just get told when it opens.</h2>
           <p class="mt-4 text-[15px] leading-relaxed text-ink-soft">
-            No launch spam. You will get one email when there is something real to look at.
+            No launch spam, and no locked price. One email when there is something real to look at.
           </p>
         </div>
         <div class="w-full max-w-md shrink-0">
-          <NewsletterForm source="course-waitlist" cta="Join the waitlist" />
+          <NewsletterForm source="course-waitlist" cta="Notify me" />
         </div>
       </div>
     </div>

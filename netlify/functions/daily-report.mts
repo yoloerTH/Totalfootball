@@ -108,6 +108,11 @@ export default async () => {
 
   const [subTotal] = await sql(`select count(*) as n from public.subscribers`)
 
+  // Early-access places taken. Not shown anywhere public, on purpose: a visible
+  // counter reading a small number undercuts a limited-places offer. Here it is
+  // exactly the number worth watching.
+  const [spots] = await sql(`select public.course_spots_taken() as taken`)
+
   const visits = Number(totals?.visits ?? 0)
   const views = Number(totals?.pageviews ?? 0)
   const newSubs = subs.reduce((a, r) => a + Number(r.n), 0)
@@ -129,6 +134,7 @@ export default async () => {
     L.push('No visits recorded in the last 24 hours.')
     L.push('')
     L.push(`Total subscribers: <b>${Number(subTotal?.n ?? 0)}</b>`)
+    L.push(`Early access claimed: <b>${Number(spots?.taken ?? 0)}</b>/100`)
     L.push(`<a href="${SITE}">${SITE.replace('https://', '')}</a>`)
   } else {
     L.push(
@@ -161,6 +167,7 @@ export default async () => {
     L.push('', `📬 <b>${newSubs}</b> new subscriber${newSubs === 1 ? '' : 's'}`)
     if (subs.length) L.push(subs.map((s) => `${esc(s.source)} (${s.n})`).join(' · '))
     L.push(`Total list: <b>${Number(subTotal?.n ?? 0)}</b>`)
+    L.push(`🎟 Early access claimed: <b>${Number(spots?.taken ?? 0)}</b>/100`)
   }
 
   const text = L.join('\n')

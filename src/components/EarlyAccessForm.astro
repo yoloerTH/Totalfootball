@@ -1,0 +1,127 @@
+---
+/**
+ * Course early access: name and email, in exchange for a price locked for life.
+ *
+ * Separate from NewsletterForm because it asks for a name and because it is a
+ * commitment rather than a subscription, so it deserves its own confirmation
+ * wording. It posts to the same `/api/subscribe` endpoint with the
+ * `course-early-access` source, which is what distinguishes a locked-price
+ * member from an ordinary waitlist signup.
+ *
+ * Progressive enhancement, same as the newsletter: a real <form> with a real
+ * action, so it works with JavaScript disabled. Script only intercepts submit
+ * to avoid a page navigation.
+ */
+interface Props {
+  source?: string
+  class?: string
+}
+
+const { source = 'course-early-access', class: klass = '' } = Astro.props
+const id = `ea-${Math.random().toString(36).slice(2, 8)}`
+---
+
+<form
+  class:list={['tf-early w-full', klass]}
+  method="POST"
+  action="/api/subscribe"
+  data-source={source}
+>
+  <input type="hidden" name="source" value={source} />
+
+  {/* Honeypot. Bots fill it; humans never see it. */}
+  <div class="absolute left-[-9999px]" aria-hidden="true">
+    <label for={`${id}-company`}>Company</label>
+    <input id={`${id}-company`} name="company" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <div>
+      <label for={`${id}-name`} class="mb-2 block text-[13px] font-semibold">Your name</label>
+      <input
+        id={`${id}-name`}
+        name="name"
+        type="text"
+        required
+        autocomplete="name"
+        maxlength="120"
+        placeholder="Alex Moreno"
+        class="w-full rounded-full border border-ink-hair bg-surface/70 px-5 py-3 text-sm
+               text-ink placeholder:text-ink-faint focus:border-ink/25 focus:outline-none"
+      />
+    </div>
+    <div>
+      <label for={`${id}-email`} class="mb-2 block text-[13px] font-semibold">Email</label>
+      <input
+        id={`${id}-email`}
+        name="email"
+        type="email"
+        required
+        autocomplete="email"
+        placeholder="you@email.com"
+        class="w-full rounded-full border border-ink-hair bg-surface/70 px-5 py-3 text-sm
+               text-ink placeholder:text-ink-faint focus:border-ink/25 focus:outline-none"
+      />
+    </div>
+  </div>
+
+  <button type="submit" class="btn-primary mt-4 w-full sm:w-auto" data-track="course:early-access">
+    Claim my place
+  </button>
+
+  <p class="tf-early-msg mt-4 hidden text-sm" role="status" aria-live="polite"></p>
+  <p class="mt-4 text-xs leading-relaxed text-ink-faint">
+    No payment now and no card details. You will be emailed once, when the course opens, with the
+    locked price already applied. Unsubscribe any time.
+  </p>
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('form.tf-early').forEach((form) => {
+    const msg = form.querySelector<HTMLElement>('.tf-early-msg')
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')
+
+    const say = (text: string, ok: boolean) => {
+      if (!msg) return
+      msg.textContent = text
+      msg.classList.remove('hidden')
+      msg.style.color = ok ? '#06A659' : '#B4341F'
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (!button) return
+
+      const data = new FormData(form)
+      if (data.get('company')) {
+        say('You are on the list.', true)
+        form.reset()
+        return
+      }
+
+      const label = button.textContent
+      button.disabled = true
+      button.textContent = 'Saving…'
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: data.get('name'),
+            email: data.get('email'),
+            source: data.get('source'),
+          }),
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        say('Your place is held and your price is locked. Check your inbox when we open.', true)
+        form.reset()
+      } catch {
+        say('That did not go through. Try again in a moment.', false)
+      } finally {
+        button.disabled = false
+        button.textContent = label
+      }
+    })
+  })
+</script>

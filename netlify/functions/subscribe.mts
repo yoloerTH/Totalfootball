@@ -66,6 +66,7 @@ export default async (request: Request) => {
   let email = ''
   let source = 'unknown'
   let honeypot = ''
+  let name = ''
 
   try {
     if (isForm) {
@@ -73,11 +74,13 @@ export default async (request: Request) => {
       email = form.get('email') ?? ''
       source = form.get('source') ?? 'unknown'
       honeypot = form.get('company') ?? ''
+      name = form.get('name') ?? ''
     } else {
       const body = (await request.json()) as Record<string, string>
       email = body.email ?? ''
       source = body.source ?? 'unknown'
       honeypot = body.company ?? ''
+      name = body.name ?? ''
     }
   } catch {
     return isForm
@@ -98,6 +101,10 @@ export default async (request: Request) => {
   }
 
   source = source.slice(0, 64)
+  // Optional everywhere except the course form, which collects it. Trimmed and
+  // capped to match the CHECK constraint; an empty string is stored as null so
+  // the column means "we do not know" rather than "they are called nothing".
+  const cleanName = name.trim().slice(0, 120) || null
 
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_ANON_KEY
@@ -116,7 +123,7 @@ export default async (request: Request) => {
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
-    body: JSON.stringify([{ email, source }]),
+    body: JSON.stringify([{ email, source, name: cleanName }]),
   })
 
   /**
