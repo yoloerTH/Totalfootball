@@ -1,6 +1,10 @@
 # totalfootball-web
 
-The Total Football site — `totalfootball.naurra.ai`.
+The Total Football site: **https://totalfootball.naurra.ai** (live since 2026-08-09).
+
+Netlify project `totalfootball-694` in `amathelw2's team`, the same account that
+hosts naurra.ai. DNS is Netlify-managed, so the subdomain record already exists
+and TLS is covered by the `*.naurra.ai` wildcard.
 
 Astro 6 (static) · Tailwind 3 · Netlify · Supabase for email capture. The stack
 deliberately mirrors `AI ASSITANT FULL/voice-ai-client` so there is one mental
@@ -15,7 +19,12 @@ locked decisions, and the reasons behind the non-obvious choices.
 
 ```bash
 npm install
-npm run dev                  # http://localhost:4321
+npm run dev                  # http://localhost:4321 (no functions)
+netlify dev                  # http://localhost:8888 (with functions)
+netlify deploy --prod --build
+
+node scripts/analytics-report.mjs      # traffic + signups, last 30 days
+node scripts/brand-assets.mjs          # regenerate og-default / logo / touch icon
 npm run build                # astro check && astro build → dist/
 npm run preview
 
