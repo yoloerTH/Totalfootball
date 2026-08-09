@@ -2,19 +2,32 @@
 
 /**
  * Brand tokens are a direct port of editor/src/branding/totalFootball.ts.
- * One source of truth with the videos — do not re-pick these by eye.
+ * One source of truth with the videos, so do not re-pick these by eye.
+ *
+ * The neutrals resolve through CSS variables (see src/styles/global.css) so a
+ * single `data-theme="dark"` on <html> re-skins the whole site. They are stored
+ * as space-separated RGB channels rather than hex because that is what lets
+ * Tailwind's slash-opacity syntax keep working: `text-ink/85` compiles to
+ * `rgb(var(--tf-ink) / 0.85)`.
+ *
+ * Gold and green are fixed. They are the brand and they read on both grounds.
  */
+const channel = (name) => `rgb(var(${name}) / <alpha-value>)`
+
 export default {
   content: ['./src/**/*.{astro,js,ts,jsx,tsx,md,mdx}'],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        paper: '#F4F4F2',
-        'paper-deep': '#EAEAE6',
-        ink: '#161618',
-        'ink-soft': 'rgba(22,22,24,0.62)',
-        'ink-faint': 'rgba(22,22,24,0.38)',
-        'ink-hair': 'rgba(22,22,24,0.10)',
+        paper: channel('--tf-paper'),
+        'paper-deep': channel('--tf-paper-deep'),
+        /** Raised panels. White on light, a lifted charcoal on dark. */
+        surface: channel('--tf-surface'),
+        ink: channel('--tf-ink'),
+        'ink-soft': 'rgb(var(--tf-ink) / 0.62)',
+        'ink-faint': 'rgb(var(--tf-ink) / 0.38)',
+        'ink-hair': 'rgb(var(--tf-ink) / 0.10)',
         gold: '#E6B23A',
         'gold-deep': '#C9902B',
         green: '#08C16A',
@@ -40,9 +53,12 @@ export default {
           'linear-gradient(135deg, rgba(230,178,58,0.14) 0%, rgba(8,193,106,0.14) 100%)',
       },
       boxShadow: {
-        // The video identity's signature: a soft, low, wide drop — never a hard card shadow.
-        paper: '0 1px 2px rgba(22,22,24,0.04), 0 12px 40px -12px rgba(22,22,24,0.14)',
-        lift: '0 2px 4px rgba(22,22,24,0.04), 0 28px 60px -20px rgba(22,22,24,0.22)',
+        // The video identity's signature: a soft, low, wide drop, never a hard
+        // card shadow. Driven by variables because a shadow that reads on paper
+        // is invisible on a near-black ground, where the panel has to be lifted
+        // by a hairline and a lighter fill instead.
+        paper: 'var(--tf-shadow-paper)',
+        lift: 'var(--tf-shadow-lift)',
       },
       maxWidth: {
         prose: '68ch',

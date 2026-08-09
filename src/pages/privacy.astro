@@ -1,9 +1,8 @@
 ---
 /**
- * TODO(thanos): have this reviewed against the operating entity before launch:
- * the controller name, address and contact address below are placeholders that
- * must match whoever actually runs the site (naurra.ai's registered entity, or
- * a separate one).
+ * Controller details match naurra.ai's registered entity, taken from the
+ * Organization schema in voice-ai-client/src/layouts/BaseLayout.astro so the
+ * two sites cannot disagree about who operates them.
  */
 import BaseLayout from '../layouts/BaseLayout.astro'
 
@@ -121,10 +120,22 @@ const updated = '9 August 2026'
       </section>
 
       <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Who runs this site</h2>
+        <p>
+          Total Football is operated by <strong class="font-bold">NAURRA AI LTD</strong>, a company
+          registered in Cyprus, number HE 493756, at 10 Kyriakou Matsi, LILIANA COURT, 4th Floor,
+          Nicosia 1082, Cyprus. NAURRA AI LTD is the data controller for everything described above.
+        </p>
+      </section>
+
+      <section>
         <h2 class="mb-3 text-xl font-black text-ink">Contact</h2>
         <p>
-          <!-- TODO(thanos): replace with the real contact address. -->
-          Email <span class="font-semibold text-ink">[contact address to be confirmed]</span>.
+          For anything on this page, including access and deletion requests, email
+          <a
+            href="mailto:athanasios@naurra.ai"
+            class="font-semibold text-ink underline underline-offset-2">athanasios@naurra.ai</a
+          >.
         </p>
       </section>
     </div>

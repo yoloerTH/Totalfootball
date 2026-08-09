@@ -47,7 +47,8 @@ const dots = Array.from({ length: total }, (_, i) => ({
         cx={d.cx}
         cy={d.cy}
         r={R}
-        fill={d.on ? color : 'rgba(22,22,24,0.14)'}
+        fill={d.on ? color : 'currentColor'}
+        fill-opacity={d.on ? undefined : 0.14}
         class={d.on ? 'dm-on' : undefined}
         style={d.on ? `animation-delay:${d.i * 90}ms` : undefined}
       />

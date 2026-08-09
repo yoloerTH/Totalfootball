@@ -18,7 +18,7 @@ interface Props {
 const { class: klass = '', cut = 0.62 } = Astro.props
 
 const GOLD = '#E6B23A'
-const INK = '#161618'
+const INK = 'currentColor'
 
 const W = 520
 const H = 240
@@ -107,8 +107,8 @@ const uid = `mc-${Math.random().toString(36).slice(2, 8)}`
     font-size="11"
     font-weight="800"
     letter-spacing="0.14em"
-    fill="#B4841F"
-    font-family="Inter Variable, Inter, sans-serif">THE EDGE</text
+    font-family="Inter Variable, Inter, sans-serif"
+    class="fill-[#B4841F] dark:fill-gold">THE EDGE</text
   >
 
   {/* scan */}

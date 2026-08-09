@@ -19,7 +19,9 @@ interface Props {
   title?: string
 }
 
-const { size = 96, disc = true, ink = '#161618', class: klass = '', title } = Astro.props
+// `currentColor` by default so the mark inverts with the theme; callers
+// that need a fixed colour (raster export, coloured ground) still pass one.
+const { size = 96, disc = true, ink = 'currentColor', class: klass = '', title } = Astro.props
 
 const GOLD = '#E6B23A'
 const GOLD_DEEP = '#C9902B'
@@ -98,7 +100,7 @@ const gid = `tf-mark-${Math.random().toString(36).slice(2, 9)}`
     </linearGradient>
   </defs>
 
-  {disc && <circle cx={C} cy={C} r={47} fill={PAPER} />}
+  {disc && <circle cx={C} cy={C} r={47} class="fill-paper" />}
 
   {/* gold→green outer ring */}
   <circle cx={C} cy={C} r={45} fill="none" stroke={`url(#${gid})`} stroke-width={3.2} />

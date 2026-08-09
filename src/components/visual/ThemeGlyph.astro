@@ -20,11 +20,11 @@ const { theme, class: klass = '' } = Astro.props
 const GREEN = '#08C16A'
 const RED = '#E2473B'
 const GOLD = '#E6B23A'
-const INK = 'rgba(22,22,24,0.22)'
+const INK = 'currentColor'
 ---
 
 <svg viewBox="0 0 120 84" class={klass} aria-hidden="true" focusable="false">
-  <rect x="1" y="1" width="118" height="82" rx="4" fill="none" stroke={INK} stroke-width="1.2" />
+  <rect x="1" y="1" width="118" height="82" rx="4" fill="none" stroke={INK} stroke-opacity="0.22" stroke-width="1.2" />
 
   {
     theme === 'defending' && (
@@ -116,7 +116,7 @@ const INK = 'rgba(22,22,24,0.22)'
     theme === 'set-pieces' && (
       <g>
         {/* a curved delivery into the six-yard box */}
-        <rect x="74" y="18" width="34" height="48" fill="none" stroke={INK} stroke-width="1.2" />
+        <rect x="74" y="18" width="34" height="48" fill="none" stroke={INK} stroke-opacity="0.22" stroke-width="1.2" />
         <path
           d="M22,64 C48,64 66,22 96,30"
           fill="none"

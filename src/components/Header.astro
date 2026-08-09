@@ -38,8 +38,47 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
       }
     </nav>
 
-    <div class="flex items-center gap-3">
-      <a href="/library/" class="btn-primary !px-5 !py-2 text-[13px]" data-track="nav:library">Browse systems</a>
+    <div class="flex items-center gap-2">
+      {/* Night mode. Light stays the default; this only ever sets an override. */}
+      <button
+        type="button"
+        id="tf-theme"
+        class="grid h-9 w-9 place-items-center rounded-full border border-ink-hair text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+        aria-label="Switch to night mode"
+        aria-pressed="false"
+        title="Night mode"
+      >
+        <svg
+          class="tf-moon h-[17px] w-[17px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+        </svg>
+        <svg
+          class="tf-sun hidden h-[17px] w-[17px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+          ></path>
+        </svg>
+      </button>
+
+      <a href="/library/" class="btn-primary !px-5 !py-2 text-[13px]" data-track="nav:library"
+        >Browse systems</a
+      >
     </div>
   </div>
 
@@ -64,3 +103,38 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
     }
   </nav>
 </header>
+
+<script is:inline>
+  ;(function () {
+    var btn = document.getElementById('tf-theme')
+    if (!btn) return
+    var root = document.documentElement
+    var moon = btn.querySelector('.tf-moon')
+    var sun = btn.querySelector('.tf-sun')
+    var meta = document.querySelector('meta[name="theme-color"]')
+
+    function render() {
+      var dark = root.getAttribute('data-theme') === 'dark'
+      moon.classList.toggle('hidden', dark)
+      sun.classList.toggle('hidden', !dark)
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false')
+      btn.setAttribute('aria-label', dark ? 'Switch to day mode' : 'Switch to night mode')
+      btn.setAttribute('title', dark ? 'Day mode' : 'Night mode')
+      if (meta) meta.setAttribute('content', dark ? '#0A0C0B' : '#F4F4F2')
+    }
+
+    render()
+
+    btn.addEventListener('click', function () {
+      var dark = root.getAttribute('data-theme') === 'dark'
+      if (dark) {
+        root.removeAttribute('data-theme')
+        try { localStorage.setItem('tf_theme', 'light') } catch (e) {}
+      } else {
+        root.setAttribute('data-theme', 'dark')
+        try { localStorage.setItem('tf_theme', 'dark') } catch (e) {}
+      }
+      render()
+    })
+  })()
+</script>

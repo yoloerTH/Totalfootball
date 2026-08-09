@@ -10,11 +10,54 @@
  */
 
 @layer base {
+  /*
+   * LIGHT IS THE DEFAULT AND STAYS THE DEFAULT.
+   *
+   * Note there is no `prefers-color-scheme` rule here, and that is deliberate:
+   * a first-time visitor on a machine set to dark still gets the paper stage,
+   * because that is the brand and it is what the diagrams were drawn on. Dark
+   * is opt-in through the header toggle and remembered from then on.
+   *
+   * Channels are space-separated RGB so Tailwind's `/opacity` syntax works.
+   */
   :root {
-    --tf-paper: #f4f4f2;
-    --tf-ink: #161618;
-    --tf-gold: #e6b23a;
-    --tf-green: #08c16a;
+    --tf-paper: 244 244 242; /* #F4F4F2 */
+    --tf-paper-deep: 234 234 230; /* #EAEAE6 */
+    --tf-surface: 255 255 255;
+    --tf-ink: 22 22 24; /* #161618 */
+
+    --tf-shadow-paper: 0 1px 2px rgb(22 22 24 / 0.04), 0 12px 40px -12px rgb(22 22 24 / 0.14);
+    --tf-shadow-lift: 0 2px 4px rgb(22 22 24 / 0.04), 0 28px 60px -20px rgb(22 22 24 / 0.22);
+
+    --tf-grid: 22 22 24;
+    --tf-grid-alpha: 0.055;
+  }
+
+  /*
+   * Dark palette lifted from the Total Football deck
+   * (Motion Graphics/linkedin-showcase/deck.html): a near-black with a faint
+   * green cast rather than a neutral grey, which keeps it in the same family
+   * as the pitch. Gold and green are unchanged and carry the identity across.
+   */
+  :root[data-theme='dark'] {
+    --tf-paper: 10 12 11; /* #0A0C0B */
+    --tf-paper-deep: 17 22 20; /* #111614 */
+    --tf-surface: 24 30 27;
+    --tf-ink: 245 245 243; /* #F5F5F3 */
+
+    /* On a dark ground a drop shadow does nothing. Panels are separated by a
+       hairline of light and a soft ambient glow instead. */
+    --tf-shadow-paper: 0 0 0 1px rgb(245 245 243 / 0.06), 0 18px 40px -20px rgb(0 0 0 / 0.8);
+    --tf-shadow-lift: 0 0 0 1px rgb(245 245 243 / 0.1), 0 30px 60px -24px rgb(0 0 0 / 0.9);
+
+    --tf-grid: 245 245 243;
+    --tf-grid-alpha: 0.05;
+  }
+
+  /* Theme swaps should feel deliberate, not like a page reload. */
+  :root.theme-ready body,
+  :root.theme-ready .stage::before {
+    transition: background-color 0.35s ease, color 0.35s ease;
   }
 
   html {
@@ -71,8 +114,11 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background-image: linear-gradient(rgba(22, 22, 24, 0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(22, 22, 24, 0.055) 1px, transparent 1px);
+    background-image: linear-gradient(
+        rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px,
+        transparent 1px
+      ),
+      linear-gradient(90deg, rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px, transparent 1px);
     background-size: 68px 68px;
     -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
     mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
@@ -102,7 +148,7 @@
     @apply btn bg-ink text-paper hover:-translate-y-px hover:shadow-lift;
   }
   .btn-ghost {
-    @apply btn border border-ink-hair bg-transparent text-ink hover:border-ink/25 hover:bg-white/60;
+    @apply btn border border-ink-hair bg-transparent text-ink hover:border-ink/25 hover:bg-surface/60;
   }
 
   /*

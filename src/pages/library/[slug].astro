@@ -177,7 +177,7 @@ const article = {
           <ul class="grid gap-px overflow-hidden rounded-2xl bg-ink-hair sm:grid-cols-3">
             {related.map((r) => (
               <li class="bg-paper">
-                <a href={`/library/${r.slug}/`} class="group block h-full p-7 transition-colors hover:bg-white/60">
+                <a href={`/library/${r.slug}/`} class="group block h-full p-7 transition-colors hover:bg-surface/60">
                   <p class="micro mb-4">{THEMES.find((t) => t.slug === r.theme)?.title}</p>
                   <h3 class="text-xl font-black leading-tight">{r.title}</h3>
                   <p class="mt-3 text-sm leading-relaxed text-ink-soft">{r.question}</p>
@@ -191,7 +191,7 @@ const article = {
 
     {/* ── Capture ──────────────────────────────────────────────────── */}
     <section class="shell pb-8">
-      <div class="rounded-3xl border border-ink-hair bg-white/50 p-8 md:p-12">
+      <div class="rounded-3xl border border-ink-hair bg-surface/50 p-8 md:p-12">
         <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
           <div>
             <h2 class="text-section font-black">Get the next one.</h2>

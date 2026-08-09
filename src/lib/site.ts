@@ -9,6 +9,17 @@ export const SITE_URL = (
   import.meta.env.PUBLIC_SITE_URL || 'https://totalfootball.naurra.ai'
 ).replace(/\/$/, '')
 
+/** The operating company, mirrored from naurra.ai's Organization schema. */
+export const ENTITY = {
+  legalName: 'NAURRA AI LTD',
+  registration: 'HE 493756',
+  street: '10 Kyriakou Matsi, LILIANA COURT, 4th Floor',
+  locality: 'Nicosia',
+  postalCode: '1082',
+  country: 'CY',
+  email: 'athanasios@naurra.ai',
+} as const
+
 export const SITE = {
   name: 'Total Football',
   tagline: 'The beautiful game, in full',

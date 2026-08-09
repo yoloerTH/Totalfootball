@@ -12,7 +12,7 @@
  */
 import '@fontsource-variable/inter'
 import '../styles/global.css'
-import { SITE, SITE_URL, abs, sameAs } from '../lib/site'
+import { SITE, SITE_URL, ENTITY, abs, sameAs } from '../lib/site'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import Analytics from '../components/Analytics.astro'
@@ -52,13 +52,35 @@ const fullTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} · ${SITE.t
 const canonical = abs(path)
 const ogImage = image.startsWith('http') ? image : `${SITE_URL}${image}`
 
+// A real registered company, address and contact are among the few entity
+// signals Google can actually verify, and entity strength is the bottleneck the
+// naurra.ai audit identified. Worth stating properly rather than minimally.
 const orgSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: SITE.name,
+  legalName: ENTITY.legalName,
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
   description: SITE.description,
+  identifier: {
+    '@type': 'PropertyValue',
+    propertyID: 'Cyprus Company Registration Number',
+    value: ENTITY.registration,
+  },
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: ENTITY.street,
+    addressLocality: ENTITY.locality,
+    postalCode: ENTITY.postalCode,
+    addressCountry: ENTITY.country,
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'Customer support',
+    email: ENTITY.email,
+  },
+  parentOrganization: { '@type': 'Organization', name: 'Naurra.ai', url: 'https://naurra.ai' },
   ...(sameAs.length ? { sameAs } : {}),
 }
 
@@ -138,10 +160,32 @@ const siteSchema = {
       ))
     }
 
-    {/* Marks the document as scripted so CSS can opt into reveal animations
-        without ever hiding content from crawlers or no-JS visitors. */}
+    {/*
+      Runs before the body paints, which is the whole point: reading the stored
+      theme after first paint would flash a white page at a night-mode reader.
+      It also marks the document as scripted so CSS can opt into reveal
+      animations without ever hiding content from crawlers or no-JS visitors.
+
+      Note there is no prefers-color-scheme fallback. Light is the brand default
+      and stays the default until someone chooses otherwise.
+    */}
     <script is:inline>
-      document.documentElement.classList.add('js')
+      ;(function () {
+        var root = document.documentElement
+        root.classList.add('js')
+        try {
+          if (localStorage.getItem('tf_theme') === 'dark') {
+            root.setAttribute('data-theme', 'dark')
+            var m = document.querySelector('meta[name="theme-color"]')
+            if (m) m.setAttribute('content', '#0A0C0B')
+          }
+        } catch (e) {}
+        // Transitions are enabled only after the initial theme is settled, so
+        // the first paint never animates.
+        requestAnimationFrame(function () {
+          root.classList.add('theme-ready')
+        })
+      })()
     </script>
   </head>
 
