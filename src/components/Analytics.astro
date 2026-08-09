@@ -1,0 +1,282 @@
+---
+/**
+ * First-party, cookie-free analytics, plus the consent banner it no longer uses.
+ *
+ * WHY THERE IS NO COOKIE BANNER
+ * The banner was built and then switched off deliberately (user decision,
+ * 2026-08-09). Under ePrivacy, consent is required for *storing or accessing
+ * information on the visitor's device* and for personal data. This collector
+ * does neither in any meaningful sense:
+ *
+ *   · no cookies, ever
+ *   · no IP address stored (Netlify resolves the country server-side)
+ *   · no user-agent stored, only a mobile/tablet/desktop bucket
+ *   · no fingerprinting, no cross-site identifier, no advertising, no sharing
+ *   · the session id lives in sessionStorage and is destroyed with the tab, so
+ *     it cannot recognise a returning visitor
+ *
+ * This is the same basis Plausible and Fathom operate on in the EU. It is a
+ * defensible reading rather than a certainty, so three things keep it honest
+ * and they are not optional:
+ *
+ *   1. the privacy page describes exactly what is collected,
+ *   2. Global Privacy Control and Do Not Track are obeyed automatically,
+ *   3. a one-click opt-out sits in the footer.
+ *
+ * Remove any of those and the no-banner position stops holding up.
+ *
+ * TO BRING THE BANNER BACK: set CONSENT_BANNER to true. The markup and its
+ * logic are intact below, and the tracker will go back to waiting for consent.
+ */
+const CONSENT_BANNER = false
+
+const STORAGE_KEY = 'tf_consent'
+const OPTOUT_KEY = 'tf_optout'
+const VERSION = 1
+---
+
+{
+  CONSENT_BANNER && (
+    <div
+      id="tf-consent"
+      hidden
+      class="fixed inset-x-0 bottom-0 z-50 border-t border-ink-hair bg-paper/95 backdrop-blur-md"
+      role="dialog"
+      aria-live="polite"
+      aria-label="Cookie and analytics notice"
+    >
+      <div class="shell flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+        <p class="max-w-2xl text-[13px] leading-relaxed text-ink-soft">
+          We would like to measure which pages get read, so we know what to write next. It is
+          privacy-first: no cookies, no ads, no profile, and nothing shared with anyone. You can say
+          no and the site works exactly the same.
+          <a href="/privacy/" class="font-semibold text-ink underline underline-offset-2">
+            Privacy
+          </a>
+        </p>
+        <div class="flex shrink-0 gap-2">
+          <button type="button" data-consent="denied" class="btn-ghost !px-5 !py-2 text-[13px]">
+            No thanks
+          </button>
+          <button type="button" data-consent="granted" class="btn-primary !px-5 !py-2 text-[13px]">
+            Allow
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+<script
+  is:inline
+  define:vars={{ STORAGE_KEY, OPTOUT_KEY, VERSION, CONSENT_BANNER }}
+>
+  ;(function () {
+    var ENDPOINT = '/api/track'
+
+    /**
+     * Opting out is sticky across visits, so unlike the session id this one
+     * genuinely does live in localStorage. Storing "leave me alone" is the one
+     * case where persistence is in the visitor's interest.
+     */
+    function optedOut() {
+      try {
+        return localStorage.getItem(OPTOUT_KEY) === '1'
+      } catch (e) {
+        return false
+      }
+    }
+
+    /** Browser-level "do not sell or share" and legacy DNT. Both honoured. */
+    function signalsNo() {
+      return (
+        navigator.globalPrivacyControl === true ||
+        navigator.doNotTrack === '1' ||
+        window.doNotTrack === '1'
+      )
+    }
+
+    function consented() {
+      if (!CONSENT_BANNER) return true // banner off: cookie-free collection runs by default
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY)
+        if (!raw) return false
+        var v = JSON.parse(raw)
+        return !!v && v.version === VERSION && v.state === 'granted'
+      } catch (e) {
+        return false
+      }
+    }
+
+    function allowed() {
+      return !optedOut() && !signalsNo() && consented()
+    }
+
+    // Exposed for the footer opt-out link, and for re-enabling the banner.
+    window.tfPrivacy = {
+      optOut: function () {
+        try {
+          localStorage.setItem(OPTOUT_KEY, '1')
+        } catch (e) {}
+        window.tfPrivacy.enabled = false
+        return true
+      },
+      optIn: function () {
+        try {
+          localStorage.removeItem(OPTOUT_KEY)
+        } catch (e) {}
+        return true
+      },
+      isOptedOut: optedOut,
+      enabled: false,
+    }
+
+    /**
+     * Per-tab id in sessionStorage, not localStorage. It links the pages of one
+     * visit and disappears when the tab closes, so it is not a persistent
+     * identifier and cannot be used to recognise a returning visitor.
+     */
+    function sessionId() {
+      try {
+        var id = sessionStorage.getItem('tf_sid')
+        if (!id) {
+          id =
+            crypto && crypto.randomUUID
+              ? crypto.randomUUID()
+              : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                  var r = (Math.random() * 16) | 0
+                  return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+                })
+          sessionStorage.setItem('tf_sid', id)
+        }
+        return id
+      } catch (e) {
+        return null
+      }
+    }
+
+    function send(payload, beacon) {
+      if (!allowed()) return
+      var sid = sessionId()
+      if (!sid) return
+      payload.sessionId = sid
+      payload.path = location.pathname
+      var body = JSON.stringify(payload)
+      // On page hide only sendBeacon is guaranteed to survive the unload.
+      if (beacon && navigator.sendBeacon) {
+        navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }))
+      } else {
+        fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true,
+        }).catch(function () {})
+      }
+    }
+
+    var started = 0
+    var active = 0
+    var counted = false
+
+    function pageview() {
+      if (counted) return
+      counted = true
+      started = Date.now()
+      send({ type: 'pageview', referrer: document.referrer || null })
+    }
+
+    /**
+     * Time on page counts only while the tab is actually visible, so a page
+     * left open in a background tab does not inflate the average.
+     */
+    function accumulate() {
+      if (started) {
+        active += Date.now() - started
+        started = 0
+      }
+    }
+
+    function flush() {
+      accumulate()
+      if (active > 0) {
+        send({ type: 'duration', durationMs: active }, true)
+        active = 0
+      }
+    }
+
+    function start() {
+      if (!allowed()) return
+      window.tfPrivacy.enabled = true
+      pageview()
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') flush()
+        else if (!started) started = Date.now()
+      })
+      window.addEventListener('pagehide', flush)
+
+      // Outbound and CTA clicks. `data-track` opts an element in by name;
+      // otherwise any link leaving the site is recorded by its host.
+      document.addEventListener(
+        'click',
+        function (e) {
+          var el = e.target && e.target.closest ? e.target.closest('a,button') : null
+          if (!el) return
+          var label = el.getAttribute('data-track')
+          if (!label && el.tagName === 'A' && el.href) {
+            try {
+              var u = new URL(el.href, location.href)
+              if (u.origin !== location.origin) label = 'outbound:' + u.hostname
+            } catch (err) {}
+          }
+          if (label) send({ type: 'click', label: label })
+        },
+        { capture: true }
+      )
+    }
+
+    // ── consent banner wiring, dormant while CONSENT_BANNER is false ────────
+    if (CONSENT_BANNER) {
+      var banner = document.getElementById('tf-consent')
+      if (banner) {
+        var read = function () {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY)
+            if (!raw) return null
+            var v = JSON.parse(raw)
+            return v && v.version === VERSION ? v.state : null
+          } catch (e) {
+            return null
+          }
+        }
+        window.tfConsent = {
+          get: read,
+          set: function (state) {
+            try {
+              localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({ state: state, version: VERSION, at: new Date().toISOString() })
+              )
+            } catch (e) {}
+            banner.hidden = true
+            if (state === 'granted') start()
+          },
+          show: function () {
+            banner.hidden = false
+          },
+        }
+        var current = read()
+        if (current === null) banner.hidden = false
+        else if (current === 'granted') start()
+        banner.querySelectorAll('[data-consent]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            window.tfConsent.set(btn.getAttribute('data-consent'))
+          })
+        })
+      }
+    } else {
+      start()
+    }
+  })()
+</script>

@@ -1,0 +1,272 @@
+---
+/**
+ * The landing page.
+ *
+ * Structure rule from docs/SPEC.md §4: each section ends in exactly one CTA, and
+ * no section competes with itself. The hero's LCP element is a static image with
+ * declared dimensions, never a video, never a webfont-dependent headline.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Mark from '../components/brand/Mark.astro'
+import SystemCard from '../components/library/SystemCard.astro'
+import MiniBoard from '../components/visual/MiniBoard.astro'
+import CameraCrop from '../components/visual/CameraCrop.astro'
+import ModelCurve from '../components/visual/ModelCurve.astro'
+import ThemeGlyph from '../components/visual/ThemeGlyph.astro'
+import CountUp from '../components/visual/CountUp.astro'
+import { SYSTEMS, THEMES, systemsByTheme } from '../data/systems'
+import { CHANNEL } from '../data/channel'
+import { LEDGER } from '../data/intelligence'
+import { SOCIAL } from '../lib/site'
+
+const featured = SYSTEMS.slice(0, 6)
+const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
+---
+
+<BaseLayout path="/">
+  {/* ── Hero ───────────────────────────────────────────────────────── */}
+  <section class="stage relative overflow-hidden border-b border-ink-hair">
+    <div
+      class="shell relative grid gap-16 py-20 md:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10"
+    >
+      <div class="max-w-[42rem]">
+        <p class="micro mb-8" data-reveal="fade">Football tactics · drawn, not filmed</p>
+
+        <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
+          The game, explained<br />
+          <span class="grad-text">as a diagram.</span>
+        </h1>
+
+        <p
+          class="mt-9 max-w-prose text-xl leading-[1.6] text-ink/85 md:text-[1.35rem]"
+          data-reveal
+          data-reveal-delay="240"
+        >
+          Every system on the board, phase by phase: how a back four slides, how a press is
+          triggered, how a low block is opened. No broadcast clips. No punditry. Just the shapes,
+          the distances, and what is actually happening.
+        </p>
+
+        <div class="mt-11 flex flex-wrap items-center gap-3" data-reveal data-reveal-delay="360">
+          <a href="/library/" class="btn-primary" data-track="hero:library">Browse the library</a>
+          {
+            SOCIAL.facebook && (
+              <a href={SOCIAL.facebook} target="_blank" rel="noopener" class="btn-ghost">
+                Follow on Facebook
+              </a>
+            )
+          }
+        </div>
+      </div>
+
+      {/* The product itself, running. A back four sliding as one while the ball
+          circulates. It teaches the hero's claim instead of illustrating it. */}
+      <div class="relative" data-reveal="rise" data-reveal-delay="200">
+        <div
+          class="pointer-events-none absolute -inset-10 -z-10 rounded-full bg-tf-gradient-soft blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+        <div class="rounded-3xl border border-ink-hair bg-white/55 p-5 shadow-paper backdrop-blur-sm sm:p-8">
+          <div class="mb-5 flex items-center justify-between">
+            <span class="micro">Back four · sliding</span>
+            <span class="flex items-center gap-2 text-[11px] font-semibold text-ink-faint">
+              <span class="h-1.5 w-1.5 rounded-full bg-green"></span>
+              live
+            </span>
+          </div>
+          <MiniBoard class="mx-auto block w-full max-w-[340px]" />
+        </div>
+      </div>
+    </div>
+
+    {/* Oversized mark bled off the edge as ground texture, turning very slowly
+        so the corner of the page is never completely dead. */}
+    <div
+      class="pointer-events-none absolute -bottom-40 -left-40 hidden opacity-[0.06] lg:block"
+      aria-hidden="true"
+    >
+      <div class="spin-slow"><Mark size={520} disc={false} /></div>
+    </div>
+  </section>
+
+  {/* ── Proof ──────────────────────────────────────────────────────── */}
+  <section class="border-b border-ink-hair bg-paper-deep/40">
+    <div class="shell py-14">
+      <dl class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div data-reveal>
+          <dt class="micro mb-3">Total views</dt>
+          <dd class="text-4xl font-black md:text-5xl">
+            <CountUp value={CHANNEL.totalPlays} display={CHANNEL.totalPlaysLabel} />
+          </dd>
+        </div>
+        <div data-reveal data-reveal-delay="90">
+          <dt class="micro mb-3">Followers</dt>
+          <dd class="text-4xl font-black md:text-5xl">
+            <CountUp value={CHANNEL.followers} display={CHANNEL.followersLabel} />
+          </dd>
+        </div>
+        <div data-reveal data-reveal-delay="180">
+          <dt class="micro mb-3">Breakdowns published</dt>
+          <dd class="text-4xl font-black md:text-5xl">
+            <CountUp value={CHANNEL.shortsPublished} />
+          </dd>
+        </div>
+        <div data-reveal data-reveal-delay="270">
+          <dt class="micro mb-3">Most-watched breakdown</dt>
+          <dd class="text-4xl font-black md:text-5xl">
+            <CountUp value={CHANNEL.bestShortPlays} display={CHANNEL.bestShortPlaysLabel} />
+            <span class="ml-1 text-base font-semibold text-ink-faint">views</span>
+          </dd>
+        </div>
+      </dl>
+      <p class="mt-8 text-xs text-ink-faint">
+        Figures as of {
+          new Date(CHANNEL.asOf).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+        }.
+      </p>
+    </div>
+  </section>
+
+  {/* ── What this is ───────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-32">
+    <div class="grid gap-14 md:grid-cols-[0.9fr_1.1fr]">
+      <div>
+        <p class="micro mb-6" data-reveal="fade">The method</p>
+        <h2 class="text-title font-black" data-reveal="clip">Nothing here was filmed.</h2>
+      </div>
+      <div class="max-w-prose space-y-6 text-[17px] leading-[1.75] text-ink/85">
+        <p data-reveal>
+          Most football content is a clip with an arrow drawn on it. The problem with a clip is that
+          it shows you one camera angle of one moment, and the thing you actually need to see, the
+          four players off-screen who moved at the same time, is not in the frame.
+        </p>
+        <p data-reveal data-reveal-delay="80">
+          So every frame here is drawn from scratch on a scale pitch. That means the whole shape is
+          always visible, the distances are real, and the moment can be held, rewound, or run twice
+          with one variable changed. It also means nothing is ever borrowed from a broadcaster.
+        </p>
+        <p class="font-semibold text-ink" data-reveal data-reveal-delay="160">
+          The result is the same lesson a coach would give at a whiteboard, in twenty seconds.
+        </p>
+      </div>
+    </div>
+
+    {/* The claim above, made visible: a broadcast frame panning across a full
+        pitch, everything outside it dropping to a ghost. */}
+    <figure
+      class="mt-16 overflow-hidden rounded-3xl border border-ink-hair bg-white/50 p-6 sm:p-10"
+      data-reveal="rise"
+    >
+      <CameraCrop class="mx-auto block w-full max-w-3xl" />
+      <figcaption class="mt-6 text-center text-sm text-ink-soft">
+        Wherever the camera points, most of the shape is outside it, and the players deciding the
+        phase are usually the ones off frame.
+      </figcaption>
+    </figure>
+  </section>
+
+  {/* ── Library preview ────────────────────────────────────────────── */}
+  <section class="border-y border-ink-hair bg-paper-deep/30">
+    <div class="shell py-20 md:py-28">
+      <div class="mb-12 flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <p class="micro mb-5" data-reveal="fade">The library</p>
+          <h2 class="max-w-[20ch] text-title font-black" data-reveal="clip">
+            Start with the ones people rewatch.
+          </h2>
+        </div>
+        <a href="/library/" class="btn-ghost" data-reveal data-reveal-delay="160">All systems →</a>
+      </div>
+
+      {/* Themes as diagrams rather than a list of words. */}
+      <ul class="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {
+          populatedThemes.map((t, i) => (
+            <li data-reveal="rise" data-reveal-delay={i * 70}>
+              <a
+                href={`/library/theme/${t.slug}/`}
+                class="group block rounded-2xl border border-ink-hair bg-paper p-4 transition-all duration-300 hover:-translate-y-1 hover:border-ink/15 hover:shadow-paper"
+              >
+                <ThemeGlyph theme={t.slug} class="mb-3 w-full" />
+                <p class="text-[13px] font-bold">{t.title}</p>
+                <p class="mt-0.5 text-[11px] tabular-nums text-ink-faint">
+                  {systemsByTheme(t.slug).length} system
+                  {systemsByTheme(t.slug).length === 1 ? '' : 's'}
+                </p>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          featured.map((system, i) => (
+            <div data-reveal="rise" data-reveal-delay={i * 70}>
+              <SystemCard system={system} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {/* ── Intelligence ───────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-32">
+    <div
+      class="grid gap-10 rounded-3xl border border-ink-hair bg-white/50 p-9 md:grid-cols-[1fr_1.05fr] md:items-center md:p-14"
+      data-reveal="rise"
+    >
+      <div>
+        <p class="micro mb-5">Total Stats · Daily Intelligence</p>
+        <h2 class="text-title font-black">A model that prices the match.</h2>
+        <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft">
+          The same analytical habit, pointed at numbers instead of shapes: a rated model, a graded
+          ledger, and one card a day posted free to Telegram. Every result published, wins and
+          losses alike.
+        </p>
+        <dl class="mt-8 flex gap-10">
+          <div>
+            <dt class="micro mb-2">Last 10 cards</dt>
+            <dd class="text-2xl font-black tabular-nums">{LEDGER.national.last10Roi}</dd>
+          </div>
+          <div>
+            <dt class="micro mb-2">Graded picks</dt>
+            <dd class="text-2xl font-black">
+              <CountUp value={LEDGER.national.picks} />
+            </dd>
+          </div>
+        </dl>
+        <a href="/intelligence/" class="btn-primary mt-9" data-track="home:intelligence">See the record</a>
+      </div>
+      <ModelCurve class="w-full" />
+    </div>
+  </section>
+
+  {/* ── Course ─────────────────────────────────────────────────────── */}
+  <section class="border-t border-ink-hair">
+    <div class="shell py-20 md:py-28">
+      <div class="grid gap-10 md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <p class="micro mb-5" data-reveal="fade">Coming soon</p>
+          <h2 class="max-w-[22ch] text-title font-black" data-reveal="clip">
+            How these videos actually get made.
+          </h2>
+          <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal data-reveal-delay="140">
+            The full pipeline: the board engine, the choreography, the pacing rules that came out
+            of measuring 88 published shorts. Join the waitlist and you will hear first.
+          </p>
+        </div>
+        <a href="/course/" class="btn-ghost shrink-0" data-track="home:course" data-reveal data-reveal-delay="240"
+          >Join the waitlist →</a
+        >
+      </div>
+      <div class="mt-10 h-px w-full origin-left bg-ink-hair" data-reveal="line"></div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,38 @@
+---
+/**
+ * "TOTAL" spaced and light, stacked over "FOOTBALL" heavy in the gold→green
+ * gradient. Ported from editor/src/branding/TotalFootballWordmark.tsx.
+ *
+ * The optical detail worth keeping: when centred, the wide letter-spacing on
+ * TOTAL adds a trailing gap after the final letter, so the word reads left of
+ * true centre. `text-indent` of one tracking unit cancels it.
+ */
+interface Props {
+  /** Height of the FOOTBALL line in px; everything scales from it. */
+  size?: number
+  align?: 'center' | 'left'
+  class?: string
+  /** Render as an h1's inner lockup rather than its own element. */
+  as?: 'div' | 'span'
+}
+
+const { size = 56, align = 'center', class: klass = '', as: Tag = 'div' } = Astro.props
+
+const scale = size / 112
+const topSize = 40 * scale
+const tracking = 0.52 * scale
+---
+
+<Tag
+  class={`inline-flex flex-col leading-none ${align === 'center' ? 'items-center' : 'items-start'} ${klass}`}
+>
+  <span
+    class="font-bold text-ink"
+    style={`font-size:${topSize}px; letter-spacing:${tracking}em; margin-bottom:${10 * scale}px; text-indent:${align === 'center' ? `${tracking}em` : '0'}`}
+    >TOTAL</span
+  >
+  <span
+    class="grad-text font-black"
+    style={`font-size:${size}px; letter-spacing:${-0.02 * scale}em`}>FOOTBALL</span
+  >
+</Tag>

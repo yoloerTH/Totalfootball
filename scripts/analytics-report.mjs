@@ -1,0 +1,166 @@
+/**
+ * Read the analytics back. There is no dashboard, so this is the dashboard.
+ *
+ *   node scripts/analytics-report.mjs            last 30 days
+ *   node scripts/analytics-report.mjs 7          last 7 days
+ *
+ * Uses the SERVICE ROLE key, because anon deliberately cannot read the table.
+ * Run it locally only; never expose it.
+ */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
+const DAYS = Number(process.argv[2] || 30)
+
+const CRED =
+  '/Users/thanospangios/Downloads/YT Project/SHort Editor Specialist/football-ev-lab/Supabase Bet-ALL CREDENTIALS.txt'
+
+function serviceKey() {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return process.env.SUPABASE_SERVICE_ROLE_KEY
+  const m = readFileSync(CRED, 'utf8').match(/^Service role:\s*(\S+)/mi)
+  if (!m) throw new Error('service role key not found')
+  return m[1]
+}
+
+function supabaseUrl() {
+  if (process.env.SUPABASE_URL) return process.env.SUPABASE_URL
+  const env = readFileSync(join(ROOT, '.env'), 'utf8').match(/^SUPABASE_URL=(.*)$/m)
+  if (!env) throw new Error('SUPABASE_URL not found')
+  return env[1].trim()
+}
+
+const URL_BASE = supabaseUrl()
+const KEY = serviceKey()
+
+async function sql(query) {
+  const res = await fetch(`${URL_BASE}/rest/v1/rpc/execute_sql`, {
+    method: 'POST',
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  })
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`)
+  const text = await res.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    return []
+  }
+}
+
+const SINCE = `now() - interval '${DAYS} days'`
+const ms = (v) => (v == null ? '-' : `${(Number(v) / 1000).toFixed(0)}s`)
+
+function table(rows, cols) {
+  if (!rows.length) return '  (nothing yet)'
+  const w = cols.map((c) => Math.max(c.label.length, ...rows.map((r) => String(c.get(r)).length)))
+  const line = (cells) => '  ' + cells.map((c, i) => String(c).padEnd(w[i])).join('   ')
+  return [
+    line(cols.map((c) => c.label)),
+    '  ' + w.map((n) => '-'.repeat(n)).join('   '),
+    ...rows.map((r) => line(cols.map((c) => c.get(r)))),
+  ].join('\n')
+}
+
+console.log(`\nTOTAL FOOTBALL  ·  last ${DAYS} days\n${'='.repeat(48)}`)
+
+const [overview] = await sql(`
+  select
+    count(*) filter (where type = 'pageview')            as pageviews,
+    count(distinct session_id)                            as visits,
+    count(*) filter (where type = 'click')                as clicks
+  from public.site_events where created_at >= ${SINCE}`)
+
+const [timing] = await sql(`
+  select
+    round(avg(total)) as avg_visit_ms,
+    round(avg(per_page)) as avg_page_ms
+  from (
+    select session_id, sum(duration_ms) as total, avg(duration_ms) as per_page
+    from public.site_events
+    where type = 'duration' and created_at >= ${SINCE}
+    group by session_id
+  ) s`)
+
+console.log(`
+  Visits          ${overview?.visits ?? 0}
+  Page views      ${overview?.pageviews ?? 0}
+  Pages / visit   ${overview?.visits ? (overview.pageviews / overview.visits).toFixed(2) : '0'}
+  Avg on a page   ${ms(timing?.avg_page_ms)}
+  Avg per visit   ${ms(timing?.avg_visit_ms)}
+  Clicks tracked  ${overview?.clicks ?? 0}`)
+
+console.log('\nTOP PAGES')
+console.log(
+  table(
+    await sql(`
+      select v.path,
+             count(*) as views,
+             count(distinct v.session_id) as visitors,
+             (select round(avg(d.duration_ms)) from public.site_events d
+               where d.type = 'duration' and d.path = v.path and d.created_at >= ${SINCE}) as avg_ms
+      from public.site_events v
+      where v.type = 'pageview' and v.created_at >= ${SINCE}
+      group by v.path order by views desc limit 15`),
+    [
+      { label: 'PATH', get: (r) => r.path },
+      { label: 'VIEWS', get: (r) => r.views },
+      { label: 'VISITORS', get: (r) => r.visitors },
+      { label: 'AVG TIME', get: (r) => ms(r.avg_ms) },
+    ]
+  )
+)
+
+console.log('\nCLICKS')
+console.log(
+  table(
+    await sql(`select label, count(*) as n from public.site_events
+               where type = 'click' and label is not null and created_at >= ${SINCE}
+               group by label order by n desc limit 15`),
+    [
+      { label: 'LABEL', get: (r) => r.label },
+      { label: 'COUNT', get: (r) => r.n },
+    ]
+  )
+)
+
+console.log('\nREFERRERS')
+console.log(
+  table(
+    await sql(`select coalesce(referrer, '(direct)') as src, count(distinct session_id) as visits
+               from public.site_events where type = 'pageview' and created_at >= ${SINCE}
+               group by src order by visits desc limit 10`),
+    [
+      { label: 'SOURCE', get: (r) => r.src },
+      { label: 'VISITS', get: (r) => r.visits },
+    ]
+  )
+)
+
+console.log('\nDEVICE / COUNTRY')
+console.log(
+  table(
+    await sql(`select coalesce(device,'?') as device, coalesce(country,'?') as country,
+                      count(distinct session_id) as visits
+               from public.site_events where type = 'pageview' and created_at >= ${SINCE}
+               group by device, country order by visits desc limit 10`),
+    [
+      { label: 'DEVICE', get: (r) => r.device },
+      { label: 'COUNTRY', get: (r) => r.country },
+      { label: 'VISITS', get: (r) => r.visits },
+    ]
+  )
+)
+
+console.log('\nSUBSCRIBERS BY SOURCE')
+console.log(
+  table(
+    await sql(`select source, count(*) as n from public.subscribers group by source order by n desc`),
+    [
+      { label: 'SOURCE', get: (r) => r.source },
+      { label: 'COUNT', get: (r) => r.n },
+    ]
+  )
+)
+console.log()

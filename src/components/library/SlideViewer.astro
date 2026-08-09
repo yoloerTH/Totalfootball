@@ -1,0 +1,174 @@
+---
+/**
+ * The phase-by-phase viewer.
+ *
+ * THE RULE THAT SHAPES THIS COMPONENT: every phase's heading, caption and body
+ * exists in the initial HTML. Script only changes which one is *visible*. With
+ * JavaScript off, and for a crawler, this renders as a plain illustrated
+ * article, top to bottom, fully readable. That version is what gets indexed, so
+ * it is never allowed to degrade. See docs/SPEC.md §5.
+ *
+ * Consequence: no fetching, no client-side templating, no `display:none` on
+ * anything until script has confirmed it can drive the UI.
+ */
+import type { Phase } from '../../data/systems'
+import PhaseImage from './PhaseImage.astro'
+
+interface Props {
+  slug: string
+  phases: Phase[]
+}
+
+const { slug, phases } = Astro.props
+---
+
+<section class="tf-slides" data-slides aria-label="Phase by phase">
+  {/* Progress rail. Hidden until script upgrades the component. In the static
+      version the phases are simply numbered headings, which needs no rail. */}
+  <div class="tf-rail mb-8 hidden items-center gap-3" data-rail>
+    <ol class="flex flex-1 gap-1.5" role="tablist" aria-label="Phases">
+      {
+        phases.map((p) => (
+          <li class="flex-1">
+            <button
+              type="button"
+              role="tab"
+              class="tf-dot group block w-full py-2"
+              data-goto={p.n}
+              aria-selected={p.n === 1 ? 'true' : 'false'}
+              aria-controls={`phase-${p.n}`}
+            >
+              <span class="sr-only">
+                Phase {p.n}: {p.title}
+              </span>
+              <span class="block h-[3px] w-full rounded-full bg-ink-hair transition-colors duration-300 group-hover:bg-ink-faint" />
+            </button>
+          </li>
+        ))
+      }
+    </ol>
+    <p class="w-16 shrink-0 text-right text-xs tabular-nums text-ink-faint">
+      <span data-current>1</span>/<span>{phases.length}</span>
+    </p>
+  </div>
+
+  <div class="tf-stack">
+    {
+      phases.map((p) => (
+        <article
+          id={`phase-${p.n}`}
+          class="tf-phase mb-20 scroll-mt-24 md:mb-28"
+          data-phase={p.n}
+          role="tabpanel"
+          aria-label={`Phase ${p.n}: ${p.title}`}
+        >
+          <div class="grid gap-8 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] md:items-center md:gap-14">
+            <figure class="order-1">
+              {/* The first diagram is the page's LCP element, so it loads eagerly
+                  at high priority; everything below the fold stays lazy. */}
+              <PhaseImage slug={slug} n={p.n} alt={p.alt} eager={p.n === 1} />
+              <figcaption class="mt-4 text-sm leading-relaxed text-ink-soft md:hidden">
+                {p.caption}
+              </figcaption>
+            </figure>
+
+            <div class="order-2">
+              <p class="micro mb-4">
+                Phase {String(p.n).padStart(2, '0')} · {p.caption}
+              </p>
+              <h2 class="text-section font-black">{p.title}</h2>
+              <p class="mt-5 max-w-prose text-[17px] leading-[1.7] text-ink/85">{p.body}</p>
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+
+  {/* Prev/next, only meaningful once script is driving. */}
+  <div class="tf-nav hidden items-center justify-between gap-4" data-nav>
+    <button type="button" class="btn-ghost" data-prev>← Previous</button>
+    <button type="button" class="btn-primary" data-next>Next phase →</button>
+  </div>
+</section>
+
+<style>
+  /* Only the scripted version collapses to one phase at a time. */
+  :global(.js) .tf-slides[data-upgraded] .tf-phase {
+    display: none;
+    margin-bottom: 3rem;
+  }
+  :global(.js) .tf-slides[data-upgraded] .tf-phase[data-active] {
+    display: block;
+    animation: tf-phase-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  :global(.js) .tf-slides[data-upgraded] .tf-rail,
+  :global(.js) .tf-slides[data-upgraded] .tf-nav {
+    display: flex;
+  }
+  .tf-dot[aria-selected='true'] span:last-child {
+    background: #161618;
+  }
+
+  @keyframes tf-phase-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.js) .tf-slides[data-upgraded] .tf-phase[data-active] {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-slides]').forEach((root) => {
+    const phases = Array.from(root.querySelectorAll<HTMLElement>('.tf-phase'))
+    if (phases.length < 2) return
+
+    const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-goto]'))
+    const counter = root.querySelector<HTMLElement>('[data-current]')
+    const prev = root.querySelector<HTMLButtonElement>('[data-prev]')
+    const next = root.querySelector<HTMLButtonElement>('[data-next]')
+
+    let index = 0
+
+    const show = (i: number, focus = false) => {
+      index = Math.max(0, Math.min(phases.length - 1, i))
+      phases.forEach((el, k) => {
+        if (k === index) el.setAttribute('data-active', '')
+        else el.removeAttribute('data-active')
+      })
+      dots.forEach((d, k) => d.setAttribute('aria-selected', k === index ? 'true' : 'false'))
+      if (counter) counter.textContent = String(index + 1)
+      if (prev) prev.disabled = index === 0
+      if (next) next.textContent = index === phases.length - 1 ? 'Back to start' : 'Next phase →'
+      // Keep the reading position stable when stepping through.
+      if (focus) phases[index].scrollIntoView({ block: 'nearest' })
+    }
+
+    // Upgrade only now that we know the handlers are attached. Before this
+    // point the static stacked article is what the user (and crawler) sees.
+    root.setAttribute('data-upgraded', '')
+    show(0)
+
+    dots.forEach((d) =>
+      d.addEventListener('click', () => show(Number(d.dataset.goto) - 1, true))
+    )
+    prev?.addEventListener('click', () => show(index - 1, true))
+    next?.addEventListener('click', () =>
+      show(index === phases.length - 1 ? 0 : index + 1, true)
+    )
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') show(index + 1, true)
+      if (event.key === 'ArrowLeft') show(index - 1, true)
+    })
+  })
+</script>

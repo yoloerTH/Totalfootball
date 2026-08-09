@@ -1,0 +1,242 @@
+---
+/**
+ * A living miniature of the thing this whole site is about: a back four sliding
+ * as one unit while the ball circulates, with the pressing job handing down the
+ * line.
+ *
+ * It is not decoration; it teaches the same lesson as the library's first page,
+ * in six seconds, without asking anyone to click. That is why it earns a place
+ * in the hero.
+ *
+ * Pure SVG + CSS keyframes: no JS, no library, no layout cost. One shared
+ * 13-second timeline drives the ball, the block and the press ring, so they
+ * stay locked to each other. Freezes to a readable still under reduced-motion.
+ */
+interface Props {
+  class?: string
+  /** Decorative by default; pass a label to expose it to assistive tech. */
+  title?: string
+}
+
+const { class: klass = '', title } = Astro.props
+
+const GREEN = '#08C16A'
+const GREEN_DEEP = '#06A659'
+const RED = '#E2473B'
+const INK = '#161618'
+const GOLD = '#E6B23A'
+
+// Defenders, in a shallow arc; the centre-backs sit fractionally deeper.
+const BACK_FOUR = [
+  { x: 268, y: 120, label: 'RB' },
+  { x: 276, y: 190, label: 'CB' },
+  { x: 276, y: 260, label: 'CB' },
+  { x: 268, y: 330, label: 'LB' },
+]
+
+const ATTACKERS = [
+  { x: 105, y: 115 },
+  { x: 140, y: 235 },
+  { x: 95, y: 355 },
+]
+
+const uid = `mb-${Math.random().toString(36).slice(2, 8)}`
+---
+
+<svg
+  viewBox="0 0 380 460"
+  class={klass}
+  role={title ? 'img' : undefined}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+  focusable="false"
+>
+  <defs>
+    <linearGradient id={`${uid}-band`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color={GREEN} stop-opacity="0.16" />
+      <stop offset="100%" stop-color={GREEN} stop-opacity="0.04" />
+    </linearGradient>
+    <radialGradient id={`${uid}-tok`} cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45" />
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  {/* ── pitch ── */}
+  <g stroke={INK} stroke-opacity="0.16" fill="none" stroke-width="1.5">
+    <rect x="14" y="14" width="352" height="432" rx="3" />
+    <rect x="300" y="110" width="66" height="240" />
+    <rect x="344" y="170" width="22" height="120" />
+    <path d="M300,175 A 70 70 0 0 0 300,285" />
+    <line x1="14" y1="230" x2="30" y2="230" />
+  </g>
+
+  {/* ── attackers (static: they are the problem, not the lesson) ── */}
+  {
+    ATTACKERS.map((a, i) => (
+      <g class={`mb-atk mb-d${i}`}>
+        <circle cx={a.x} cy={a.y} r="15" fill={RED} />
+        <circle cx={a.x} cy={a.y} r="15" fill={`url(#${uid}-tok)`} />
+      </g>
+    ))
+  }
+
+  {/* ── the block: everything that slides as one lives in here ── */}
+  <g class="mb-block">
+    <path
+      d="M268,120 L276,190 L276,260 L268,330 L366,330 L366,120 Z"
+      fill={`url(#${uid}-band)`}
+    />
+    <path
+      d="M268,120 L276,190 L276,260 L268,330"
+      fill="none"
+      stroke={GREEN_DEEP}
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    {/* the pressing job, handed down the line */}
+    <g class="mb-ring">
+      <circle cx="0" cy="0" r="23" fill="none" stroke={GOLD} stroke-width="2.5" />
+    </g>
+
+    {
+      BACK_FOUR.map((d) => (
+        <g>
+          <circle cx={d.x} cy={d.y} r="16" fill={GREEN} />
+          <circle cx={d.x} cy={d.y} r="16" fill={`url(#${uid}-tok)`} />
+          <text
+            x={d.x}
+            y={d.y + 4}
+            text-anchor="middle"
+            font-size="10"
+            font-weight="800"
+            fill="#fff"
+            font-family="Inter Variable, Inter, sans-serif"
+          >
+            {d.label}
+          </text>
+        </g>
+      ))
+    }
+  </g>
+
+  {/* ── ball ── */}
+  <g class="mb-ball">
+    <circle cx="0" cy="0" r="6.5" fill="#fff" stroke={INK} stroke-width="1.5" />
+  </g>
+</svg>
+
+<style>
+  /*
+   * One timeline, three animations. The hold windows are long and the passes
+   * are quick, the same hold-then-burst pacing the shorts use, and the reason
+   * a viewer has time to read the shape before it changes.
+   */
+  .mb-ball {
+    animation: mb-ball 13s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  .mb-block {
+    animation: mb-block 13s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  .mb-ring {
+    animation: mb-ring 13s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  .mb-atk {
+    animation: mb-float 8s ease-in-out infinite;
+  }
+  .mb-d0 {
+    animation-delay: -1.7s;
+  }
+  .mb-d1 {
+    animation-delay: -4.1s;
+  }
+  .mb-d2 {
+    animation-delay: -6.2s;
+  }
+
+  @keyframes mb-ball {
+    0%,
+    22% {
+      transform: translate(118px, 355px);
+    }
+    30%,
+    52% {
+      transform: translate(163px, 235px);
+    }
+    60%,
+    82% {
+      transform: translate(128px, 115px);
+    }
+    100% {
+      transform: translate(118px, 355px);
+    }
+  }
+
+  /* The block reacts a beat AFTER the ball leaves; that lag is the point. */
+  @keyframes mb-block {
+    0%,
+    24% {
+      transform: translateY(16px);
+    }
+    34%,
+    54% {
+      transform: translateY(0);
+    }
+    64%,
+    84% {
+      transform: translateY(-16px);
+    }
+    100% {
+      transform: translateY(16px);
+    }
+  }
+
+  @keyframes mb-ring {
+    0%,
+    24% {
+      transform: translate(268px, 330px);
+    }
+    34%,
+    54% {
+      transform: translate(276px, 260px);
+    }
+    64%,
+    84% {
+      transform: translate(268px, 120px);
+    }
+    100% {
+      transform: translate(268px, 330px);
+    }
+  }
+
+  @keyframes mb-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  /* Reduced motion: hold the opening pose, which is still a correct diagram. */
+  @media (prefers-reduced-motion: reduce) {
+    .mb-ball,
+    .mb-block,
+    .mb-ring,
+    .mb-atk {
+      animation: none;
+    }
+    .mb-ball {
+      transform: translate(118px, 355px);
+    }
+    .mb-block {
+      transform: translateY(16px);
+    }
+    .mb-ring {
+      transform: translate(268px, 330px);
+    }
+  }
+</style>

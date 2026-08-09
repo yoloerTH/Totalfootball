@@ -1,0 +1,143 @@
+---
+/**
+ * The Total Football mark: a direct geometric port of
+ * editor/src/branding/TotalFootballMark.tsx, so the site and the videos draw
+ * the identical shape. A soccer ball (central pentagon + five rim pentagons +
+ * seams) inside a gold→green ring, encircled by three circulating motion
+ * arrows; the leading arrow is green.
+ *
+ * Geometry is computed at build time into a static SVG, with no runtime JS, and no
+ * PNG export needed anywhere.
+ */
+interface Props {
+  size?: number
+  /** Draw the soft paper disc behind the mark. Off for coloured grounds. */
+  disc?: boolean
+  ink?: string
+  class?: string
+  /** Decorative marks are hidden from assistive tech; give a title otherwise. */
+  title?: string
+}
+
+const { size = 96, disc = true, ink = '#161618', class: klass = '', title } = Astro.props
+
+const GOLD = '#E6B23A'
+const GOLD_DEEP = '#C9902B'
+const GREEN = '#08C16A'
+const PAPER = '#F4F4F2'
+
+const DEG = Math.PI / 180
+const C = 50
+const pt = (cx: number, cy: number, r: number, deg: number) => ({
+  x: cx + r * Math.cos(deg * DEG),
+  y: cy + r * Math.sin(deg * DEG),
+})
+const n = (v: number) => v.toFixed(2)
+
+/** Regular pentagon path: centre (cx,cy), circumradius r, apex at apexDeg. */
+const pentagon = (cx: number, cy: number, r: number, apexDeg: number) =>
+  Array.from({ length: 5 }, (_, k) => {
+    const p = pt(cx, cy, r, apexDeg + k * 72)
+    return `${k === 0 ? 'M' : 'L'}${n(p.x)},${n(p.y)}`
+  }).join(' ') + ' Z'
+
+// Ball geometry (identical constants to the Remotion component).
+const ballR = 27
+const cR = 8.4
+const oR = 6
+const oDist = 16.6
+const centralVerts = Array.from({ length: 5 }, (_, i) => -90 + i * 72)
+const rimAngles = Array.from({ length: 5 }, (_, i) => -54 + i * 72)
+
+// Three circulating motion arrows.
+const arrowR = 40
+const span = 26
+const arrowBases = [-90, 30, 150]
+
+const arrows = arrowBases.map((base, i) => {
+  const s = pt(C, C, arrowR, base - span)
+  const e = pt(C, C, arrowR, base + span)
+  const eDeg = base + span
+  // Tangent at the leading end (increasing angle, y-down ⇒ clockwise).
+  const tx = -Math.sin(eDeg * DEG)
+  const ty = Math.cos(eDeg * DEG)
+  const px = -ty
+  const py = tx
+  const hl = 5.4
+  const hw = 3.4
+  return {
+    arc: `M${n(s.x)},${n(s.y)} A${arrowR} ${arrowR} 0 0 1 ${n(e.x)},${n(e.y)}`,
+    head:
+      `M${n(e.x + tx * hl)},${n(e.y + ty * hl)} ` +
+      `L${n(e.x + px * hw)},${n(e.y + py * hw)} ` +
+      `L${n(e.x - px * hw)},${n(e.y - py * hw)} Z`,
+    // The leading arrow is green; it is the active move.
+    color: i === 0 ? GREEN : GOLD_DEEP,
+  }
+})
+
+// Unique per instance so multiple marks on a page don't share a gradient id.
+const gid = `tf-mark-${Math.random().toString(36).slice(2, 9)}`
+---
+
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 100 100"
+  class={klass}
+  role={title ? 'img' : undefined}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+  focusable="false"
+>
+  <defs>
+    <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color={GOLD} />
+      <stop offset="45%" stop-color={GOLD_DEEP} />
+      <stop offset="100%" stop-color={GREEN} />
+    </linearGradient>
+  </defs>
+
+  {disc && <circle cx={C} cy={C} r={47} fill={PAPER} />}
+
+  {/* gold→green outer ring */}
+  <circle cx={C} cy={C} r={45} fill="none" stroke={`url(#${gid})`} stroke-width={3.2} />
+
+  {/* circulating motion arrows */}
+  {
+    arrows.map((a) => (
+      <g>
+        <path d={a.arc} fill="none" stroke={a.color} stroke-width={2.8} stroke-linecap="round" />
+        <path d={a.head} fill={a.color} />
+      </g>
+    ))
+  }
+
+  {/* the ball */}
+  <circle cx={C} cy={C} r={ballR} fill="none" stroke={ink} stroke-width={1.6} opacity={0.92} />
+  {
+    centralVerts.map((deg) => {
+      const a = pt(C, C, cR, deg)
+      const b = pt(C, C, ballR - 0.8, deg)
+      return (
+        <line
+          x1={n(a.x)}
+          y1={n(a.y)}
+          x2={n(b.x)}
+          y2={n(b.y)}
+          stroke={ink}
+          stroke-width={1.6}
+          stroke-linecap="round"
+          opacity={0.9}
+        />
+      )
+    })
+  }
+  {
+    rimAngles.map((deg) => {
+      const c = pt(C, C, oDist, deg)
+      return <path d={pentagon(c.x, c.y, oR, deg + 180)} fill={ink} />
+    })
+  }
+  <path d={pentagon(C, C, cR, -90)} fill={ink} />
+</svg>

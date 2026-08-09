@@ -1,0 +1,18 @@
+# build
+dist/
+.astro/
+node_modules/
+
+# env — never commit keys
+.env
+.env.*
+!.env.example
+
+# netlify
+.netlify/
+
+# os
+.DS_Store
+
+# raw remotion exports — regenerate with media/export.sh
+media/raw/

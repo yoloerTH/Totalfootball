@@ -1,0 +1,233 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * The look is a direct descendant of the videos' "paper stage": off-white
+ * ground, ink type, a faint grid that fades at the edges, and gold→green used
+ * sparingly as an accent. See editor/src/branding/totalFootball.ts and the
+ * video-craft notes on the white stage.
+ */
+
+@layer base {
+  :root {
+    --tf-paper: #f4f4f2;
+    --tf-ink: #161618;
+    --tf-gold: #e6b23a;
+    --tf-green: #08c16a;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-feature-settings: 'cv05' 1, 'ss03' 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(8, 193, 106, 0.22);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--tf-green);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* The page shell. Every section aligns to this measure. */
+  .shell {
+    @apply mx-auto w-full max-w-shell px-6 sm:px-8 lg:px-10;
+  }
+
+  /*
+   * The signature stage: paper + a faint grid radially masked so it fades out
+   * before the edges, exactly like the video backgrounds. Pure CSS, no image.
+   */
+  .stage {
+    position: relative;
+    isolation: isolate;
+  }
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: linear-gradient(rgba(22, 22, 24, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 22, 24, 0.055) 1px, transparent 1px);
+    background-size: 68px 68px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
+    pointer-events: none;
+  }
+
+  /* Tiny uppercase dossier label, the microtext device from the videos. */
+  .micro {
+    @apply text-micro font-semibold uppercase text-ink-faint;
+  }
+
+  .rule {
+    @apply h-px w-full bg-ink-hair;
+  }
+
+  /* Gold→green text fill, used only on the wordmark and single accent words. */
+  .grad-text {
+    @apply bg-tf-gradient bg-clip-text text-transparent;
+  }
+
+  /* Primary action. Ink, not brand colour; the gradient stays an accent. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+           text-sm font-semibold tracking-tight transition-all duration-200;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-paper hover:-translate-y-px hover:shadow-lift;
+  }
+  .btn-ghost {
+    @apply btn border border-ink-hair bg-transparent text-ink hover:border-ink/25 hover:bg-white/60;
+  }
+
+  /*
+   * ── Motion system ────────────────────────────────────────────────────────
+   *
+   * One easing curve everywhere: a fast start with a long settle. That is the
+   * same "eased fast→slow" rule the videos are built on, and it is the single
+   * biggest reason motion reads as designed rather than as a CSS default.
+   *
+   * The other rule carried over from the videos: never reveal-then-freeze.
+   * Anything that lands and then holds gets a slow ambient drift so the page
+   * keeps breathing instead of going dead after the first scroll.
+   */
+  [data-reveal] {
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+      clip-path 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /*
+   * Content must never depend on JS to become visible. The reveal is opted
+   * INTO by a root class that only script sets, so with JS off (and for
+   * crawlers) everything renders plainly.
+   */
+  .js [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .js [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Headings wipe in left→right while rising, the type reveal from the videos. */
+  .js [data-reveal='clip'] {
+    opacity: 0;
+    transform: translateY(18px);
+    clip-path: inset(0 100% 0 0);
+  }
+  .js [data-reveal='clip'].is-in {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* For things that should arrive without moving, such as images and diagrams. */
+  .js [data-reveal='fade'] {
+    opacity: 0;
+    transform: none;
+  }
+
+  /* Panels and cards settle in from slightly small. */
+  .js [data-reveal='rise'] {
+    opacity: 0;
+    transform: translateY(26px) scale(0.985);
+  }
+  .js [data-reveal='rise'].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* A hairline that draws itself across. */
+  .js [data-reveal='line'] {
+    opacity: 1;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .js [data-reveal='line'].is-in {
+    transform: scaleX(1);
+  }
+
+  /* ── Ambient life ──────────────────────────────────────────────────────── */
+  .drift {
+    animation: tf-drift 9s ease-in-out infinite;
+  }
+  .drift-slow {
+    animation: tf-drift 14s ease-in-out infinite;
+  }
+  .spin-slow {
+    animation: tf-spin 70s linear infinite;
+  }
+  .breathe {
+    animation: tf-breathe 7s ease-in-out infinite;
+  }
+  /* Vary the phase on siblings so a cluster drifts organically, not in lockstep. */
+  .delay-1 {
+    animation-delay: -2.2s;
+  }
+  .delay-2 {
+    animation-delay: -4.6s;
+  }
+  .delay-3 {
+    animation-delay: -6.9s;
+  }
+
+  @keyframes tf-drift {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+  @keyframes tf-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes tf-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.02);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drift,
+    .drift-slow,
+    .spin-slow,
+    .breathe {
+      animation: none;
+    }
+  }
+}

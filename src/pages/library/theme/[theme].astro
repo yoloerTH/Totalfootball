@@ -1,0 +1,93 @@
+---
+/**
+ * Theme hub: the middle tier of the topical cluster (hub → theme → system).
+ * Only themes that actually have systems get a page; an empty hub is a thin
+ * page, and thin pages are exactly what diluted naurra.ai.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import SystemCard from '../../../components/library/SystemCard.astro'
+import ThemeGlyph from '../../../components/visual/ThemeGlyph.astro'
+import { THEMES, systemsByTheme, type Theme, type System } from '../../../data/systems'
+import { abs } from '../../../lib/site'
+
+export function getStaticPaths() {
+  return THEMES.filter((t) => systemsByTheme(t.slug).length > 0).map((theme) => ({
+    params: { theme: theme.slug },
+    props: { theme, systems: systemsByTheme(theme.slug) },
+  }))
+}
+
+interface Props {
+  theme: Theme
+  systems: System[]
+}
+
+const { theme, systems } = Astro.props
+const path = `/library/theme/${theme.slug}/`
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Library', item: abs('/library/') },
+    { '@type': 'ListItem', position: 2, name: theme.title, item: abs(path) },
+  ],
+}
+
+const list = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: `${theme.title} · Total Football`,
+  itemListElement: systems.map((s, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: s.title,
+    url: abs(`/library/${s.slug}/`),
+  })),
+}
+---
+
+<BaseLayout
+  title={`${theme.title} systems`}
+  description={`${theme.blurb} Every ${theme.title.toLowerCase()} breakdown from Total Football, drawn phase by phase.`}
+  path={path}
+  structuredData={[breadcrumb, list]}
+>
+  <header class="stage border-b border-ink-hair">
+    <div class="shell py-14 md:py-20">
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-xs text-ink-faint">
+          <li><a href="/library/" class="transition-colors hover:text-ink">Library</a></li>
+          <li aria-hidden="true">/</li>
+          <li class="text-ink-soft" aria-current="page">{theme.title}</li>
+        </ol>
+      </nav>
+      <div class="flex flex-wrap items-center gap-10">
+        <div class="max-w-prose">
+          <p class="micro mb-5" data-reveal="fade">{systems.length} systems</p>
+          <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
+            {theme.title}
+          </h1>
+          <p class="mt-7 text-xl leading-[1.6] text-ink/85" data-reveal data-reveal-delay="200">
+            {theme.blurb}
+          </p>
+        </div>
+        <div class="hidden w-40 shrink-0 lg:block" data-reveal="rise" data-reveal-delay="160">
+          <ThemeGlyph theme={theme.slug} class="w-full" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell py-16 md:py-20">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        systems.map((system, i) => (
+          <div data-reveal="rise" data-reveal-delay={i * 70}>
+            <SystemCard system={system} />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>

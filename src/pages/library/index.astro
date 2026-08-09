@@ -1,0 +1,107 @@
+---
+/**
+ * The library hub. Its job is twofold: send crawlers to every system page in
+ * one hop, and let a human find the thing they came for without a search box.
+ *
+ * The theme filter is CSS-only where possible. With JS off, all systems are
+ * listed under their theme headings, which is also the crawlable structure.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import SystemCard from '../../components/library/SystemCard.astro'
+import ThemeGlyph from '../../components/visual/ThemeGlyph.astro'
+import { SYSTEMS, THEMES, systemsByTheme } from '../../data/systems'
+import { abs } from '../../lib/site'
+
+const populated = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
+
+const collection = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'The Total Football library',
+  description: 'Every football system, explained phase by phase on the board.',
+  url: abs('/library/'),
+  hasPart: SYSTEMS.map((s) => ({
+    '@type': 'Article',
+    headline: s.title,
+    url: abs(`/library/${s.slug}/`),
+  })),
+}
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Library', item: abs('/library/') }],
+}
+---
+
+<BaseLayout
+  title="The library: every system, on the board"
+  description="Football tactics explained phase by phase: how a back four defends, how to beat a low block, how to press. Diagrams, not opinions."
+  path="/library/"
+  structuredData={[breadcrumb, collection]}
+>
+  <header class="stage border-b border-ink-hair">
+    <div class="shell py-16 md:py-24">
+      <p class="micro mb-6" data-reveal="fade">The library</p>
+      <h1 class="max-w-[18ch] text-display font-black" data-reveal="clip" data-reveal-delay="80">
+        Every system, on the board.
+      </h1>
+      <p class="mt-8 max-w-prose text-xl leading-[1.6] text-ink/85" data-reveal data-reveal-delay="220">
+        The same breakdowns from the channel, laid out phase by phase so you can read them at your
+        own pace. No clips, no punditry, just the diagram and what is actually happening in it.
+      </p>
+
+      <nav aria-label="Themes" class="mt-14 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {
+          populated.map((t, i) => (
+            <a
+              href={`/library/theme/${t.slug}/`}
+              class="group rounded-2xl border border-ink-hair bg-paper/70 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-ink/15 hover:shadow-paper"
+              data-reveal="rise"
+              data-reveal-delay={300 + i * 70}
+            >
+              <ThemeGlyph theme={t.slug} class="mb-3 w-full" />
+              <p class="text-sm font-bold">{t.title}</p>
+              <p class="mt-0.5 text-[11px] tabular-nums text-ink-faint">
+                {systemsByTheme(t.slug).length} system
+                {systemsByTheme(t.slug).length === 1 ? '' : 's'}
+              </p>
+            </a>
+          ))
+        }
+      </nav>
+    </div>
+  </header>
+
+  {
+    populated.map((theme) => {
+      const items = systemsByTheme(theme.slug)
+      return (
+        <section class="shell py-16 md:py-20">
+          <div class="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-ink-hair pb-6">
+            <div class="flex items-center gap-5">
+              <ThemeGlyph theme={theme.slug} class="hidden w-24 shrink-0 sm:block" />
+              <div>
+                <h2 class="text-section font-black">
+                  <a href={`/library/theme/${theme.slug}/`} class="hover:text-ink-soft">
+                    {theme.title}
+                  </a>
+                </h2>
+                <p class="mt-2 max-w-prose text-[15px] text-ink-soft">{theme.blurb}</p>
+              </div>
+            </div>
+            <span class="micro">{items.length} systems</span>
+          </div>
+
+          <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((system, i) => (
+              <div data-reveal="rise" data-reveal-delay={i * 70}>
+                <SystemCard system={system} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    })
+  }
+</BaseLayout>

@@ -1,0 +1,79 @@
+---
+/**
+ * "7 of 23" drawn as 23 dots with 7 filled.
+ *
+ * A proportion stated as a picture is checkable at a glance in a way the
+ * sentence is not, and on the About page the whole argument is that the
+ * editorial rules came from measurement, so the evidence should look like
+ * evidence.
+ */
+interface Props {
+  total: number
+  filled: number
+  /** Filled colour. Defaults to the brand green. */
+  color?: string
+  class?: string
+  label?: string
+}
+
+const { total, filled, color = '#08C16A', class: klass = '', label } = Astro.props
+
+const COLS = 12
+const R = 5
+const GAP = 17
+const rows = Math.ceil(total / COLS)
+const W = Math.min(total, COLS) * GAP
+const H = rows * GAP
+
+const dots = Array.from({ length: total }, (_, i) => ({
+  i,
+  cx: (i % COLS) * GAP + R + 1,
+  cy: Math.floor(i / COLS) * GAP + R + 1,
+  on: i < filled,
+}))
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  class={klass}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : 'true'}
+  focusable="false"
+>
+  {
+    dots.map((d) => (
+      <circle
+        cx={d.cx}
+        cy={d.cy}
+        r={R}
+        fill={d.on ? color : 'rgba(22,22,24,0.14)'}
+        class={d.on ? 'dm-on' : undefined}
+        style={d.on ? `animation-delay:${d.i * 90}ms` : undefined}
+      />
+    ))
+  }
+</svg>
+
+<style>
+  .dm-on {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: dm-pop 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  @keyframes dm-pop {
+    0%,
+    60%,
+    100% {
+      transform: scale(1);
+    }
+    18% {
+      transform: scale(1.35);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dm-on {
+      animation: none;
+    }
+  }
+</style>

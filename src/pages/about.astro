@@ -1,0 +1,152 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import DotMatrix from '../components/visual/DotMatrix.astro'
+import CameraCrop from '../components/visual/CameraCrop.astro'
+import MiniBoard from '../components/visual/MiniBoard.astro'
+import { CHANNEL, EVIDENCE } from '../data/channel'
+import { abs, SOCIAL } from '../lib/site'
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [{ '@type': 'ListItem', position: 1, name: 'About', item: abs('/about/') }],
+}
+---
+
+<BaseLayout
+  title="About"
+  description="Total Football explains the game as a diagram: every frame drawn, nothing filmed. Here is the method, and the measurements behind it."
+  path="/about/"
+  structuredData={[breadcrumb]}
+>
+  <section class="stage border-b border-ink-hair">
+    <div class="shell grid gap-14 py-20 md:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <div class="max-w-[42rem]">
+        <p class="micro mb-7" data-reveal="fade">About</p>
+        <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
+          A whiteboard that moves.
+        </h1>
+        <p class="mt-9 max-w-prose text-xl leading-[1.6] text-ink/85" data-reveal data-reveal-delay="220">
+          Total Football started from a simple frustration: the best tactical ideas in the game are
+          explained with a still image and an arrow, or with a clip that cuts away before the
+          interesting part happens.
+        </p>
+      </div>
+      <div data-reveal="rise" data-reveal-delay="160">
+        <MiniBoard class="mx-auto block w-full max-w-[300px]" />
+      </div>
+    </div>
+  </section>
+
+  <section class="shell py-20 md:py-28">
+    <div class="grid gap-14 md:grid-cols-[0.85fr_1.15fr]">
+      <div>
+        <p class="micro mb-6" data-reveal="fade">The method</p>
+        <h2 class="text-title font-black" data-reveal="clip">
+          Drawn, so the whole shape is visible.
+        </h2>
+        <figure class="mt-10" data-reveal="rise" data-reveal-delay="140">
+          <CameraCrop class="w-full" />
+          <figcaption class="mt-4 text-sm leading-relaxed text-ink-soft">
+            What a camera gives you, against what is actually on the pitch.
+          </figcaption>
+        </figure>
+      </div>
+      <div class="max-w-prose space-y-6 text-[17px] leading-[1.75] text-ink/85">
+        <p data-reveal>
+          Every breakdown is animated from scratch on a scale pitch. Players are counters, the ball
+          is locked to whoever has it, and a camera follows the action the way your eye would. Because
+          it is drawn rather than filmed, the ten players away from the ball are always on screen,
+          and they are usually the ones doing the interesting work.
+        </p>
+        <p>
+          It also means a moment can be held while a principle is stated, rewound, and run a second
+          time with exactly one variable changed. That two-takes device is impossible with footage
+          and it is the clearest way to show that a decision, not an accident, produced the outcome.
+        </p>
+        <p>
+          Nothing is borrowed from a broadcaster. That is partly a matter of principle and partly a
+          practical one: the football channels that live on clipped footage spend their lives being
+          taken down.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-ink-hair bg-paper-deep/40">
+    <div class="shell py-20">
+      <p class="micro mb-12" data-reveal="fade">What the numbers say</p>
+      <dl class="grid gap-12 md:grid-cols-3">
+        {
+          EVIDENCE.map((e, i) => (
+            <div data-reveal="rise" data-reveal-delay={i * 90}>
+              <dt class="mb-4 text-4xl font-black tabular-nums md:text-5xl">{e.stat}</dt>
+              <dd>
+                <p class="text-[17px] font-semibold leading-snug">{e.label}</p>
+                <p class="mt-2 text-sm leading-relaxed text-ink-soft">{e.note}</p>
+              </dd>
+              {/* The first stat is a proportion, so it gets drawn as one:
+                  23 shorts, 7 of them past 20k plays. */}
+              {i === 0 && (
+                <DotMatrix
+                  total={23}
+                  filled={7}
+                  class="mt-6 w-full max-w-[220px]"
+                  label="Seven of twenty-three system clinics passed twenty thousand plays"
+                />
+              )}
+              {i === 1 && (
+                <div class="mt-6 max-w-[220px]" aria-hidden="true">
+                  <div class="h-2 w-full overflow-hidden rounded-full bg-ink-hair">
+                    <div class="h-full w-[65%] rounded-full bg-tf-gradient" />
+                  </div>
+                  <p class="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                    of the runtime, watched
+                  </p>
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </dl>
+      <p class="mt-12 max-w-prose text-sm leading-relaxed text-ink-soft">
+        Every editorial rule on this channel came out of a measurement rather than a hunch. When the
+        data said the hot-take format was not working, it was abandoned, even though it was easier
+        to make.
+      </p>
+    </div>
+  </section>
+
+  <section class="shell py-20 md:py-28">
+    <div class="grid gap-14 md:grid-cols-[0.85fr_1.15fr]">
+      <div>
+        <p class="micro mb-6">Where to find it</p>
+        <h2 class="text-title font-black">{CHANNEL.followersLabel} and growing.</h2>
+      </div>
+      <div class="max-w-prose space-y-6 text-[17px] leading-[1.75] text-ink/85">
+        <p>
+          New breakdowns go out on social first and land in the library here afterwards, laid out so
+          you can read them at your own pace instead of at twenty seconds a system.
+        </p>
+        <p>
+          <a href="/library/" class="font-semibold underline underline-offset-4">Browse the library</a>
+          {
+            SOCIAL.facebook && (
+              <>
+                {' '}or{' '}
+                <a
+                  href={SOCIAL.facebook}
+                  target="_blank"
+                  rel="noopener"
+                  class="font-semibold underline underline-offset-4"
+                >
+                  follow on Facebook
+                </a>
+              </>
+            )
+          }.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,55 @@
+---
+import { THEMES, type System } from '../../data/systems'
+
+interface Props {
+  system: System
+  /** The first card in a grid can carry the section's visual weight. */
+  featured?: boolean
+}
+
+const { system, featured = false } = Astro.props
+const theme = THEMES.find((t) => t.slug === system.theme)
+const fmt = new Intl.NumberFormat('en-GB', { notation: 'compact', maximumFractionDigits: 1 })
+---
+
+<a
+  href={`/library/${system.slug}/`}
+  class:list={[
+    'group relative flex flex-col overflow-hidden rounded-2xl border border-ink-hair bg-white/50 transition-all duration-300 hover:-translate-y-1 hover:border-ink/15 hover:shadow-lift',
+    featured && 'sm:col-span-2',
+  ]}
+>
+  <div class:list={['flex flex-1 flex-col p-7', featured && 'md:p-9']}>
+    <div class="mb-5 flex items-center justify-between gap-4">
+      <span class="micro">{theme?.title}</span>
+      {
+        system.plays && (
+          <span class="text-[11px] font-semibold tabular-nums text-ink-faint">
+            {fmt.format(system.plays)} plays
+          </span>
+        )
+      }
+    </div>
+
+    <h3 class:list={['font-black leading-[1.05]', featured ? 'text-title' : 'text-2xl']}>
+      {system.title}
+    </h3>
+
+    <p class="mt-4 max-w-prose flex-1 text-[15px] leading-relaxed text-ink-soft">
+      {system.question}
+    </p>
+
+    <div class="mt-7 flex items-center gap-3">
+      <span class="text-[13px] font-semibold text-ink">
+        {system.phases.length} phases
+      </span>
+      <span
+        class="h-px flex-1 origin-left bg-ink-hair transition-transform duration-500 group-hover:scale-x-100"
+      ></span>
+      <span
+        class="text-[13px] font-semibold text-ink transition-transform duration-300 group-hover:translate-x-1"
+        aria-hidden="true">→</span
+      >
+    </div>
+  </div>
+</a>

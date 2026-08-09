@@ -1,0 +1,153 @@
+---
+/**
+ * The argument on the landing page's "Nothing here was filmed" section, drawn.
+ *
+ * A broadcast frame sweeps across a full pitch. Inside the frame the players
+ * are solid; outside it they fade to almost nothing, which is exactly the
+ * complaint: the four players who moved at the same time are off-camera, and
+ * they are usually the ones doing the interesting work.
+ *
+ * The prose makes the claim; this makes it obvious.
+ */
+interface Props {
+  class?: string
+}
+
+const { class: klass = '' } = Astro.props
+
+const GREEN = '#08C16A'
+const RED = '#E2473B'
+const INK = '#161618'
+
+const W = 560
+const H = 300
+
+// A plausible mid-block picture across a full pitch.
+const HOME = [
+  { x: 60, y: 150 },
+  { x: 150, y: 70 },
+  { x: 150, y: 150 },
+  { x: 150, y: 232 },
+  { x: 255, y: 108 },
+  { x: 255, y: 196 },
+  { x: 330, y: 150 },
+]
+const AWAY = [
+  { x: 215, y: 40 },
+  { x: 300, y: 78 },
+  { x: 300, y: 226 },
+  { x: 215, y: 262 },
+  { x: 395, y: 150 },
+]
+
+const uid = `cc-${Math.random().toString(36).slice(2, 8)}`
+const FRAME_W = 190
+---
+
+<svg viewBox={`0 0 ${W} ${H}`} class={klass} aria-hidden="true" focusable="false">
+  <defs>
+    {/* Everything outside the moving frame is dimmed by this mask. */}
+    <mask id={`${uid}-inside`}>
+      <rect x="0" y="0" width={W} height={H} fill="black" />
+      <rect
+        class="cc-frame-mask"
+        x="0"
+        y="18"
+        width={FRAME_W}
+        height={H - 36}
+        rx="4"
+        fill="white"
+      />
+    </mask>
+  </defs>
+
+  {/* ── the full pitch ── */}
+  <g stroke={INK} stroke-opacity="0.15" fill="none" stroke-width="1.4">
+    <rect x="8" y="18" width={W - 16} height={H - 36} rx="3" />
+    <line x1={W / 2} y1="18" x2={W / 2} y2={H - 18} />
+    <circle cx={W / 2} cy={H / 2} r="42" />
+    <rect x="8" y="80" width="54" height="140" />
+    <rect x={W - 62} y="80" width="54" height="140" />
+  </g>
+
+  {/* ── every player, faint: this is what is actually happening ── */}
+  <g opacity="0.16">
+    {HOME.map((p) => <circle cx={p.x} cy={p.y} r="9" fill={GREEN} />)}
+    {AWAY.map((p) => <circle cx={p.x} cy={p.y} r="9" fill={RED} />)}
+  </g>
+
+  {/* ── the same players, solid, but only inside the broadcast frame ── */}
+  <g mask={`url(#${uid}-inside)`}>
+    {HOME.map((p) => <circle cx={p.x} cy={p.y} r="9" fill={GREEN} />)}
+    {AWAY.map((p) => <circle cx={p.x} cy={p.y} r="9" fill={RED} />)}
+  </g>
+
+  {/* ── the frame itself ── */}
+  <g class="cc-frame">
+    <rect
+      x="0"
+      y="18"
+      width={FRAME_W}
+      height={H - 36}
+      rx="4"
+      fill="none"
+      stroke={INK}
+      stroke-opacity="0.55"
+      stroke-width="2"
+    />
+    {/* corner ticks, so it reads as a viewfinder rather than a box */}
+    {
+      [
+        [0, 18, 1, 1],
+        [FRAME_W, 18, -1, 1],
+        [0, H - 18, 1, -1],
+        [FRAME_W, H - 18, -1, -1],
+      ].map(([x, y, sx, sy]) => (
+        <path
+          d={`M${x},${y + sy * 16} L${x},${y} L${x + sx * 16},${y}`}
+          fill="none"
+          stroke={INK}
+          stroke-width="3"
+          stroke-linecap="round"
+        />
+      ))
+    }
+    <text
+      x="10"
+      y="10"
+      font-size="10"
+      font-weight="800"
+      letter-spacing="0.18em"
+      fill={INK}
+      fill-opacity="0.5"
+      font-family="Inter Variable, Inter, sans-serif">BROADCAST FRAME</text
+    >
+  </g>
+</svg>
+
+<style>
+  .cc-frame,
+  .cc-frame-mask {
+    animation: cc-pan 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+  @keyframes cc-pan {
+    0%,
+    8% {
+      transform: translateX(14px);
+    }
+    50%,
+    58% {
+      transform: translateX(356px);
+    }
+    100% {
+      transform: translateX(14px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cc-frame,
+    .cc-frame-mask {
+      animation: none;
+      transform: translateX(180px);
+    }
+  }
+</style>

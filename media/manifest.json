@@ -1,0 +1,86 @@
+{
+  "_comment": [
+    "Which frame of which composition becomes which phase diagram.",
+    "",
+    "Frame numbers come from each composition's own timing constants, never from",
+    "eyeballing a scrubber. Each still sits comfortably INSIDE an act so the cues",
+    "have settled — not on the boundary, where a transition is mid-flight.",
+    "",
+    "WATCH THE TIMEBASE. SalidaShort's anchors (T_PRESS, T_DROP, ...) live on an",
+    "unscaled internal timeline and the composition plays back at SLOW = 1.46, so",
+    "a still frame is internal x 1.46. PressTrapShort's scene constants are",
+    "relative to START_AT = 130. The others are plain composition frames.",
+    "",
+    "Keep in sync with src/data/systems.ts — the `frame` values must match.",
+    "media/export.sh reads this file."
+  ],
+  "editorRoot": "../../editor",
+  "outDir": "public/library",
+  "width": 1440,
+  "height": 2560,
+  "scale": 0.5,
+  "_cropBottom": "Pixels removed from the bottom of every exported still. The compositions burn a caption bar plus the channel logo down there; on the web the caption duplicates the prose beside the image, and some kicker chips print the composition id. Override per system where a board sits lower in frame.",
+  "cropBottom": 176,
+  "systems": [
+    {
+      "slug": "defending-in-a-back-four",
+      "compId": "BackFourShort",
+      "phases": [
+        { "n": 1, "frame": 165, "note": "hold at CM 0-180, title still up" },
+        { "n": 2, "frame": 370, "note": "hold at RW 235-410, press/cover/balance settled" },
+        { "n": 3, "frame": 600, "note": "hold at CFl 460-640, roles handed inside" },
+        { "n": 4, "frame": 830, "note": "hold at CFu 690-870, line slid up" },
+        { "n": 5, "frame": 900, "note": "mid-pass 870-925, the switch in flight" },
+        { "n": 6, "frame": 1090, "note": "hold at LW 925-1200, mirrored shape" }
+      ]
+    },
+    {
+      "slug": "the-4-4-2-mid-block",
+      "compId": "MidBlockShort",
+      "phases": [
+        { "n": 1, "frame": 190, "note": "ACT1 the shape, before T_DENY 264" },
+        { "n": 2, "frame": 410, "note": "ACT2 deny the middle, T_DENY 264 - T_WIDE 500" },
+        { "n": 3, "frame": 670, "note": "ACT3 slide as one, T_WIDE 500 - T_TRIGGER 760" },
+        { "n": 4, "frame": 900, "note": "ACT4 the trigger, T_TRIGGER 760 - T_STEAL 1010" },
+        { "n": 5, "frame": 1150, "note": "ACT5 win it, T_COUNTER 1120 - T_GOAL 1290" },
+        { "n": 6, "frame": 1315, "note": "the second pass lands, T_GOAL 1290 - T_LOCK 1350" }
+      ]
+    },
+    {
+      "slug": "salida-lavolpiana",
+      "compId": "SalidaShort",
+      "phases": [
+        { "n": 1, "frame": 540, "note": "ACT1 the problem (internal 370 x 1.46)" },
+        { "n": 2, "frame": 920, "note": "ACT2 the drop (internal 630)" },
+        { "n": 3, "frame": 1292, "note": "ACT3 the spare man (internal 885)" },
+        { "n": 4, "frame": 1657, "note": "ACT4 break the line (internal 1135)" },
+        { "n": 5, "frame": 1986, "note": "ACT5 the payoff (internal 1360)" },
+        { "n": 6, "frame": 2248, "note": "RECAP the three moves (internal 1540)" }
+      ]
+    },
+    {
+      "slug": "the-pressing-trap",
+      "compId": "PressTrapShort",
+      "phases": [
+        { "n": 1, "frame": 330, "note": "S0 the problem (START_AT 130 + 200)" },
+        { "n": 2, "frame": 670, "note": "S1 the bait (S1 470 + 200)" },
+        { "n": 3, "frame": 900, "note": "S2 the trigger (S2 810 + 90)" },
+        { "n": 4, "frame": 1140, "note": "S3 the trap (S3 970 + 170)" },
+        { "n": 5, "frame": 1360, "note": "S4 the steal (S4 1250 + 110)" },
+        { "n": 6, "frame": 1680, "note": "S5 the payoff (S5 1430 + 250)" }
+      ]
+    },
+    {
+      "slug": "the-underlap",
+      "compId": "UnderlapShort",
+      "phases": [
+        { "n": 1, "frame": 280, "note": "T_FEED 230 - T_JUMP 330, winger holds width" },
+        { "n": 2, "frame": 385, "note": "T_JUMP 330 - T_SLIP 440, full-back pinned out" },
+        { "n": 3, "frame": 480, "note": "T_SLIP 440 - T_RECV 520, underlap in behind" },
+        { "n": 4, "frame": 560, "note": "T_RECV 520 - T_PRESS 600, received in the half-space" },
+        { "n": 5, "frame": 635, "note": "T_PRESS 600 - T_LAYOFF 660, the six has to step out" },
+        { "n": 6, "frame": 755, "note": "just after T_GOAL 742, the free man finishes" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+---
+/**
+ * /intelligence/ is a dedicated landing page for the Telegram channel.
+ *
+ * One job: get the right person into the channel, and be honest enough that
+ * they stay. The page leads with the method, states the record with its unit
+ * size, and shows the losing side of the ledger as prominently as the winning
+ * one. Compliance notices are part of the design, not a footnote bolted on.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro'
+import NewsletterForm from '../components/NewsletterForm.astro'
+import ModelCurve from '../components/visual/ModelCurve.astro'
+import CountUp from '../components/visual/CountUp.astro'
+import { LEDGER, HOW_IT_WORKS } from '../data/intelligence'
+import { abs } from '../lib/site'
+
+const { national, club } = LEDGER
+
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Intelligence', item: abs('/intelligence/') },
+  ],
+}
+
+const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+---
+
+<BaseLayout
+  title="Total Stats: daily football intelligence on Telegram"
+  description="A rated model prices the match, the market gets compared to it, and only the gap gets backed. Every card graded and published, free on Telegram."
+  path="/intelligence/"
+  structuredData={[breadcrumb]}
+>
+  {/* ── Hero ───────────────────────────────────────────────────────── */}
+  <section class="stage border-b border-ink-hair">
+    <div class="shell grid gap-14 py-20 md:py-28 lg:grid-cols-[1fr_0.95fr] lg:items-center">
+      <div class="max-w-[42rem]">
+        <p class="micro mb-7" data-reveal="fade">Total Stats · Daily Intelligence</p>
+        <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
+          The match, priced<br /><span class="grad-text">before the market.</span>
+        </h1>
+        <p class="mt-9 max-w-prose text-xl leading-[1.6] text-ink/85" data-reveal data-reveal-delay="240">
+          One card a day, free on Telegram. A model produces its own probability for a match, that
+          gets compared to what the books are offering, and only the disagreement is worth anything.
+          Most days there isn't one, and on those days nothing is posted.
+        </p>
+
+        <div class="mt-11 flex flex-wrap items-center gap-3" data-reveal data-reveal-delay="340">
+          <a href={LEDGER.telegram} target="_blank" rel="noopener" class="btn-primary" data-track="telegram:hero">
+            Join {LEDGER.handle}, free
+          </a>
+          <a href="#record" class="btn-ghost">See the record</a>
+        </div>
+
+        <p class="mt-7 text-xs text-ink-faint">
+          18+. For information only, not financial or betting advice.
+        </p>
+      </div>
+
+      <div
+        class="rounded-3xl border border-ink-hair bg-white/55 p-6 shadow-paper sm:p-9"
+        data-reveal="rise"
+        data-reveal-delay="180"
+      >
+        <p class="micro mb-6">Where the value is</p>
+        <ModelCurve class="w-full" />
+        <p class="mt-6 text-sm leading-relaxed text-ink-soft">
+          The model prices the whole distribution. A bet only exists where the market's price falls
+          inside the shaded tail, and most days it does not.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Method ─────────────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-32">
+    <p class="micro mb-10" data-reveal="fade">How a card is made</p>
+    <ol class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+      {
+        HOW_IT_WORKS.map((s, i) => (
+          <li data-reveal="rise" data-reveal-delay={i * 90} class="relative">
+            <div class="mb-5 flex items-center gap-3">
+              <span class="bg-tf-gradient bg-clip-text text-3xl font-black tabular-nums text-transparent">
+                {s.step}
+              </span>
+              {/* a connector to the next step, so the four read as a sequence */}
+              {i < HOW_IT_WORKS.length - 1 && (
+                <span class="hidden h-px flex-1 bg-ink-hair lg:block" aria-hidden="true" />
+              )}
+            </div>
+            <h2 class="text-xl font-black leading-tight">{s.title}</h2>
+            <p class="mt-3 text-[15px] leading-relaxed text-ink-soft">{s.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  {/* ── The record ─────────────────────────────────────────────────── */}
+  <section id="record" class="scroll-mt-20 border-y border-ink-hair bg-paper-deep/40">
+    <div class="shell py-20 md:py-28">
+      <div class="mb-14 max-w-prose">
+        <p class="micro mb-6">The record</p>
+        <h2 class="text-title font-black">Two tracks, kept apart.</h2>
+        <p class="mt-5 text-[17px] leading-relaxed text-ink-soft">
+          National sides and clubs are different problems, so they are graded as different ledgers
+          and never blended into one flattering number.
+        </p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        {/* National */}
+        <div class="rounded-3xl border border-ink-hair bg-paper p-8 md:p-10" data-reveal="rise">
+          <div class="mb-8 flex items-baseline justify-between gap-4">
+            <h3 class="text-2xl font-black">{national.label}</h3>
+            <span class="micro">{national.status}</span>
+          </div>
+
+          <p class="text-5xl font-black md:text-6xl">
+            <CountUp value={national.profitUnits} decimals={2} prefix="+" /><span class="text-2xl"
+              >u</span
+            >
+          </p>
+
+          {/* profit against stake, to scale; the bar is the honest picture */}
+          <div class="mt-6" aria-hidden="true">
+            <div class="h-2 w-full overflow-hidden rounded-full bg-ink-hair">
+              <div
+                class="h-full rounded-full bg-tf-gradient"
+                style={`width:${Math.min(100, (national.profitUnits / national.stakedUnits) * 100).toFixed(1)}%`}
+              >
+              </div>
+            </div>
+            <p class="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              return on {national.stakedUnits}u staked
+            </p>
+          </div>
+          <p class="mt-3 text-[15px] text-ink-soft">
+            on {national.stakedUnits} units staked, across {national.cards} cards and {
+              national.picks
+            } picks.
+          </p>
+
+          <dl class="mt-9 grid grid-cols-2 gap-6 border-t border-ink-hair pt-7">
+            <div>
+              <dt class="micro mb-2">Last 10 cards</dt>
+              <dd class="text-2xl font-black tabular-nums">{national.last10Roi}</dd>
+            </div>
+            <div>
+              <dt class="micro mb-2">All time</dt>
+              <dd class="text-2xl font-black tabular-nums text-ink-faint">{national.allTimeRoi}</dd>
+            </div>
+          </dl>
+
+          {/* The all-time figure is the flattering one; saying so is the point. */}
+          <p class="mt-6 text-sm leading-relaxed text-ink-soft">
+            The all-time figure is still carried by a strong opening fortnight. The last-10 number is
+            the one worth judging us on, so it is the one we lead with.
+          </p>
+        </div>
+
+        {/* Club */}
+        <div
+          class="rounded-3xl border border-ink-hair bg-paper p-8 md:p-10"
+          data-reveal="rise"
+          data-reveal-delay="120"
+        >
+          <div class="mb-8 flex items-baseline justify-between gap-4">
+            <h3 class="text-2xl font-black">{club.label}</h3>
+            <span class="micro">{club.status}</span>
+          </div>
+
+          <p class="text-5xl font-black md:text-6xl">
+            <CountUp value={club.profitUnits} decimals={2} prefix="+" /><span class="text-2xl">u</span
+            >
+          </p>
+
+          {/* two picks: drawn as two pips, because a bar here would imply a rate */}
+          <div class="mt-6 flex items-center gap-2" aria-hidden="true">
+            <span class="h-2 w-10 rounded-full bg-green"></span>
+            <span class="h-2 w-10 rounded-full bg-ink-hair"></span>
+            <span class="ml-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              1 won · 1 lost
+            </span>
+          </div>
+          <p class="mt-3 text-[15px] text-ink-soft">
+            across {club.cards} cards, with {club.stakedPicks} staked picks, {club.won} won and {
+              club.lost
+            } lost.
+          </p>
+
+          <div class="mt-9 border-t border-ink-hair pt-7">
+            <p class="text-[15px] font-semibold leading-relaxed text-ink">{club.caveat}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap items-center justify-between gap-4">
+        <p class="text-xs text-ink-faint">
+          Graded through {asOfLabel}. A unit is a fixed fraction of a bankroll, and the size is stated
+          on every card.
+        </p>
+        <a href={LEDGER.telegram} target="_blank" rel="noopener" class="btn-primary" data-track="telegram:ledger">
+          Read today's card
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* ── What it is not ─────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-28">
+    <div class="grid gap-14 md:grid-cols-[0.9fr_1.1fr]">
+      <div>
+        <p class="micro mb-6">Straight answers</p>
+        <h2 class="text-title font-black">What this is not.</h2>
+      </div>
+      <div class="max-w-prose space-y-7 text-[17px] leading-[1.75] text-ink/85">
+        <p>
+          <strong class="font-bold">It is not a tipster service.</strong> There is no premium tier, no
+          upsell and nothing behind a paywall. The channel is free because its purpose is to make the
+          model's reasoning public, not to sell picks.
+        </p>
+        <p>
+          <strong class="font-bold">It is not a guarantee.</strong> A positive expected value on a
+          price says a bet is worth making, not that it will win. Losing runs are a normal feature of
+          a correct method, and they are published in the same detail as the winning ones.
+        </p>
+        <p>
+          <strong class="font-bold">It is not advice.</strong> Nothing posted is a recommendation to
+          stake money. Bet only what you can afford to lose, and if it stops being fun, stop.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Capture ────────────────────────────────────────────────────── */}
+  <section class="shell pb-8">
+    <div class="rounded-3xl border border-ink-hair bg-white/50 p-8 md:p-12">
+      <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
+        <div>
+          <h2 class="text-section font-black">Prefer it by email?</h2>
+          <p class="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+            A weekly summary of how the ledger moved: the same numbers, no daily notifications.
+          </p>
+        </div>
+        <NewsletterForm source="intelligence" cta="Get the weekly" />
+      </div>
+    </div>
+  </section>
+
+  {/* ── Compliance ─────────────────────────────────────────────────── */}
+  <aside class="shell pb-4">
+    <div class="rounded-2xl border border-ink-hair bg-paper-deep/50 p-6 text-xs leading-relaxed text-ink-soft">
+      <p class="mb-2 font-bold uppercase tracking-[0.14em] text-ink">18+ · Please gamble responsibly</p>
+      <p>
+        Total Stats publishes statistical analysis for information and entertainment. It is not
+        financial, investment or betting advice, and no outcome is guaranteed. Gambling carries a
+        risk of financial loss and can be addictive. Betting laws differ by country, so it is your
+        responsibility to know whether it is legal where you live. If gambling is causing you harm,
+        support is available at
+        <a
+          href="https://www.begambleaware.org/"
+          target="_blank"
+          rel="noopener nofollow"
+          class="font-semibold text-ink underline underline-offset-2">BeGambleAware.org</a
+        >.
+      </p>
+    </div>
+  </aside>
+</BaseLayout>

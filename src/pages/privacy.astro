@@ -1,0 +1,132 @@
+---
+/**
+ * TODO(thanos): have this reviewed against the operating entity before launch:
+ * the controller name, address and contact address below are placeholders that
+ * must match whoever actually runs the site (naurra.ai's registered entity, or
+ * a separate one).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const updated = '9 August 2026'
+---
+
+<BaseLayout
+  title="Privacy"
+  description="What Total Football collects, why, and how to have it deleted."
+  path="/privacy/"
+>
+  <div class="shell max-w-prose py-20 md:py-28">
+    <p class="micro mb-6">Legal</p>
+    <h1 class="text-title font-black">Privacy</h1>
+    <p class="mt-4 text-sm text-ink-faint">Last updated {updated}</p>
+
+    <div class="mt-12 space-y-10 text-[16px] leading-[1.75] text-ink/85">
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">The short version</h2>
+        <p>
+          Two things, and only two. Your email address, if you type it into a form. And a count of
+          which pages get read, which contains nothing that identifies you and which you can switch
+          off in one click. There are no cookies at all, no advertising trackers, and no
+          third-party analytics scripts.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Email, if you subscribe</h2>
+        <p>
+          We store your email address, the page or form you subscribed from, and the date. The
+          source is recorded so we can tell which content is worth writing more of.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Analytics, and why there is no cookie banner</h2>
+        <p>
+          We count which pages get read so we know what to write next. There is no cookie banner
+          because there are no cookies, and because nothing collected identifies you. You can switch
+          the counting off in one click using
+          <strong class="font-bold">Do not count my visit</strong> at the bottom of any page, and if
+          your browser sends a Global Privacy Control or Do Not Track signal we obey it
+          automatically without you doing anything.
+        </p>
+        <p class="mt-3">Each record contains:</p>
+        <ul class="mt-3 list-disc space-y-1 pl-6">
+          <li>the page you viewed, and how long the tab was actually in front of you</li>
+          <li>which links you clicked, where those leave the site or are a call to action</li>
+          <li>the website that referred you, as a domain name only</li>
+          <li>your country, and whether you are on mobile, tablet or desktop</li>
+          <li>a random session identifier, described below</li>
+        </ul>
+        <p class="mt-3">
+          Just as importantly, here is what is <strong class="font-bold">not</strong> recorded: no
+          cookies of any kind, no IP address, no browser fingerprint, no full user-agent string, no
+          name, and no identifier that survives your visit or follows you to another website.
+        </p>
+        <p class="mt-3">
+          The session identifier is a random number generated in your browser and held in session
+          storage, which your browser erases when you close the tab. It exists so we can tell that
+          three page views were one visit rather than three people. It cannot be used to recognise
+          you if you come back, and it is never linked to your email address even if you subscribe.
+        </p>
+        <p class="mt-3">
+          Because no cookies are used, no device storage is read for tracking purposes, and no
+          personal data is collected, the lawful basis is our legitimate interest in understanding
+          which articles are worth writing. You can object at any time with the opt-out above.
+          Analytics records are kept for 14 months and then deleted.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Server logs</h2>
+        <p>
+          Our host processes standard server logs (IP address, user agent, requested URL) for
+          security and abuse prevention, on the basis of legitimate interest. Those logs are not
+          combined with your email address or with the analytics described above.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Why, and on what basis</h2>
+        <p>
+          Your email is used to send the newsletter you asked for, and nothing else. The lawful basis
+          is your consent, which you can withdraw at any time. We do not sell, rent or share the
+          list.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Where it is stored</h2>
+        <p>
+          Subscriber records are held in Supabase (PostgreSQL). The site is hosted by Netlify. Both
+          may process data outside your country; both operate under standard contractual clauses for
+          transfers out of the EEA and UK.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">How long</h2>
+        <p>
+          Until you unsubscribe, plus a short period to honour the unsubscribe. Every email carries a
+          one-click unsubscribe link.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Your rights</h2>
+        <p>
+          You can ask for a copy of what we hold about you, have it corrected, or have it deleted
+          outright. Write to the address below and we will action it. If you are in the EEA or UK you
+          also have the right to complain to your data protection authority.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="mb-3 text-xl font-black text-ink">Contact</h2>
+        <p>
+          <!-- TODO(thanos): replace with the real contact address. -->
+          Email <span class="font-semibold text-ink">[contact address to be confirmed]</span>.
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

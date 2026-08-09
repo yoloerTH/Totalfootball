@@ -1,0 +1,95 @@
+---
+/**
+ * A number that counts up the first time it scrolls into view.
+ *
+ * The rendered text is the FINAL value, always. Script only replaces it while
+ * animating and then puts it back, so with JS off, mid-animation, or for a
+ * crawler, the correct figure is what is in the DOM. A stat that renders as "0"
+ * without JS would be worse than no animation at all.
+ */
+interface Props {
+  value: number
+  /** Decimal places to keep while counting. */
+  decimals?: number
+  prefix?: string
+  suffix?: string
+  /** Pass a pre-formatted string (e.g. "25,000+") to display instead. */
+  display?: string
+  class?: string
+  durationMs?: number
+}
+
+const {
+  value,
+  decimals = 0,
+  prefix = '',
+  suffix = '',
+  display,
+  class: klass = '',
+  durationMs = 1400,
+} = Astro.props
+
+const final = display ?? `${prefix}${value.toLocaleString('en-GB')}${suffix}`
+---
+
+<span
+  class={`tf-countup tabular-nums ${klass}`}
+  data-value={value}
+  data-decimals={decimals}
+  data-prefix={prefix}
+  data-suffix={suffix}
+  data-duration={durationMs}
+  data-final={final}>{final}</span
+>
+
+<script>
+  const nodes = document.querySelectorAll<HTMLElement>('.tf-countup')
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  if (nodes.length && !reduce && 'IntersectionObserver' in window) {
+    const run = (el: HTMLElement) => {
+      const target = Number(el.dataset.value ?? 0)
+      const decimals = Number(el.dataset.decimals ?? 0)
+      const prefix = el.dataset.prefix ?? ''
+      const suffix = el.dataset.suffix ?? ''
+      const duration = Number(el.dataset.duration ?? 1400)
+      const final = el.dataset.final ?? el.textContent ?? ''
+
+      // Reserve the final width first so the surrounding layout cannot reflow
+      // while the digits change.
+      el.style.display = 'inline-block'
+      el.style.minWidth = `${el.getBoundingClientRect().width}px`
+
+      const start = performance.now()
+      // Expo-out: fast, then a long settle. Same curve as everything else here.
+      const ease = (t: number) => 1 - Math.pow(2, -10 * t)
+
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / duration)
+        if (t >= 1) {
+          el.textContent = final
+          return
+        }
+        const n = target * ease(t)
+        el.textContent = `${prefix}${n.toLocaleString('en-GB', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        })}${suffix}`
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          run(entry.target as HTMLElement)
+          io.unobserve(entry.target)
+        })
+      },
+      { threshold: 0.5 }
+    )
+    nodes.forEach((el) => io.observe(el))
+  }
+</script>

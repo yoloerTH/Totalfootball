@@ -1,0 +1,45 @@
+---
+/**
+ * One phase diagram.
+ *
+ * Serves AVIF, then WebP, then PNG. Intrinsic dimensions are always declared so
+ * the page reserves the space before the bytes arrive. Zero layout shift is a
+ * ranking factor, not a nicety.
+ *
+ * Source frames are 1440×2560 (the composition's native vertical), exported at
+ * half scale and then cropped by 176px at the bottom to drop the burned-in
+ * caption bar and logo, giving 720×1104. That is still above 2× density for
+ * the largest slot the layout ever gives them.
+ *
+ * These dimensions MUST match media/postprocess.mjs. If the crop changes, this
+ * changes, or every library page starts shifting layout as images load.
+ */
+interface Props {
+  slug: string
+  n: number
+  alt: string
+  /** True for the first diagram on a page; it is the LCP element. */
+  eager?: boolean
+}
+
+const { slug, n, alt, eager = false } = Astro.props
+
+const base = `/library/${slug}/phase-${String(n).padStart(2, '0')}`
+const W = 720
+const H = 1104
+---
+
+<picture>
+  <source srcset={`${base}.avif`} type="image/avif" />
+  <source srcset={`${base}.webp`} type="image/webp" />
+  <img
+    src={`${base}.png`}
+    alt={alt}
+    width={W}
+    height={H}
+    loading={eager ? 'eager' : 'lazy'}
+    decoding={eager ? 'sync' : 'async'}
+    fetchpriority={eager ? 'high' : 'auto'}
+    class="mx-auto h-auto w-full max-w-[380px] rounded-2xl bg-paper-deep shadow-paper md:max-w-none"
+  />
+</picture>

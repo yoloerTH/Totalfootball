@@ -1,0 +1,149 @@
+---
+import Mark from './brand/Mark.astro'
+import NewsletterForm from './NewsletterForm.astro'
+import { SOCIAL } from '../lib/site'
+
+const year = new Date().getFullYear()
+
+const columns = [
+  {
+    title: 'Library',
+    links: [
+      { href: '/library/', label: 'All systems' },
+      { href: '/library/theme/defending/', label: 'Defending' },
+      { href: '/library/theme/build-up/', label: 'Build-up' },
+      { href: '/library/theme/pressing/', label: 'Pressing' },
+      { href: '/library/theme/attacking/', label: 'Attacking' },
+    ],
+  },
+  {
+    title: 'More',
+    links: [
+      { href: '/intelligence/', label: 'Intelligence' },
+      { href: '/course/', label: 'The course' },
+      { href: '/about/', label: 'About' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { href: '/privacy/', label: 'Privacy' },
+      { href: '/terms/', label: 'Terms' },
+    ],
+  },
+]
+
+const social = [
+  { href: SOCIAL.facebook, label: 'Facebook' },
+  { href: SOCIAL.youtube, label: 'YouTube' },
+  { href: SOCIAL.telegram, label: 'Telegram' },
+].filter((s) => s.href)
+---
+
+<footer class="mt-28 border-t border-ink-hair bg-paper-deep/40">
+  <div class="shell py-16">
+    {/* The newsletter's primary surface. The popup is a supplement, never the
+        only way to subscribe. See docs/SPEC.md §9. */}
+    <div class="mb-14 grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
+      <div>
+        <p class="micro mb-3">The notebook</p>
+        <h2 class="text-section font-black">One system, explained, every week.</h2>
+        <p class="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+          The diagram, the principle, and the detail most people miss. No spam, no filler, and you can
+          unsubscribe in one click.
+        </p>
+      </div>
+      <NewsletterForm source="footer" />
+    </div>
+
+    <div class="rule mb-12"></div>
+
+    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <Mark size={34} disc={false} />
+          <span class="text-[13px] font-bold uppercase tracking-[0.16em]">Total Football</span>
+        </div>
+        <p class="mt-4 max-w-[34ch] text-sm leading-relaxed text-ink-soft">
+          Football tactics as diagrams. Every frame drawn from scratch, with no broadcast clips.
+        </p>
+      </div>
+
+      {
+        columns.map((col) => (
+          <div>
+            <p class="micro mb-4">{col.title}</p>
+            <ul class="space-y-2.5">
+              {col.links.map((l) => (
+                <li>
+                  <a href={l.href} class="text-sm text-ink-soft transition-colors hover:text-ink">
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <div
+      class="mt-14 flex flex-col gap-4 border-t border-ink-hair pt-8 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <p class="text-xs text-ink-faint">© {year} Total Football. All rights reserved.</p>
+        {/*
+          There is no cookie banner because the analytics sets no cookies and
+          stores nothing identifying (see components/Analytics.astro). This
+          opt-out is what makes that position defensible, so do not remove it.
+        */}
+        <button
+          type="button"
+          id="tf-optout"
+          class="text-xs text-ink-faint underline underline-offset-2 transition-colors hover:text-ink"
+        >
+          Do not count my visit
+        </button>
+      </div>
+      {
+        social.length > 0 && (
+          <ul class="flex gap-5">
+            {social.map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  rel="me noopener"
+                  target="_blank"
+                  class="text-xs font-medium text-ink-soft transition-colors hover:text-ink"
+                >
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
+
+  <script is:inline>
+    // Deferred on purpose: Analytics.astro renders AFTER the footer in
+    // BaseLayout, so window.tfPrivacy does not exist yet at parse time. Binding
+    // immediately would leave this button silently dead.
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('tf-optout')
+      if (!btn || !window.tfPrivacy) return
+      var render = function () {
+        btn.textContent = window.tfPrivacy.isOptedOut()
+          ? 'Visit not counted. Undo'
+          : 'Do not count my visit'
+      }
+      render()
+      btn.addEventListener('click', function () {
+        if (window.tfPrivacy.isOptedOut()) window.tfPrivacy.optIn()
+        else window.tfPrivacy.optOut()
+        render()
+      })
+    })
+  </script>
+</footer>
