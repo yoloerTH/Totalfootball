@@ -1,15 +1,19 @@
-Football is not short of tactical analysis. It is short of analysis anyone can actually study.
+I started a football channel in May to test one idea: that you could build an audience without using a single second of footage.
 
-A twenty second clip is enough to show you a system. It is not enough to let you learn one. You watch it, you nod, and the next morning you could not draw it.
+No clips, no highlights, nothing borrowed. Every frame animated from scratch in code, on a pitch drawn to real geometry.
 
-We have published 88 animated tactical breakdowns to around 5 million views, and that gap is the one thing the format could never solve on its own. So we built the other half of it.
+88 videos later, it is at around 5 million views and 25,000 followers.
 
-Total Football now has a library on the web. Every system on its own page, split into numbered phases, with the diagram sitting beside an explanation of what is actually happening in it. Real pitch geometry, real distances, and not one frame of broadcast footage anywhere, because all of it is animated from scratch.
+The surprise was not the reach. It was what people message about. Almost never the tactics. Almost always the videos themselves. What is it made in. How long does one take. How do you decide what happens in the first three seconds.
 
-The thinking behind it is simple. Video is how you get someone interested in a tactical idea. Diagrams and text are how they take it into a session on Tuesday.
+So I am opening the whole thing up.
 
-Free to read: totalfootball.naurra.ai
+The first half is live now. Every breakdown the channel has made has its own page, written out phase by phase, the diagram beside an explanation of what is happening in it. Free, no account: totalfootball.naurra.ai
 
-Five systems are live and more go up every week. After that comes a course on how the breakdowns are actually produced, from the board engine to the pacing rules we pulled out of measuring every short we have published.
+The second half is the process. The engine every video is built on. The choreography. The pacing rules, which are not taste: they came out of measuring all 88 published pieces and finding that watch-through behaves like a gate rather than a gradient. Below the threshold, nothing we made ever broke out. Not once in 43 attempts.
 
-The six slides below are the short version.
+That becomes a course.
+
+If you make content and you have ever wondered whether the careful, analytical version of your niche can beat the loud version, our data says yes, and not narrowly.
+
+Six slides below.
