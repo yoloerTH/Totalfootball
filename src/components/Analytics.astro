@@ -96,6 +96,19 @@ const VERSION = 1
       )
     }
 
+    /**
+     * Headless automation. Netlify's own post-deploy checks run a real browser
+     * and executed this script on the very first deploy, producing two phantom
+     * "visits" from the US before a single human had seen the site. Lighthouse,
+     * screenshot services and most JS-capable crawlers set the same flag.
+     */
+    function isBot() {
+      if (navigator.webdriver === true) return true
+      return /bot|crawl|spider|slurp|headless|lighthouse|preview|pingdom|uptime/i.test(
+        navigator.userAgent || ''
+      )
+    }
+
     function consented() {
       if (!CONSENT_BANNER) return true // banner off: cookie-free collection runs by default
       try {
@@ -109,7 +122,7 @@ const VERSION = 1
     }
 
     function allowed() {
-      return !optedOut() && !signalsNo() && consented()
+      return !optedOut() && !signalsNo() && !isBot() && consented()
     }
 
     // Exposed for the footer opt-out link, and for re-enabling the banner.
