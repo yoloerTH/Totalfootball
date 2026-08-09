@@ -35,15 +35,20 @@ export const SITE = {
  * on-page lever for entity strength, the exact bottleneck the naurra.ai audit
  * identified. Keep this list complete and accurate.
  *
- * TODO(thanos): confirm the Facebook page URL and whether the YouTube channel
- * is live before launch. Placeholders are filtered out of `sameAs` below.
+ * URLs are stored canonical and clean: no share tokens, no `utm_*`, no
+ * `sec_uid`. A tracking-laden link in `sameAs` is worse than no link, because
+ * it will not match the profile Google already has on file.
+ *
+ * NOTE: the YouTube handle is still @Fballvault, from the channel's old
+ * "Football Vault" name. Renaming it would strengthen the entity further, since
+ * every other profile now says Total Football.
  */
 export const SOCIAL = {
-  facebook: '',
-  youtube: '',
+  facebook: 'https://www.facebook.com/profile.php?id=61590673460742',
+  instagram: 'https://www.instagram.com/total.fball/',
+  youtube: 'https://www.youtube.com/@Fballvault',
+  tiktok: 'https://www.tiktok.com/@total.fball',
   telegram: 'https://t.me/totalfootballstats',
-  tiktok: '',
-  instagram: '',
 } as const
 
 export const sameAs = Object.values(SOCIAL).filter(Boolean)
