@@ -1,0 +1,179 @@
+---
+/**
+ * The shared system, as anyone who receives the link sees it.
+ *
+ * The document travels in the URL FRAGMENT (see src/studio/share.ts), which is
+ * never sent to the server — so this page is static, cacheable, identical for
+ * everybody, and knows nothing about what it is about to show. That is also why
+ * it is `noindex`: there is no page here to index, only a viewer, and every
+ * shared link would otherwise look like a duplicate of every other one.
+ *
+ * `bare`, because a coach presenting off this in front of a room does not want
+ * the site's nav across the top of it.
+ *
+ * ── THE PRINT STYLESHEET IS THE PDF EXPORT ───────────────────────────────────
+ *
+ * There is no jsPDF here and no canvas. The viewer already holds every phase as
+ * live SVG in the document (`.tf-print`, hidden on screen); printing hands that
+ * to the browser, which lays it out one phase per page and writes a PDF with
+ * the boards as VECTOR and the type as really-Inter. Rasterising through a
+ * canvas would have meant solving the font-embedding problem in docs/STUDIO.md
+ * §6 — inlining a subset Inter as base64 in every serialised SVG, silently
+ * falling back to Helvetica whenever we got it wrong — and would have produced
+ * a worse PDF at the end of it.
+ *
+ * The rules below are all print-only and global (the island's DOM never gets
+ * Astro's scoping attribute, so `is:global` is not optional here).
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Viewer from '../../studio/viewer/Viewer'
+---
+
+<BaseLayout
+  title="A shared system"
+  description="A tactical system built in the Total Football studio."
+  path="/studio/watch/"
+  noindex
+  bare
+>
+  <Viewer client:only="react" />
+</BaseLayout>
+
+<style is:global>
+  /* Screen: the print sheet is present in the DOM but never seen. */
+  .tf-print {
+    display: none;
+  }
+
+  @media print {
+    /* Night mode must not follow a coach onto paper. */
+    :root,
+    :root[data-theme='dark'] {
+      --tf-paper: 255 255 255;
+      --tf-paper-deep: 255 255 255;
+      --tf-surface: 255 255 255;
+      --tf-ink: 22 22 24;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 10mm;
+    }
+
+    .tf-screen {
+      display: none !important;
+    }
+
+    .tf-print {
+      display: block;
+      /* The paper stage is the brand. Without this, every browser helpfully
+         drops the board's ground and prints the pitch onto bare white. */
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color: #161618;
+      font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+    }
+
+    .tf-slide {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      break-after: page;
+      page-break-after: always;
+    }
+    .tf-slide:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    .tf-slide-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid rgba(22, 22, 24, 0.12);
+      padding-bottom: 5px;
+    }
+    .tf-slide-n {
+      font-size: 9pt;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(22, 22, 24, 0.42);
+    }
+    .tf-slide-title {
+      font-size: 15pt;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    /* The board takes the room that is left, and keeps its shape. `min-height:0`
+       is what stops a flex child refusing to shrink and pushing the credit bar
+       onto a second page. */
+    .tf-slide-board {
+      flex: 1 1 auto;
+      min-height: 0;
+      margin: 6mm auto;
+      max-width: 100%;
+    }
+    .tf-slide-board svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .tf-slide-caption {
+      font-size: 11pt;
+      line-height: 1.45;
+      margin: 0 0 2mm;
+    }
+    .tf-slide-notes {
+      font-size: 9.5pt;
+      line-height: 1.5;
+      color: rgba(22, 22, 24, 0.62);
+      white-space: pre-line;
+      margin: 0 0 3mm;
+      max-width: 62em;
+    }
+    .tf-slide-credit {
+      margin-top: auto;
+    }
+
+    /* The cover. */
+    .tf-cover {
+      justify-content: center;
+      text-align: center;
+    }
+    .tf-cover-mid {
+      margin: auto;
+    }
+    .tf-cover-title {
+      font-size: 30pt;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.04;
+      margin: 6mm 0 0;
+    }
+    .tf-cover-sub {
+      font-size: 13pt;
+      color: rgba(22, 22, 24, 0.62);
+      margin: 3mm 0 0;
+    }
+    .tf-cover-meta {
+      font-size: 12pt;
+      font-weight: 700;
+      margin: 8mm 0 0;
+    }
+    .tf-cover-date {
+      font-size: 10pt;
+      color: rgba(22, 22, 24, 0.42);
+      margin: 1mm 0 0;
+    }
+    .tf-cover-foot {
+      font-size: 8.5pt;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(22, 22, 24, 0.42);
+      margin: 0;
+    }
+  }
+</style>

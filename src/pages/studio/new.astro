@@ -1,0 +1,27 @@
+---
+/**
+ * The studio, on a scratch system.
+ *
+ * A deliberate front door: no account, no saved library, no login — land here
+ * and you are already dragging players around. Adoption was the stated goal for
+ * this phase, and the fastest way to lose a coach is to ask who they are before
+ * showing them anything.
+ *
+ * The island is `client:only` rather than hydrated from server-rendered HTML
+ * because the system it edits comes out of localStorage, which does not exist at
+ * build time. Server-rendering a board built from a different system than the
+ * one the browser is about to load would flash the wrong shape.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import StudioMount from '../../studio/editor/StudioMount'
+---
+
+<BaseLayout
+  title="Studio"
+  description="Build a tactical presentation on the Total Football board: pick a pitch, a shape and your colours, then pose it act by act."
+  path="/studio/new/"
+  noindex
+  bare
+>
+  <StudioMount client:only="react" />
+</BaseLayout>

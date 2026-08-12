@@ -1,0 +1,199 @@
+---
+/**
+ * Board proof sheet — an internal page, not part of the site.
+ *
+ * Everything the studio draws, rendered statically so the look can be judged
+ * before any editor UI is built on top of it. If the boards here do not read
+ * like the channel, nothing built later will either.
+ *
+ * Deliberately noindex and unlinked. It stays in the repo because it is the
+ * fastest way to catch a regression in the board core: change a constant in
+ * board/palette.ts, reload this, see every consequence at once.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { Board } from '../../studio/board/Board'
+import { PITCH_VIEWS, PITCH_VIEW_LIST, aspect } from '../../studio/board/pitch'
+import { FORMATIONS, FORMATION_BY_ID, place } from '../../studio/formations'
+import { DEFAULT_THEM, DEFAULT_US, emptyAct, type Act, type System } from '../../studio/schema'
+import { resolveAct, tweenActs } from '../../studio/tween'
+
+const teams = { us: DEFAULT_US, them: DEFAULT_THEM }
+
+/** One board per pitch view, so the crop maths can be checked at a glance. */
+const views = PITCH_VIEW_LIST.map((v) => {
+  const system: System = {
+    v: 1,
+    title: v.label,
+    pitch: v.id,
+    teams,
+    acts: [],
+  }
+  const act = emptyAct([
+    ...place(FORMATION_BY_ID.get('4-3-3')!, 'us', v.id),
+    ...place(FORMATION_BY_ID.get('4-4-2')!, 'them', v.id),
+  ])
+  return { view: v, system, act: resolveAct(act) }
+})
+
+/** Every formation, our side only, on the full pitch. */
+const shapes = FORMATIONS.map((f) => {
+  const system: System = { v: 1, title: f.name, pitch: 'full', teams: { us: DEFAULT_US, them: null }, acts: [] }
+  return { f, system, act: resolveAct(emptyAct(place(f, 'us', 'full'))) }
+})
+
+/**
+ * The full vocabulary on one board: cues, all five arrow kinds, a block band, a
+ * danger zone, the ball, a dimmed player and a named player.
+ */
+const kitchenSink: System = {
+  v: 1,
+  title: 'Every mark the board can make',
+  pitch: 'defending-half',
+  teams,
+  acts: [],
+}
+const sinkTokens = [
+  ...place(FORMATION_BY_ID.get('4-4-2')!, 'us', 'defending-half'),
+  ...place(FORMATION_BY_ID.get('4-3-3')!, 'them', 'defending-half'),
+]
+const sinkAct: Act = {
+  ...emptyAct(
+    sinkTokens.map((t) => {
+      if (t.id === 'us-RB') return { ...t, cue: 'PRESS' as const }
+      if (t.id === 'us-RCB') return { ...t, cue: 'COVER' as const }
+      if (t.id === 'us-LCB') return { ...t, cue: 'BALANCE' as const }
+      if (t.id === 'us-LB') return { ...t, cue: 'SPARE' as const, name: 'Cancelo' }
+      if (t.side === 'them' && t.id !== 'them-LW') return { ...t, dim: true }
+      return t
+    }),
+  ),
+  ball: { x: 62, y: 18 },
+  arrows: [
+    { id: 'a1', kind: 'pass', from: { x: 62, y: 18 }, to: { x: 44, y: 40 }, bend: 0.3, label: 'switch' },
+    { id: 'a2', kind: 'run', from: { x: 70, y: 76 }, to: { x: 40, y: 84 } },
+    { id: 'a3', kind: 'carry', from: { x: 80, y: 50 }, to: { x: 58, y: 52 }, bend: -0.2 },
+    { id: 'a4', kind: 'press', from: { x: 40, y: 22 }, to: { x: 56, y: 19 } },
+    { id: 'a5', kind: 'switch', from: { x: 76, y: 30 }, to: { x: 76, y: 72 }, bend: 0.45 },
+  ],
+  bands: [
+    { id: 'b1', kind: 'block', throughTokens: ['us-LB', 'us-LCB', 'us-RCB', 'us-RB'], label: 'THE BLOCK' },
+    { id: 'b2', kind: 'danger', rect: { x: 0, y: 30, w: 22, h: 40 }, label: 'DANGER ZONE' },
+  ],
+}
+
+/**
+ * The tween, sampled. Act 1 is a mid-block; act 2 slides it across and hands
+ * the pressing job down the line — the lesson from `defending-in-a-back-four`,
+ * which is the right thing to test against because it is the one every viewer
+ * already knows the shape of.
+ */
+const tweenSystem: System = { v: 1, title: 'Tween', pitch: 'defending-half', teams, acts: [] }
+const base = place(FORMATION_BY_ID.get('4-4-2')!, 'us', 'defending-half')
+const actA: Act = {
+  ...emptyAct(base.map((t) => (t.id === 'us-RB' ? { ...t, cue: 'PRESS' as const } : t))),
+  ball: { x: 64, y: 12 },
+  bands: [{ id: 'b1', kind: 'block', throughTokens: ['us-LB', 'us-LCB', 'us-RCB', 'us-RB'] }],
+}
+const actB: Act = {
+  ...emptyAct(
+    base.map((t) => {
+      const slid = { ...t, y: Math.min(100, t.y + 16) }
+      if (t.id === 'us-RCB') return { ...slid, cue: 'PRESS' as const }
+      return slid
+    }),
+  ),
+  ball: { x: 58, y: 44 },
+  bands: [{ id: 'b1', kind: 'block', throughTokens: ['us-LB', 'us-LCB', 'us-RCB', 'us-RB'] }],
+}
+const samples = [0, 0.25, 0.5, 0.75, 1]
+---
+
+<BaseLayout title="Board proof sheet" path="/studio/preview/" noindex bare>
+  <main class="mx-auto max-w-shell px-5 py-16">
+    <p class="text-micro uppercase text-ink-faint">Internal</p>
+    <h1 class="mt-3 text-title font-black tracking-display text-ink">Board proof sheet</h1>
+    <p class="mt-4 max-w-prose text-ink-soft">
+      Everything the studio can draw, rendered statically from the board core. The pitch stays on
+      the paper stage in both site themes on purpose — it is what makes an exported deck look like
+      the videos.
+    </p>
+
+    <section class="mt-16">
+      <h2 class="text-section font-black tracking-display text-ink">Pitch views</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        One pitch, five crops. A 4-3-3 against a 4-4-2, placed by the formation bands. Check that
+        the markings line up and that neither team is stranded on the wrong side.
+      </p>
+      <div class="mt-8 grid gap-10 sm:grid-cols-2">
+        {
+          views.map(({ view, system, act }) => (
+            <figure class="flex flex-col items-center rounded-lg bg-surface p-4 shadow-paper">
+              <div style={`height:340px;aspect-ratio:${aspect(view)};max-width:100%`}>
+                <Board system={system} act={act} idp={`v-${view.id}`} texture />
+              </div>
+              <figcaption class="mt-3">
+                <span class="text-sm font-bold text-ink">{view.label}</span>
+                <span class="ml-2 text-sm text-ink-soft">{view.hint}</span>
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-20">
+      <h2 class="text-section font-black tracking-display text-ink">The full vocabulary</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        Cues, all five arrow intents, a block band that follows its players, a danger zone, a named
+        counter, dimmed opposition, the ball.
+      </p>
+      <figure class="mt-8 flex flex-col items-center rounded-lg bg-surface p-4 shadow-paper">
+        <div style={`height:560px;aspect-ratio:${aspect(PITCH_VIEWS[kitchenSink.pitch])};max-width:100%`}>
+          <Board system={kitchenSink} act={resolveAct(sinkAct)} idp="sink" texture />
+        </div>
+      </figure>
+    </section>
+
+    <section class="mt-20">
+      <h2 class="text-section font-black tracking-display text-ink">Act → act</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        The same two acts sampled at 0, 25, 50, 75 and 100 percent. Nobody keyframed this: the
+        coach posed two boards and the ids did the rest.
+      </p>
+      <div class="mt-8 grid gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {
+          samples.map((p) => (
+            <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+              <div style={`height:250px;aspect-ratio:${aspect(PITCH_VIEWS[tweenSystem.pitch])};max-width:100%`}>
+                <Board system={tweenSystem} act={tweenActs(actA, actB, p)} idp={`tw-${p}`} />
+              </div>
+              <figcaption class="mt-2 text-micro uppercase text-ink-faint">{Math.round(p * 100)}%</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-20">
+      <h2 class="text-section font-black tracking-display text-ink">Formations</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        All {FORMATIONS.length}, our side only, on the full pitch.
+      </p>
+      <div class="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          shapes.map(({ f, system, act }) => (
+            <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+              <div style={`height:200px;aspect-ratio:${aspect(PITCH_VIEWS.full)};max-width:100%`}>
+                <Board system={system} act={act} idp={`f-${f.id}`} />
+              </div>
+              <figcaption class="mt-2">
+                <span class="text-sm font-bold text-ink">{f.name}</span>
+                <span class="block text-xs text-ink-soft">{f.hint}</span>
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+  </main>
+</BaseLayout>
