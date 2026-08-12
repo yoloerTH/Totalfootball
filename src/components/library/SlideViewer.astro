@@ -52,6 +52,8 @@ const { slug, phases } = Astro.props
     </p>
   </div>
 
+  <p class="tf-hint micro mb-6 text-center">Swipe to change phase</p>
+
   <div class="tf-stack">
     {
       phases.map((p) => (
@@ -85,10 +87,27 @@ const { slug, phases } = Astro.props
     }
   </div>
 
-  {/* Prev/next, only meaningful once script is driving. */}
-  <div class="tf-nav hidden items-center justify-between gap-4" data-nav>
-    <button type="button" class="btn-ghost" data-prev>← Previous</button>
-    <button type="button" class="btn-primary" data-next>Next phase →</button>
+  {/*
+    Prev/next, only meaningful once script is driving.
+
+    On phones this bar is `position: sticky; bottom` so it rides at the foot of
+    the screen for as long as the phase is taller than the viewport — a phase is
+    a full-bleed diagram plus ~150 words, so reaching the button used to mean
+    scrolling to the bottom of every single one. It carries its own counter
+    because the rail at the top of the section is long gone by then.
+  */}
+  <div class="tf-nav hidden items-center justify-between gap-3" data-nav>
+    <button type="button" class="btn-ghost" data-prev>
+      <span aria-hidden="true">←</span>
+      <span class="sr-only sm:not-sr-only">Previous</span>
+    </button>
+    <p class="text-xs tabular-nums text-ink-faint md:hidden" aria-hidden="true">
+      <span data-current>1</span>/<span>{phases.length}</span>
+    </p>
+    <button type="button" class="btn-primary" data-next>
+      <span data-next-label>Next phase</span>
+      <span aria-hidden="true">→</span>
+    </button>
   </div>
 </section>
 
@@ -110,6 +129,79 @@ const { slug, phases } = Astro.props
     background: #161618;
   }
 
+  /*
+   * The floating control bar, phones only. Sticky rather than fixed on purpose:
+   * a fixed bar would hang over the related-systems grid and the footer for the
+   * rest of the page, and it would need a body offset to stop covering them.
+   * Sticky keeps it inside the section that owns it, so it lifts off by itself
+   * the moment the reader passes the last phase.
+   */
+  @media (max-width: 767px) {
+    :global(.js) .tf-slides[data-upgraded] .tf-nav {
+      position: sticky;
+      /*
+       * Parked ABOVE the "Designed by Naurra AI" badge, which is fixed to the
+       * bottom-right corner and stays put — this bar has to clear it rather than
+       * the other way round. 60px is the badge's own 1rem offset plus its 34px
+       * height plus a gap, and `env()` keeps both of them off the iOS home
+       * indicator. If the badge's size or offset changes, this changes with it.
+       */
+      bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+      z-index: 20;
+      margin-top: 1.5rem;
+      border-radius: 999px;
+      border: 1px solid rgb(var(--tf-ink) / 0.08);
+      background: rgb(var(--tf-paper) / 0.86);
+      padding: 0.375rem;
+      box-shadow: var(--tf-shadow-paper);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    /* The pill supplies the padding, so the buttons inside it can be tighter. */
+    :global(.js) .tf-slides[data-upgraded] .tf-nav .btn {
+      padding-left: 1.125rem;
+      padding-right: 1.125rem;
+      padding-top: 0.625rem;
+      padding-bottom: 0.625rem;
+    }
+  }
+  /* The badge grows at `sm`, so the bar has to step up with it. */
+  @media (min-width: 640px) and (max-width: 767px) {
+    :global(.js) .tf-slides[data-upgraded] .tf-nav {
+      bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  /* Swiping should feel like it moved something, so the incoming phase slides
+     in from the direction of travel rather than always rising. */
+  :global(.js) .tf-slides[data-upgraded][data-dir='next'] .tf-phase[data-active] {
+    animation-name: tf-phase-next;
+  }
+  :global(.js) .tf-slides[data-upgraded][data-dir='prev'] .tf-phase[data-active] {
+    animation-name: tf-phase-prev;
+  }
+
+  @keyframes tf-phase-next {
+    from {
+      opacity: 0;
+      transform: translateX(22px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes tf-phase-prev {
+    from {
+      opacity: 0;
+      transform: translateX(-22px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   @keyframes tf-phase-in {
     from {
       opacity: 0;
@@ -125,6 +217,19 @@ const { slug, phases } = Astro.props
       animation: none;
     }
   }
+
+  /* A phone-only hint, retired the first time the reader swipes. */
+  .tf-hint {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    :global(.js) .tf-slides[data-upgraded] .tf-hint {
+      display: block;
+    }
+    :global(.js) .tf-slides[data-upgraded][data-swiped] .tf-hint {
+      display: none;
+    }
+  }
 </style>
 
 <script>
@@ -133,24 +238,51 @@ const { slug, phases } = Astro.props
     if (phases.length < 2) return
 
     const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-goto]'))
-    const counter = root.querySelector<HTMLElement>('[data-current]')
+    // Two of these: the rail's, and the one in the sticky bar on phones.
+    const counters = Array.from(root.querySelectorAll<HTMLElement>('[data-current]'))
     const prev = root.querySelector<HTMLButtonElement>('[data-prev]')
     const next = root.querySelector<HTMLButtonElement>('[data-next]')
+    const nextLabel = root.querySelector<HTMLElement>('[data-next-label]')
+
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
 
     let index = 0
 
-    const show = (i: number, focus = false) => {
+    const show = (i: number, move = false, dir: 'next' | 'prev' | null = null) => {
       index = Math.max(0, Math.min(phases.length - 1, i))
+      if (dir) root.setAttribute('data-dir', dir)
+      else root.removeAttribute('data-dir')
       phases.forEach((el, k) => {
         if (k === index) el.setAttribute('data-active', '')
         else el.removeAttribute('data-active')
       })
       dots.forEach((d, k) => d.setAttribute('aria-selected', k === index ? 'true' : 'false'))
-      if (counter) counter.textContent = String(index + 1)
+      counters.forEach((c) => (c.textContent = String(index + 1)))
       if (prev) prev.disabled = index === 0
-      if (next) next.textContent = index === phases.length - 1 ? 'Back to start' : 'Next phase →'
-      // Keep the reading position stable when stepping through.
-      if (focus) phases[index].scrollIntoView({ block: 'nearest' })
+      if (nextLabel) {
+        nextLabel.textContent = index === phases.length - 1 ? 'Back to start' : 'Next phase'
+      }
+      if (!move) return
+      /*
+       * Put the new diagram back at the top of the screen. Stepping forward from
+       * the sticky bar means the reader is at the FOOT of the outgoing phase, so
+       * without this they land halfway down the incoming one. Skipped when the
+       * phase already starts near the top, which is the desktop case — there the
+       * old behaviour of not moving at all is the right one.
+       */
+      const top = phases[index].getBoundingClientRect().top
+      if (top < 0 || top > 140) {
+        phases[index].scrollIntoView({
+          block: 'start',
+          behavior: calm.matches ? 'auto' : 'smooth',
+        })
+      }
+    }
+
+    const step = (delta: number) => {
+      const target = index + delta
+      if (target < 0 || target > phases.length - 1) return
+      show(target, true, delta > 0 ? 'next' : 'prev')
     }
 
     // Upgrade only now that we know the handlers are attached. Before this
@@ -159,16 +291,64 @@ const { slug, phases } = Astro.props
     show(0)
 
     dots.forEach((d) =>
-      d.addEventListener('click', () => show(Number(d.dataset.goto) - 1, true))
+      d.addEventListener('click', () => {
+        const target = Number(d.dataset.goto) - 1
+        show(target, true, target > index ? 'next' : 'prev')
+      })
     )
-    prev?.addEventListener('click', () => show(index - 1, true))
-    next?.addEventListener('click', () =>
-      show(index === phases.length - 1 ? 0 : index + 1, true)
-    )
+    prev?.addEventListener('click', () => step(-1))
+    next?.addEventListener('click', () => {
+      if (index === phases.length - 1) show(0, true, 'prev')
+      else step(1)
+    })
 
     root.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight') show(index + 1, true)
-      if (event.key === 'ArrowLeft') show(index - 1, true)
+      if (event.key === 'ArrowRight') step(1)
+      if (event.key === 'ArrowLeft') step(-1)
     })
+
+    /*
+     * ── Swipe ────────────────────────────────────────────────────────────────
+     * Nothing here calls preventDefault, so vertical scrolling is untouched and
+     * the page never fights the browser for the gesture. A swipe only counts if
+     * it is decisively horizontal (1.6× the vertical travel), long enough to be
+     * deliberate, and quick enough not to be a slow drag while reading.
+     */
+    let sx = 0
+    let sy = 0
+    let st = 0
+    let tracking = false
+
+    root.addEventListener(
+      'touchstart',
+      (event) => {
+        if (event.touches.length !== 1) {
+          tracking = false
+          return
+        }
+        sx = event.touches[0].clientX
+        sy = event.touches[0].clientY
+        st = Date.now()
+        tracking = true
+      },
+      { passive: true }
+    )
+
+    root.addEventListener(
+      'touchend',
+      (event) => {
+        if (!tracking) return
+        tracking = false
+        const touch = event.changedTouches[0]
+        if (!touch) return
+        const dx = touch.clientX - sx
+        const dy = touch.clientY - sy
+        if (Date.now() - st > 700) return
+        if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.6) return
+        root.setAttribute('data-swiped', '')
+        step(dx < 0 ? 1 : -1)
+      },
+      { passive: true }
+    )
   })
 </script>

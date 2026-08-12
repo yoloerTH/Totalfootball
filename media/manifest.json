@@ -8,8 +8,9 @@
     "",
     "WATCH THE TIMEBASE. SalidaShort's anchors (T_PRESS, T_DROP, ...) live on an",
     "unscaled internal timeline and the composition plays back at SLOW = 1.46, so",
-    "a still frame is internal x 1.46. PressTrapShort's scene constants are",
-    "relative to START_AT = 130. The others are plain composition frames.",
+    "a still frame is internal x 1.46. CageShort does the same at SLOW = 1.42.",
+    "PressTrapShort's scene constants are relative to START_AT = 130. The others",
+    "are plain composition frames.",
     "",
     "Keep in sync with src/data/systems.ts — the `frame` values must match.",
     "media/export.sh reads this file."
@@ -80,6 +81,78 @@
         { "n": 4, "frame": 560, "note": "T_RECV 520 - T_PRESS 600, received in the half-space" },
         { "n": 5, "frame": 635, "note": "T_PRESS 600 - T_LAYOFF 660, the six has to step out" },
         { "n": 6, "frame": 755, "note": "just after T_GOAL 742, the free man finishes" }
+      ]
+    },
+    {
+      "slug": "the-back-four-reset",
+      "compId": "BackFourResetShort",
+      "phases": [
+        { "n": 1, "frame": 70, "note": "caption THE RESET 14-116, line at rest" },
+        { "n": 2, "frame": 280, "note": "rep 1, R1_PRESS 222 - R1_PSET 297, the door open" },
+        { "n": 3, "frame": 420, "note": "rep 1 reset, R1_UP 352 - R1_SQ 442, line squares and steps" },
+        { "n": 4, "frame": 590, "note": "rep 2, R2_PRESS 534 - R2_PSET 599, a centre-back jumps" },
+        { "n": 5, "frame": 880, "note": "rep 3, R3_PRESS 828 - R3_PSET 893, less ground to cover" },
+        { "n": 6, "frame": 1200, "note": "rep 4, R4_PSET 1211 - R4_CSET 1216, nothing opens" }
+      ]
+    },
+    {
+      "slug": "how-to-beat-a-diamond",
+      "compId": "DiamondShort",
+      "phases": [
+        { "n": 1, "frame": 240, "note": "beat 01 162-322, the width dimension is live" },
+        { "n": 2, "frame": 440, "note": "beat 02, T_PINCH 340, OPEN labels land at 410" },
+        { "n": 3, "frame": 760, "note": "T_SLIDE 710 - T_SWITCH 870, the shape travels" },
+        { "n": 4, "frame": 930, "note": "mid-switch 870-994, camera widest, ghost + race up" },
+        { "n": 5, "frame": 1120, "note": "2v1 device T_ARRIVE+72 1066 - T_CUTBACK 1180" },
+        { "n": 6, "frame": 1320, "note": "T_NET 1286 - T_LOCK 1350, the GOAL rule" }
+      ]
+    },
+    {
+      "slug": "how-spain-caged-france",
+      "compId": "CageShort",
+      "phases": [
+        { "n": 1, "frame": 540, "note": "ACT1 the threat, all three runs drawn (internal 380 x 1.42)" },
+        { "n": 2, "frame": 824, "note": "ACT2 rule 1, keep it (internal 580)" },
+        { "n": 3, "frame": 1321, "note": "ACT3 rule 2, shut the lines (internal 930)" },
+        { "n": 4, "frame": 1633, "note": "ACT4 rule 3, double the winger (internal 1150)" },
+        { "n": 5, "frame": 1988, "note": "ACT5 the cage, last frame before the beat fades (internal 1400)" },
+        { "n": 6, "frame": 2116, "note": "ball won, 0.26 xG stamp (internal 1490)" }
+      ]
+    },
+    {
+      "slug": "playing-out-from-the-back",
+      "compId": "PlayingOutShort",
+      "phases": [
+        { "n": 1, "frame": 240, "note": "beat 1 THE PROBLEM 170-300, man-for-man drawn" },
+        { "n": 2, "frame": 420, "note": "beat 2 THE EASY WAY OUT 340-500, the hoof binned" },
+        { "n": 3, "frame": 660, "note": "beat 3 SPLIT 540-740, keeper joins, 3 v 2" },
+        { "n": 4, "frame": 930, "note": "beat 4 BAIT 800-1000, the presser leaves his man" },
+        { "n": 5, "frame": 1150, "note": "beat 5 BOUNCE 1050-1200, one touch back" },
+        { "n": 6, "frame": 1780, "note": "beat 8 THE WHOLE MOVE 1640-1810, three passes inked, the fourth still drawing" }
+      ]
+    },
+    {
+      "slug": "when-to-press",
+      "compId": "FourTriggersShort",
+      "phases": [
+        { "n": 1, "frame": 130, "note": "opening beat 0-T1 210, the question" },
+        { "n": 2, "frame": 330, "note": "trigger 01, T1 210 - HEAVY 447" },
+        { "n": 3, "frame": 505, "note": "trigger 02, HEAVY 447 - T3_PASS 600, caption fully typed" },
+        { "n": 4, "frame": 730, "note": "trigger 03, T3_PASS 600 - T4 850" },
+        { "n": 5, "frame": 920, "note": "trigger 04, T4 850 - STEAL 970" },
+        { "n": 6, "frame": 1018, "note": "the steal, STEAL 970, headline typed and the stamp still solid" }
+      ]
+    },
+    {
+      "slug": "the-set-piece-masterclass",
+      "compId": "SetPieceShort",
+      "phases": [
+        { "n": 1, "frame": 330, "note": "SCENE 0 the stakes (scenario 200 + START_AT 130)" },
+        { "n": 2, "frame": 690, "note": "ROUTINE 1 the inswinger (scenario 560, goal at 726)" },
+        { "n": 3, "frame": 1170, "note": "ROUTINE 2 the screen (scenario 1040, goal at 1166)" },
+        { "n": 4, "frame": 1650, "note": "ROUTINE 3 the short corner (scenario 1520)" },
+        { "n": 5, "frame": 2130, "note": "ROUTINE 4 the worked free-kick (scenario 2000)" },
+        { "n": 6, "frame": 2530, "note": "SCENE 5 why it matters (scenario 2400)" }
       ]
     }
   ]
