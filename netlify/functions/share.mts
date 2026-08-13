@@ -125,10 +125,17 @@ export default async (request: Request) => {
     return json(
       200,
       { doc: rows[0].doc, updatedAt: rows[0].updated_at },
-      // Short, because a coach who republishes and immediately shows the link
-      // to somebody must not be handed the previous version. Long enough that
-      // a phone reloading the page twice does not hit the database twice.
-      { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=120' },
+      /*
+       * NOT CACHED, AND THIS WAS A REAL BUG. The first version sent
+       * `max-age=30, stale-while-revalidate=120`, reasoning that a share is
+       * read far more often than it is written. Netlify's edge then served a
+       * 49-second-old copy of a system that had just been republished — and
+       * "change a phase, press Share, show it to someone" is the exact minute
+       * a coach is most likely to be standing in front of the person they sent
+       * it to. A share is mutable by design (it updates in place), so the read
+       * has to be honest. It is one primary-key lookup.
+       */
+      { 'Cache-Control': 'no-store' },
     )
   }
 
