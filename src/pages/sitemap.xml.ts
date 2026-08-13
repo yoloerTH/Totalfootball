@@ -22,6 +22,10 @@ const TODAY = new Date().toISOString().slice(0, 10)
 const staticPages: Entry[] = [
   { loc: abs('/'), lastmod: TODAY, changefreq: 'weekly', priority: '1.0' },
   { loc: abs('/library/'), lastmod: TODAY, changefreq: 'weekly', priority: '0.9' },
+  // The Studio's landing page, and the ONLY /studio/ URL that belongs here. The
+  // editor, portal, settings, sign-in and viewer are all noindex — the rule at
+  // the top of this file is that a sitemap never advertises a noindex URL.
+  { loc: abs('/studio/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.9' },
   { loc: abs('/intelligence/'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   { loc: abs('/course/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.7' },
   { loc: abs('/about/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.6' },

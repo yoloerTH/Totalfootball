@@ -1,5 +1,6 @@
 ---
 import Mark from './brand/Mark.astro'
+import TelegramMark from './brand/TelegramMark.astro'
 import NaurraCredit from './NaurraCredit.astro'
 import NewsletterForm from './NewsletterForm.astro'
 import { SOCIAL } from '../lib/site'
@@ -39,7 +40,7 @@ const social = [
   { href: SOCIAL.instagram, label: 'Instagram' },
   { href: SOCIAL.tiktok, label: 'TikTok' },
   { href: SOCIAL.youtube, label: 'YouTube' },
-  { href: SOCIAL.telegram, label: 'Telegram' },
+  { href: SOCIAL.telegram, label: 'Telegram', mark: true },
 ].filter((s) => s.href)
 ---
 
@@ -126,8 +127,12 @@ const social = [
                   href={s.href}
                   rel="me noopener"
                   target="_blank"
-                  class="text-xs font-medium text-ink-soft transition-colors hover:text-ink"
+                  class="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
                 >
+                  {/* Only Telegram carries a glyph, because it is the only one
+                      that is a product here rather than a profile. Giving all
+                      five icons would make this a row of logos and bury it. */}
+                  {s.mark && <TelegramMark size={13} tone="brand" />}
                   {s.label}
                 </a>
               </li>

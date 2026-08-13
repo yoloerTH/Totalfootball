@@ -19,53 +19,81 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
 import EarlyAccessForm from '../components/EarlyAccessForm.astro'
-import { abs } from '../lib/site'
+import AgentFlow from '../components/visual/AgentFlow.astro'
 
-const modules = [
+/**
+ * The outline.
+ *
+ * `track` is not decoration: the course genuinely changes gear at part 07, from
+ * making one video by hand to building the thing that makes them without you.
+ * The ladder below marks that changeover — the spine goes dashed and the
+ * heading changes — because a coach deciding whether to pay for this needs to
+ * see at a glance that they are buying two halves, not eight lessons.
+ */
+type Track = 'craft' | 'pipeline'
+
+const TRACKS: Record<Track, { label: string; note: string }> = {
+  craft: { label: 'The craft', note: 'Parts 01–06 · making one, by hand' },
+  pipeline: { label: 'The pipeline', note: 'Parts 07–08 · making it run without you' },
+}
+
+const modules: { n: string; track: Track; title: string; body: string }[] = [
   {
     n: '01',
+    track: 'craft',
     title: 'The two styles',
     body: 'The tactics board and the story short are different crafts. One teaches a system with choreography and no narration; the other carries a career or a night through portraits, type and pacing. You build one of each.',
   },
   {
     n: '02',
+    track: 'craft',
     title: 'The board engine',
     body: 'A reusable, scale-accurate pitch with tokens, a ball locked to the carrier, a follow-camera, and role cues that reassign themselves as the ball moves. Once this exists, a new breakdown is choreography rather than construction.',
   },
   {
     n: '03',
+    track: 'craft',
     title: 'Choreography',
     body: 'Why an eased fast-then-slow move reads as professional and a linear one does not. Holding a beat, staggering reveals so value keeps arriving, and the single most common failure: showing everything in four seconds and then sitting still.',
   },
   {
     n: '04',
+    track: 'craft',
     title: 'Sound without a licence',
     body: 'Synthesising your own effect kit, mapping cues tightly to motion, and ducking a bed under the transients. Copyright-safe by construction, which matters more in football than in any other niche.',
   },
   {
     n: '05',
+    track: 'craft',
     title: 'What the numbers actually say',
     body: 'The pacing rules in this course are not taste. They came out of measuring 88 published shorts: where attention is lost, which second decides it, and why a whole-team system outperforms a technique clinic by a factor of seven.',
   },
   {
     n: '06',
+    track: 'craft',
     title: 'Shipping',
     body: 'Export settings, the safe zones each platform crops, caption placement, and the trim discipline that turned out to matter more than anything done in the render.',
   },
+  {
+    n: '07',
+    track: 'pipeline',
+    title: 'The pipeline that runs itself',
+    body: 'The part nobody films: agentic workflows that watch the fixtures, pull the data, draft the board and queue the post. Where a model genuinely decides something, where it must not, and the checks that keep a wrong call off the channel.',
+  },
+  {
+    n: '08',
+    track: 'pipeline',
+    title: 'Building your own agents',
+    body: 'Nodes, triggers, tools and the handoffs between them, built on what you already have rather than on a platform you have to marry. By the end you have one running workflow doing a job you currently do by hand.',
+  },
 ]
 
-const breadcrumb = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Course', item: abs('/course/') }],
-}
 ---
 
 <BaseLayout
   title="The course: how these videos get made"
-  description="How the Total Football breakdowns are made, end to end. Get early access and lock the founding rate of EUR 39 a month for life. Limited positions."
+  description="How the Total Football breakdowns are made, end to end: the board engine, the choreography, the measured pacing rules, and the agentic automation that runs the channel. Early access at EUR 39 a month, locked for life."
   path="/course/"
-  structuredData={[breadcrumb]}
 >
   <section class="stage border-b border-ink-hair">
     <div class="shell py-20 md:py-28">
@@ -81,7 +109,9 @@ const breadcrumb = {
         </p>
 
         <div class="mt-11 flex flex-wrap items-center gap-3">
-          <a href="#early-access" class="btn-primary">Get early access</a>
+          <a href="#early-access" class="btn-primary" data-track="course:cta-hero">
+            Get early access
+          </a>
           <span class="text-[13px] text-ink-soft">
             Lock <strong class="font-bold text-ink">€39/month</strong> for life
           </span>
@@ -147,27 +177,165 @@ const breadcrumb = {
   </section>
 
   <section class="shell py-20 md:py-28">
-    <div class="mb-14 max-w-prose">
-      <p class="micro mb-6">The outline</p>
-      <h2 class="text-title font-black" data-reveal="clip">Six parts, one finished short at the end.</h2>
-      <p class="mt-5 text-[17px] leading-relaxed text-ink-soft">
-        Subject to change while it is being built, and the waitlist gets told when it does.
-      </p>
-    </div>
+    <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+      {/* The heading holds the left column and stays there while the ladder
+          scrolls past it, so the promise being made is never off screen while
+          somebody is reading what it is made of. */}
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <p class="micro mb-6">The outline</p>
+        <h2 class="text-title font-black" data-reveal="clip">
+          Eight parts, one finished short at the end.
+        </h2>
+        <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft">
+          Subject to change while it is being built, and the waitlist gets told when it does.
+        </p>
+        <dl class="mt-10 flex gap-10">
+          <div>
+            <dt class="micro mb-2">Parts</dt>
+            <dd class="text-3xl font-black tabular-nums">8</dd>
+          </div>
+          <div>
+            <dt class="micro mb-2">You finish with</dt>
+            <dd class="text-3xl font-black">1 short</dd>
+          </div>
+        </dl>
+      </div>
 
-    <ol class="grid gap-px overflow-hidden rounded-3xl bg-ink-hair md:grid-cols-2">
+      <div>
+    {/*
+      A ladder rather than a grid of eight boxes.
+
+      Two things the grid could not say and this does. First, the parts are a
+      SEQUENCE — part 03 assumes part 02 — and eight equal tiles say the
+      opposite, that they are a menu. Second, the course changes gear at 07,
+      from making one video by hand to building the thing that makes them
+      without you; the spine goes dashed there and the run gets its own
+      heading, so the two halves are visible before a word is read.
+    */}
+    <ol class="list-none p-0">
       {
-        modules.map((m, i) => (
-          <li class="bg-paper p-8 transition-colors duration-300 hover:bg-surface/70 md:p-10" data-reveal="rise" data-reveal-delay={i * 70}>
-            <span class="mb-5 block bg-tf-gradient bg-clip-text text-2xl font-black tabular-nums text-transparent">
-              {m.n}
-            </span>
-            <h3 class="text-xl font-black leading-tight">{m.title}</h3>
-            <p class="mt-3 text-[15px] leading-relaxed text-ink-soft">{m.body}</p>
-          </li>
-        ))
+        modules.map((m, i) => {
+          const opensTrack = m.track !== modules[i - 1]?.track
+          const last = i === modules.length - 1
+          return (
+            <li data-reveal="rise" data-reveal-delay={opensTrack ? 0 : 60}>
+              {opensTrack && (
+                <div class:list={['flex items-center gap-5 pb-8', i > 0 && 'pt-6']}>
+                  <span class="micro shrink-0">{TRACKS[m.track].label}</span>
+                  <span class="h-px flex-1 bg-ink-hair" aria-hidden="true" />
+                  <span class="shrink-0 text-[12px] font-medium text-ink-faint">
+                    {TRACKS[m.track].note}
+                  </span>
+                </div>
+              )}
+
+              <div class="grid grid-cols-[auto_1fr] gap-x-5 sm:gap-x-8">
+                <div class="relative flex justify-center">
+                  <span class="relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full border border-ink-hair bg-paper text-[12px] font-black tabular-nums text-ink">
+                    {m.n}
+                  </span>
+                  {/* The spine. Dashed once the course stops being about the
+                      video in front of you and starts being about the machine
+                      behind it. */}
+                  {!last && (
+                    <span
+                      class:list={[
+                        'absolute -bottom-1 left-1/2 top-10 -translate-x-1/2',
+                        m.track === 'pipeline'
+                          ? 'border-l border-dashed border-ink/20'
+                          : 'w-px bg-ink-hair',
+                      ]}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+
+                <div class:list={['pt-1.5', last ? 'pb-0' : 'pb-10']}>
+                  <h3 class="text-xl font-black leading-tight">{m.title}</h3>
+                  <p class="mt-2.5 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+                    {m.body}
+                  </p>
+                </div>
+              </div>
+            </li>
+          )
+        })
       }
     </ol>
+
+        {/* The end of the ladder, and the promise in the heading, stated once. */}
+        <div
+          class="mt-12 rounded-2xl border border-ink-hair bg-surface/60 p-7 shadow-paper md:p-9"
+          data-reveal="rise"
+        >
+          <p class="micro mb-3">What you leave with</p>
+          <p class="max-w-prose text-[17px] leading-relaxed text-ink">
+            One finished short that you made, start to finish. And one workflow still running after
+            you have closed the laptop.
+          </p>
+          <a href="#early-access" class="btn-primary mt-7" data-track="course:cta-outline">
+            Get early access
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ── The automation half ──────────────────────────────────────────
+      Added because the course now teaches the pipeline as well as the craft,
+      and a pipeline is the one thing on this page that cannot be shown with a
+      still: a finished automation is invisible by design. AgentFlow draws the
+      claim being made — that the agent chooses — by taking a different branch
+      on every run. */}
+  <section class="border-y border-ink-hair bg-paper-deep/30">
+    <div class="shell py-20 md:py-28">
+      {/*
+        The diagram is drawn at 880 units wide and reads properly at about that
+        size, so it gets its own full-width row rather than half of a two-column
+        split. Squeezed into a column beside the copy, its labels rendered at
+        nine pixels — which is a diagram nobody can use.
+      */}
+      <div class="grid gap-10 md:grid-cols-[0.85fr_1.15fr] md:gap-14">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">And the half nobody films</p>
+          <h2 class="text-title font-black" data-reveal="clip">The channel runs on agents.</h2>
+        </div>
+        <div class="max-w-prose space-y-5 text-[17px] leading-relaxed text-ink-soft">
+          <p data-reveal="rise">
+            A fixture lands, the data gets pulled, a board gets drafted and a post gets queued —
+            without anyone opening a file. The interesting part is not the wiring, it is knowing
+            where a model should be allowed to decide something and where it absolutely should not.
+          </p>
+          <p data-reveal="rise" data-reveal-delay="80">
+            You build one that does a job you currently do by hand, with the checks that keep a wrong
+            call off your channel.
+          </p>
+        </div>
+      </div>
+
+      {/* No frame around it: AgentFlow draws its own canvas now, and a border
+          around a border reads as a screenshot in a box. */}
+      <figure class="relative mx-auto mt-14 max-w-4xl" data-reveal="fade" data-reveal-delay="140">
+        <div
+          class="pointer-events-none absolute -inset-6 -z-10 rounded-full bg-tf-gradient-soft blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+        <AgentFlow
+          class="drop-shadow-[0_20px_44px_rgba(22,22,24,0.10)]"
+          title="An automated workflow: a fixture fires the trigger, an agent picks one of three tools, and nothing reaches the channel until a person approves it"
+        />
+        <figcaption class="mt-5 text-center text-[13px] leading-relaxed text-ink-soft">
+          Three runs, three different decisions, and every one of them stops at the same gate.
+        </figcaption>
+      </figure>
+
+      <div class="mt-12 flex justify-center" data-reveal="rise" data-reveal-delay="120">
+        <a href="#early-access" class="btn btn-primary" data-track="course:cta-agents">
+          Get early access
+        </a>
+      </div>
+    </div>
   </section>
 
   <section class="border-t border-ink-hair">

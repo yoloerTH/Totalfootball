@@ -67,6 +67,7 @@ import {
 } from '../schema'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
+import { useCloudSync } from '../account/sync'
 import { GuideRail } from './GuideRail'
 import {
   ARROW_TOOL_IDS,
@@ -262,6 +263,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
     const t = setTimeout(() => saveSystem(systemId, system), 400)
     return () => clearTimeout(t)
   }, [systemId, system])
+
+  // And behind that, the account — if there is one. Local is authoritative and
+  // this never blocks it; see ../account/sync.ts.
+  const cloud = useCloudSync(systemId, system)
 
   // Deleting the last phase, or undoing back past one, can leave the index
   // pointing at nothing. Render already clamps; this keeps the state honest so
@@ -941,6 +946,18 @@ export default function StudioEditor({ systemId, initial }: Props) {
       <Tip text={HINT.video} title="Video" side="bottom">
         <Button onClick={() => setMakingVideo(true)}>Video</Button>
       </Tip>
+
+      {/*
+       * Only ever says that the work HAS landed. A coach cannot act on "could
+       * not reach the server", their work is already safe on this machine
+       * either way, and a warning they cannot do anything about mid-drag is
+       * just noise — see ../account/sync.ts.
+       */}
+      {(cloud === 'saving' || cloud === 'saved') && (
+        <span className="hidden shrink-0 text-[11px] font-bold text-ink-faint lg:inline">
+          {cloud === 'saving' ? 'Saving…' : 'Saved'}
+        </span>
+      )}
 
       <ThemeToggle />
 

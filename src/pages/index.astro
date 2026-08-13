@@ -171,7 +171,13 @@ const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
             Start with the ones people rewatch.
           </h2>
         </div>
-        <a href="/library/" class="btn-ghost" data-reveal data-reveal-delay="160">All systems →</a>
+        <a
+          href="/library/"
+          class="btn-ghost"
+          data-track="home:library-all"
+          data-reveal
+          data-reveal-delay="160">All systems →</a
+        >
       </div>
 
       {/* Themes as diagrams rather than a list of words. */}

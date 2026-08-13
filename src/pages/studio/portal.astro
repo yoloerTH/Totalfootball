@@ -1,0 +1,23 @@
+---
+/**
+ * The portal: a coach's own shelf.
+ *
+ * `client:only` and noindex for the same reason: there is nothing here that can
+ * be rendered without knowing who is asking. Server-rendering a shell would
+ * flash an empty shelf at a coach who has twelve systems, and a search engine
+ * that indexed this page would index the signed-out state of it.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Portal from '../../studio/account/Portal'
+---
+
+<BaseLayout
+  title="Your systems"
+  description="Every tactical system you have built, ready to open, duplicate or send."
+  path="/studio/portal/"
+  noindex
+>
+  <main class="min-h-[70vh] bg-paper-deep">
+    <Portal client:only="react" />
+  </main>
+</BaseLayout>

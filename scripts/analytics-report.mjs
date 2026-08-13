@@ -112,11 +112,16 @@ console.log(
   )
 )
 
+// Marketing clicks only. The studio's own events share the `click` type and get
+// their own section below, because "somebody pressed Share" and "somebody
+// clicked a nav link" are not the same kind of fact and should not be ranked
+// against each other in one list.
 console.log('\nCLICKS')
 console.log(
   table(
     await sql(`select label, count(*) as n from public.site_events
-               where type = 'click' and label is not null and created_at >= ${SINCE}
+               where type = 'click' and label is not null and label not like 'studio:%'
+                 and created_at >= ${SINCE}
                group by label order by n desc limit 15`),
     [
       { label: 'LABEL', get: (r) => r.label },
@@ -124,6 +129,38 @@ console.log(
     ]
   )
 )
+
+// ── The studio ──────────────────────────────────────────────────────────────
+// What was actually built, as opposed to what was read about. Labels come from
+// src/studio/track.ts; `/s/:id` is the normalised share path from
+// netlify/functions/track.mts.
+console.log('\nSTUDIO')
+console.log(
+  table(
+    await sql(`select replace(label, 'studio:', '') as event, count(*) as n
+               from public.site_events
+               where type = 'click' and label like 'studio:%' and created_at >= ${SINCE}
+               group by label order by n desc limit 15`),
+    [
+      { label: 'EVENT', get: (r) => r.event },
+      { label: 'COUNT', get: (r) => r.n },
+    ]
+  )
+)
+
+const [shares] = await sql(`
+  select
+    (select count(*) from public.studio_shares where created_at >= ${SINCE})   as published,
+    (select count(*) from public.studio_shares)                                as total,
+    (select count(*) from public.site_events
+      where type = 'pageview' and path = '/s/:id' and created_at >= ${SINCE})  as opens,
+    (select count(distinct session_id) from public.site_events
+      where type = 'pageview' and path = '/s/:id' and created_at >= ${SINCE})  as openers`)
+
+console.log(`
+  Systems published   ${shares?.published ?? 0}
+  Published, ever     ${shares?.total ?? 0}
+  Shared links opened ${shares?.opens ?? 0}  (by ${shares?.openers ?? 0})`)
 
 console.log('\nREFERRERS')
 console.log(

@@ -1,0 +1,58 @@
+---
+/**
+ * The Telegram plane.
+ *
+ * The intelligence page is a landing page for a Telegram channel, and until now
+ * it said so only in words. One recognisable glyph, used consistently, tells a
+ * reader where the thing lives faster than any sentence — so this appears on
+ * both calls to action, as the eyebrow marker on the sections that are about
+ * the channel, and once large and quiet behind the hero.
+ *
+ * Drawn, not fetched: an inline SVG costs no request, inherits `currentColor`
+ * so it works on both grounds and inside a filled button, and cannot break the
+ * way a hotlinked brand asset can.
+ *
+ * `tone`:
+ *   'current'  follows the text colour. The default, and what a button wants.
+ *   'brand'    Telegram's own blue. For the moments it should read as *their*
+ *              mark rather than as our furniture.
+ */
+interface Props {
+  size?: number
+  tone?: 'current' | 'brand'
+  class?: string
+  /** Decorative by default; pass a label to expose it to assistive tech. */
+  title?: string
+}
+
+const { size = 20, tone = 'current', class: klass = '', title } = Astro.props
+
+const fill = tone === 'brand' ? '#229ED9' : 'currentColor'
+---
+
+<svg
+  viewBox="0 0 24 24"
+  width={size}
+  height={size}
+  class={`inline-block shrink-0 ${klass}`}
+  fill="none"
+  role={title ? 'img' : 'presentation'}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+>
+  {title && <title>{title}</title>}
+  {/*
+    The plane, in two pieces the way the real mark is drawn: the body, and the
+    folded wing that reads as a shadow. Two paths rather than one so the fold
+    stays visible at 16px, where a single silhouette turns into a blob.
+  */}
+  <path
+    d="M21.86 3.2 2.9 10.51c-1.05.42-1.04 1.01-.19 1.27l4.6 1.44 1.77 5.44c.22.6.11.83.73.83.48 0 .69-.22.96-.48l2.3-2.24 4.79 3.54c.88.49 1.51.24 1.73-.82l3.13-14.76c.32-1.3-.5-1.88-1.36-1.53z"
+    fill={fill}
+  />
+  <path
+    d="m8.03 13.02 11.2-7.07c.5-.3.95-.14.58.2l-9.59 8.65-.33 4.06z"
+    fill="#fff"
+    fill-opacity={tone === 'brand' ? '0.85' : '0.28'}
+  />
+</svg>

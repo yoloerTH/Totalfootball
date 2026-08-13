@@ -1,0 +1,358 @@
+---
+/**
+ * The three moves a coach makes, one small drawing each.
+ *
+ * "Three moves, start to finish" was three paragraphs in a row with a number
+ * over each. The words are right; a numbered list of prose is just not how you
+ * show somebody a sequence of physical actions. Each step here gets the
+ * smallest true picture of itself:
+ *
+ *   shape  — the formation arriving on the pitch you picked
+ *   phase  — the same shape, ghosted, with the second pose stepped off it
+ *   send   — the two things that come out: a link on a phone, and a file
+ *
+ * They are deliberately quieter than MiniBoard or StudioDeck. Three animated
+ * diagrams competing in one row would be a fairground; each of these has ONE
+ * moving part on a slow loop, and they are staggered so the row never pulses in
+ * unison. Pure SVG and CSS, no JS, frozen under reduced-motion.
+ */
+interface Props {
+  kind: 'shape' | 'phase' | 'send'
+  class?: string
+  /** Staggers the loop so three of these in a row do not beat together. */
+  delay?: number
+}
+
+const { kind, class: klass = '', delay = 0 } = Astro.props
+
+const GREEN = '#08C16A'
+const GREEN_DEEP = '#06A659'
+const GOLD = '#E6B23A'
+const INK = 'currentColor'
+
+/**
+ * A back four and a double pivot in the 168x104 viewBox. The full-backs sit
+ * wider than the centre-backs and the pivots sit inside both, so the six
+ * counters read as a shape at 8 units rather than as scattered dots.
+ */
+const R = 7.5
+const SHAPE = [
+  { x: 28, y: 36 },
+  { x: 28, y: 68 },
+  { x: 50, y: 18 },
+  { x: 50, y: 86 },
+  { x: 76, y: 40 },
+  { x: 76, y: 64 },
+]
+
+/** The second pose, for the middle glyph. Index-matched to SHAPE. */
+const STEPPED = [
+  { x: 46, y: 34 },
+  { x: 46, y: 70 },
+  { x: 74, y: 16 },
+  { x: 74, y: 88 },
+  { x: 104, y: 44 },
+  { x: 100, y: 62 },
+]
+
+const style = delay ? `animation-delay:${delay}ms` : undefined
+---
+
+<svg
+  viewBox="0 0 168 104"
+  class={`block w-full text-ink ${klass}`}
+  aria-hidden="true"
+  focusable="false"
+>
+  {/* Every glyph stands on the same pitch, so the three read as one set. */}
+  <rect
+    x="0.5"
+    y="0.5"
+    width="167"
+    height="103"
+    rx="6"
+    fill="rgb(var(--tf-paper))"
+    stroke={INK}
+    stroke-opacity="0.12"
+  />
+  <g fill="none" stroke={INK} stroke-opacity="0.1" stroke-width="1">
+    <path d="M 0 28 H 18 V 76 H 0" />
+    <path d="M 132 0 V 104" stroke-dasharray="3 4" />
+  </g>
+
+  {
+    kind === 'shape' && (
+      /* Pick a shape and it lands on the board. The two that drop in last are
+         the ones that make it a back four rather than a back three. */
+      <g>
+        {SHAPE.map((p, i) => (
+          <g class={i >= 4 ? 'sg-drop' : undefined} style={i >= 4 ? style : undefined}>
+            <circle cx={p.x} cy={p.y} r={R} fill={GREEN} />
+          </g>
+        ))}
+
+        {/* The picker it came out of. It sits on its own panel so the pitch
+            lines behind do not run through the type. */}
+        <g>
+          <rect
+            x="104"
+            y="10"
+            width="58"
+            height="84"
+            rx="7"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.12"
+          />
+          <rect x="110" y="18" width="46" height="17" rx="8.5" fill={INK} fill-opacity="0.9" />
+          <text
+            x="133"
+            y="30"
+            text-anchor="middle"
+            font-size="9"
+            font-weight="800"
+            fill="rgb(var(--tf-paper))"
+          >
+            4-2-3-1
+          </text>
+          <rect
+            x="110"
+            y="40"
+            width="46"
+            height="17"
+            rx="8.5"
+            fill="none"
+            stroke={INK}
+            stroke-opacity="0.14"
+          />
+          <text
+            x="133"
+            y="52"
+            text-anchor="middle"
+            font-size="9"
+            font-weight="800"
+            fill={INK}
+            fill-opacity="0.4"
+          >
+            4-3-3
+          </text>
+          {/* Your colours, on the shelf under the shapes. */}
+          <g>
+            <circle cx="118" cy="75" r="6.5" fill={GREEN} />
+            <circle cx="133" cy="75" r="6.5" fill={GOLD} />
+            <circle cx="148" cy="75" r="6.5" fill={INK} fill-opacity="0.7" />
+          </g>
+        </g>
+      </g>
+    )
+  }
+
+  {
+    kind === 'phase' && (
+      /* Add a phase and you get a copy of what you already have. Move it, and
+         the movement is the thing that gets made. */
+      <g>
+        <g fill="none" stroke={GREEN} stroke-opacity="0.32" stroke-dasharray="3 3">
+          {SHAPE.map((p) => (
+            <circle cx={p.x} cy={p.y} r={R} />
+          ))}
+        </g>
+        <g stroke={GREEN_DEEP} stroke-opacity="0.5" stroke-width="1.3" stroke-linecap="round">
+          {SHAPE.map((p, i) => (
+            <path d={`M ${p.x + R + 1.5} ${p.y} L ${STEPPED[i].x - R - 2.5} ${STEPPED[i].y}`} />
+          ))}
+        </g>
+        <g class="sg-step" style={style}>
+          {STEPPED.map((p) => (
+            <circle cx={p.x} cy={p.y} r={R} fill={GREEN} />
+          ))}
+        </g>
+      </g>
+    )
+  }
+
+  {
+    kind === 'send' && (
+      /* What leaves the laptop: a link that plays on a phone, and a file for
+         everywhere a link will not go. */
+      <g>
+        {/* the file, behind */}
+        <g>
+          <rect
+            x="12"
+            y="22"
+            width="58"
+            height="44"
+            rx="6"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.14"
+          />
+          <path d="M35,36 L49,44 L35,52 Z" fill={INK} fill-opacity="0.5" />
+          <text
+            x="41"
+            y="80"
+            text-anchor="middle"
+            font-size="9"
+            font-weight="800"
+            fill={INK}
+            fill-opacity="0.42"
+          >
+            MP4
+          </text>
+        </g>
+
+        {/* the phone, in front, with the board playing on it */}
+        <g>
+          <rect
+            x="84"
+            y="6"
+            width="46"
+            height="72"
+            rx="8"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.18"
+          />
+          <rect x="98" y="11" width="18" height="3" rx="1.5" fill={INK} fill-opacity="0.2" />
+          <rect x="90" y="20" width="34" height="46" rx="4" fill="rgb(var(--tf-paper))" />
+          <g fill={GREEN}>
+            <circle cx="98" cy="31" r="3.4" />
+            <circle cx="98" cy="45" r="3.4" />
+            <circle class="sg-ping" style={style} cx="113" cy="38" r="3.4" />
+          </g>
+          <circle cx="107" cy="57" r="2.4" fill={GOLD} />
+        </g>
+
+        {/* the link itself, under the phone where it would be pasted */}
+        <g class="sg-link" style={style}>
+          <rect x="86" y="82" width="70" height="16" rx="8" fill={GOLD} fill-opacity="0.18" />
+          <text
+            x="121"
+            y="93"
+            text-anchor="middle"
+            font-size="8.5"
+            font-weight="800"
+            fill={INK}
+            fill-opacity="0.75"
+          >
+            /s/k7f3q9
+          </text>
+        </g>
+      </g>
+    )
+  }
+</svg>
+
+<style>
+  /*
+   * One moving part per glyph, on a long loop with long holds. Anything faster
+   * would turn a row of three into a flicker, and these sit next to body copy
+   * that people are supposed to be reading.
+   */
+  .sg-drop,
+  .sg-step,
+  .sg-ping,
+  .sg-link {
+    animation-duration: 9s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sg-drop {
+    animation-name: sg-drop;
+  }
+  .sg-step {
+    animation-name: sg-step;
+  }
+  .sg-ping {
+    animation-name: sg-ping;
+  }
+  .sg-link {
+    animation-name: sg-link;
+  }
+
+  /* The double pivot arriving on the board. */
+  @keyframes sg-drop {
+    0%,
+    8% {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+    22%,
+    88% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    98%,
+    100% {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+  }
+
+  /* The second pose stepping off the first. */
+  @keyframes sg-step {
+    0%,
+    14% {
+      opacity: 0.15;
+      transform: translate(-16px, 0);
+    }
+    34%,
+    86% {
+      opacity: 1;
+      transform: translate(0, 0);
+    }
+    98%,
+    100% {
+      opacity: 0.15;
+      transform: translate(-16px, 0);
+    }
+  }
+
+  /* One player still moving on the phone, so the screen reads as playing. */
+  @keyframes sg-ping {
+    0%,
+    20% {
+      transform: translate(0, 0);
+    }
+    44%,
+    76% {
+      transform: translate(-5px, 6px);
+    }
+    96%,
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+
+  @keyframes sg-link {
+    0%,
+    26% {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    42%,
+    88% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    98%,
+    100% {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+  }
+
+  /* Reduced motion: hold every glyph on its finished state. */
+  @media (prefers-reduced-motion: reduce) {
+    .sg-drop,
+    .sg-step,
+    .sg-ping,
+    .sg-link {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

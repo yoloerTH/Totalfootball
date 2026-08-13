@@ -115,6 +115,9 @@ const id = `ea-${Math.random().toString(36).slice(2, 8)}`
         })
         if (!res.ok) throw new Error(String(res.status))
         say('Your place is held and your price is locked. Check your inbox when we open.', true)
+        // A held place, not a pressed button. `course:early-access` on the
+        // button counts attempts; this counts the ones that landed.
+        window.tfTrack?.(`signup:${data.get('source') ?? 'course-early-access'}`)
         form.reset()
       } catch {
         say('That did not go through. Try again in a moment.', false)

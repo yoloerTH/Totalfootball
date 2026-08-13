@@ -2,10 +2,10 @@
 /**
  * The studio, on a scratch system.
  *
- * A deliberate front door: no account, no saved library, no login — land here
- * and you are already dragging players around. Adoption was the stated goal for
- * this phase, and the fastest way to lose a coach is to ask who they are before
- * showing them anything.
+ * Signed-in only. `StudioMount` sends anyone else to /studio/login/ and brings
+ * them back here afterwards, so this page has no signed-out state of its own to
+ * design. It was an open front door for two sessions; that call was reversed
+ * (user, 2026-08-13) and the landing page at /studio/ is the front door now.
  *
  * The island is `client:only` rather than hydrated from server-rendered HTML
  * because the system it edits comes out of localStorage, which does not exist at

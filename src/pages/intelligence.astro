@@ -8,6 +8,7 @@
  * one. Compliance notices are part of the design, not a footnote bolted on.
  */
 import BaseLayout from '../layouts/BaseLayout.astro'
+import TelegramMark from '../components/brand/TelegramMark.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
 import ModelCurve from '../components/visual/ModelCurve.astro'
 import CountUp from '../components/visual/CountUp.astro'
@@ -38,10 +39,17 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
   structuredData={[breadcrumb]}
 >
   {/* ── Hero ───────────────────────────────────────────────────────── */}
-  <section class="stage border-b border-ink-hair">
+  <section class="stage relative overflow-hidden border-b border-ink-hair">
+    <TelegramMark
+      size={520}
+      class="pointer-events-none absolute -right-40 -top-32 -z-10 text-ink opacity-[0.035] md:-right-24"
+    />
     <div class="shell grid gap-14 py-20 md:py-28 lg:grid-cols-[1fr_0.95fr] lg:items-center">
       <div class="max-w-[42rem]">
-        <p class="micro mb-7" data-reveal="fade">Total Stats · Daily Intelligence</p>
+        <p class="micro mb-7 flex items-center gap-2" data-reveal="fade">
+          <TelegramMark size={14} tone="brand" />
+          Total Stats · Daily Intelligence
+        </p>
         <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
           The match, priced<br /><span class="grad-text">before the market.</span>
         </h1>
@@ -52,10 +60,17 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
         </p>
 
         <div class="mt-11 flex flex-wrap items-center gap-3" data-reveal data-reveal-delay="340">
-          <a href={LEDGER.telegram} target="_blank" rel="noopener" class="btn-primary" data-track="telegram:hero">
+          <a
+            href={LEDGER.telegram}
+            target="_blank"
+            rel="noopener"
+            class="btn-primary inline-flex items-center gap-2.5"
+            data-track="telegram:hero"
+          >
+            <TelegramMark size={18} />
             Join {LEDGER.handle}, free
           </a>
-          <a href="#record" class="btn-ghost">See the record</a>
+          <a href="#record" class="btn-ghost" data-track="intel:see-record">See the record</a>
         </div>
 
         <p class="mt-7 text-xs text-ink-faint">
@@ -80,7 +95,10 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
 
   {/* ── Method ─────────────────────────────────────────────────────── */}
   <section class="shell py-24 md:py-32">
-    <p class="micro mb-10" data-reveal="fade">How a card is made</p>
+    <p class="micro mb-10 flex items-center gap-2" data-reveal="fade">
+      <TelegramMark size={13} tone="brand" />
+      How a card is made
+    </p>
     <ol class="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
       {
         HOW_IT_WORKS.map((s, i) => (
@@ -106,7 +124,10 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
   <section id="record" class="scroll-mt-20 border-y border-ink-hair bg-paper-deep/40">
     <div class="shell py-20 md:py-28">
       <div class="mb-14 max-w-prose">
-        <p class="micro mb-6">The record</p>
+        <p class="micro mb-6 flex items-center gap-2">
+          <TelegramMark size={13} tone="brand" />
+          The record
+        </p>
         <h2 class="text-title font-black">Two tracks, kept apart.</h2>
         <p class="mt-5 text-[17px] leading-relaxed text-ink-soft">
           National sides and clubs are different problems, so they are graded as different ledgers
@@ -206,7 +227,14 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
           Graded through {asOfLabel}. A unit is a fixed fraction of a bankroll, and the size is stated
           on every card.
         </p>
-        <a href={LEDGER.telegram} target="_blank" rel="noopener" class="btn-primary" data-track="telegram:ledger">
+        <a
+          href={LEDGER.telegram}
+          target="_blank"
+          rel="noopener"
+          class="btn-primary inline-flex items-center gap-2.5"
+          data-track="telegram:ledger"
+        >
+          <TelegramMark size={18} />
           Read today's card
         </a>
       </div>

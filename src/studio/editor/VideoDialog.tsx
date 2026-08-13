@@ -17,6 +17,7 @@ import type { System } from '../schema'
 import { VIDEO_SHAPES, saveVideo, videoSeconds, videoSupported, type VideoShape } from '../video'
 import { Button, Field, Segmented } from './ui'
 import { VIDEO } from './guide'
+import { STUDIO_EVENTS, track } from '../track'
 
 type Status = 'idle' | 'working' | 'done' | 'failed'
 
@@ -57,6 +58,10 @@ export function VideoDialog({ system, onClose }: { system: System; onClose: () =
       if (controller.signal.aborted) return
       saveVideo(file)
       setStatus('done')
+      // Counted where the file is actually written, not where Save is pressed:
+      // a render that was stopped or that failed is not a video, and the two
+      // numbers diverging is the point of measuring it.
+      track(STUDIO_EVENTS.videoSaved, shape)
     } catch (err) {
       // Stopping is not failing, and must not be reported as if it were.
       setStatus((err as Error)?.name === 'AbortError' ? 'idle' : 'failed')

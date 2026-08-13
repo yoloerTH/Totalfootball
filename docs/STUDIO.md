@@ -7,11 +7,11 @@ act**, and export a deck — or press Play and watch it animate itself.
 This document is the state of that build as of **2026-08-12**, after two
 sessions. It is written to be the first thing read in a new session.
 
-**Live, unlinked.** The studio is deployed and reachable at `/studio/new/`, and
-nothing on the site links to it — no nav entry, and every studio page is
-`noindex` (checked: zero `/studio/` URLs in `sitemap.xml`). That is deliberate
-for the alpha: hand the link to coaches you want feedback from, not to Google.
-Wiring it into `Header.astro` is a one-line change when it is ready.
+**Live and linked.** `/studio/` is a public landing page, it is in the header
+nav and in the sitemap, and it is the **only** indexed URL under `/studio/` —
+the editor, portal, settings, sign-in and viewer are all still `noindex`. The
+alpha posture described here for two sessions ("deployed but unlinked, hand the
+link out yourself") ended when accounts landed; see §3f.
 
 ---
 
@@ -298,6 +298,69 @@ Five things about it worth keeping:
 Both §6 gotchas are paid for here: `inlineBall()` for the ball, and
 `boardFontCss()` for the font. **The font one is no longer unsolved** — see §6.
 
+## 3f. Accounts, the portal, and the landing page
+
+`src/studio/account/`, `src/pages/studio/{index,login,portal,settings}.astro`,
+`supabase/005_studio_accounts.sql`.
+
+Five routes now, and what is public matters:
+
+| Route | Who | Indexed |
+|---|---|---|
+| `/studio/` | anyone | **yes — the only indexed /studio/ URL** |
+| `/studio/login/` | anyone | no |
+| `/studio/new/` | **signed in** | no |
+| `/studio/portal/` | signed in | no |
+| `/studio/settings/` | signed in | no |
+
+**The studio is behind the door.** It was open for two sessions and that call
+was reversed (user, 2026-08-13): `StudioMount` sends a signed-out visitor to
+`/studio/login/?next=…` and brings them back afterwards. `/studio/` is the front
+door now, and it is public precisely so there is something for a search engine
+and a first-time visitor to see.
+
+**localStorage-first is not vestigial because of that.** It is still what keeps
+the editor alive through a dropped connection mid-session, still what makes the
+autosave instant, and still the only copy that exists in the two seconds between
+a change and the upload.
+
+**`claimLocalSystems` still runs**, and still matters: anyone who built
+something during the open alpha has work in their browser and nowhere else, and
+the first sign-in is what rescues it. It keeps ids and uses `ignoreDuplicates`,
+so signing in on a second machine cannot let that machine's stale copies
+overwrite the cloud.
+
+**A trap worth knowing:** with no Supabase env, `accountsEnabled` is false, every
+session resolves to `out`, and the studio redirects to a sign-in page that cannot
+sign anyone in. That page therefore must NOT link back to `/studio/new/` — it
+would bounce a visitor between two pages forever. It links to the library.
+
+**The write-through cache is real now** (`account/sync.ts`), and the order is
+not negotiable: localStorage synchronously at 400ms, Supabase debounced behind
+it at 2s. A failed upload is a "not yet", not an error — no dialog, no retry
+queue, no banner. The toolbar says "Saved" when it lands and says nothing when
+it does not, because a coach cannot act on "could not reach the server" and
+their work is already safe either way.
+
+**`StudioMount` now waits for the session before deciding.** Local, then the
+account if signed in, then a fresh board. Deciding "not in localStorage, make a
+new one" while the session is still restoring would hand a coach a blank board
+and then autosave it OVER the system they asked for. That is the one thing that
+file must never do, and it is why `useSession` has an `unknown` state rather
+than a boolean.
+
+**The posture change of §5 has happened.** The browser holds the anon key,
+`PUBLIC_SUPABASE_*` exist, and RLS on `studio_profiles` / `studio_systems` is
+the actual boundary rather than a second opinion. The service-role key is
+unchanged and still server-side only; tables 001–004 still grant nothing to
+anyone and are still reached only through their functions. `.env.example`
+explains why the two postures coexist — read it before "fixing" the apparent
+contradiction.
+
+**Not built yet:** password reset, email change, account deletion, and the
+crest upload (the settings page is name/club/colour only). `withProfile` seeds a
+new system from the profile; it never edits an existing document.
+
 ## 3a. Where the pitch views came from
 
 Counted across the 108 tactics shorts in `editor/src/`. There are exactly three
@@ -324,17 +387,18 @@ If you are tempted to add a view, count it in the shorts first.
 
 ## 4. Still to build
 
-1. **Supabase auth + persistence** — email/password + Google. `profiles` (team,
-   crest, colours) and `systems` (`doc jsonb`), RLS owner-only, storage bucket
-   for crests. Slots into `StudioMount.tsx` with localStorage as write-through cache.
+1. ~~**Supabase auth + persistence**~~ — **built.** See §3f. What is left of this
+   item: password reset, email change, account deletion, and the **crest upload**
+   (needs a storage bucket; settings is name/club/colour only today).
 2. **PPTX** (`pptxgenjs`) — the one export still missing, and the only one a
    club analyst will ask for by name. It needs a raster of each board, and both
    halves of that are now built: `frameSvg`/`raster` in `videoRender.ts` do
    exactly this per frame, and the **font** and **match ball** gotchas of §6 are
    paid for there. PNG-per-act is the same call without the encoder. The share
    link and the print PDF cover everything else.
-3. **`/studio` landing + library + settings**, and a nav entry in
-   `Header.astro`. Deliberately not wired up yet — see the top of this file.
+3. ~~**`/studio` landing + library + settings**, and a nav entry~~ — **built.**
+   See §3f. The studio is no longer unlinked: `/studio/` is in the header nav and
+   in the sitemap.
 4. **Move the ball assets to a Supabase bucket** when we go live. Only `src` in
    `balls.ts` changes, and every consumer already goes through it.
 5. **Short share links.** Once there is a server, a stored share becomes a short

@@ -25,14 +25,7 @@ interface Props {
 const { theme, systems } = Astro.props
 const path = `/library/theme/${theme.slug}/`
 
-const breadcrumb = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Library', item: abs('/library/') },
-    { '@type': 'ListItem', position: 2, name: theme.title, item: abs(path) },
-  ],
-}
+// See the note in [slug].astro: BaseLayout owns the trail.
 
 const list = {
   '@context': 'https://schema.org',
@@ -51,7 +44,8 @@ const list = {
   title={`${theme.title} systems`}
   description={`${theme.blurb} Every ${theme.title.toLowerCase()} breakdown from Total Football, drawn phase by phase.`}
   path={path}
-  structuredData={[breadcrumb, list]}
+  structuredData={[list]}
+  breadcrumbs={[{ name: 'Library', path: '/library/' }]}
 >
   <header class="stage border-b border-ink-hair">
     <div class="shell py-14 md:py-20">

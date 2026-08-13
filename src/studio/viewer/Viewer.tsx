@@ -33,6 +33,7 @@ import { fetchShared, idFromPath, systemFromHash } from '../share'
 import type { System } from '../schema'
 import { CreditBar, formatDate } from './CreditBar'
 import { Mark } from './Mark'
+import { STUDIO_EVENTS, track } from '../track'
 
 export default function Viewer() {
   const [system, setSystem] = useState<System | null>(null)
@@ -210,7 +211,13 @@ export default function Viewer() {
           </div>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => {
+              // The print stylesheet IS the PDF export (see the page's header
+              // comment), so this press is the only signal that anybody uses
+              // it. Recorded before the call, because print() blocks.
+              track(STUDIO_EVENTS.printed)
+              window.print()
+            }}
             className="shrink-0 rounded-lg border border-ink-hair px-3 py-1.5 text-xs font-bold text-ink-soft transition-colors hover:bg-surface"
           >
             Print / PDF

@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Credit, System } from '../schema'
 import { longUrl, publishSystem } from '../share'
+import { STUDIO_EVENTS, track } from '../track'
 import { Button, Field, TextInput } from './ui'
 import { SHARE } from './guide'
 
@@ -52,6 +53,14 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
   // identical thing straight back.
   const lastSent = useRef('')
 
+  /**
+   * ONE event per opening of this dialog, not one per publish. The effect below
+   * republishes on every edit while the dialog is up — including each keystroke
+   * of a club name, debounced — so counting publishes would count typing, and
+   * "systems shared today" would be a number about nothing.
+   */
+  const counted = useRef(false)
+
   useEffect(() => {
     let live = true
     const t = setTimeout(async () => {
@@ -63,6 +72,10 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
         if (!live) return
         setUrl(published.url)
         setStatus('short')
+        if (!counted.current) {
+          counted.current = true
+          track(STUDIO_EVENTS.sharePublished)
+        }
         if (published.id !== system.shareId) onPublished(published.id)
       } catch {
         if (!live) return
@@ -70,6 +83,10 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
         if (!live) return
         setUrl(fallback)
         setStatus('fallback')
+        if (!counted.current) {
+          counted.current = true
+          track(STUDIO_EVENTS.shareFallback)
+        }
       }
     }, 400)
     return () => {

@@ -29,6 +29,17 @@ interface Props {
   publishedTime?: string
   modifiedTime?: string
   structuredData?: Record<string, any>[]
+  /**
+   * The trail from the homepage to here, EXCLUDING home and excluding this
+   * page's own crumb — both are added below, so a page states only the middle.
+   * Emitted as BreadcrumbList, which is what puts the trail under the result in
+   * Google rather than a bare URL.
+   *
+   * Not rendered on the page. The visible back-link on a system page is one
+   * word in context and the right treatment for a reader; a full visible trail
+   * on a four-level site is furniture. Structured data has no such cost.
+   */
+  breadcrumbs?: { name: string; path: string }[]
   noindex?: boolean
   /** Suppress the site chrome (used by bare/landing treatments). */
   bare?: boolean
@@ -44,6 +55,7 @@ const {
   publishedTime,
   modifiedTime,
   structuredData = [],
+  breadcrumbs = [],
   noindex = false,
   bare = false,
 } = Astro.props
@@ -85,6 +97,36 @@ const orgSchema = {
   ...(sameAs.length ? { sameAs } : {}),
 }
 
+/**
+ * The trail, as Schema.org sees it.
+ *
+ * Built here rather than in each page so the two rules that make it valid
+ * cannot be forgotten: home is always the first item, this page is always the
+ * last, and `position` counts from 1 with no gaps. A page that listed its own
+ * crumb would double it the day someone also passed the parent.
+ *
+ * Only emitted when a page actually has a middle. On a top-level page the trail
+ * is "Home › this", which tells a search engine nothing it did not already know
+ * from the URL.
+ */
+const crumbSchema =
+  breadcrumbs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { name: 'Home', path: '/' },
+          ...breadcrumbs,
+          { name: title ?? SITE.name, path },
+        ].map((crumb, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: crumb.name,
+          item: abs(crumb.path),
+        })),
+      }
+    : null
+
 const siteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
@@ -108,6 +150,16 @@ const siteSchema = {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {/*
+      Exactly ONE theme-color meta, deliberately. Splitting it into a
+      light/dark pair looks like an improvement and is not: three separate
+      scripts (the inline theme script below, Header.astro, and the studio's
+      ThemeToggle) all reach for `meta[name="theme-color"]` and get the FIRST
+      match, so a pair means every one of them writes the light entry and a
+      night reader's browser chrome never changes. The inline script below runs
+      before the body paints and sets the right value, which is what a
+      media-query pair would have been for.
+    */}
     <meta name="theme-color" content="#F4F4F2" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -155,6 +207,7 @@ const siteSchema = {
 
     <script is:inline type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
     <script is:inline type="application/ld+json" set:html={JSON.stringify(siteSchema)} />
+    {crumbSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(crumbSchema)} />}
     {
       structuredData.map((data) => (
         <script is:inline type="application/ld+json" set:html={JSON.stringify(data)} />

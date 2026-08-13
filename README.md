@@ -142,16 +142,42 @@ A POST to `/api/subscribe` on `localhost:4321` will always 404. That is expected
 
 ### Environment variables (already set on the Netlify project)
 
-None are prefixed `PUBLIC_`, so none reach the browser:
+| Variable | Value | In the browser? |
+|---|---|---|
+| `SUPABASE_URL` | `https://bewvowkkikxsjcfnkeot.supabase.co` | no |
+| `SUPABASE_ANON_KEY` | the Bet project's anon key (copy from the local `.env`) | no |
+| `SUPABASE_SERVICE_ROLE_KEY` | reads the analytics back for the daily report | **never** |
+| `ALLOWED_ORIGIN` | `https://totalfootball.naurra.ai` | no |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | where the daily report goes | no |
+| `PUBLIC_SITE_URL` | `https://totalfootball.naurra.ai` | yes |
+| `PUBLIC_SUPABASE_URL` | same as `SUPABASE_URL` | **yes, by design** |
+| `PUBLIC_SUPABASE_ANON_KEY` | same as `SUPABASE_ANON_KEY` | **yes, by design** |
 
-| Variable | Value |
-|---|---|
-| `SUPABASE_URL` | `https://bewvowkkikxsjcfnkeot.supabase.co` |
-| `SUPABASE_ANON_KEY` | the Bet project's anon key (copy from the local `.env`) |
-| `ALLOWED_ORIGIN` | `https://totalfootball.naurra.ai` |
-| `PUBLIC_SITE_URL` | `https://totalfootball.naurra.ai` |
+The two `PUBLIC_SUPABASE_*` are the accounts client, and the duplication is
+deliberate — see the long note in `.env.example`. The anon key is a project
+identifier, not a secret; what keeps one coach out of another's systems is RLS
+in `supabase/005`, which only Postgres can enforce and only against a signed-in
+user. Set on the **production context only**, so deploy previews keep running
+with accounts switched off.
+
+They are read at BUILD time (Vite inlines `import.meta.env`), so changing one
+needs a rebuild, not just a redeploy.
 
 Change them with `netlify env:set <NAME> "<value>" --context production`.
+
+### Accounts still need two things done in the Supabase dashboard
+
+Neither is reachable from a key, so neither can be scripted from here:
+
+1. **Authentication → Providers → Google** is currently **off**, while the
+   studio's copy says "Sign in with Google and you are on the board". Until it
+   is enabled with a Google Cloud OAuth client, that button fails and only
+   email/password works. Check with:
+   `curl -s "$SUPABASE_URL/auth/v1/settings" -H "apikey: $SUPABASE_ANON_KEY"`
+2. **Authentication → URL Configuration** — Site URL
+   `https://totalfootball.naurra.ai`, and the redirect list must allow
+   `https://totalfootball.naurra.ai/**`, because sign-in comes back to
+   `?next=` (`/studio/portal/` by default).
 
 ### What gets stored
 
@@ -180,6 +206,46 @@ project does not hand out Supabase's usual default privileges.
 table, which would mean granting anon the ability to read subscriber addresses.
 Instead the unique constraint raises 409 and the function treats it as success.
 Same result for the visitor, least privilege for the role.
+
+## What gets measured
+
+Two readers of the same table, `public.site_events`:
+
+```bash
+node scripts/analytics-report.mjs      # the dashboard, on demand, last 30 days
+```
+
+…and `netlify/functions/daily-report.mts`, which posts to Telegram at 18:00 UTC
+(21:00 Athens) over a rolling 24 hours. Both go through `public.execute_sql`,
+which is granted to `service_role` only — see `supabase/006_reporting.sql`,
+which is where that function is finally written down.
+
+**Three kinds of row.** `pageview` and `duration` are automatic.
+`click` is opt-in and carries a label:
+
+| Label | Written by |
+|---|---|
+| `nav:*`, `hero:*`, `home:*`, `course:*`, `studio:cta-*`, `intel:*`, `telegram:*` | `data-track` on the element |
+| `outbound:<host>` | any link leaving the site, automatically |
+| `signup:<source>` | a form that actually saved an address, not one that was submitted |
+| `studio:*` | the editor and the viewer, via `src/studio/track.ts` |
+| `share:<id>` | the pageview of a shared system (see below) |
+
+**The studio reports too.** Everything the product does happens inside a React
+island, so no click listener can see it. `src/studio/track.ts` is the only place
+that decides what is sent, and it sends a label and nothing else — never a
+system, a title or an id.
+
+**Share links collapse to one path.** `/s/k7f3q9` is a route, not a page.
+`netlify/functions/track.mts` stores it as `/s/:id` with the id moved to
+`label`, so "most read" stays a list of pages rather than a list of strangers'
+share ids. Rows written before that are brought into line by the backfill at the
+foot of `supabase/006_reporting.sql`.
+
+**A broken section does not cost the report.** Every query in the daily report
+is asked for by name; one that fails is left out and named at the foot of the
+message. Silence used to be the failure mode, and silence reads exactly like a
+quiet day.
 
 ## House style
 

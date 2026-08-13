@@ -1,0 +1,324 @@
+---
+/**
+ * The Studio's front door.
+ *
+ * This is the one page under /studio/ that is PUBLIC and INDEXED. Everything
+ * else there is noindex, either because it is a tool with no content (the
+ * editor), or because it cannot be rendered without knowing who is asking (the
+ * portal, settings, sign-in). See docs/STUDIO.md.
+ *
+ * Structure follows docs/SPEC.md §4 like the homepage: each section ends in
+ * exactly one CTA, and no section competes with itself. Every CTA on this page
+ * points at the same place.
+ *
+ * THE HERO IS THE TOOL BEING USED. The single hardest thing to explain about
+ * this product in words is the thing it does — you move a player and the
+ * movement between where they were and where they are is the phase. StudioDeck
+ * shows exactly that gesture, in pure SVG and CSS with no JS and no layout
+ * cost. Showing it beats any headline written about it.
+ *
+ * It used to be MiniBoard, which is the HOMEPAGE's hero. Two landing pages
+ * sharing one drawing made this page read as a copy of that one, and left the
+ * site with no picture of the actual product anywhere on it.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import StudioDeck from '../../components/visual/StudioDeck.astro'
+import PoseToFilm from '../../components/visual/PoseToFilm.astro'
+import StepGlyph from '../../components/visual/StepGlyph.astro'
+import SystemCard from '../../components/library/SystemCard.astro'
+import { SYSTEMS } from '../../data/systems'
+import { SITE_URL } from '../../lib/site'
+
+const featured = SYSTEMS.slice(0, 3)
+
+/**
+ * The three things a coach does, in the order they do them. Numbered because
+ * this genuinely is a sequence — you cannot share what you have not posed.
+ */
+const STEPS = [
+  {
+    n: '01',
+    kind: 'shape' as const,
+    title: 'Put your shape down',
+    body: 'Pick the pitch you want, the shape you play, and your colours. Twenty-four formations, and eleven counters you can drag anywhere.',
+  },
+  {
+    n: '02',
+    kind: 'phase' as const,
+    title: 'Move it to the next moment',
+    body: 'Add a phase and you get a copy of the board you already have. Move the players to where the ball takes them. That is the whole job — the movement between the two is worked out for you.',
+  },
+  {
+    n: '03',
+    kind: 'send' as const,
+    title: 'Send it, or save the film',
+    body: 'A link that plays on any phone, with no app and no account at the other end. Or an MP4 for the places a link will not go.',
+  },
+]
+
+
+/**
+ * What comes out, and a mark for each. Icons rather than four more paragraphs:
+ * this section was the most text-heavy on the page and every item in it is a
+ * concrete object a coach can picture.
+ */
+const ico = (d: string) =>
+  `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`
+
+const EXPORTS = [
+  {
+    title: 'A link that plays',
+    body: 'Seven characters. It opens on any phone with no app and no account. Change a phase and everyone who already has the link sees the new one.',
+    icon: ico('<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>'),
+  },
+  {
+    title: 'An MP4',
+    body: 'Landscape or vertical, encoded on your own machine. For the places a link will not go: a story, a status, a group chat.',
+    icon: ico('<rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3z"/>'),
+  },
+  {
+    title: 'A PDF to hand out',
+    body: 'One phase a page, your notes under each board, real type that prints sharp at any size.',
+    icon: ico('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>'),
+  },
+  {
+    title: 'Your name on all of it',
+    body: 'Your name and club at the foot of every board, ours beside them. Set it once and everything you share is signed.',
+    icon: ico('<path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/>'),
+  },
+]
+
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Total Football Studio',
+    applicationCategory: 'SportsApplication',
+    operatingSystem: 'Any browser',
+    url: `${SITE_URL}/studio/`,
+    description:
+      'Build animated tactical presentations on the Total Football board. Pose the board phase by phase and the movement between the poses is worked out for you.',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  },
+]
+---
+
+<BaseLayout
+  title="The Studio"
+  description="Build your own tactical systems on the Total Football board. Pose the board phase by phase, and the movement between the poses comes back as film — then send it as a link that plays anywhere."
+  path="/studio/"
+  structuredData={structuredData}
+>
+  {/* ── Hero ─────────────────────────────────────────────────────────── */}
+  <section class="stage relative overflow-hidden border-b border-ink-hair">
+    <div class="shell relative grid gap-14 py-20 md:py-28 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:gap-12">
+      <div class="max-w-[40rem]">
+        <p class="micro mb-8" data-reveal="fade">The Studio · free, in your browser</p>
+
+        <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
+          Your tactics,<br />
+          <span class="grad-text">on our board.</span>
+        </h1>
+
+        <p
+          class="mt-8 max-w-prose text-lg leading-relaxed text-ink-soft"
+          data-reveal="rise"
+          data-reveal-delay="160"
+        >
+          The same board the videos are drawn on, handed over. Pose it phase by phase — nobody
+          keyframes anything — and the movement between the phases comes back as film.
+        </p>
+
+        <div class="mt-10 flex flex-wrap items-center gap-3" data-reveal="rise" data-reveal-delay="240">
+          <a href="/studio/portal/" class="btn btn-primary" data-track="studio:cta-hero">
+            Open the Studio
+          </a>
+          <a href="/library/" class="btn btn-ghost" data-track="studio:see-one">
+            See one first
+          </a>
+        </div>
+
+        <p class="mt-5 text-[13px] text-ink-faint" data-reveal="fade" data-reveal-delay="300">
+          Free. Nothing to install. Sign in with Google and you are on the board.
+        </p>
+      </div>
+
+      {/* The product, being used. Not MiniBoard: that is the homepage's hero
+          and it teaches football, not the tool. See StudioDeck.astro. */}
+      <div class="relative" data-reveal="fade" data-reveal-delay="200">
+        <div
+          class="pointer-events-none absolute -inset-8 -z-10 rounded-full bg-tf-gradient-soft blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+        <StudioDeck
+          class="drop-shadow-[0_24px_50px_rgba(22,22,24,0.10)]"
+          title="The Studio: a coach drags a player to where the ball takes them, the movement is drawn behind, and a link to send appears"
+        />
+        <p class="mt-4 text-center text-[13px] text-ink-soft">
+          Move a player. The path between where they were and where they are now is the phase.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ── The one idea ─────────────────────────────────────────────────── */}
+  <section class="border-b border-ink-hair bg-paper-deep/40">
+    <div class="shell py-24 md:py-32">
+      <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">The one idea</p>
+          <h2 class="max-w-[18ch] text-title font-black" data-reveal="clip">
+            A phase is a moment, not a keyframe.
+          </h2>
+          <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+            Every other tool asks you to think in timelines. This one asks you to think the way you
+            already do on a whiteboard.
+          </p>
+        </div>
+
+        {/* The thing you never have to do, said once and got out of the way. A
+            struck-out timeline is quicker to understand than the sentence
+            explaining that there isn't one. */}
+        <div class="shrink-0 lg:pb-2" data-reveal="fade" data-reveal-delay="160">
+          {/* inline-block, or on a phone the box stretches to the full column
+              and the strike turns into a long diagonal across empty space. */}
+          <div class="inline-block rounded-xl border border-ink-hair bg-paper/60 px-5 py-4">
+            <p class="micro mb-3">What you never touch</p>
+            <div class="relative flex items-center gap-2.5" aria-hidden="true">
+              {
+                [0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    class:list={[
+                      'block h-3 w-3 rotate-45 border border-ink-faint',
+                      i === 2 && 'bg-ink/20',
+                    ]}
+                  />
+                ))
+              }
+              <span class="ml-0.5 text-[13px] font-semibold text-ink-faint">a timeline</span>
+              <span
+                class="pointer-events-none absolute -inset-x-1 top-1/2 h-[1.5px] -rotate-[7deg] bg-ink/45"
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="mt-14 rounded-3xl border border-ink-hair bg-surface/55 p-6 shadow-paper sm:p-10"
+        data-reveal="fade"
+        data-reveal-delay="120"
+      >
+        <PoseToFilm title="The same players posed twice, and the movement between the poses playing back" />
+      </div>
+    </div>
+  </section>
+
+  {/* ── How ──────────────────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-32">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <h2 class="max-w-[20ch] text-title font-black" data-reveal="clip">
+        Three moves, start to finish.
+      </h2>
+      <p class="micro" data-reveal="fade">About ten minutes</p>
+    </div>
+
+    {/*
+      Each step gets the smallest true picture of itself (StepGlyph). Three
+      paragraphs under three numbers described a sequence of physical actions in
+      prose, which is the one thing prose is worst at. The rail behind the
+      numbers is what makes it read as one run rather than three cards.
+    */}
+    <ol class="mt-14 grid list-none gap-12 p-0 md:grid-cols-3 md:gap-8">
+      {
+        STEPS.map((step, i) => (
+          <li class="relative" data-reveal="rise" data-reveal-delay={i * 90}>
+            <div class="mb-6 flex items-center gap-3">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-[12px] font-black tabular-nums text-paper">
+                {step.n}
+              </span>
+              {/* The rail. Stops at the last step, because the sequence does. */}
+              <span
+                class:list={[
+                  'h-px flex-1',
+                  i === STEPS.length - 1 ? 'bg-ink-hair' : 'bg-tf-gradient opacity-40',
+                ]}
+                aria-hidden="true"
+              />
+            </div>
+
+            <StepGlyph kind={step.kind} delay={i * 700} class="mb-6" />
+
+            <h3 class="text-xl font-black tracking-display text-ink">{step.title}</h3>
+            <p class="mt-3 leading-relaxed text-ink-soft">{step.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  {/* ── What you get out ─────────────────────────────────────────────── */}
+  <section class="border-y border-ink-hair bg-paper-deep/30">
+    <div class="shell py-24 md:py-32">
+      <div class="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-start lg:gap-16">
+        <div>
+          <h2 class="max-w-[16ch] text-title font-black" data-reveal="clip">
+            Then it has to leave the laptop.
+          </h2>
+          <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+            A presentation nobody sees is a presentation you did not need to make. So the export is
+            not a file format, it is the four ways a coach actually shows people things.
+          </p>
+        </div>
+
+        <ul class="grid list-none gap-px overflow-hidden rounded-xl border border-ink-hair bg-ink-hair p-0 sm:grid-cols-2">
+          {
+            EXPORTS.map((item, i) => (
+              <li class="bg-paper p-6" data-reveal="fade" data-reveal-delay={i * 60}>
+                <span class="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-tf-gradient-soft text-ink">
+                  <Fragment set:html={item.icon} />
+                </span>
+                <h3 class="text-[15px] font-black text-ink">{item.title}</h3>
+                <p class="mt-2 text-[15px] leading-relaxed text-ink-soft">{item.body}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  {/* ── Start from ours ──────────────────────────────────────────────── */}
+  <section class="shell py-24 md:py-32">
+    <h2 class="max-w-[22ch] text-title font-black" data-reveal="clip">
+      Or start from one of ours.
+    </h2>
+    <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+      Every system in the library was built on this board. Open one, see how it is put together, and
+      make it your own.
+    </p>
+
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+      {featured.map((system) => <SystemCard system={system} />)}
+    </div>
+  </section>
+
+  {/* ── Close ────────────────────────────────────────────────────────── */}
+  <section class="border-t border-ink-hair bg-paper-deep/40">
+    <div class="shell py-24 text-center md:py-32">
+      <h2 class="mx-auto max-w-[18ch] text-title font-black" data-reveal="clip">
+        Build the first one tonight.
+      </h2>
+      <p class="mx-auto mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+        It is free, it runs in the browser you already have open, and the first board takes about ten
+        minutes.
+      </p>
+      <div class="mt-10 flex justify-center" data-reveal="rise" data-reveal-delay="120">
+        <a href="/studio/portal/" class="btn btn-primary" data-track="studio:cta-foot">
+          Open the Studio
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

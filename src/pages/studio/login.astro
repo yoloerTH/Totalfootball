@@ -1,0 +1,26 @@
+---
+/**
+ * Sign in, on the way to the portal.
+ *
+ * `?next=` carries where the coach was trying to get to, so a link straight to
+ * a system they own survives the detour through here. It is read on the client
+ * and constrained to a same-origin path by `SignIn` — an open redirect on a
+ * login page is the classic way to hand somebody's session to a phishing site.
+ *
+ * noindex: a sign-in form has nothing for a search engine, and indexing it
+ * means it competes with the landing page for the studio's own brand terms.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import SignIn from '../../studio/account/SignIn'
+---
+
+<BaseLayout
+  title="Sign in"
+  description="Sign in to your Total Football studio: your systems, on every machine you coach from."
+  path="/studio/login/"
+  noindex
+>
+  <main class="mx-auto flex min-h-[70vh] max-w-shell items-center justify-center px-5 py-16">
+    <SignIn client:only="react" />
+  </main>
+</BaseLayout>

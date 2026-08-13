@@ -1,0 +1,538 @@
+---
+/**
+ * The Studio, working. The hero of /studio/.
+ *
+ * WHY THIS EXISTS AT ALL. The studio's hero used to run MiniBoard — the same
+ * six-second back-four loop as the homepage hero, pixel for pixel. Two landing
+ * pages sharing one drawing makes the second one feel like a duplicate of the
+ * first, and worse, it left the site with no picture of the actual product
+ * anywhere on it. MiniBoard teaches a lesson about football. This teaches what
+ * the tool does.
+ *
+ * It is drawn, not screenshotted, for the same reasons AgentFlow is not a
+ * screenshot of n8n: a screenshot dates the day the UI moves, it carries the
+ * browser's chrome and the coach's font stack into our page, and at hero size
+ * a real interface is unreadable. So this is the editor reduced to the three
+ * things that matter — the header, the board, the phase strip — with the
+ * proportions and the gold-active-phase rule taken from the real one
+ * (src/studio/editor/StudioEditor.tsx).
+ *
+ * THE GESTURE IS THE POINT. One 14-second loop: a coach picks a player up,
+ * drags them, and the movement is left behind as a path nobody drew. Then the
+ * link appears. That is the entire product in one sentence and one gesture.
+ *
+ * Pure SVG + CSS keyframes, like MiniBoard and AgentFlow: no JS, no hydration,
+ * no layout cost, and it freezes to a readable still under reduced-motion.
+ */
+interface Props {
+  class?: string
+  /** Decorative by default; pass a label to expose it to assistive tech. */
+  title?: string
+}
+
+const { class: klass = '', title } = Astro.props
+
+const GREEN = '#08C16A'
+const GREEN_DEEP = '#06A659'
+const GOLD = '#E6B23A'
+const RED = '#E2473B'
+const INK = 'currentColor'
+
+/** Unique per instance, so two on one page cannot share a gradient id. */
+const uid = `sd-${Math.random().toString(36).slice(2, 8)}`
+
+/** The board, in viewBox units. Everything on the pitch is placed off this. */
+const B = { x: 30, y: 56, w: 420, h: 252 }
+
+/**
+ * The shape on the board: a back four and two midfielders in a 4-2, plus one
+ * opponent to make the movement mean something. The player at index 4 is the
+ * one that gets dragged, from `x/y` to `to`.
+ */
+const HOME = [
+  { x: 96, y: 118 },
+  { x: 96, y: 186 },
+  { x: 152, y: 96 },
+  { x: 152, y: 210 },
+  { x: 214, y: 152, drag: { dx: 92, dy: -44 } },
+  { x: 206, y: 232 },
+]
+/**
+ * Two opponents, placed so the dragged player arrives BESIDE the near one
+ * rather than on top of it. The gap is the whole reason the move reads as a
+ * move; at 14 units a counter the two would just look like a collision.
+ */
+const AWAY = [
+  { x: 366, y: 100 },
+  { x: 356, y: 200 },
+]
+
+/** The dragged player's start and end, in absolute board coordinates. */
+const FROM = { x: HOME[4].x, y: HOME[4].y }
+const TO = { x: FROM.x + HOME[4].drag!.dx, y: FROM.y + HOME[4].drag!.dy }
+
+/** Phase thumbnails along the bottom, mirroring the real editor's strip. */
+const THUMBS = [0, 1, 2].map((i) => ({ i, x: 30 + i * 92, y: 332, w: 80, h: 50 }))
+---
+
+<svg
+  viewBox="0 0 480 400"
+  class={`block w-full ${klass}`}
+  role={title ? 'img' : 'presentation'}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+  focusable="false"
+>
+  <defs>
+    {/* The dome on a counter. Same idea as the real board's token, flattened —
+        a full gradient plus shadow turns to mud at this size. */}
+    <radialGradient id={`${uid}-dome`} cx="0.34" cy="0.28" r="0.85">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="62%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+
+    {/* The share pill's glow when the link is ready. A radial, never a blur
+        filter — the rule the board follows so nothing depends on filter
+        support. */}
+    <radialGradient id={`${uid}-glow`} cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color={GOLD} stop-opacity="0.42" />
+      <stop offset="70%" stop-color={GOLD} stop-opacity="0.08" />
+      <stop offset="100%" stop-color={GOLD} stop-opacity="0" />
+    </radialGradient>
+
+    <linearGradient id={`${uid}-brand`} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color={GOLD} />
+      <stop offset="100%" stop-color={GREEN} />
+    </linearGradient>
+  </defs>
+
+  {/* ── the window ──────────────────────────────────────────────────── */}
+  <rect
+    x="1"
+    y="1"
+    width="478"
+    height="398"
+    rx="16"
+    fill="rgb(var(--tf-surface))"
+    stroke={INK}
+    stroke-opacity="0.12"
+  />
+
+  {/* ── header: name, tools, play ───────────────────────────────────── */}
+  <g>
+    <rect x="14" y="15" width="12" height="12" rx="3.5" fill={`url(#${uid}-brand)`} />
+    <text x="34" y="25.5" font-size="11" font-weight="800" fill={INK} letter-spacing="-0.01em">
+      Overload the left
+    </text>
+
+    {/* The mark vocabulary, as a row of pills: select, a straight run, a curved
+        one, a zone. Each carries its own glyph rather than a blank tile —
+        four empty rectangles read as a loading state, which is the last thing
+        a hero should imply. Select is active, because select is what you are
+        holding while you drag somebody. */}
+    <g>
+      {
+        [
+          { x: 232, glyph: 'M -4,-5 L -4,5 L -1.4,2.6 L 0.6,6 L 2.4,5.2 L 0.6,2 L 4,1.9 Z', on: true },
+          { x: 262, glyph: 'M -5,3 L 5,-3 M 2,-3 L 5,-3 L 5,0' },
+          { x: 292, glyph: 'M -5,3 C -2,-4 2,-4 5,-2 M 2,-3.4 L 5,-2 L 4.2,1' },
+          { x: 322, glyph: 'M -5,-3.4 H 5 V 3.4 H -5 Z' },
+        ].map((p) => (
+          <>
+            <rect
+              x={p.x}
+              y={13}
+              width={26}
+              height={17}
+              rx="5"
+              fill={p.on ? INK : 'rgb(var(--tf-paper))'}
+              fill-opacity={p.on ? 0.9 : 1}
+              stroke={INK}
+              stroke-opacity={p.on ? 0 : 0.1}
+            />
+            <path
+              d={p.glyph}
+              transform={`translate(${p.x + 13} 21.5)`}
+              fill={p.on ? 'rgb(var(--tf-paper))' : 'none'}
+              stroke={p.on ? 'none' : INK}
+              stroke-opacity={p.on ? 1 : 0.45}
+              stroke-width="1.3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-dasharray={p.x === 322 ? '3 2.5' : undefined}
+            />
+          </>
+        ))
+      }
+    </g>
+
+    {/* Play. Solid ink, like every primary action on the site. */}
+    <g>
+      <rect x="374" y="12" width="58" height="19" rx="9.5" fill={INK} fill-opacity="0.9" />
+      <path d="M386,17.5 L392,21.5 L386,25.5 Z" fill="rgb(var(--tf-paper))" />
+      <text x="397" y="25" font-size="10" font-weight="800" fill="rgb(var(--tf-paper))">Play</text>
+    </g>
+
+    {/* Share. Idle until the coach has something worth sending. */}
+    <g class="sd-share">
+      <circle class="sd-glow" cx="452" cy="21.5" r="30" fill={`url(#${uid}-glow)`} />
+      <circle cx="452" cy="21.5" r="13" fill="rgb(var(--tf-paper))" stroke={INK} stroke-opacity="0.1" />
+      <circle class="sd-share-lit" cx="452" cy="21.5" r="13" fill="none" stroke={GOLD} stroke-width="1.8" />
+      <g stroke={INK} stroke-width="1.6" fill="none" stroke-linecap="round" stroke-opacity="0.62">
+        <circle cx="457" cy="16.5" r="2.4" />
+        <circle cx="447" cy="21.5" r="2.4" />
+        <circle cx="457" cy="26.5" r="2.4" />
+        <path d="M449.2,20.4 L454.8,17.6 M449.2,22.6 L454.8,25.4" />
+      </g>
+    </g>
+
+    <line x1="1" y1="43" x2="479" y2="43" stroke={INK} stroke-opacity="0.1" />
+  </g>
+
+  {/* ── the board ───────────────────────────────────────────────────── */}
+  <rect x="1" y="43" width="478" height="272" fill="rgb(var(--tf-paper-deep))" />
+  <rect
+    x={B.x}
+    y={B.y}
+    width={B.w}
+    height={B.h}
+    rx="5"
+    fill="rgb(var(--tf-paper))"
+    stroke={INK}
+    stroke-opacity="0.14"
+  />
+
+  {/* Pitch markings: a halfway line, a centre circle, and the two boxes. */}
+  <g stroke={INK} stroke-opacity="0.13" fill="none" stroke-width="1.2">
+    <line x1={B.x + B.w / 2} y1={B.y} x2={B.x + B.w / 2} y2={B.y + B.h} />
+    <circle cx={B.x + B.w / 2} cy={B.y + B.h / 2} r="34" />
+    <rect x={B.x} y={B.y + 62} width="52" height="128" />
+    <rect x={B.x + B.w - 52} y={B.y + 62} width="52" height="128" />
+    <rect x={B.x} y={B.y + 94} width="20" height="64" />
+    <rect x={B.x + B.w - 20} y={B.y + 94} width="20" height="64" />
+  </g>
+
+  {/* The movement, left behind. Drawn by the drag rather than by anybody: the
+      faint dashed line is where the player is being taken, the solid green one
+      is the phase the studio just worked out. */}
+  <path
+    class="sd-hint"
+    d={`M ${FROM.x} ${FROM.y} L ${TO.x} ${TO.y}`}
+    stroke={INK}
+    stroke-opacity="0.22"
+    stroke-width="1.4"
+    stroke-dasharray="4 5"
+    fill="none"
+  />
+  <path
+    class="sd-trail"
+    d={`M ${FROM.x} ${FROM.y} L ${TO.x} ${TO.y}`}
+    pathLength="100"
+    stroke={GREEN_DEEP}
+    stroke-width="2.6"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path
+    class="sd-head"
+    d={`M ${TO.x - 11} ${TO.y - 1} L ${TO.x + 1} ${TO.y + 4} L ${TO.x - 8} ${TO.y + 8} Z`}
+    fill={GREEN_DEEP}
+    transform={`rotate(-25 ${TO.x} ${TO.y})`}
+  />
+
+  {/* Opponents. Static — they are the problem, not the lesson. */}
+  {
+    AWAY.map((a) => (
+      <g>
+        <circle cx={a.x} cy={a.y} r="13" fill={RED} />
+        <circle cx={a.x} cy={a.y} r="13" fill={`url(#${uid}-dome)`} />
+      </g>
+    ))
+  }
+
+  {/* The team. One of them is being moved. */}
+  {
+    HOME.map((p, i) => (
+      <g class={p.drag ? 'sd-drag' : undefined}>
+        {p.drag && <circle class="sd-grab" cx={p.x} cy={p.y} r="21" fill="none" stroke={GOLD} stroke-width="2" />}
+        <circle cx={p.x} cy={p.y} r="14" fill={GREEN} />
+        <circle cx={p.x} cy={p.y} r="14" fill={`url(#${uid}-dome)`} />
+        <text
+          x={p.x}
+          y={p.y + 3.5}
+          text-anchor="middle"
+          font-size="9.5"
+          font-weight="800"
+          fill="#fff"
+          font-family="Inter Variable, Inter, sans-serif"
+        >
+          {i + 1}
+        </text>
+      </g>
+    ))
+  }
+
+  {/* The ball, where the phase starts. */}
+  <circle cx="196" cy="176" r="5.5" fill="#fff" stroke={INK} stroke-width="1.3" />
+
+  {/* The pointer. It leads the token by a couple of units, the way a real one
+      does when something is stuck to it. */}
+  <g class="sd-cursor">
+    <path
+      d="M0,0 L0,15.5 L4.2,11.6 L6.9,17.4 L9.6,16.1 L6.9,10.4 L12.4,10.2 Z"
+      fill="rgb(var(--tf-ink))"
+      stroke="rgb(var(--tf-paper))"
+      stroke-width="1.2"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  {/* ── phase strip ─────────────────────────────────────────────────── */}
+  <line x1="1" y1="315" x2="479" y2="315" stroke={INK} stroke-opacity="0.1" />
+  {
+    THUMBS.map((t) => (
+      <g>
+        <rect
+          x={t.x}
+          y={t.y}
+          width={t.w}
+          height={t.h}
+          rx="4"
+          fill="rgb(var(--tf-paper))"
+          stroke={INK}
+          stroke-opacity="0.14"
+        />
+        {/* A miniature of the shape, so the strip reads as boards and not as
+            three empty rectangles. Phase 2 is the one being edited, so it is
+            the only thumbnail whose counter moves when the player does. */}
+        <g fill={GREEN} fill-opacity="0.85">
+          {HOME.map((p) => (
+            <circle
+              cx={t.x + 6 + ((p.x - B.x) / B.w) * (t.w - 12)}
+              cy={t.y + 6 + ((p.y - B.y) / B.h) * (t.h - 16)}
+              r="2.6"
+              class={t.i === 1 && p.drag ? 'sd-thumb-drag' : undefined}
+            />
+          ))}
+        </g>
+        <rect x={t.x} y={t.y + t.h - 11} width={t.w} height="11" fill={INK} fill-opacity="0.72" />
+        <text x={t.x + 4} y={t.y + t.h - 3} font-size="7.5" font-weight="800" fill="rgb(var(--tf-paper))">
+          {t.i + 1}
+        </text>
+        {/* Gold marks the phase you are on. Same rule as the real strip. */}
+        <rect
+          class={`sd-sel sd-sel${t.i}`}
+          x={t.x}
+          y={t.y}
+          width={t.w}
+          height={t.h}
+          rx="4"
+          fill="none"
+          stroke={GOLD}
+          stroke-width="2"
+        />
+      </g>
+    ))
+  }
+
+  {/* + Add phase, where the real editor keeps it: after the last thumbnail. */}
+  <g>
+    <rect
+      x="306"
+      y="346"
+      width="86"
+      height="22"
+      rx="11"
+      fill="none"
+      stroke={INK}
+      stroke-opacity="0.16"
+      stroke-dasharray="4 4"
+    />
+    <text x="349" y="360.5" text-anchor="middle" font-size="9.5" font-weight="800" fill={INK} fill-opacity="0.5">
+      + Add phase
+    </text>
+  </g>
+
+  {/* The link the whole thing is for. It arrives after the gesture, because
+      that is the order it happens in. */}
+  <g class="sd-link">
+    <rect x="404" y="346" width="62" height="22" rx="11" fill={GOLD} fill-opacity="0.14" />
+    <text x="435" y="360.5" text-anchor="middle" font-size="9.5" font-weight="800" fill={INK} fill-opacity="0.8">
+      /s/k7f3q9
+    </text>
+  </g>
+</svg>
+
+<style>
+  /*
+   * ONE 14-SECOND TIMELINE. Everything below is a percentage of it, so nothing
+   * can drift out of step with anything else:
+   *
+   *   0 – 4%    at rest, phase 2 selected
+   *   4 – 12%   the pointer arrives at the player
+   *   12 – 16%  it picks them up
+   *   16 – 36%  the drag, and the movement drawn behind it
+   *   36 – 42%  released; the arrow head lands
+   *   42 – 52%  the pointer goes for Share
+   *   52 – 62%  the link appears
+   *   62 – 92%  hold — long enough to actually read the board
+   *   92 – 100% back to the start
+   *
+   * The house easing curve throughout: fast out, long settle. It is the same
+   * rule the videos and the board's own tweening follow, and it is most of the
+   * reason a drag reads as a hand rather than as a CSS transition.
+   */
+  .sd-cursor,
+  .sd-drag,
+  .sd-grab,
+  .sd-trail,
+  .sd-hint,
+  .sd-head,
+  .sd-thumb-drag,
+  .sd-sel0,
+  .sd-sel1,
+  .sd-sel2,
+  .sd-link,
+  .sd-glow,
+  .sd-share-lit {
+    animation-duration: 14s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Resting states. Anything that arrives later starts invisible. */
+  .sd-grab,
+  .sd-head,
+  .sd-link,
+  .sd-glow,
+  .sd-share-lit,
+  .sd-sel0,
+  .sd-sel2 {
+    opacity: 0;
+  }
+  .sd-trail {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+  .sd-hint {
+    opacity: 0;
+  }
+  .sd-cursor {
+    /* Parked off the board's bottom-right, where a hand would be resting. */
+    transform: translate(300px, 250px);
+  }
+
+  .sd-cursor { animation-name: sd-cursor; }
+  .sd-drag { animation-name: sd-drag; }
+  .sd-thumb-drag { animation-name: sd-thumb; }
+  .sd-grab { animation-name: sd-grab; }
+  .sd-hint { animation-name: sd-hint; }
+  .sd-trail { animation-name: sd-trail; }
+  .sd-head { animation-name: sd-head; }
+  .sd-sel1 { animation-name: sd-sel1; }
+  .sd-link { animation-name: sd-link; }
+  .sd-glow,
+  .sd-share-lit { animation-name: sd-share; }
+
+  /* The pointer: to the player, along with them, then over to Share. */
+  @keyframes sd-cursor {
+    0%, 4% { transform: translate(300px, 250px); }
+    12%, 16% { transform: translate(219px, 156px); }
+    36%, 42% { transform: translate(311px, 112px); }
+    52%, 88% { transform: translate(444px, 26px); }
+    96%, 100% { transform: translate(300px, 250px); }
+  }
+
+  /* The player. Held still until they are picked up, which is what makes the
+     pick-up read as a pick-up. */
+  @keyframes sd-drag {
+    0%, 16% { transform: translate(0, 0); }
+    36%, 92% { transform: translate(92px, -44px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* The thumbnail of the phase being edited moves with them, scaled to the
+     strip. 92px of board is 15.4px of thumbnail; 44px is 7.7px. */
+  @keyframes sd-thumb {
+    0%, 16% { transform: translate(0, 0); }
+    36%, 92% { transform: translate(15.4px, -7.7px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  @keyframes sd-grab {
+    0%, 12% { opacity: 0; }
+    16%, 34% { opacity: 1; }
+    40%, 100% { opacity: 0; }
+  }
+
+  /* Where they are going, shown only while they are going there. */
+  @keyframes sd-hint {
+    0%, 14% { opacity: 0; }
+    18%, 34% { opacity: 1; }
+    42%, 100% { opacity: 0; }
+  }
+
+  /* The movement, drawn by the drag itself. */
+  @keyframes sd-trail {
+    0%, 16% { stroke-dashoffset: 100; }
+    36%, 92% { stroke-dashoffset: 0; }
+    96%, 100% { stroke-dashoffset: 100; }
+  }
+
+  @keyframes sd-head {
+    0%, 34% { opacity: 0; }
+    40%, 92% { opacity: 1; }
+    96%, 100% { opacity: 0; }
+  }
+
+  /* Phase 2 is selected for the whole loop. It is stated as an animation
+     anyway so the selected border cannot end up fighting the reset. */
+  @keyframes sd-sel1 {
+    0%, 100% { opacity: 1; }
+  }
+
+  @keyframes sd-share {
+    0%, 46% { opacity: 0; }
+    54%, 90% { opacity: 1; }
+    95%, 100% { opacity: 0; }
+  }
+
+  @keyframes sd-link {
+    0%, 50% { opacity: 0; transform: translateX(10px); }
+    58%, 90% { opacity: 1; transform: translateX(0); }
+    95%, 100% { opacity: 0; transform: translateX(10px); }
+  }
+
+  /*
+   * Reduced motion: hold the moment after the drag — player moved, movement
+   * drawn, link ready. A still of the finished job, which is the same bar
+   * MiniBoard and AgentFlow are held to.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .sd-cursor,
+    .sd-drag,
+    .sd-grab,
+    .sd-trail,
+    .sd-hint,
+    .sd-head,
+    .sd-thumb-drag,
+    .sd-sel0,
+    .sd-sel1,
+    .sd-sel2,
+    .sd-link,
+    .sd-glow,
+    .sd-share-lit {
+      animation: none;
+    }
+    .sd-drag { transform: translate(92px, -44px); }
+    .sd-thumb-drag { transform: translate(15.4px, -7.7px); }
+    .sd-trail { stroke-dashoffset: 0; }
+    .sd-head,
+    .sd-link,
+    .sd-glow,
+    .sd-share-lit,
+    .sd-sel1 { opacity: 1; }
+    .sd-link { transform: none; }
+    .sd-cursor { transform: translate(311px, 112px); }
+  }
+</style>

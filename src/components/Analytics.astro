@@ -188,6 +188,31 @@ const VERSION = 1
       }
     }
 
+    /**
+     * The one way anything else on the site records an event.
+     *
+     * The click listener below can only see what is in the DOM at click time,
+     * which is fine for links and buttons and useless for the things that
+     * actually matter in the studio: a share published, a video written, a
+     * board printed. Those happen inside a React island, minutes after the
+     * page loaded, and often with no click of their own (publishing is
+     * debounced off typing). So the island calls this.
+     *
+     * It is deliberately the same shape as a tracked click — a label and
+     * nothing else. No ids, no titles, no document contents: a coach's system
+     * is theirs, and the analytics table has no column that could hold it even
+     * if we wanted one.
+     *
+     * `send` already refuses when the visitor has opted out, sent GPC or Do Not
+     * Track, or looks like a bot, so callers never have to ask. Defined
+     * unconditionally and before `start`, because an island cannot know when
+     * this script ran and must not have to.
+     */
+    window.tfTrack = function (label) {
+      if (typeof label !== 'string' || !label) return
+      send({ type: 'click', label: label.slice(0, 128) })
+    }
+
     var started = 0
     var active = 0
     var counted = false

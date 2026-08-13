@@ -2,19 +2,20 @@
  * Local persistence.
  *
  * The studio saves to localStorage first and treats the server as a sync
- * target, not as the place work lives. Two reasons, both about coaches rather
- * than about architecture:
+ * target, not as the place work lives. The reason is about coaches rather than
+ * about architecture: someone building a presentation the night before a
+ * session cannot lose it to a dropped connection, an expired token or a 500.
+ * Everything they type is on their own machine within a keystroke.
  *
- *  · A coach building a presentation the night before a session cannot lose it
- *    to a dropped connection, an expired token or a 500. Everything they type
- *    is on their own machine within a keystroke.
- *  · It lets the whole studio be used, and demoed, before anyone has signed up.
- *    Adoption first was the explicit plan; a login wall in front of the drag
- *    interaction would kill it.
+ * This is now the write-through cache it always said it would become: the local
+ * write is immediate and synchronous, the Supabase upsert is debounced behind
+ * it (./account/sync.ts), and a failed upsert leaves the local copy
+ * authoritative and retries on the next edit.
  *
- * When auth lands this becomes the write-through cache: local write is
- * immediate, the Supabase upsert is debounced behind it, and a failed upsert
- * leaves the local copy authoritative and retries.
+ * NOTE: the studio itself now requires an account. That does not make any of
+ * the above vestigial — it is what keeps the editor working through a dropped
+ * connection mid-session, and it is still the only copy that exists in the two
+ * seconds between a change and the upload.
  */
 
 import { resolveViewId } from './board/pitch'
@@ -34,8 +35,13 @@ const KEY = 'tf-studio:v1'
  * Everything here must be idempotent and must never throw on a shape it does
  * not recognise — the alternative is a coach losing a presentation to a schema
  * tweak, which is exactly what localStorage-first was meant to prevent.
+ *
+ * Exported because the cloud read path needs it too (./account/cloud.ts). A
+ * document that came back from Supabase is exactly as likely to have been
+ * written by an older build as one that came out of localStorage, and there is
+ * only one right answer to what to do about that.
  */
-function migrate(system: System): System {
+export function migrate(system: System): System {
   // Pitch views that were retired (`middle-third`, `final-third`) map to their
   // nearest survivor. Marks are stored as percent-of-crop, so a view swap does
   // move them relative to the grass — but the alternative is a document that

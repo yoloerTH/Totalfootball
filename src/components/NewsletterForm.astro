@@ -96,6 +96,10 @@ const id = `nl-${Math.random().toString(36).slice(2, 8)}`
         })
         if (!res.ok) throw new Error(String(res.status))
         say('Thanks, you are on the list.', true)
+        // The conversion, not the attempt. A tracked click on the button
+        // counts people who pressed it; this counts people who got on the
+        // list, which is the number the daily report is actually about.
+        window.tfTrack?.(`signup:${data.get('source') ?? 'unknown'}`)
         form.reset()
       } catch {
         say('That did not go through. Try again in a moment.', false)

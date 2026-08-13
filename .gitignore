@@ -16,3 +16,6 @@ node_modules/
 
 # raw remotion exports — regenerate with media/export.sh
 media/raw/
+
+# Supabase CLI scratch (version check cache), not project state.
+supabase/.temp/

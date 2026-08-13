@@ -28,13 +28,34 @@ function device(ua: string): 'mobile' | 'tablet' | 'desktop' {
   return 'desktop'
 }
 
-/** Keep the referring host, drop the path and any query string it carried. */
-function referrerHost(raw: unknown, selfOrigin: string | undefined): string | null {
+/**
+ * Keep the referring host, drop the path and any query string it carried.
+ *
+ * Self-referrals are dropped, because "came from" is a question about the rest
+ * of the internet and a visit that came from this site came from nowhere.
+ *
+ * COMPARED BY HOSTNAME, AND AGAINST MORE THAN ONE. The first version compared
+ * `u.origin` against ALLOWED_ORIGIN alone, and the traffic log still collected
+ * a slow trickle of visits "referred by" totalfootball.naurra.ai — every one of
+ * them mobile, every one of them on `/`, which is what an in-app browser
+ * bouncing through its own redirect looks like. Any of a mismatched scheme, a
+ * port, a preview deploy where the env var does not apply, or an origin string
+ * this code never saw would do it. Hostnames, checked against both the
+ * configured origin and the host the request actually arrived on, cannot.
+ */
+function referrerHost(raw: unknown, ours: (string | undefined)[]): string | null {
   if (typeof raw !== 'string' || !raw) return null
   try {
-    const u = new URL(raw)
-    if (selfOrigin && u.origin === selfOrigin) return null // internal navigation
-    return u.hostname.slice(0, 128)
+    const host = new URL(raw).hostname
+    for (const o of ours) {
+      if (!o) continue
+      try {
+        if (new URL(o).hostname === host) return null // internal navigation
+      } catch {
+        if (o === host) return null // already a bare hostname
+      }
+    }
+    return host.slice(0, 128)
   } catch {
     return null
   }
@@ -43,14 +64,45 @@ function referrerHost(raw: unknown, selfOrigin: string | undefined): string | nu
 const str = (v: unknown, max: number): string | null =>
   typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
 
+/**
+ * Collapse a shared system's link to one path.
+ *
+ * `/s/k7f3q9` is a route, not a page: every coach who publishes gets their own
+ * id, so left alone the traffic log fills with hundreds of paths that were each
+ * read twice, and "most read" — the line of the daily report that is supposed
+ * to say what people are reading — degrades into a list of strangers' share
+ * ids. They are collapsed to `/s/:id` so the row means "shared systems were
+ * opened this many times", which is the number worth having.
+ *
+ * The id is not thrown away, it moves to `label` (where a pageview has nothing
+ * else to say), so "which share is being passed around" stays answerable
+ * without a table scan and without the path column carrying it.
+ *
+ * Must stay in step with the id shape in supabase/004_studio_shares.sql and
+ * src/studio/share.ts.
+ */
+const SHARE_PATH = /^\/s\/([0-9a-hjkmnp-tv-z]{6,16})\/?$/
+
+function normalisePath(path: string): { path: string; shareId: string | null } {
+  const m = SHARE_PATH.exec(path)
+  return m ? { path: '/s/:id', shareId: m[1] } : { path, shareId: null }
+}
+
 export default async (request: Request) => {
   // Beacons are fire-and-forget: answer 204 for anything malformed rather than
   // surfacing errors a visitor can neither see nor act on.
   if (request.method !== 'POST') return noContent()
 
+  /**
+   * The origin this request actually arrived on. Used as a fallback for the
+   * cross-origin check and, below, to recognise an internal referrer — so both
+   * keep working on a preview deploy, on the .netlify.app alias, and on the day
+   * somebody forgets to set ALLOWED_ORIGIN in a new context.
+   */
+  const selfOrigin = new URL(request.url).origin
   const allowed = process.env.ALLOWED_ORIGIN
   const origin = request.headers.get('origin')
-  if (allowed && origin && origin !== allowed) return noContent()
+  if (origin && origin !== (allowed ?? selfOrigin)) return noContent()
 
   let body: Record<string, unknown>
   try {
@@ -93,12 +145,16 @@ export default async (request: Request) => {
     }
   }
 
+  const seen = normalisePath(path)
+
   const row = {
     session_id: sessionId,
     type,
-    path,
-    referrer: referrerHost(body.referrer, allowed),
-    label: str(body.label, 128),
+    path: seen.path,
+    referrer: referrerHost(body.referrer, [allowed, selfOrigin]),
+    // A share's id only ever labels the pageview of the share itself; it must
+    // not overwrite a click's own label.
+    label: str(body.label, 128) ?? (seen.shareId ? `share:${seen.shareId}` : null),
     duration_ms: durationMs,
     country,
     device: device(request.headers.get('user-agent') ?? ''),
