@@ -202,6 +202,15 @@ export function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+/**
+ * Where a ball goes when nobody has said where to put it: the centre spot.
+ *
+ * Used by the fresh document and by the Add ball button, which should agree —
+ * a coach who removes the ball and adds it back expects it to land where it
+ * started, not somewhere new.
+ */
+export const CENTRE_SPOT = { x: 50, y: 50 }
+
 export function emptyAct(tokens: Token[] = [], n = 1): Act {
   return {
     id: uid('act'),

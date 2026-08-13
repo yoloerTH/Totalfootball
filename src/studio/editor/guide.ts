@@ -236,6 +236,7 @@ export const HINT = {
 
   play: `Runs your ${PHASE.many} in order so you can watch the movement. You need two ${PHASE.many} before there is anything to watch.`,
   stop: 'Stop and go back to editing.',
+  video: 'Saves the whole thing as a video file you can post. Made here on your machine, so nothing is uploaded.',
   help: 'Reopen the welcome guide.',
 
   undo: 'Takes back the last thing you changed. Nothing you do here is permanent — move things, try it, take it back.',
@@ -331,6 +332,28 @@ export const SHARE = {
   fallback:
     'We could not reach the server, so this is the long version of the link — it carries your whole system inside it. It works exactly the same, but it is a copy: changing your system later will not change what they see.',
   foot: 'Your name and club sit at the foot of every phase, with ours beside them. Fill them in above and it is signed.',
+} as const
+
+/**
+ * The video export.
+ *
+ * The copy has one job the link's copy does not: saying what a file is FOR,
+ * because a coach who has already been given a link will reasonably ask why
+ * they would want a download as well. The answer is that you cannot post a
+ * link to a story, so that is the first line.
+ */
+export const VIDEO = {
+  title: 'Save it as a video',
+  body: `A film of your ${PHASE.many}, playing in order, with your words underneath. Use it where a link will not go — a story, a status, a group chat that flattens everything you send it.`,
+  shape: 'What it is going on',
+  making: 'Making the film…',
+  slow: 'This runs on your own machine, so nothing is uploaded and nobody waits in a queue. A long system takes a minute.',
+  ready: 'Ready. It has gone to your downloads.',
+  failed: 'That did not finish. Nothing was uploaded, and your system is untouched — worth trying once more.',
+  /** Shown instead of the button on a browser with no WebCodecs. */
+  unsupported:
+    'This browser cannot make video files. Chrome, Edge or Safari can — or send the link instead, which works everywhere.',
+  foot: 'Your name and club are burnt into the picture, with ours beside them. A video travels further from you than anything else here, so it is worth signing.',
 } as const
 
 // ── the small-screen door ────────────────────────────────────────────────────

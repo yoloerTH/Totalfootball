@@ -39,7 +39,8 @@ back the film. Nothing else here is hard to copy — that is.
 | Board theme | **Board is always the light paper stage**; only the chrome follows `data-theme` | The paper stage is the brand, and an exported deck must look like the videos regardless of the coach's screen setting |
 | Board tech | **SVG**, not DOM | Makes export `serialise → canvas → PNG` with no server. Constrains everything: no CSS filters, no `<image href>`, no un-inlinable webfont |
 | Shared code | New SVG core in the web app; **not** a shared package with `editor/` | Extracting a package first would mean refactoring 123 working compositions before shipping a feature |
-| Export v1 | **A shared LINK, not a file.** See §3c. PPTX still to do; **MP4 dropped** rather than deferred — a link that plays does the job MP4 was for |
+| Export v1 | **A shared LINK, not a file.** See §3c. PPTX still to do |
+| Video | **MP4, encoded in the browser.** See §3e | MP4 was dropped because it meant Remotion Lambda, a queue and a bill. That was an argument about the *server*, and WebCodecs does not need one. The link is still the primary export; a file is for the places a link cannot go |
 | Where a shared system lives | **Stored, behind a 7-character id**: `/s/k7f3q9`. The self-contained fragment link is kept as the fallback | The fragment link was right about everything except the only thing that mattered — it was 2,000 characters, and nobody can send that |
 | Who can read the shares table | **Only the function.** RLS on, zero policies, service-role key server-side | Keeps the browser holding no Supabase key at all, matching the posture in `.env.example` |
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
@@ -110,6 +111,12 @@ Remotion-free SVG port of `editor/src/components/football/TacticsBoard.tsx`.
   `cubic-bezier(0.16, 1, 0.3, 1)` solved properly (Newton-Raphson), plus the
   shorts' choreography: movers travel the whole beat, leavers fade by 40%,
   arrivals pop in after 55% with overshoot, arrows never linger across a beat.
+- **`video.ts` / `videoRender.ts`** — the video export, split on a **bundle
+  boundary**. `video.ts` is the shapes, `videoSupported()` and `saveVideo()`,
+  all of it small enough to load with the editor; `videoRender.ts` carries a
+  muxer, an encoder and a second copy of React's renderer and is reached through
+  a dynamic `import()` when a coach presses Save. Importing `videoRender` eagerly
+  puts ~50KB gzipped back on every studio page load. See §3e.
 - **`storage.ts`** — localStorage. Deliberately the primary store, not a cache:
   a coach must not lose a presentation to a dropped connection, and the studio
   must be usable before anyone signs up.
@@ -256,6 +263,41 @@ operations and 1,075 vector paths — the type is real, selectable text — with
 raster draws where the counters' gradients and shadows are, which Chrome
 rasterises. Mostly vector, not entirely; do not claim entirely.
 
+## 3e. The video, made on the coach's own machine
+
+`src/studio/video.ts`, `src/studio/videoRender.ts`, `src/studio/editor/VideoDialog.tsx`.
+
+The link is still the export. This is for the places a link will not go — a
+story, a status, a group chat that flattens what you send it. You cannot post a
+URL to Instagram and have it play.
+
+The pipeline is the viewer's, driven by a clock instead of a rAF:
+
+`timelineAt(ms)` → a pose or a blend → **`Board`** → an SVG string → an `<img>`
+→ a canvas → `VideoEncoder` → an `.mp4`.
+
+Five things about it worth keeping:
+
+- **`renderToStaticMarkup(Board)`, not a canvas re-draw.** There is still
+  exactly ONE renderer, so a video cannot drift from what the coach posed. It is
+  the same rule the viewer follows and the reason both are safe to have.
+- **Not `MediaRecorder`.** The obvious build is `captureStream()` +
+  `MediaRecorder`, and it is wrong: MediaRecorder stamps frames by wall clock,
+  so a machine that cannot rasterise a board in 33ms does not drop frames, it
+  produces a video in **slow motion**. Encoding frame by frame with an explicit
+  timestamp is correct on any machine and merely slower on a bad one.
+- **H.264/MP4 first, VP9/WebM as the fallback.** MP4 is the only thing every
+  phone, messenger and upload form accepts. `getFirstEncodableVideoCodec` picks;
+  Firefox lands on WebM, which plays on a desktop and beats no file at all.
+- **The hold is cached.** A four-phase system holds still for 78 of every 111
+  frames. Rasterising only when the pose changes is most of the render time, not
+  a micro-optimisation.
+- **The grain is off.** `texture` is an feTurbulence over the whole stage — fine
+  for one still, ruinous over four hundred frames, and invisible at 30fps.
+
+Both §6 gotchas are paid for here: `inlineBall()` for the ball, and
+`boardFontCss()` for the font. **The font one is no longer unsolved** — see §6.
+
 ## 3a. Where the pitch views came from
 
 Counted across the 108 tactics shorts in `editor/src/`. There are exactly three
@@ -286,10 +328,11 @@ If you are tempted to add a view, count it in the shorts first.
    crest, colours) and `systems` (`doc jsonb`), RLS owner-only, storage bucket
    for crests. Slots into `StudioMount.tsx` with localStorage as write-through cache.
 2. **PPTX** (`pptxgenjs`) — the one export still missing, and the only one a
-   club analyst will ask for by name. It needs a raster of each board, which
-   means the **font** and **match ball** gotchas in §6 do finally have to be
-   solved; both fail silently rather than erroring. PNG-per-act falls out of the
-   same work. The share link and the print PDF cover everything else.
+   club analyst will ask for by name. It needs a raster of each board, and both
+   halves of that are now built: `frameSvg`/`raster` in `videoRender.ts` do
+   exactly this per frame, and the **font** and **match ball** gotchas of §6 are
+   paid for there. PNG-per-act is the same call without the encoder. The share
+   link and the print PDF cover everything else.
 3. **`/studio` landing + library + settings**, and a nav entry in
    `Header.astro`. Deliberately not wired up yet — see the top of this file.
 4. **Move the ball assets to a Supabase bucket** when we go live. Only `src` in
@@ -419,17 +462,24 @@ split**, so a cap that would strand one centre-back on the board stops short
 instead. The caps are ceilings, not targets. Nothing is deleted by any of this;
 widening the view and pressing `Re-place shapes` fills it back up.
 
-**Font embedding is unsolved and blocks PPTX, but no longer blocks PDF.** Board text uses Inter. When an
-SVG is serialised and drawn into a canvas, webfonts do **not** resolve — the
-export will silently fall back to a system font. Inter must be inlined as a
-base64 data URI in a `<style>` inside the exported SVG. Subset it; the full
-variable font is far too heavy to put on every slide.
+**Font embedding was the open problem in every canvas export. It is solved —
+use `boardFontCss()`.** Board text uses Inter, and when an SVG is serialised and
+drawn into a canvas, webfonts do **not** resolve: the export silently falls back
+to a system font, and looks fine on the machine that made it while being wrong
+for everyone else. `videoRender.ts` fetches the latin variable subset once and
+embeds it as a base64 `data:` URI in a `<style>` on every frame.
 
-The PDF sidesteps this entirely by printing the live DOM (§3c), where the font
-is already loaded and the ball is a normal `<img>` the browser just fetches.
-Anything that goes *through a canvas* — PPTX, PNG-per-act — still has to solve
-it, and will look fine on the machine that made it while being wrong for
-everyone else.
+Two notes for **PPTX and PNG-per-act**, which must call the same function:
+
+- **It is not subset, and cannot be.** A coach can type any player name they
+  like, so there is no safe glyph set to reduce to. ~48KB per serialised
+  document. That is a real cost on a deck of stills and a rounding error next to
+  the encoder on a video.
+- **It fails soft.** A failed fetch returns `''`, which costs the typeface and
+  not the export. If you need the type to be right, check the return value.
+
+The PDF still sidesteps all of this by printing the live DOM (§3c), where the
+font is already loaded and the ball is a normal `<img>` the browser fetches.
 
 ---
 

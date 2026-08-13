@@ -49,6 +49,7 @@ import {
   type LabelMode,
 } from '../formations'
 import {
+  CENTRE_SPOT,
   DEFAULT_THEM,
   DEFAULT_US,
   emptyAct,
@@ -81,6 +82,7 @@ import { useHistory } from './history'
 import { ShareDialog } from './ShareDialog'
 import { SmallScreen, isSmallScreen } from './SmallScreen'
 import { ThemeToggle } from './ThemeToggle'
+import { VideoDialog } from './VideoDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
 import {
@@ -226,6 +228,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const [guide, setGuide] = useState<GuideState>(() => readGuide())
   const [walkthrough, setWalkthrough] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [makingVideo, setMakingVideo] = useState(false)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
   // have an interstitial thrown over their work. See ./SmallScreen.tsx.
   const [tooSmall, setTooSmall] = useState(false)
@@ -935,6 +938,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <Button onClick={openShare}>Share</Button>
       </Tip>
 
+      <Tip text={HINT.video} title="Video" side="bottom">
+        <Button onClick={() => setMakingVideo(true)}>Video</Button>
+      </Tip>
+
       <ThemeToggle />
 
       <Tip text={HINT.help} title="Guide" side="bottom">
@@ -1254,7 +1261,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
           <Tip text={HINT.ballToggle} title={act.ball ? 'Remove ball' : 'Add ball'}>
             <Button
               onClick={() => {
-                patchAct('ball-on', (a) => ({ ...a, ball: a.ball ? null : { x: 50, y: 50 } }))
+                patchAct('ball-on', (a) => ({ ...a, ball: a.ball ? null : { ...CENTRE_SPOT } }))
                 seal()
               }}
               active={Boolean(act.ball)}
@@ -1587,6 +1594,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
           onClose={() => setSharing(false)}
         />
       )}
+      {makingVideo && <VideoDialog system={system} onClose={() => setMakingVideo(false)} />}
     </>
   )
 
@@ -1721,7 +1729,15 @@ function Arc({ dir }: { dir: 'left' | 'right' }) {
   )
 }
 
-/** A fresh system: one phase, our 4-3-3, no opposition yet. */
+/**
+ * A fresh system: one phase, our 4-3-3, ball on the centre spot, no opposition.
+ *
+ * The ball is ON. It was off, and every single board a coach built began with
+ * the same click to turn it on — a football board without a ball is not a
+ * neutral starting point, it is an unfinished one. Turning it off is one click
+ * for the rare act that is about shape alone, and every act after this one is a
+ * copy of the one before it, so this decides the ball for the whole document.
+ */
 export function newSystem(): System {
   const f = FORMATION_BY_ID.get('4-3-3')!
   return {
@@ -1730,6 +1746,12 @@ export function newSystem(): System {
     pitch: 'full',
     matchBall: DEFAULT_BALL,
     teams: { us: DEFAULT_US, them: null },
-    acts: [{ ...emptyAct(place(f, 'us', 'full', 'position', true)), title: `${PHASE.One} 1` }],
+    acts: [
+      {
+        ...emptyAct(place(f, 'us', 'full', 'position', true)),
+        title: `${PHASE.One} 1`,
+        ball: { ...CENTRE_SPOT },
+      },
+    ],
   }
 }
