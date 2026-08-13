@@ -220,7 +220,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const getMeta = useCallback(() => ({ actIndex: actIndexRef.current }), [])
   const history = useHistory<System, { actIndex: number }>(initial, getMeta)
   const system = history.value
-  const { edit, seal } = history
+  const { edit, seal, replace } = history
 
   // ── what the coach has been taught ─────────────────────────────────────────
   const [guide, setGuide] = useState<GuideState>(() => readGuide())
@@ -714,6 +714,18 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const patchCredit = (patch: Partial<Credit>) => {
     edit('credit', (s) => ({ ...s, credit: { ...s.credit, ...patch } }))
   }
+
+  /**
+   * Keep the id the server published under.
+   *
+   * `replace`, not `edit`: this is the server telling us where the document
+   * now lives, not something the coach did, and it has no business sitting in
+   * their undo stack between two things they actually changed.
+   */
+  const rememberShareId = useCallback(
+    (shareId: string) => replace((s) => (s.shareId === shareId ? s : { ...s, shareId })),
+    [replace],
+  )
 
   // ── act actions ────────────────────────────────────────────────────────────
   const addAct = () => {
@@ -1568,7 +1580,12 @@ export default function StudioEditor({ systemId, initial }: Props) {
         />
       )}
       {sharing && (
-        <ShareDialog system={system} onCredit={patchCredit} onClose={() => setSharing(false)} />
+        <ShareDialog
+          system={system}
+          onCredit={patchCredit}
+          onPublished={rememberShareId}
+          onClose={() => setSharing(false)}
+        />
       )}
     </>
   )

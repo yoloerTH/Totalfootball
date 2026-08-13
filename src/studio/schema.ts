@@ -157,6 +157,15 @@ export interface System {
    * document rather than in the share dialog's own state.
    */
   credit?: Credit
+  /**
+   * The short id this system is published under, once it has been shared.
+   *
+   * Kept on the document so that sharing it again REFRESHES the link the coach
+   * has already sent instead of minting a second one. That is the whole
+   * difference between "share" meaning publish-a-copy and "share" meaning
+   * here-is-my-system, and coaches mean the second one.
+   */
+  shareId?: string
 }
 
 export interface Credit {

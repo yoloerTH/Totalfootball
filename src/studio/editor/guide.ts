@@ -321,9 +321,15 @@ export const HINT = {
 export const SHARE = {
   title: 'Send it to someone',
   body: 'They get your board, playing through every phase in order, with your captions under it. It opens in any browser — no account, nothing to install.',
-  selfContained:
-    'The whole system travels inside this link, so it never expires and it is not stored anywhere. Long links are normal.',
-  long: 'This one is long, because your system is a big one. Paste it as a link rather than typing it out, and it will be fine.',
+  publishing: 'Putting it up…',
+  live: 'This link stays the same. Change something and press Share again, and everyone you sent it to sees the new version.',
+  /**
+   * Shown only when publishing failed and they have the self-contained link.
+   * It says what is different rather than apologising: this one is long, and
+   * unlike the short one it is a snapshot rather than something that updates.
+   */
+  fallback:
+    'We could not reach the server, so this is the long version of the link — it carries your whole system inside it. It works exactly the same, but it is a copy: changing your system later will not change what they see.',
   foot: 'Your name and club sit at the foot of every phase, with ours beside them. Fill them in above and it is signed.',
 } as const
 

@@ -5,8 +5,9 @@
  * Remotion Lambda, a queue and a bill, and what a coach actually wants when
  * they say "can I send this to the lads" is a link that plays. A link plays on
  * a phone in a changing room with no app and no account, it is never the wrong
- * resolution, and it is live — the coach can change a phase and the link they
- * already sent shows the new one.
+ * resolution, and it does not go stale: press Share again after changing a
+ * phase and the link already sent shows the new version, because a share is
+ * updated in place under the same id (../share.ts).
  *
  * It renders through the same ../board/Board and the same ../tween as the
  * editor, so what plays here is exactly what the coach was looking at while
@@ -28,7 +29,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
 import { HOLD_MS, MOVE_MS, resolveAct, tweenActs } from '../tween'
-import { systemFromHash } from '../share'
+import { fetchShared, idFromPath, systemFromHash } from '../share'
 import type { System } from '../schema'
 import { CreditBar, formatDate } from './CreditBar'
 import { Mark } from './Mark'
@@ -42,21 +43,27 @@ export default function Viewer() {
   const [playing, setPlaying] = useState(false)
   const [p, setP] = useState(1)
 
-  // The link is the document. Decoding is async (DecompressionStream), so the
-  // page has a real loading state rather than a flash of empty pitch.
+  /*
+   * Where the system comes from, in order:
+   *
+   *  1. `/s/k7f3q9` — the short link. Fetched from /api/share/:id.
+   *  2. `#s=…` — the self-contained fallback link, unpacked in the browser.
+   *
+   * Both end in the same place. Either way it is async, so the page has a real
+   * loading state rather than a flash of empty pitch.
+   */
   useEffect(() => {
     let live = true
-    const read = () => {
-      systemFromHash(window.location.hash).then((s) => {
-        if (!live) return
-        setSystem(s)
-        setState(s ? 'ready' : 'broken')
-        setIndex(0)
-      })
+    const read = async () => {
+      const id = idFromPath(window.location.pathname)
+      const s = id ? await fetchShared(id) : await systemFromHash(window.location.hash)
+      if (!live) return
+      setSystem(s)
+      setState(s ? 'ready' : 'broken')
+      setIndex(0)
     }
     read()
-    // Someone editing the fragment by hand, or arriving from the editor's
-    // "preview" without a reload, still gets the right system.
+    // Someone editing the fragment by hand still gets the right system.
     window.addEventListener('hashchange', read)
     return () => {
       live = false
@@ -169,8 +176,8 @@ export default function Viewer() {
           <Mark size={44} />
           <h1 className="mt-4 text-xl font-black tracking-display text-ink">This link did not open</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            A shared system travels inside its own link, so a link that was cut short — wrapped by an email, trimmed
-            by a message app — cannot be recovered. Ask for it again, or build your own.
+            Either the system it points at is no longer published, or the link was cut short on its way here —
+            wrapped by an email, trimmed by a message app. Ask whoever sent it for a fresh one, or build your own.
           </p>
           <a
             href="/studio/new/"

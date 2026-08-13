@@ -40,7 +40,8 @@ back the film. Nothing else here is hard to copy — that is.
 | Board tech | **SVG**, not DOM | Makes export `serialise → canvas → PNG` with no server. Constrains everything: no CSS filters, no `<image href>`, no un-inlinable webfont |
 | Shared code | New SVG core in the web app; **not** a shared package with `editor/` | Extracting a package first would mean refactoring 123 working compositions before shipping a feature |
 | Export v1 | **A shared LINK, not a file.** See §3c. PPTX still to do; **MP4 dropped** rather than deferred — a link that plays does the job MP4 was for |
-| Where a shared system lives | **Inside its own URL fragment**, compressed. No share table, no upload, no id | There is no server yet, a self-contained link cannot rot, and the fragment is never sent to us — a coach's unpublished pressing scheme stays theirs |
+| Where a shared system lives | **Stored, behind a 7-character id**: `/s/k7f3q9`. The self-contained fragment link is kept as the fallback | The fragment link was right about everything except the only thing that mattered — it was 2,000 characters, and nobody can send that |
+| Who can read the shares table | **Only the function.** RLS on, zero policies, service-role key server-side | Keeps the browser holding no Supabase key at all, matching the posture in `.env.example` |
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
 | Dark mode | The studio chrome follows the site's `data-theme`; **the board never does** | The paper stage is the brand and is what an exported deck must look like. Night mode is a property of the room, not of the diagram |
 | Small screens | A **door, not a wall**: told once that it wants a laptop, offered the link for later, and let through | A coach on a touchline looking at what they built is a good reason to be on a phone |
@@ -189,9 +190,8 @@ plays on a phone in a changing room with no app and no account, it is never the
 wrong resolution, and it is live: change a phase and the link you already sent
 shows the new one.
 
-- **`share.ts`** — the whole document travels in the fragment (see §2). Nothing
-  is stored, so nothing expires and nothing leaks: `#` is never sent to the
-  server, the CDN or the logs.
+- **`share.ts`** — publishes to `/api/share` and gets back a short id, or falls
+  back to packing the whole system into the fragment. See §3d.
 - **`viewer/Viewer.tsx`** — the page they land on. Renders through the *same*
   `board/Board` and the *same* `tween.ts` as the editor, so there is no second
   renderer to drift. Prev/next, dots, Play all on the house hold-then-burst
@@ -205,6 +205,47 @@ shows the new one.
 - **`viewer/Mark.tsx`** — a React port of `components/brand/Mark.astro`, because
   an Astro component cannot render inside a React island. If the mark ever
   changes, grep `arrowBases`.
+
+## 3d. The short link, and the long one behind it
+
+`https://totalfootball.naurra.ai/s/k7f3q9` — 41 characters.
+
+It started as a self-contained link: the whole system deflated into the URL
+fragment, no server, nothing stored, nothing to rot, and the fragment never
+sent to us. Every one of those properties is real and it was still the wrong
+design, because it produced a two-thousand-character link. That is not a link,
+it is a paragraph, and no coach is pasting it into WhatsApp. **A sharing
+feature that cannot be sent has failed at the only thing it does.**
+
+So the document is stored and the link is short:
+
+| Piece | What it does |
+|---|---|
+| `supabase/004_studio_shares.sql` | `id text pk`, `doc jsonb`. RLS on, **zero policies** |
+| `netlify/functions/share.mts` | `POST /api/share` publishes, `GET /api/share/:id` reads |
+| `netlify.toml` | rewrites `/s/*` → `/studio/watch/` (200, so the short URL stays in the bar) |
+| `System.shareId` | the id the editor remembers |
+
+Three things about it worth keeping:
+
+- **A share is updated in place.** The editor sends back the id it was given, so
+  pressing Share twice refreshes the link the coach has already sent instead of
+  minting a second one. Change a phase, press Share, and everyone who has the
+  link sees the new version. The fragment link could never do that.
+- **The function is the entire surface.** RLS is on with no policies at all, so
+  no anon-reachable role can see the table; the only reader and writer is the
+  function, holding the service-role key. The browser still holds no Supabase
+  key of any kind. The validation in `invalidReason` is therefore load-bearing,
+  not decorative.
+- **The long link still exists, as a fallback.** If publishing fails the coach
+  gets the self-contained link rather than an error, and it opens in the same
+  viewer. Sharing must not fail closed. The dialog says which one they have and
+  what the difference is (the fallback is a snapshot; the short one updates).
+
+**Deploy previews cannot publish.** `SUPABASE_*` is scoped to the production
+context, so on a draft deploy every share falls back to the long link. That is
+correct — a preview should not be able to write to the real table — but it means
+the short link can only be tested against production or `netlify dev`.
 
 **The PDF is the print stylesheet** (in `watch.astro`, `is:global` — the
 island's DOM never gets Astro's scoping attribute). The viewer already holds
@@ -524,7 +565,9 @@ The three routes:
 | URL | What it is |
 |---|---|
 | `/studio/new/` | The studio. Opens on the last system, or a fresh one |
-| `/studio/watch/#s=…` | A shared system. The link carries the document |
+| `/s/k7f3q9` | A shared system. **The link a coach sends** |
+| `/studio/watch/#s=…` | The same viewer, fallback form: the link carries the document |
+| `/api/share`, `/api/share/:id` | Publish and read. The only door to `studio_shares` |
 | `/studio/preview/` | Internal proof sheet. Static SVG, fastest board-core check |
 
 The ball assets are derived, not authored: they are trimmed and squared copies of

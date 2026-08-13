@@ -1,32 +1,29 @@
 /**
  * Sharing a system as a link.
  *
- * THE WHOLE SYSTEM TRAVELS IN THE LINK. There is no share table, no upload and
- * no id to look up: the document is compressed and written into the URL's
- * FRAGMENT, and the viewer at /studio/watch/ unpacks it in the browser. Three
- * reasons, in the order they mattered:
+ * TWO KINDS OF LINK, AND THE SHORT ONE IS THE POINT.
  *
- *  · There is no server. The site builds static (astro.config.mjs), auth is not
- *    written yet, and a sharing feature that has to wait for Supabase is a
- *    sharing feature that misses the alpha.
- *  · A link that carries its own contents cannot rot. No row to delete, no
- *    bucket to migrate, no coach opening a dead link a season later.
- *  · The fragment is never sent to the server — not in the request, not in the
- *    logs, not to the CDN. A coach's unpublished pressing scheme stays between
- *    them and whoever they sent it to, which is a promise worth being able to
- *    make.
+ *  · `/s/k7f3q9` — the document is stored (netlify/functions/share.mts, table
+ *    in supabase/004_studio_shares.sql) and the link is seven characters. This
+ *    is what a coach gets.
+ *  · `/studio/watch/#s=<the whole system, deflated>` — the document travels
+ *    inside its own URL. This is the FALLBACK, used only when publishing fails.
  *
- * The cost is length, and the trade is only survivable because it is
- * compressed: a five-phase system with two full teams is ~14KB of JSON and
- * about 1.5KB once deflated and base64'd. `CompressionStream` is native
- * everywhere we support (Chrome 80, Safari 16.4, Firefox 113) and the
- * uncompressed form is kept as a fallback rather than a failure, tagged so the
- * decoder never has to guess which it is holding.
+ * The self-contained link was the original design and it was right about
+ * everything except the thing that mattered: no server needed, nothing to rot,
+ * and the fragment is never sent to us, so an unpublished pressing scheme stays
+ * between the coach and whoever they sent it to. It also produced a
+ * two-thousand-character link. Nobody can paste that into WhatsApp, so as a
+ * primary mechanism it failed at the one job it had.
  *
- * WHEN ACCOUNTS LAND this stays exactly as it is. A stored share becomes a
- * short link that resolves to the same viewer; the self-contained link remains
- * the one you can send to somebody who will never sign up, which is most
- * coaches most of the time.
+ * It is kept, rather than deleted, because it degrades well: if the function is
+ * down or the coach is offline, they still get something they can send, and it
+ * still opens in the same viewer. A sharing feature that can fail closed is
+ * worse than a long link.
+ *
+ * `CompressionStream('deflate-raw')` is native everywhere we support (Chrome
+ * 80, Safari 16.4, Firefox 113); the uncompressed form is a tagged fallback so
+ * the decoder never has to guess what it is holding.
  */
 
 import type { System } from './schema'
@@ -35,9 +32,6 @@ import type { System } from './schema'
 const PARAM = 's'
 const TAG_DEFLATE = 'z'
 const TAG_PLAIN = 'u'
-
-/** Anything past this is likely to be mangled by a messaging app. */
-export const LINK_WARN_LENGTH = 8000
 
 // ── base64url, over bytes ────────────────────────────────────────────────────
 
@@ -106,16 +100,75 @@ export async function decodeSystem(payload: string): Promise<System | null> {
   }
 }
 
-/** The full URL to hand somebody. */
-export async function shareUrl(system: System, origin: string): Promise<string> {
+/** The self-contained fallback link. Long, but it always works. */
+export async function longUrl(system: System, origin: string): Promise<string> {
   const payload = await encodeSystem(system)
   return `${origin.replace(/\/$/, '')}/studio/watch/#${PARAM}=${payload}`
 }
 
-/** Read a system back out of the current location. */
+/** Read a system back out of a fragment. */
 export async function systemFromHash(hash: string): Promise<System | null> {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
   const params = new URLSearchParams(raw)
   const payload = params.get(PARAM)
   return payload ? decodeSystem(payload) : null
+}
+
+// ── the short link ───────────────────────────────────────────────────────────
+
+/** Shape of a stored share's id. Mirrors the CHECK in 004_studio_shares.sql. */
+const ID_SHAPE = /^[0-9a-hjkmnp-tv-z]{6,16}$/
+
+export interface Published {
+  /** The short id. Store it on the document so the next publish updates it. */
+  id: string
+  /** The whole link, ready to send. */
+  url: string
+}
+
+/**
+ * Publish, or refresh what is already published.
+ *
+ * Sends the id the document is carrying, if it has one, so a coach who shares
+ * the same system twice refreshes the link they already sent rather than
+ * making a second one. The server may hand back a DIFFERENT id — the row can
+ * have been removed, or the document copied from another machine — so the
+ * caller must always store what comes back rather than assuming.
+ *
+ * Throws on failure, deliberately: the caller falls back to `longUrl`, and a
+ * silent null would make that decision impossible to see.
+ */
+export async function publishSystem(system: System, origin: string): Promise<Published> {
+  const res = await fetch('/api/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: system.shareId, doc: system }),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? `Publish failed (${res.status})`)
+  }
+  const { id } = (await res.json()) as { id: string }
+  return { id, url: `${origin.replace(/\/$/, '')}/s/${id}` }
+}
+
+/** Fetch a published system by its short id. */
+export async function fetchShared(id: string): Promise<System | null> {
+  if (!ID_SHAPE.test(id)) return null
+  const res = await fetch(`/api/share/${id}`)
+  if (!res.ok) return null
+  const body = (await res.json()) as { doc?: System }
+  const doc = body.doc
+  return doc && Array.isArray(doc.acts) && doc.acts.length ? doc : null
+}
+
+/**
+ * The short id in a URL, if there is one. `/s/k7f3q9`.
+ *
+ * The viewer is served at that path by a Netlify rewrite (netlify.toml), so the
+ * page has to read its own address to know what it is showing.
+ */
+export function idFromPath(pathname: string): string | null {
+  const m = pathname.replace(/\/+$/, '').match(/^\/s\/([^/]+)$/)
+  return m && ID_SHAPE.test(m[1]) ? m[1] : null
 }

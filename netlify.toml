@@ -16,6 +16,19 @@
   targetPort = 4321
   port = 8888
 
+# A shared system: /s/k7f3q9 serves the viewer, which reads the id off its own
+# path and fetches the document from /api/share/:id. A rewrite (200) rather than
+# a redirect, so the short link stays in the address bar — it is the thing the
+# coach sent, and it is what they will see quoted back at them.
+# The target is the ROUTE, not `/studio/watch/index.html`. The file path only
+# exists in the production build; under `netlify dev` the page is served by
+# Astro and a rewrite to the file 404s, which is a difference between dev and
+# production that would only ever be found by a coach.
+[[redirects]]
+  from = "/s/*"
+  to = "/studio/watch/"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
