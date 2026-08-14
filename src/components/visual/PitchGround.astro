@@ -1,0 +1,225 @@
+---
+/**
+ * The chalk pitch: the ground the studio's own rooms stand on.
+ *
+ * The marketing pages have `.stage` — paper plus a faint grid, masked so it
+ * fades before the edges. That is the right ground for a page about the product
+ * and the wrong one for a page inside it, because the studio's subject is not a
+ * grid, it is a pitch. So the signed-in surfaces (sign in, the shelf, settings)
+ * get this instead: one full pitch at IFAB proportions, drawn in hairlines and
+ * masked the same way, so a coach arriving at the login form is standing on the
+ * thing they came to draw on.
+ *
+ * IT IS NOT A BOARD. Nothing here is a token, a phase or a document — this is
+ * scenery and it is `aria-hidden`. The real board is ../../studio/board/Board,
+ * which draws the same markings off the same metre space (see
+ * ../../studio/board/pitch.ts) and is the only one a coach can touch.
+ *
+ * `draw` marks the pitch out line by line on arrival, about a second and a half
+ * of it, once per page load. It is on for sign-in — a room you enter — and off
+ * for the shelf, which is a room you are already in and re-enter all day.
+ */
+interface Props {
+  /** Mark the lines out on load rather than having them already there. */
+  draw?: boolean
+  /** Overall strength. The default is a whisper; raise it on a dark ground. */
+  opacity?: number
+  class?: string
+}
+
+const { draw = false, opacity = 1, class: klass = '' } = Astro.props
+
+/*
+ * One pitch, in the viewBox's own units, at IFAB proportions (105 × 68). The
+ * numbers below are metres × scale rather than eyeballed percentages, for the
+ * same reason pitch.ts refuses to eyeball them: a penalty box that is nearly
+ * right reads as a drawing of a pitch instead of as a pitch.
+ *
+ * It is bled past the viewBox edges on purpose. The svg is `slice`-scaled to
+ * whatever panel it sits behind, so the touchlines have to be outside the
+ * likely crop or a coach on a wide screen gets a rectangle floating in space.
+ */
+const X0 = 40
+const Y0 = 30
+const W = 1120
+const H = 740
+const sx = W / 105
+const sy = H / 68
+const cx = X0 + W / 2
+const cy = Y0 + H / 2
+
+const penD = 16.5 * sx
+const penW = 40.32 * sy
+const sixD = 5.5 * sx
+const sixW = 18.32 * sy
+const spot = 11 * sx
+const circle = 9.15 * sx
+const corner = 1 * sx
+
+/**
+ * The D. Where the penalty arc crosses the box line, so the arc can be drawn as
+ * the part of the circle that is outside the area — which is what it is.
+ */
+const dy = circle * Math.sin(Math.acos((16.5 - 11) / 9.15))
+const n = (v: number) => Number(v.toFixed(2))
+---
+
+<svg
+  viewBox="0 0 1200 800"
+  preserveAspectRatio="xMidYMid slice"
+  class:list={['pg absolute inset-0 h-full w-full text-ink', draw && 'is-drawing', klass]}
+  style={`opacity:${opacity};` +
+    '-webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 46%, #000 4%, transparent 76%);' +
+    'mask-image:radial-gradient(ellipse 72% 70% at 50% 46%, #000 4%, transparent 76%)'}
+  aria-hidden="true"
+  focusable="false"
+>
+  {/*
+    Every stroke is non-scaling: `slice` blows this drawing up by a factor of
+    three on a wide screen, and a chalk line that thickens with the panel it is
+    behind stops being a chalk line.
+
+    7% is deliberately below the `.stage` grid's 5.5% in feel: a grid is small
+    repeating squares that read as texture at almost any strength, and this is
+    six-metre straight lines that read as BOXES the moment they are strong
+    enough to notice. At the first pass it was double this, and the halfway line
+    ran visibly through the headline.
+  */}
+  <g
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.25"
+    vector-effect="non-scaling-stroke"
+    stroke-opacity="0.085"
+  >
+    {/* 1 — the touchlines. */}
+    <rect class="pg-line s1" x={X0} y={Y0} width={W} height={H} pathLength="100" />
+
+    {/* 2 — the halfway line and the centre circle. */}
+    <g class="s2">
+      <line class="pg-line" x1={cx} y1={Y0} x2={cx} y2={Y0 + H} pathLength="100" />
+      <circle class="pg-line" cx={cx} cy={cy} r={n(circle)} pathLength="100" />
+    </g>
+
+    {/* 3 — both penalty areas and both six-yard boxes. */}
+    <g class="s3">
+      <rect
+        class="pg-line"
+        x={X0}
+        y={n(cy - penW / 2)}
+        width={n(penD)}
+        height={n(penW)}
+        pathLength="100"
+      />
+      <rect
+        class="pg-line"
+        x={n(X0 + W - penD)}
+        y={n(cy - penW / 2)}
+        width={n(penD)}
+        height={n(penW)}
+        pathLength="100"
+      />
+      <rect
+        class="pg-line"
+        x={X0}
+        y={n(cy - sixW / 2)}
+        width={n(sixD)}
+        height={n(sixW)}
+        pathLength="100"
+      />
+      <rect
+        class="pg-line"
+        x={n(X0 + W - sixD)}
+        y={n(cy - sixW / 2)}
+        width={n(sixD)}
+        height={n(sixW)}
+        pathLength="100"
+      />
+    </g>
+
+    {/* 4 — the two Ds and the four corner arcs, the detail that makes it read
+        as a marked-out pitch rather than as a diagram of one. */}
+    <g class="s4">
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + penD)} ${n(cy - dy)} A ${n(circle)} ${n(circle)} 0 0 1 ${n(X0 + penD)} ${n(cy + dy)}`}
+        pathLength="100"
+      />
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + W - penD)} ${n(cy - dy)} A ${n(circle)} ${n(circle)} 0 0 0 ${n(X0 + W - penD)} ${n(cy + dy)}`}
+        pathLength="100"
+      />
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + corner)} ${Y0} A ${n(corner)} ${n(corner)} 0 0 1 ${X0} ${n(Y0 + corner)}`}
+        pathLength="100"
+      />
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + W - corner)} ${Y0} A ${n(corner)} ${n(corner)} 0 0 0 ${n(X0 + W)} ${n(Y0 + corner)}`}
+        pathLength="100"
+      />
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + corner)} ${n(Y0 + H)} A ${n(corner)} ${n(corner)} 0 0 0 ${X0} ${n(Y0 + H - corner)}`}
+        pathLength="100"
+      />
+      <path
+        class="pg-line"
+        d={`M ${n(X0 + W - corner)} ${n(Y0 + H)} A ${n(corner)} ${n(corner)} 0 0 1 ${n(X0 + W)} ${n(Y0 + H - corner)}`}
+        pathLength="100"
+      />
+    </g>
+  </g>
+
+  {/* The three spots. Filled, so they fade rather than draw. */}
+  <g class="s4" fill="currentColor" fill-opacity="0.09">
+    <circle class="pg-dot" cx={cx} cy={cy} r="4" />
+    <circle class="pg-dot" cx={n(X0 + spot)} cy={cy} r="4" />
+    <circle class="pg-dot" cx={n(X0 + W - spot)} cy={cy} r="4" />
+  </g>
+</svg>
+
+<style>
+  /*
+   * Marking out, in the order a groundsman does it: the touchlines, then the
+   * halfway line and the circle, then the boxes, then the detail. One easing
+   * curve, the house one — fast out, long settle.
+   *
+   * Reduced motion needs no branch here. The global rule in global.css collapses
+   * every animation to a thousandth of a millisecond, and because these all end
+   * `forwards`, the pitch is simply already marked out.
+   */
+  .pg.is-drawing .pg-line {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: pg-draw 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .pg.is-drawing .pg-dot {
+    opacity: 0;
+    animation: pg-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .pg.is-drawing .s2 .pg-line {
+    animation-delay: 0.2s;
+  }
+  .pg.is-drawing .s3 .pg-line {
+    animation-delay: 0.42s;
+  }
+  .pg.is-drawing .s4 .pg-line,
+  .pg.is-drawing .s4 .pg-dot {
+    animation-delay: 0.72s;
+  }
+
+  @keyframes pg-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes pg-fade {
+    to {
+      opacity: 1;
+    }
+  }
+</style>

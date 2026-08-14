@@ -9,9 +9,38 @@
  *
  * noindex: a sign-in form has nothing for a search engine, and indexing it
  * means it competes with the landing page for the studio's own brand terms.
+ *
+ * THE PAGE IS THE ROOM, NOT THE FORM. It used to be a 26rem card centred in a
+ * 70vh box, which left the form floating in a screen it did not fill and said
+ * nothing about what was behind it. Now the section fills the viewport under
+ * the header, the pitch is marked out across it on arrival, and the form sits
+ * on the right of what it is for: the left column is the only place on the site
+ * that says plainly what an account gets you, which is the question anybody
+ * hesitating over this page is actually asking.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import PitchGround from '../../components/visual/PitchGround.astro'
 import SignIn from '../../studio/account/SignIn'
+
+/**
+ * What the account is for, in the three things it actually does. A dossier row
+ * rather than three feature cards: the label is the noun a coach already owns
+ * ("your links"), and the line beside it is what happens to it.
+ */
+const KEEPS = [
+  {
+    label: 'Your shelf',
+    body: 'Every system you have built, on any machine you sign in from.',
+  },
+  {
+    label: 'Your links',
+    body: 'A link you have already sent keeps working. Change a phase and it changes too.',
+  },
+  {
+    label: 'Your name',
+    body: 'Your name and your club at the foot of every board you send.',
+  },
+]
 ---
 
 <BaseLayout
@@ -20,7 +49,67 @@ import SignIn from '../../studio/account/SignIn'
   path="/studio/login/"
   noindex
 >
-  <main class="mx-auto flex min-h-[70vh] max-w-shell items-center justify-center px-5 py-16">
-    <SignIn client:only="react" />
-  </main>
+  {/*
+    `svh` rather than `vh`: on a phone the URL bar is counted out of vh, so a
+    full-height section is a section with a scrollbar. Only from md up, because
+    below that the two columns are stacked and pinning them to one screen would
+    crush the form rather than fit it.
+  */}
+  <section class="relative isolate overflow-hidden border-b border-ink-hair md:min-h-[calc(100svh-4rem)]">
+    <PitchGround draw />
+
+    {/*
+      `grid-cols-1` is not decorative. Without a column utility at the base
+      size, the single implicit column is `auto` — it sizes to its content and a
+      26rem panel inside 20px of padding pushes the whole document 26px wider
+      than a phone, which is enough to put the site header's own button off the
+      right edge. The lg columns then take over from there.
+    */}
+    <div
+      class="mx-auto grid w-full max-w-shell grid-cols-1 items-center gap-12 px-5 py-14 md:min-h-[calc(100svh-4rem)] md:py-16 lg:grid-cols-[1fr_25rem] lg:gap-20"
+    >
+      <div class="max-w-[36rem]">
+        <p class="micro">The Studio</p>
+
+        {/* The break is explicit. Left to itself the line wraps mid-phrase and
+            splits the gradient across two lines, which turns one accent into
+            two smears. */}
+        <h1 class="mt-6 text-title font-black tracking-display text-ink">
+          The board is<br /><span class="grad-text">where you left it.</span>
+        </h1>
+
+        <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft">
+          Sign in and everything you have built is here, on whatever machine you open next.
+        </p>
+
+        {/* Below lg the form is the whole job of the screen, so the detail gets
+            out of its way rather than pushing it down the page. */}
+        <dl class="mt-10 hidden border-t border-ink-hair lg:block">
+          {
+            KEEPS.map((item) => (
+              <div class="grid grid-cols-[8.5rem_1fr] gap-6 border-b border-ink-hair py-4">
+                <dt class="micro pt-0.5">{item.label}</dt>
+                <dd class="m-0 text-[15px] leading-relaxed text-ink-soft">{item.body}</dd>
+              </div>
+            ))
+          }
+        </dl>
+
+        {/* The single most reassuring true sentence on the page: signing up is
+            not the moment a coach's work disappears. See claimLocalSystems. */}
+        <p class="mt-8 max-w-prose text-[13px] leading-relaxed text-ink-faint">
+          Already built something in this browser? It comes with you the moment you sign in.
+        </p>
+      </div>
+
+      {/*
+        min-h reserves the panel's own height while the island boots. Without it
+        the left column is briefly centred alone and the whole page jumps
+        sideways the instant React lands.
+      */}
+      <div class="w-full min-h-[30rem] lg:justify-self-end">
+        <SignIn client:only="react" />
+      </div>
+    </div>
+  </section>
 </BaseLayout>

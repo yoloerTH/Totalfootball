@@ -6,8 +6,18 @@
  * be rendered without knowing who is asking. Server-rendering a shell would
  * flash an empty shelf at a coach who has twelve systems, and a search engine
  * that indexed this page would index the signed-out state of it.
+ *
+ * The pitch, though, is the same for everybody, so it is drawn on the server and
+ * is already there while the island boots. It is the one thing on this page that
+ * can be — which is exactly why it is worth doing: the first paint is a marked
+ * out pitch rather than an empty grey page waiting for React.
+ *
+ * A plain <div>, not a <main>: BaseLayout already opens one around the slot, and
+ * the two nested made this page the only one on the site with two <main>
+ * elements in it.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import PitchGround from '../../components/visual/PitchGround.astro'
 import Portal from '../../studio/account/Portal'
 ---
 
@@ -17,7 +27,14 @@ import Portal from '../../studio/account/Portal'
   path="/studio/portal/"
   noindex
 >
-  <main class="min-h-[70vh] bg-paper-deep">
+  <div class="relative isolate min-h-[80vh] bg-paper">
+    {/* Only behind the masthead. A pitch running the length of a shelf of
+        twenty systems would be scenery competing with the boards, and the
+        boards are the thing a coach came here to look at. */}
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[24rem] overflow-hidden">
+      <PitchGround />
+    </div>
+
     <Portal client:only="react" />
-  </main>
+  </div>
 </BaseLayout>
