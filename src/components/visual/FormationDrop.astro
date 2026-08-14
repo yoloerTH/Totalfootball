@@ -1,0 +1,332 @@
+---
+/**
+ * Pick a shape, and eleven counters are already standing in it.
+ *
+ * The homepage's Studio band. It answers the one question a viewer of the
+ * videos has the moment they learn there is a tool — "wait, do I have to place
+ * twenty-two players by hand?" — and it answers it by showing the answer rather
+ * than writing it down.
+ *
+ * WHY NOT ONE OF THE ONES WE ALREADY HAVE. MiniBoard is this page's own hero and
+ * teaches football, not the tool. StudioDeck and PoseToFilm are the /studio/
+ * page's, and lifting either onto the homepage is exactly the mistake the note
+ * at the top of StudioDeck.astro was written about: two pages sharing one
+ * drawing makes the second read as a copy of the first. So this takes the one
+ * gesture neither of those shows — choosing a formation — which is also the
+ * first thing a coach actually does.
+ *
+ * THE SHAPES ARE THE REAL ONES. Both are read out of ../../studio/formations at
+ * build time, in the same depth/width space the studio places them in, so a
+ * drawing of a 4-3-3 on the homepage cannot drift from the 4-3-3 the coach gets
+ * when they press the button.
+ *
+ * The pairing between them is written down rather than taken in slot order, and
+ * that is the whole craft of the thing: paired by index, the left 8 crosses the
+ * pitch to become the right holder and the shape change reads as a shuffle.
+ * Paired by where a coach would actually move each player, the same eleven
+ * counters read as one team changing shape — the front three become a lone 9
+ * with two inside forwards dropping in, one 8 pushes into the 10, the other
+ * drops alongside the holder. Nobody crosses anybody.
+ *
+ * Pure SVG and CSS keyframes, like MiniBoard and StudioDeck: no JS, no
+ * hydration, no layout cost, and it holds a readable still under reduced motion.
+ */
+import { FORMATION_BY_ID } from '../../studio/formations'
+
+interface Props {
+  class?: string
+  /** Decorative by default; pass a label to expose it to assistive tech. */
+  title?: string
+}
+
+const { class: klass = '', title } = Astro.props
+
+const GREEN = '#08C16A'
+const INK = 'currentColor'
+
+/** Unique per instance, so two on one page cannot share a gradient id. */
+const uid = `fd-${Math.random().toString(36).slice(2, 8)}`
+
+const A = FORMATION_BY_ID.get('4-3-3')!
+const B_FORM = FORMATION_BY_ID.get('4-2-3-1')!
+
+/**
+ * Who becomes whom. Left is a slot id in the 4-3-3, right is the 4-2-3-1 slot
+ * that same counter walks to. See the note above on why this is not slot order.
+ */
+const PAIRS: [string, string][] = [
+  ['GK', 'GK'],
+  ['LB', 'LB'],
+  ['LCB', 'LCB'],
+  ['RCB', 'RCB'],
+  ['RB', 'RB'],
+  ['LCM', 'LDM'],
+  ['CDM', 'RDM'],
+  ['RCM', 'CAM'],
+  ['LW', 'LAM'],
+  ['RW', 'RAM'],
+  ['ST', 'ST'],
+]
+
+/** The card, and the board inside it. */
+const B = { x: 16, y: 60, w: 488, h: 304 }
+const cy = B.y + B.h / 2
+
+/*
+ * depth/width → the board. A formation is stored as the TEAM's own shape (see
+ * formations.ts), so this is the same job `place()` does in the studio, minus
+ * the crop and the side: depth runs left to right because this team attacks
+ * right, and it stops short of both goal lines because a solo shape standing on
+ * them looks like a team lined up for a photograph.
+ */
+const px = (depth: number) => B.x + (0.035 + depth * 0.945) * B.w
+const py = (width: number) => B.y + (0.06 + width * 0.88) * B.h
+const n = (v: number) => Number(v.toFixed(1))
+
+const slot = (f: typeof A, id: string) => f.slots.find((s) => s.id === id)!
+
+const TOKENS = PAIRS.map(([aId, bId], i) => {
+  const a = slot(A, aId)
+  const b = slot(B_FORM, bId)
+  return {
+    // The shirt stays with the player through the change, which is the truthful
+    // label: it is the same eleven, standing somewhere else.
+    num: a.num,
+    ax: n(px(a.depth)),
+    ay: n(py(a.width)),
+    bx: n(px(b.depth)),
+    by: n(py(b.width)),
+    // A small spread, so the shape changes as a ripple rather than as eleven
+    // counters jumping on the same frame. Under the four-second holds it is
+    // invisible; it only exists during the two seconds of travel.
+    delay: n(i * 0.045),
+  }
+})
+
+/** Pitch markings, in metres × scale. Do not re-pick these by eye. */
+const sx = B.w / 105
+const sy = B.h / 68
+const penD = n(16.5 * sx)
+const penW = n(40.32 * sy)
+const sixD = n(5.5 * sx)
+const sixW = n(18.32 * sy)
+const circle = n(9.15 * sx)
+---
+
+<svg
+  viewBox="0 0 520 380"
+  class={`fd block w-full ${klass}`}
+  role={title ? 'img' : 'presentation'}
+  aria-label={title}
+  aria-hidden={title ? undefined : 'true'}
+  focusable="false"
+>
+  <defs>
+    {/* The dome on a counter, flattened. A full gradient plus a shadow turns to
+        mud at this size — the same call Token.tsx's small sizes make. */}
+    <radialGradient id={`${uid}-dome`} cx="0.34" cy="0.28" r="0.85">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"></stop>
+      <stop offset="62%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+
+  {/* ── the window ──────────────────────────────────────────────────── */}
+  <rect
+    x="1"
+    y="1"
+    width="518"
+    height="378"
+    rx="16"
+    fill="rgb(var(--tf-surface))"
+    stroke={INK}
+    stroke-opacity="0.12"></rect>
+
+  {/* ── the picker ──────────────────────────────────────────────────── */}
+  <g>
+    <rect
+      x="14"
+      y="13"
+      width="112"
+      height="24"
+      rx="8"
+      fill="rgb(var(--tf-paper))"
+      stroke={INK}
+      stroke-opacity="0.12"></rect>
+    {/* Two names in one place, crossfading. The pill is the control a coach
+        presses; the shape below is what pressing it does. */}
+    <text
+      class="fd-name-a"
+      x="26"
+      y="29.5"
+      font-size="12"
+      font-weight="800"
+      fill={INK}
+      fill-opacity="0.82">4-3-3</text
+    >
+    <text
+      class="fd-name-b"
+      x="26"
+      y="29.5"
+      font-size="12"
+      font-weight="800"
+      fill={INK}
+      fill-opacity="0.82">4-2-3-1</text
+    >
+    <path
+      d="M112,23 L116,27 L120,23"
+      fill="none"
+      stroke={INK}
+      stroke-opacity="0.38"
+      stroke-width="1.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"></path>
+
+    <text x="138" y="29.5" font-size="11" font-weight="700" fill={INK} fill-opacity="0.34">
+      Twenty-four shapes
+    </text>
+  </g>
+  <line x1="1" y1="47" x2="519" y2="47" stroke={INK} stroke-opacity="0.1"></line>
+
+  {/* ── the board ───────────────────────────────────────────────────── */}
+  <rect x="1" y="47" width="518" height="332" fill="rgb(var(--tf-paper-deep))"></rect>
+  <rect
+    x={B.x}
+    y={B.y}
+    width={B.w}
+    height={B.h}
+    rx="5"
+    fill="rgb(var(--tf-paper))"
+    stroke={INK}
+    stroke-opacity="0.14"></rect>
+
+  <g stroke={INK} stroke-opacity="0.13" fill="none" stroke-width="1.2">
+    <line x1={B.x + B.w / 2} y1={B.y} x2={B.x + B.w / 2} y2={B.y + B.h}></line>
+    <circle cx={B.x + B.w / 2} cy={cy} r={circle}></circle>
+    <rect x={B.x} y={n(cy - penW / 2)} width={penD} height={penW}></rect>
+    <rect x={n(B.x + B.w - penD)} y={n(cy - penW / 2)} width={penD} height={penW}></rect>
+    <rect x={B.x} y={n(cy - sixW / 2)} width={sixD} height={sixW}></rect>
+    <rect x={n(B.x + B.w - sixD)} y={n(cy - sixW / 2)} width={sixD} height={sixW}></rect>
+  </g>
+
+  {/* ── the eleven ──────────────────────────────────────────────────── */}
+  {
+    TOKENS.map((t) => (
+      <g
+        class="fd-token"
+        style={`--ax:${t.ax}px;--ay:${t.ay}px;--bx:${t.bx}px;--by:${t.by}px;animation-delay:${t.delay}s`}
+      >
+        <circle r="13" fill={GREEN} />
+        <circle r="13" fill={`url(#${uid}-dome)`} />
+        <text
+          y="3.4"
+          text-anchor="middle"
+          font-size="9.5"
+          font-weight="800"
+          fill="#fff"
+          font-family="Inter Variable, Inter, sans-serif"
+        >
+          {t.num}
+        </text>
+      </g>
+    ))
+  }
+</svg>
+
+<style>
+  /*
+   * ONE 12-SECOND TIMELINE, and everything is a percentage of it so nothing can
+   * drift out of step:
+   *
+   *   0 – 32%    the 4-3-3, held long enough to actually be read
+   *   32 – 42%   the shape changes
+   *   42 – 82%   the 4-2-3-1, held
+   *   82 – 92%   back
+   *   92 – 100%  held again before the loop turns over
+   *
+   * The house easing curve — fast out, long settle — which is the same rule the
+   * videos and the board's own tweening follow, and most of the reason eleven
+   * counters moving at once reads as a team rather than as a transition.
+   */
+  .fd-token {
+    /* Also the resting state, so nothing is at the origin for a frame before
+       the animation's delay elapses. */
+    transform: translate(var(--ax), var(--ay));
+    animation: fd-move 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+
+  @keyframes fd-move {
+    0%,
+    32% {
+      transform: translate(var(--ax), var(--ay));
+    }
+    42%,
+    82% {
+      transform: translate(var(--bx), var(--by));
+    }
+    92%,
+    100% {
+      transform: translate(var(--ax), var(--ay));
+    }
+  }
+
+  /* The name in the pill changes as the shape does, not before it. */
+  .fd-name-a,
+  .fd-name-b {
+    animation: 12s steps(1, end) infinite;
+  }
+  .fd-name-a {
+    animation-name: fd-name-a;
+  }
+  .fd-name-b {
+    opacity: 0;
+    animation-name: fd-name-b;
+  }
+  @keyframes fd-name-a {
+    0%,
+    33% {
+      opacity: 1;
+    }
+    34%,
+    86% {
+      opacity: 0;
+    }
+    87%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes fd-name-b {
+    0%,
+    33% {
+      opacity: 0;
+    }
+    34%,
+    86% {
+      opacity: 1;
+    }
+    87%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /*
+   * Reduced motion: hold the 4-3-3, named, with the eleven standing in it. A
+   * still of the finished job — the same bar MiniBoard and StudioDeck are held
+   * to. The resting transform above is already shape A, so there is nothing to
+   * restate but the stopping.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .fd-token,
+    .fd-name-a,
+    .fd-name-b {
+      animation: none;
+    }
+    .fd-name-a {
+      opacity: 1;
+    }
+    .fd-name-b {
+      opacity: 0;
+    }
+  }
+</style>

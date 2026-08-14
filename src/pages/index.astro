@@ -10,6 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import Mark from '../components/brand/Mark.astro'
 import SystemCard from '../components/library/SystemCard.astro'
 import MiniBoard from '../components/visual/MiniBoard.astro'
+import FormationDrop from '../components/visual/FormationDrop.astro'
 import CameraCrop from '../components/visual/CameraCrop.astro'
 import ModelCurve from '../components/visual/ModelCurve.astro'
 import ThemeGlyph from '../components/visual/ThemeGlyph.astro'
@@ -87,6 +88,61 @@ const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
       aria-hidden="true"
     >
       <div class="spin-slow"><Mark size={520} disc={false} /></div>
+    </div>
+  </section>
+
+  {/*
+    ── The Studio ──────────────────────────────────────────────────────
+
+    Directly under the hero, and above everything else, because until now the
+    homepage did not mention the Studio at all: the only route to it was the
+    word in the nav. Somebody who has just read "the game, explained as a
+    diagram" is at the one moment they are most likely to want the board, and
+    the answer was three screens further down or nowhere.
+
+    It does not repeat /studio/. One idea, one picture, one CTA — the detail
+    lives on the page the CTA goes to.
+  */}
+  <section class="relative overflow-hidden border-b border-ink-hair">
+    <div
+      class="shell grid gap-14 py-20 md:py-24 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-16"
+    >
+      <div>
+        <p class="micro mb-6" data-reveal="fade">The Studio · free, in your browser</p>
+
+        <h2 class="text-title font-black" data-reveal="clip">
+          Now the board is <span class="grad-text">yours.</span>
+        </h2>
+
+        <p class="mt-7 max-w-prose text-[17px] leading-[1.75] text-ink/85" data-reveal>
+          The same board these videos are drawn on, handed over. Pick your shape and eleven counters
+          are already standing in it. Move them to where the ball takes them, and the movement
+          between the two comes back as film.
+        </p>
+
+        {/* Three facts, one line, no cards. The picture is doing the arguing. */}
+        <p class="mt-7 text-[13px] text-ink-faint" data-reveal data-reveal-delay="120">
+          Twenty-four formations · A link that plays on any phone · Nothing to install
+        </p>
+
+        <a href="/studio/" class="btn-primary mt-10" data-track="home:studio" data-reveal data-reveal-delay="200">
+          Open the Studio
+        </a>
+      </div>
+
+      {/* The halo is the site's device for "this is the picture that matters",
+          the same one under the hero's board. */}
+      <div class="relative" data-reveal="rise" data-reveal-delay="160">
+        <div
+          class="pointer-events-none absolute -inset-8 -z-10 rounded-full bg-tf-gradient-soft blur-3xl"
+          aria-hidden="true"
+        >
+        </div>
+        <FormationDrop
+          class="drop-shadow-[0_24px_50px_rgba(22,22,24,0.10)]"
+          title="The Studio: a coach picks a formation and eleven counters stand in it, then the shape changes from a 4-3-3 to a 4-2-3-1"
+        />
+      </div>
     </div>
   </section>
 
