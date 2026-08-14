@@ -73,6 +73,23 @@ export interface PitchView {
    * `metresToUnits`, which is the only place the quarter turn exists.
    */
   vertical?: boolean
+  /**
+   * Grass beyond the crop, in metres, per PITCH axis (x is along the length, y
+   * across the width — the turn does not enter into it). Defaults to `PAD` on
+   * both, which is what every view in the picker uses.
+   *
+   * It exists for the video exporter, which has to hand the board a frame of a
+   * fixed shape and wants the grass to reach all four edges of it. Widening the
+   * crop is the honest way to do that: the pitch keeps its proportions and the
+   * coach's players stay on the patch of grass they were put on, because
+   * `x0..x1` — the space percent coords are measured in — never moves. Scaling
+   * the board to cover the frame instead would crop players off the sides.
+   *
+   * Must stay SYMMETRIC about the crop centre. `cropCentre` is the point an
+   * upright view turns about, and lopsided padding would swing the framing
+   * round with the quarter turn.
+   */
+  pad?: { x: number; y: number }
 }
 
 /**
@@ -186,6 +203,11 @@ export function resolveViewId(id: string | undefined): PitchViewId {
  */
 export const PAD = 3
 
+/** This view's padding, per pitch axis, with the default filled in. */
+function pads(v: PitchView): { x: number; y: number } {
+  return v.pad ?? { x: PAD, y: PAD }
+}
+
 /**
  * The point an upright view turns about: the centre of its own crop.
  *
@@ -232,9 +254,10 @@ export function unitsToMetres(v: PitchView, ux: number, uy: number): { x: number
 
 /** The crop window in FINAL units — what the viewBox frames and the clip cuts to. */
 export function cropRect(v: PitchView): { x: number; y: number; w: number; h: number } {
-  const w = (v.x1 - v.x0 + PAD * 2) * U
-  const h = (v.y1 - v.y0 + PAD * 2) * U
-  if (!v.vertical) return { x: (v.x0 - PAD) * U, y: (v.y0 - PAD) * U, w, h }
+  const p = pads(v)
+  const w = (v.x1 - v.x0 + p.x * 2) * U
+  const h = (v.y1 - v.y0 + p.y * 2) * U
+  if (!v.vertical) return { x: (v.x0 - p.x) * U, y: (v.y0 - p.y) * U, w, h }
   // A quarter turn swaps the crop's width and height about the same centre.
   const { cx, cy } = cropCentre(v)
   return { x: cx - h / 2, y: cy - w / 2, w: h, h: w }
@@ -268,8 +291,9 @@ export function boardTransform(v: PitchView): string | undefined {
  * apparent size of everything.
  */
 export function aspect(v: PitchView): number {
-  const w = v.x1 - v.x0 + PAD * 2
-  const h = v.y1 - v.y0 + PAD * 2
+  const p = pads(v)
+  const w = v.x1 - v.x0 + p.x * 2
+  const h = v.y1 - v.y0 + p.y * 2
   return v.vertical ? h / w : w / h
 }
 

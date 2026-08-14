@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { System } from '../schema'
 import { VIDEO_SHAPES, saveVideo, videoSeconds, videoSupported, type VideoShape } from '../video'
-import { Button, Field, Segmented } from './ui'
+import { Button, Field, Segmented, Toggle } from './ui'
 import { VIDEO } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
 
@@ -23,6 +23,9 @@ type Status = 'idle' | 'working' | 'done' | 'failed'
 
 export function VideoDialog({ system, onClose }: { system: System; onClose: () => void }) {
   const [shape, setShape] = useState<VideoShape['id']>('landscape')
+  // Off by default, and only offered when there is one to show — see the note
+  // on `VideoOptions.date`. A file outlives the day it was made.
+  const [date, setDate] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [progress, setProgress] = useState(0)
   const abort = useRef<AbortController | null>(null)
@@ -52,6 +55,7 @@ export function VideoDialog({ system, onClose }: { system: System; onClose: () =
       const { renderVideo } = await import('../videoRender')
       const file = await renderVideo(system, {
         shape,
+        date,
         signal: controller.signal,
         onProgress: setProgress,
       })
@@ -68,7 +72,7 @@ export function VideoDialog({ system, onClose }: { system: System; onClose: () =
     } finally {
       abort.current = null
     }
-  }, [system, shape])
+  }, [system, shape, date])
 
   const stop = useCallback(() => {
     abort.current?.abort()
@@ -113,6 +117,12 @@ export function VideoDialog({ system, onClose }: { system: System; onClose: () =
               <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
                 {VIDEO_SHAPES.find((s) => s.id === shape)?.note}
               </p>
+
+              {system.credit?.sharedOn && (
+                <div className="mt-3 border-t border-ink-hair pt-2">
+                  <Toggle checked={date} onChange={setDate} label={VIDEO.date} />
+                </div>
+              )}
             </div>
 
             <div className="mt-4 rounded-lg bg-paper p-3">

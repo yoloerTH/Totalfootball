@@ -344,8 +344,10 @@ export const SHARE = {
  */
 export const VIDEO = {
   title: 'Save it as a video',
-  body: `A film of your ${PHASE.many}, playing in order, with your words underneath. Use it where a link will not go — a story, a status, a group chat that flattens everything you send it.`,
+  body: `A film of your ${PHASE.many}, playing in order, shot on the pitch itself with your words over it. Use it where a link will not go — a story, a status, a group chat that flattens everything you send it.`,
   shape: 'What it is going on',
+  /** The one thing in the credit line a coach might not want burnt in. */
+  date: 'Show the date',
   making: 'Making the film…',
   slow: 'This runs on your own machine, so nothing is uploaded and nobody waits in a queue. A long system takes a minute.',
   ready: 'Ready. It has gone to your downloads.',

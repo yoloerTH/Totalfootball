@@ -41,12 +41,14 @@ back the film. Nothing else here is hard to copy — that is.
 | Shared code | New SVG core in the web app; **not** a shared package with `editor/` | Extracting a package first would mean refactoring 123 working compositions before shipping a feature |
 | Export v1 | **A shared LINK, not a file.** See §3c. PPTX still to do |
 | Video | **MP4, encoded in the browser.** See §3e | MP4 was dropped because it meant Remotion Lambda, a queue and a bill. That was an argument about the *server*, and WebCodecs does not need one. The link is still the primary export; a file is for the places a link cannot go |
+| Video framing | **The frame IS the pitch**: board turned to fit the shape, crop padded with grass to all four edges, words over the picture | A board shrunk onto a sheet of paper with a caption underneath is a slide someone filmed. 9:16 gave the pitch a third of the height (user, 2026-08-14) |
 | Where a shared system lives | **Stored, behind a 7-character id**: `/s/k7f3q9`. The self-contained fragment link is kept as the fallback | The fragment link was right about everything except the only thing that mattered — it was 2,000 characters, and nobody can send that |
 | Who can read the shares table | **Only the function.** RLS on, zero policies, service-role key server-side | Keeps the browser holding no Supabase key at all, matching the posture in `.env.example` |
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
 | Dark mode | The studio chrome follows the site's `data-theme`; **the board never does** | The paper stage is the brand and is what an exported deck must look like. Night mode is a property of the room, not of the diagram |
 | Small screens | A **door, not a wall**: told once that it wants a laptop, offered the link for later, and let through | A coach on a touchline looking at what they built is a good reason to be on a phone |
 | Watermark | **Footer credit bar**: their crest + team name left, "Made with Total Football" + our mark right | Reads as a credit line, not a watermark, so nobody tries to crop it |
+| The date on a video | **Off unless asked for** | It is stamped when a link is made, which is right for a link. A file lives in a group chat for a season, where a date only makes a system that is still true look out of date (user, 2026-08-14) |
 | Auth | **Email + password, and Google.** Details still to be discussed | User's call, 2026-08-12 |
 | Pricing | Free for adoption first, paid + affiliates later | Not built |
 | An Act is called a **phase** in the UI | The type stays `Act`; `PHASE` in `editor/guide.ts` is the boundary | Coaches say "phase of play". Renaming the type across a document format to win a label is a bad trade |
@@ -276,7 +278,32 @@ The pipeline is the viewer's, driven by a clock instead of a rAF:
 `timelineAt(ms)` → a pose or a blend → **`Board`** → an SVG string → an `<img>`
 → a canvas → `VideoEncoder` → an `.mp4`.
 
-Five things about it worth keeping:
+**The frame IS the pitch** (2026-08-14). The first version drew a small board on
+a big sheet of paper and stacked the phase's words underneath it, which is a
+slide someone has filmed: 9:16 gave the pitch about a third of the height, 16:9
+left 350px of dead margin down each side. `frameView()` now reshapes the coach's
+pitch view to the frame instead:
+
+- **The board is turned to whichever way fits.** Not "upright for a vertical
+  frame", which was tried and is wrong at the close crops — a penalty box seen
+  upright is 68m wide and 31m deep, so standing it up for a phone padded it out
+  to 130m of grass. The orientation whose aspect is nearest the frame's wins,
+  and the coach's own orientation is kept unless turning is a clear improvement.
+- **The short axis is padded with grass**, via `PitchView.pad`, until the crop
+  matches the frame exactly. Widening the crop rather than scaling the board is
+  what keeps every player on screen: percent coords are measured against
+  `x0..x1`, which never moves. Every view × both shapes lands on the target
+  aspect to four decimal places; the pitch fills 65–92% of each axis.
+- **The words are chrome on the picture**, not a second zone under it: the
+  system's name, the phase title and caption and the phase counter top left,
+  the credit line and our lockup along the foot, a gold progress hairline on
+  the bottom edge. They fade and drift a few pixels as phases hand over.
+- **A halo, not a scrim.** Gradient scrims across the top and bottom of the
+  frame were the first attempt and they washed out the players underneath — a
+  ghosted goalkeeper reads as a broken export. `glow()` puts the paper bloom
+  only where the ink is, so the pitch stays exactly as it was posed.
+
+Five more things about it worth keeping:
 
 - **`renderToStaticMarkup(Board)`, not a canvas re-draw.** There is still
   exactly ONE renderer, so a video cannot drift from what the coach posed. It is
@@ -291,7 +318,9 @@ Five things about it worth keeping:
   Firefox lands on WebM, which plays on a desktop and beats no file at all.
 - **The hold is cached.** A four-phase system holds still for 78 of every 111
   frames. Rasterising only when the pose changes is most of the render time, not
-  a micro-optimisation.
+  a micro-optimisation. It is also why rasterising the board at the full frame
+  size costs nothing worth caching around: measured at **3.0s for a 10s 1080p
+  film**, 300 frames, ~10ms each.
 - **The grain is off.** `texture` is an feTurbulence over the whole stage — fine
   for one still, ruinous over four hundred frames, and invisible at 30fps.
 

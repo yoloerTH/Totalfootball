@@ -53,6 +53,14 @@ interface Props {
   act: RenderAct
   /** Namespaces every <defs> id so two boards can share a page. */
   idp: string
+  /**
+   * Draw through a view other than the one on the document. Export only: the
+   * video widens the crop so the grass reaches the edges of a 16:9 or 9:16
+   * frame, and stands the pitch upright for the vertical one. It must be the
+   * coach's view with `pad`/`vertical` changed and NOTHING else — percent
+   * coords are measured against `x0..x1`, so moving those moves the players.
+   */
+  view?: PitchView
   /** Paper grain. Off while editing (it is a per-frame filter), on for export. */
   texture?: boolean
   /** Token currently being dragged, drawn with a marching-ants ring. */
@@ -99,8 +107,9 @@ export function Board({
   ballHref,
   className,
   svgRef,
+  view: viewOverride,
 }: Props) {
-  const view: PitchView = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view: PitchView = viewOverride ?? PITCH_VIEWS[resolveViewId(system.pitch)]
   const pos = (x: number, y: number) => toUnits(view, x, y)
   const crop = cropRect(view)
 
