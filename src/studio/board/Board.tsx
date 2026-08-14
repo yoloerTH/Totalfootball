@@ -126,7 +126,19 @@ export function Board({
       aria-label={`${system.title} — tactical board`}
       onPointerDown={onBackgroundPointerDown}
       preserveAspectRatio="xMidYMid meet"
-      style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none' }}
+      style={{
+        display: 'block',
+        width: '100%',
+        height: '100%',
+        touchAction: 'none',
+        // A board is a picture, not prose. Without this, dragging a counter
+        // also drags a text selection, which Chrome then paints in blue across
+        // the pitch until the next click; on a touchscreen the same press
+        // raises the selection callout instead of moving the player.
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
+      }}
     >
       {/*
        * The crop has to be enforced with a clipPath, because an <svg> clips to

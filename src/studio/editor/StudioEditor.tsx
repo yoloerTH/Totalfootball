@@ -367,6 +367,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
         el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
       const mod = e.metaKey || e.ctrlKey
 
+      // Typing wins, including the shortcuts. Cmd+Z in the title field has to
+      // take back the last letter, not the last thing that happened on the
+      // board — a coach fixing a typo does not expect their shape to revert.
+      if (typing) return
+
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) redo()
@@ -378,7 +383,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
         redo()
         return
       }
-      if (mod || typing) return
+      if (mod) return
 
       if (e.key === 'Escape') {
         setTool('select')
@@ -403,88 +408,154 @@ export default function StudioEditor({ systemId, initial }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [undo, redo, deleteSelection, goToPhase])
 
-  // ── dragging ───────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!dragging) return
-    const move = (e: PointerEvent) => {
+  // ── gestures on the board ──────────────────────────────────────────────────
+  /*
+   * A gesture binds its own listeners, in the handler, at the moment the
+   * pointer goes down. It used to be bound from an effect keyed on the
+   * gesture's state, and that lost fast gestures outright: `setDragging`
+   * schedules a render, the effect only runs once React has committed it, and
+   * every pointermove delivered in between is dropped. A flick — press, a few
+   * moves and a release, all arriving in one task, which is exactly how a
+   * quick drag lands — moved the counter ZERO pixels. Measured in a browser,
+   * not reasoned about.
+   *
+   * `setPointerCapture` on the <svg> is the other half. Without it a release
+   * outside the window is never delivered: the drag stays live, and the next
+   * click anywhere in the studio is spent dropping a counter that has been
+   * following the cursor ever since.
+   *
+   * The capture goes on the <svg> rather than on the counter because the <svg>
+   * is the node that is certain to still be there when the pointer comes up —
+   * a counter can be re-keyed by a phase change mid-gesture.
+   *
+   * `end` is kept in a ref so unmounting mid-drag cannot leak the listeners.
+   */
+  const endGesture = useRef<(() => void) | null>(null)
+  useEffect(() => () => endGesture.current?.(), [])
+
+  const bindGesture = useCallback(
+    (
+      pointerId: number,
+      onMove: (e: PointerEvent) => void,
+      onEnd: () => void,
+    ) => {
+      const svg = svgRef.current
+      // Safari on an old iPad throws rather than no-ops. Capture is an
+      // improvement to the gesture, not a requirement of it.
+      try {
+        svg?.setPointerCapture(pointerId)
+      } catch {
+        /* no capture; the window listeners still carry the gesture */
+      }
+      const move = (e: PointerEvent) => {
+        if (e.pointerId === pointerId) onMove(e)
+      }
+      const finish = () => {
+        endGesture.current = null
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', up)
+        window.removeEventListener('pointercancel', up)
+        try {
+          svg?.releasePointerCapture(pointerId)
+        } catch {
+          /* already released with the capture that was never taken */
+        }
+        onEnd()
+      }
+      const up = (e: PointerEvent) => {
+        if (e.pointerId === pointerId) finish()
+      }
+      endGesture.current = finish
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', up)
+      window.addEventListener('pointercancel', up)
+    },
+    [],
+  )
+
+  const beginDrag = useCallback(
+    (drag: { kind: 'token'; id: string } | { kind: 'ball' }, e: React.PointerEvent) => {
       const svg = svgRef.current
       if (!svg) return
-      const raw = clientToPercent(svg, view, e.clientX, e.clientY)
-      const p = clampToBoard(raw.x, raw.y)
-      // One label for the whole gesture: ../history.ts collapses it into a
-      // single undo entry, and `seal()` on release closes it so the next drag
-      // of the same counter is its own.
-      patchAct(`drag:${dragging.kind === 'ball' ? 'ball' : dragging.id}`, (a) =>
-        dragging.kind === 'ball'
-          ? { ...a, ball: p }
-          : { ...a, tokens: a.tokens.map((t) => (t.id === dragging.id ? { ...t, ...p } : t)) },
-      )
-    }
-    const up = () => {
-      if (dragging.kind === 'token') markGuide({ moved: true })
-      seal()
-      setDragging(null)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', up)
-    return () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', up)
-    }
-  }, [dragging, view, patchAct, markGuide, seal])
+      e.stopPropagation()
+      // Without this the browser starts a text selection on the way down, and
+      // then paints it across the pitch for the rest of the drag.
+      e.preventDefault()
+      setDragging(drag)
 
-  // ── drawing a mark ─────────────────────────────────────────────────────────
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const p = clampToBoard(raw.x, raw.y)
+          // One label for the whole gesture: ../history.ts collapses it into a
+          // single undo entry, and `seal()` on release closes it so the next
+          // drag of the same counter is its own.
+          patchAct(`drag:${drag.kind === 'ball' ? 'ball' : drag.id}`, (a) =>
+            drag.kind === 'ball'
+              ? { ...a, ball: p }
+              : { ...a, tokens: a.tokens.map((t) => (t.id === drag.id ? { ...t, ...p } : t)) },
+          )
+        },
+        () => {
+          if (drag.kind === 'token') markGuide({ moved: true })
+          seal()
+          setDragging(null)
+        },
+      )
+    },
+    [bindGesture, view, patchAct, markGuide, seal],
+  )
+
   /*
    * Arrows and shaded areas are the same gesture: press, drag, release. They
    * differ only in what gets committed, so they share one handler rather than
    * two that drift apart.
    */
-  useEffect(() => {
-    if (!pending || tool === 'select') return
-    const move = (e: PointerEvent) => {
+  const beginDraw = useCallback(
+    (e: React.PointerEvent) => {
       const svg = svgRef.current
       if (!svg) return
-      const p = clientToPercent(svg, view, e.clientX, e.clientY)
-      setPending((cur) => (cur ? { ...cur, to: p } : cur))
-    }
-    const up = () => {
-      setPending((cur) => {
-        if (!cur) return null
-        if (isArrowTool(tool)) {
-          // A click that did not travel is a misclick, not a zero-length arrow.
-          const far = Math.hypot(cur.to.x - cur.from.x, cur.to.y - cur.from.y) > 3
-          if (far) {
-            patchAct('arrow', (a) => ({
-              ...a,
-              arrows: [...a.arrows, { id: uid('ar'), kind: tool, from: cur.from, to: cur.to }],
-            }))
-            seal()
+      e.preventDefault()
+      const from = clientToPercent(svg, view, e.clientX, e.clientY)
+      // Held here as well as in state: the commit at the end reads these
+      // locals, so it cannot land on a stale render's copy of the drag.
+      let to = from
+      setPending({ from, to })
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          to = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          setPending({ from, to })
+        },
+        () => {
+          if (isArrowTool(tool)) {
+            // A click that did not travel is a misclick, not a zero-length arrow.
+            if (Math.hypot(to.x - from.x, to.y - from.y) > 3) {
+              patchAct('arrow', (a) => ({
+                ...a,
+                arrows: [...a.arrows, { id: uid('ar'), kind: tool, from, to }],
+              }))
+              seal()
+            }
+          } else if (isZoneTool(tool)) {
+            // A sliver of a box is a misdrag. Both sides have to be real.
+            if (Math.abs(to.x - from.x) > 4 && Math.abs(to.y - from.y) > 4) {
+              patchAct('zone', (a) => ({
+                ...a,
+                bands: [...a.bands, { id: uid('bd'), kind: tool, rect: rectOf(from, to) }],
+              }))
+              seal()
+            }
           }
-        } else if (isZoneTool(tool)) {
-          // A sliver of a box is a misdrag. Both sides have to be real.
-          const w = Math.abs(cur.to.x - cur.from.x)
-          const h = Math.abs(cur.to.y - cur.from.y)
-          if (w > 4 && h > 4) {
-            patchAct('zone', (a) => ({
-              ...a,
-              bands: [...a.bands, { id: uid('bd'), kind: tool, rect: rectOf(cur.from, cur.to) }],
-            }))
-            seal()
-          }
-        }
-        return null
-      })
-      setTool('select')
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    return () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-    }
-  }, [pending, tool, view, patchAct, seal])
+          setPending(null)
+          setTool('select')
+        },
+      )
+    },
+    [bindGesture, view, tool, patchAct, seal],
+  )
 
   // ── playback ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -985,9 +1056,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
           playing || drawing
             ? undefined
             : (id, e) => {
-                e.stopPropagation()
                 setSelection({ kind: 'token', id })
-                setDragging({ kind: 'token', id })
+                beginDrag({ kind: 'token', id }, e)
               }
         }
         /* Marks are only pickable with the Move tool: a drawing tool has to be
@@ -1012,21 +1082,20 @@ export default function StudioEditor({ systemId, initial }: Props) {
           playing || drawing
             ? undefined
             : (e) => {
-                e.stopPropagation()
                 setSelection(null)
-                setDragging({ kind: 'ball' })
+                beginDrag({ kind: 'ball' }, e)
               }
         }
         onBackgroundPointerDown={(e) => {
           if (playing) return
           if (!drawing) {
             setSelection(null)
+            // Pressing the grass is a deselect, never the start of a text
+            // selection dragged across the board.
+            e.preventDefault()
             return
           }
-          const svg = svgRef.current
-          if (!svg) return
-          const p = clientToPercent(svg, view, e.clientX, e.clientY)
-          setPending({ from: p, to: p })
+          beginDraw(e)
         }}
       />
     </div>
@@ -1090,7 +1159,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * reordering pair says the word "Move".
    */
   const phaseStrip = (
-    <footer className="flex shrink-0 items-center gap-2 border-t border-ink-hair bg-surface px-2 py-2 lg:gap-3 lg:px-4 lg:py-3">
+    <footer className="flex shrink-0 select-none items-center gap-2 border-t border-ink-hair bg-surface px-2 py-2 lg:gap-3 lg:px-4 lg:py-3">
       <Tip text={HINT.prevPhase} title={`Previous ${PHASE.one}`} side="top">
         <Button
           onClick={() => goToPhase(actIndex - 1)}
@@ -1620,7 +1689,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
     return (
       <div className="flex h-[100dvh] flex-col bg-paper-deep text-ink">
         {toolbar}
-        <main className="flex shrink-0 flex-col items-center gap-2 p-3">
+        <main className="flex shrink-0 select-none flex-col items-center gap-2 p-3">
           <div className="flex h-[36dvh] min-h-[180px] w-full items-center justify-center">{boardStage}</div>
           {boardLine}
         </main>
@@ -1653,7 +1722,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
       <div className="flex min-h-0 flex-1">
         <aside className="w-64 shrink-0 overflow-y-auto border-r border-ink-hair bg-surface">{setupPanel}</aside>
 
-        <main className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden p-6">
+        <main className="flex min-w-0 flex-1 select-none flex-col items-center justify-center gap-3 overflow-hidden p-6">
           {boardStage}
           {boardLine}
         </main>

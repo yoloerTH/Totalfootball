@@ -135,6 +135,18 @@ Remotion-free SVG port of `editor/src/components/football/TacticsBoard.tsx`.
   never both, so Delete never has to guess; and the layout exists twice (beside
   the board, and stacked under it) out of panels built **once** into variables.
   Do not fork the panels.
+
+  **A fourth: gestures bind their listeners in the pointerdown handler, never
+  from an effect** (2026-08-14). The effect version cost fast gestures outright.
+  `setDragging` schedules a render; an effect keyed on that state only binds
+  `pointermove` after React commits, and every move delivered in the gap is
+  dropped. Measured in a browser: press, six moves and a release arriving in one
+  task — which is how coalesced real input lands — moved the counter **0px**
+  before, **147px** after. The `setPointerCapture` on the `<svg>` is the other
+  half: without it a release outside the window is never delivered, the drag
+  stays live, and the next click is spent dropping a counter that has been
+  following the cursor ever since. Capture goes on the `<svg>`, not the counter,
+  because the `<svg>` is certain to still be mounted when the pointer comes up.
 - **`history.ts`** — undo/redo. A snapshot stack, not a command log: a System is
   a few KB, it is already serialised on every change, and a snapshot cannot get
   out of step with the document the way an inverse-command log does the first
