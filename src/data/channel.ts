@@ -9,9 +9,9 @@
  * in fb-insights/data/.
  */
 export const CHANNEL = {
-  /** TODO(thanos): confirm before launch: 17,042 at the 2026-07-24 pull, you said 25k+. */
-  followers: 25000,
-  followersLabel: '25,000+',
+  /** Combined across Facebook, Instagram, TikTok and YouTube. Confirmed 2026-08-14. */
+  followers: 35000,
+  followersLabel: '35,000+',
   /** Compositions registered in editor/src/Root.tsx that shipped as shorts. */
   shortsPublished: 88,
   /** Across everything published. User-reported 2026-08-09. */
@@ -28,7 +28,7 @@ export const CHANNEL = {
    * (user, 2026-08-09) because a dated caption made living numbers look stale.
    * Keep it updated when the figures change so we know how old they are.
    */
-  asOf: '2026-08-09',
+  asOf: '2026-08-14',
 } as const
 
 /**

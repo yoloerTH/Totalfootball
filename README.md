@@ -269,8 +269,7 @@ npm run build && grep -ro '—' dist --include='*.html' --include='*.txt' --incl
   cookie-free. See the header comment in `src/components/Analytics.astro`
   before changing anything there.
 - Placeholders marked `TODO(thanos)`: contact address and controller in
-  `src/pages/privacy.astro`, governing entity in `src/pages/terms.astro`,
-  follower count in `src/data/channel.ts`.
+  `src/pages/privacy.astro`, governing entity in `src/pages/terms.astro`.
 
 ## Not yet done
 
