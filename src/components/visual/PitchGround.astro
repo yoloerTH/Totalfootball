@@ -15,6 +15,14 @@
  * which draws the same markings off the same metre space (see
  * ../../studio/board/pitch.ts) and is the only one a coach can touch.
  *
+ * `pointer-events-none` and `-z-10` on the svg are load-bearing, not tidiness.
+ * This is an absolutely positioned element covering its whole section, so
+ * without them it paints over the in-flow content and takes every click on it —
+ * which on the login page meant a form nobody could type into or press. It is
+ * scenery: it must never be hit-testable, wherever it is used. Callers give it
+ * an `isolate`d parent so the negative z-index stops at that section rather than
+ * sliding behind the page.
+ *
  * `draw` marks the pitch out line by line on arrival, about a second and a half
  * of it, once per page load. It is on for sign-in — a room you enter — and off
  * for the shelf, which is a room you are already in and re-enter all day.
@@ -67,15 +75,6 @@ const n = (v: number) => Number(v.toFixed(2))
 <svg
   viewBox="0 0 1200 800"
   preserveAspectRatio="xMidYMid slice"
-  {/*
-    `pointer-events-none` and `-z-10` are load-bearing, not tidiness. This is an
-    absolutely positioned element covering its whole section, so without them it
-    paints over the in-flow content and takes every click on it — which on the
-    login page meant a form nobody could type into or press. It is scenery: it
-    must never be hit-testable, wherever it is used. The callers give it an
-    `isolate`d parent so the negative z-index stops at that section rather than
-    sliding behind the page.
-  */}
   class:list={[
     'pg pointer-events-none absolute inset-0 -z-10 h-full w-full text-ink',
     draw && 'is-drawing',
