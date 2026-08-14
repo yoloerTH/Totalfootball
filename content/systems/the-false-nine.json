@@ -1,0 +1,102 @@
+{
+  "v": 1,
+  "title": "The False Nine",
+  "subtitle": "Give the centre-back a question he cannot answer",
+  "pitch": "attacking-half",
+  "matchBall": "brazuca",
+  "teams": {
+    "us": { "name": "Our team", "base": "#08C16A", "deep": "#06A659", "text": "#FFFFFF" },
+    "them": { "name": "Opposition", "base": "#E2473B", "deep": "#B5392F", "text": "#FFFFFF" }
+  },
+  "acts": [
+    {
+      "id": "act-easy",
+      "title": "An easy afternoon",
+      "caption": "A striker on the last line is a man you can mark.",
+      "ball": { "x": 22, "y": 50 },
+      "tokens": [
+        { "id": "u-8", "x": 22, "y": 50, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 62, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-lw", "x": 42, "y": 14, "label": "LW", "side": "us" },
+        { "id": "u-rw", "x": 44, "y": 86, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 40, "y": 52, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 68, "y": 42, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 68, "y": 60, "label": "CB", "side": "them" },
+        { "id": "o-lb", "x": 58, "y": 16, "label": "LB", "side": "them" },
+        { "id": "o-rb", "x": 58, "y": 84, "label": "RB", "side": "them" }
+      ],
+      "arrows": [],
+      "bands": []
+    },
+    {
+      "id": "act-drop",
+      "title": "So the nine leaves",
+      "caption": "He drops into midfield. Now: follow him, or don't?",
+      "ball": { "x": 22, "y": 50 },
+      "tokens": [
+        { "id": "u-8", "x": 22, "y": 50, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 44, "y": 48, "label": "9", "side": "us", "cue": "DROP" },
+        { "id": "u-lw", "x": 44, "y": 14, "label": "LW", "side": "us" },
+        { "id": "u-rw", "x": 46, "y": 86, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 40, "y": 62, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 68, "y": 42, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 68, "y": 60, "label": "CB", "side": "them" },
+        { "id": "o-lb", "x": 58, "y": 16, "label": "LB", "side": "them" },
+        { "id": "o-rb", "x": 58, "y": 84, "label": "RB", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-1", "kind": "run", "from": { "x": 62, "y": 50 }, "to": { "x": 46, "y": 48 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-follow",
+      "title": "He follows. That is the mistake",
+      "caption": "A back four is now a back three with a hole in it.",
+      "ball": { "x": 44, "y": 48 },
+      "tokens": [
+        { "id": "u-8", "x": 28, "y": 52, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 44, "y": 48, "label": "9", "side": "us" },
+        { "id": "u-lw", "x": 48, "y": 14, "label": "LW", "side": "us" },
+        { "id": "u-rw", "x": 52, "y": 86, "label": "RW", "side": "us", "cue": "SPARE" },
+        { "id": "o-cm", "x": 42, "y": 64, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 50, "y": 44, "label": "CB", "side": "them", "cue": "PRESS" },
+        { "id": "o-rcb", "x": 68, "y": 56, "label": "CB", "side": "them" },
+        { "id": "o-lb", "x": 60, "y": 18, "label": "LB", "side": "them" },
+        { "id": "o-rb", "x": 60, "y": 84, "label": "RB", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 22, "y": 50 }, "to": { "x": 43, "y": 48 } },
+        { "id": "ar-3", "kind": "run", "from": { "x": 54, "y": 84 }, "to": { "x": 78, "y": 66 } }
+      ],
+      "bands": [{ "id": "bd-hole", "kind": "danger", "rect": { "x": 62, "y": 62, "w": 26, "h": 26 } }]
+    },
+    {
+      "id": "act-in",
+      "title": "Into the space he used to stand in",
+      "caption": "Nobody was beaten. Somebody was asked a question.",
+      "ball": { "x": 80, "y": 64 },
+      "tokens": [
+        { "id": "u-8", "x": 32, "y": 54, "label": "8", "side": "us", "dim": true },
+        { "id": "u-9", "x": 50, "y": 46, "label": "9", "side": "us" },
+        { "id": "u-lw", "x": 56, "y": 16, "label": "LW", "side": "us" },
+        { "id": "u-rw", "x": 80, "y": 64, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 46, "y": 66, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 54, "y": 44, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 72, "y": 52, "label": "CB", "side": "them", "cue": "DROP" },
+        { "id": "o-lb", "x": 62, "y": 20, "label": "LB", "side": "them", "dim": true },
+        { "id": "o-rb", "x": 66, "y": 78, "label": "RB", "side": "them", "cue": "DROP" }
+      ],
+      "arrows": [
+        {
+          "id": "ar-4",
+          "kind": "pass",
+          "from": { "x": 44, "y": 48 },
+          "to": { "x": 79, "y": 63 },
+          "bend": 0.2
+        }
+      ],
+      "bands": [{ "id": "bd-in", "kind": "danger", "rect": { "x": 66, "y": 54, "w": 30, "h": 34 } }]
+    }
+  ]
+}

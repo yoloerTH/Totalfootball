@@ -19,6 +19,11 @@
  *   `timelineAt(ms)` → a pose or a blend → `Board` → an SVG string
  *      → an <img> → a canvas → `VideoEncoder` → an .mp4
  *
+ * And one thing the viewer does not have: SOUND. A ball being struck, every
+ * time the ball moves between two phases, mixed by ./audio.ts. That is the
+ * entire soundtrack and the whole of it is derived from the document — read the
+ * top of that file for why it is a rule rather than a field on Act.
+ *
  * Rendering `Board` through `renderToStaticMarkup` rather than re-drawing the
  * board on a canvas is the whole reason this is safe to have: there is still
  * exactly ONE renderer, and a video cannot drift from what the coach posed.
@@ -59,6 +64,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url'
 
+import { kickTrack } from './audio'
 import { Board } from './board/Board'
 import { BOARD } from './board/palette'
 import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
@@ -668,10 +674,15 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
     Mp4OutputFormat,
     WebMOutputFormat,
     BufferTarget,
+    AudioBufferSource,
     CanvasSource,
+    getFirstEncodableAudioCodec,
     getFirstEncodableVideoCodec,
     QUALITY_HIGH,
   } = await import('mediabunny')
+
+  const totalMs = totalDuration(system.acts.length)
+  const frames = Math.max(1, Math.round((totalMs / 1000) * VIDEO_FPS))
 
   // H.264 in MP4 is the only combination every phone, every messenger and every
   // social upload accepts. VP9/WebM is the fallback for browsers that cannot
@@ -690,10 +701,41 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   })
   const source = new CanvasSource(canvas, { codec, quality: QUALITY_HIGH, keyFrameInterval: 2 })
   output.addVideoTrack(source, { frameRate: VIDEO_FPS })
+
+  /*
+   * THE BALL BEING KICKED, every time the ball moves. ./audio.ts derives the
+   * whole score from the document; there is nothing to author and nothing to
+   * switch on.
+   *
+   * Every step of it is allowed to come back empty — a system where the ball
+   * never moves has no kicks, the sample can fail to fetch, and a browser can
+   * have a video encoder but no audio one. None of those is worth failing an
+   * export over, so each just leaves the film silent, which is exactly what the
+   * export did until this paragraph existed. It is the same policy the match
+   * ball and the mark follow: cost the feature, never the video.
+   *
+   * AAC in MP4, Opus in WebM. Neither container takes the other's codec.
+   */
+  const track = await kickTrack(system, totalMs)
+  let audio: InstanceType<typeof AudioBufferSource> | null = null
+  if (track) {
+    const audioCodec = await getFirstEncodableAudioCodec(mp4 ? ['aac'] : ['opus'], {
+      numberOfChannels: track.numberOfChannels,
+      sampleRate: track.sampleRate,
+    })
+    if (audioCodec) {
+      audio = new AudioBufferSource({ codec: audioCodec, quality: QUALITY_HIGH })
+      output.addAudioTrack(audio)
+    }
+  }
+
   await output.start()
 
-  const totalMs = totalDuration(system.acts.length)
-  const frames = Math.max(1, Math.round((totalMs / 1000) * VIDEO_FPS))
+  // Fed whole and up front. It is one `add` of a few seconds of PCM against
+  // four hundred rasters, so it is done before the progress bar has moved, and
+  // doing it here means a muxer that is going to refuse the track says so
+  // before the coach watches a minute of encoding.
+  if (audio && track) await audio.add(track)
 
   // The board only changes during a move. A four-phase system holds still for
   // 78 of every 111 frames, so caching the last raster is not a micro-optimisation

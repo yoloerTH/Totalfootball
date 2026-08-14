@@ -1,0 +1,150 @@
+{
+  "v": 1,
+  "title": "The Third Man Run",
+  "subtitle": "The pass is not for him. It is for the man behind him",
+  "pitch": "attacking-half",
+  "matchBall": "trionda",
+  "teams": {
+    "us": { "name": "Our team", "base": "#08C16A", "deep": "#06A659", "text": "#FFFFFF" },
+    "them": { "name": "Opposition", "base": "#E2473B", "deep": "#B5392F", "text": "#FFFFFF" }
+  },
+  "acts": [
+    {
+      "id": "act-locked",
+      "title": "The pass you want is not on",
+      "caption": "Their centre-back is touch-tight to the nine.",
+      "ball": { "x": 12, "y": 50 },
+      "tokens": [
+        { "id": "u-6", "x": 12, "y": 50, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 30, "y": 34, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 58, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 40, "y": 86, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 34, "y": 54, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 66, "y": 42, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 70, "y": 64, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 58, "y": 84, "label": "RB", "side": "them" }
+      ],
+      "arrows": [],
+      "bands": []
+    },
+    {
+      "id": "act-feet",
+      "title": "So give it to him anyway",
+      "caption": "Into his feet, with his back to goal and a man on him.",
+      "ball": { "x": 57, "y": 50 },
+      "tokens": [
+        { "id": "u-6", "x": 18, "y": 50, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 36, "y": 36, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 58, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 46, "y": 86, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 40, "y": 54, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 65, "y": 45, "label": "CB", "side": "them", "cue": "PRESS" },
+        { "id": "o-rcb", "x": 72, "y": 64, "label": "CB", "side": "them", "cue": "COVER" },
+        { "id": "o-rb", "x": 60, "y": 84, "label": "RB", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-1", "kind": "pass", "from": { "x": 12, "y": 50 }, "to": { "x": 57, "y": 50 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-layoff",
+      "title": "He never turns. He does not need to",
+      "caption": "One touch back — and the run starts behind him.",
+      "ball": { "x": 39, "y": 36 },
+      "tokens": [
+        { "id": "u-6", "x": 22, "y": 52, "label": "6", "side": "us", "dim": true },
+        { "id": "u-8", "x": 39, "y": 36, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 58, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 60, "y": 84, "label": "RW", "side": "us", "cue": "SPARE" },
+        { "id": "o-cm", "x": 44, "y": 56, "label": "CM", "side": "them" },
+        { "id": "o-lcb", "x": 65, "y": 46, "label": "CB", "side": "them", "cue": "PRESS" },
+        { "id": "o-rcb", "x": 72, "y": 62, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 62, "y": 80, "label": "RB", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 57, "y": 50 }, "to": { "x": 39, "y": 36 } },
+        { "id": "ar-3", "kind": "run", "from": { "x": 48, "y": 86 }, "to": { "x": 74, "y": 78 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-through",
+      "title": "The third man arrives",
+      "caption": "Two touches, three players, and their line is gone.",
+      "ball": { "x": 80, "y": 76 },
+      "tokens": [
+        { "id": "u-6", "x": 26, "y": 52, "label": "6", "side": "us", "dim": true },
+        { "id": "u-8", "x": 42, "y": 36, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 62, "y": 46, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 80, "y": 76, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 48, "y": 58, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 66, "y": 38, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 74, "y": 58, "label": "CB", "side": "them", "cue": "DROP" },
+        { "id": "o-rb", "x": 66, "y": 74, "label": "RB", "side": "them", "cue": "DROP" }
+      ],
+      "arrows": [
+        {
+          "id": "ar-4",
+          "kind": "pass",
+          "from": { "x": 39, "y": 36 },
+          "to": { "x": 79, "y": 74 },
+          "bend": 0.25
+        }
+      ],
+      "bands": [{ "id": "bd-in", "kind": "danger", "rect": { "x": 68, "y": 62, "w": 30, "h": 32 } }]
+    },
+    {
+      "id": "act-cutback",
+      "title": "The ball comes back across",
+      "caption": "Bent behind the defenders, in front of the nine.",
+      "ball": { "x": 78, "y": 50 },
+      "tokens": [
+        { "id": "u-6", "x": 32, "y": 52, "label": "6", "side": "us", "dim": true },
+        { "id": "u-8", "x": 58, "y": 38, "label": "8", "side": "us" },
+        { "id": "u-9", "x": 78, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 88, "y": 82, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 54, "y": 56, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 70, "y": 40, "label": "CB", "side": "them", "cue": "DROP" },
+        { "id": "o-rcb", "x": 81, "y": 60, "label": "CB", "side": "them", "cue": "DROP" },
+        { "id": "o-rb", "x": 80, "y": 74, "label": "RB", "side": "them" }
+      ],
+      "arrows": [
+        {
+          "id": "ar-5",
+          "kind": "pass",
+          "from": { "x": 88, "y": 80 },
+          "to": { "x": 79, "y": 52 },
+          "bend": 0.45
+        }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-goal",
+      "title": "And the nine has a tap-in",
+      "caption": "Four passes. Nobody ever beat a man.",
+      "ball": { "x": 101, "y": 45 },
+      "tokens": [
+        { "id": "u-6", "x": 36, "y": 52, "label": "6", "side": "us", "dim": true },
+        { "id": "u-8", "x": 62, "y": 38, "label": "8", "side": "us", "dim": true },
+        { "id": "u-9", "x": 80, "y": 52, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 88, "y": 80, "label": "RW", "side": "us" },
+        { "id": "o-cm", "x": 58, "y": 56, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 78, "y": 42, "label": "CB", "side": "them", "dim": true },
+        { "id": "o-rcb", "x": 85, "y": 60, "label": "CB", "side": "them", "dim": true },
+        { "id": "o-rb", "x": 84, "y": 74, "label": "RB", "side": "them", "dim": true }
+      ],
+      "arrows": [
+        {
+          "id": "ar-6",
+          "kind": "pass",
+          "from": { "x": 81, "y": 50 },
+          "to": { "x": 100, "y": 45 },
+          "bend": 0.12
+        }
+      ],
+      "bands": []
+    }
+  ]
+}

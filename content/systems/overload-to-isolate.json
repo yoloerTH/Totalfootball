@@ -1,0 +1,179 @@
+{
+  "v": 1,
+  "title": "Overload To Isolate",
+  "subtitle": "Why the goal starts on the wrong side",
+  "pitch": "full",
+  "matchBall": "trionda",
+  "teams": {
+    "us": { "name": "Our team", "base": "#08C16A", "deep": "#06A659", "text": "#FFFFFF" },
+    "them": { "name": "Opposition", "base": "#E2473B", "deep": "#B5392F", "text": "#FFFFFF" }
+  },
+  "acts": [
+    {
+      "id": "act-set",
+      "title": "Their block is set",
+      "caption": "Eight men behind the ball. No way through.",
+      "ball": { "x": 21, "y": 38 },
+      "tokens": [
+        { "id": "u-gk", "x": 6, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 20, "y": 38, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 20, "y": 62, "label": "CB", "side": "us" },
+        { "id": "u-lb", "x": 30, "y": 12, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 30, "y": 88, "label": "RB", "side": "us" },
+        { "id": "u-6", "x": 36, "y": 50, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 47, "y": 30, "label": "8", "side": "us" },
+        { "id": "u-lw", "x": 60, "y": 10, "label": "LW", "side": "us" },
+        { "id": "u-9", "x": 72, "y": 50, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 62, "y": 90, "label": "RW", "side": "us" },
+        { "id": "o-lb", "x": 79, "y": 20, "label": "LB", "side": "them" },
+        { "id": "o-lcb", "x": 81, "y": 41, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 81, "y": 59, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 79, "y": 80, "label": "RB", "side": "them" },
+        { "id": "o-lm", "x": 63, "y": 22, "label": "LM", "side": "them" },
+        { "id": "o-lcm", "x": 64, "y": 43, "label": "CM", "side": "them" },
+        { "id": "o-rcm", "x": 64, "y": 57, "label": "CM", "side": "them" },
+        { "id": "o-rm", "x": 63, "y": 78, "label": "RM", "side": "them" }
+      ],
+      "arrows": [],
+      "bands": []
+    },
+    {
+      "id": "act-bait",
+      "title": "So go where they are",
+      "caption": "The ball goes left on purpose. It is bait.",
+      "ball": { "x": 32, "y": 12 },
+      "tokens": [
+        { "id": "u-gk", "x": 6, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 24, "y": 34, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 22, "y": 60, "label": "CB", "side": "us" },
+        { "id": "u-lb", "x": 33, "y": 12, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 32, "y": 88, "label": "RB", "side": "us", "dim": true },
+        { "id": "u-6", "x": 40, "y": 40, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 50, "y": 22, "label": "8", "side": "us" },
+        { "id": "u-lw", "x": 62, "y": 9, "label": "LW", "side": "us" },
+        { "id": "u-9", "x": 66, "y": 40, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 62, "y": 90, "label": "RW", "side": "us", "dim": true },
+        { "id": "o-lb", "x": 76, "y": 16, "label": "LB", "side": "them" },
+        { "id": "o-lcb", "x": 79, "y": 38, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 81, "y": 57, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 80, "y": 78, "label": "RB", "side": "them" },
+        { "id": "o-lm", "x": 57, "y": 16, "label": "LM", "side": "them", "cue": "PRESS" },
+        { "id": "o-lcm", "x": 59, "y": 36, "label": "CM", "side": "them" },
+        { "id": "o-rcm", "x": 61, "y": 52, "label": "CM", "side": "them" },
+        { "id": "o-rm", "x": 62, "y": 74, "label": "RM", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-1", "kind": "pass", "from": { "x": 21, "y": 38 }, "to": { "x": 32, "y": 12 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-slide",
+      "title": "A block slides. It cannot help it",
+      "caption": "Six of them are now on one side of the pitch.",
+      "ball": { "x": 49, "y": 21 },
+      "tokens": [
+        { "id": "u-gk", "x": 6, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 26, "y": 32, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-rcb", "x": 24, "y": 58, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 40, "y": 10, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 34, "y": 88, "label": "RB", "side": "us", "dim": true },
+        { "id": "u-6", "x": 44, "y": 42, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 50, "y": 22, "label": "8", "side": "us" },
+        { "id": "u-lw", "x": 64, "y": 8, "label": "LW", "side": "us" },
+        { "id": "u-9", "x": 68, "y": 34, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 64, "y": 91, "label": "RW", "side": "us", "cue": "SPARE" },
+        { "id": "o-lb", "x": 72, "y": 13, "label": "LB", "side": "them" },
+        { "id": "o-lcb", "x": 74, "y": 32, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 78, "y": 50, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 80, "y": 70, "label": "RB", "side": "them" },
+        { "id": "o-lm", "x": 54, "y": 14, "label": "LM", "side": "them", "cue": "PRESS" },
+        { "id": "o-lcm", "x": 55, "y": 30, "label": "CM", "side": "them", "cue": "COVER" },
+        { "id": "o-rcm", "x": 58, "y": 45, "label": "CM", "side": "them" },
+        { "id": "o-rm", "x": 60, "y": 62, "label": "RM", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 32, "y": 12 }, "to": { "x": 49, "y": 21 } }
+      ],
+      "bands": [
+        { "id": "bd-over", "kind": "zone", "rect": { "x": 44, "y": 2, "w": 42, "h": 52 } },
+        { "id": "bd-space", "kind": "danger", "rect": { "x": 56, "y": 66, "w": 42, "h": 32 } }
+      ]
+    },
+    {
+      "id": "act-switch",
+      "title": "Now switch it",
+      "caption": "One pass takes six players out of the game.",
+      "ball": { "x": 66, "y": 90 },
+      "tokens": [
+        { "id": "u-gk", "x": 6, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 26, "y": 32, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-rcb", "x": 24, "y": 58, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 42, "y": 10, "label": "LB", "side": "us", "dim": true },
+        { "id": "u-rb", "x": 44, "y": 88, "label": "RB", "side": "us" },
+        { "id": "u-6", "x": 46, "y": 44, "label": "6", "side": "us" },
+        { "id": "u-8", "x": 52, "y": 24, "label": "8", "side": "us", "dim": true },
+        { "id": "u-lw", "x": 66, "y": 8, "label": "LW", "side": "us", "dim": true },
+        { "id": "u-9", "x": 74, "y": 44, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 66, "y": 90, "label": "RW", "side": "us" },
+        { "id": "o-lb", "x": 71, "y": 14, "label": "LB", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 73, "y": 33, "label": "CB", "side": "them", "dim": true },
+        { "id": "o-rcb", "x": 78, "y": 51, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 79, "y": 71, "label": "RB", "side": "them", "cue": "JOCKEY" },
+        { "id": "o-lm", "x": 53, "y": 14, "label": "LM", "side": "them", "dim": true },
+        { "id": "o-lcm", "x": 55, "y": 30, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-rcm", "x": 58, "y": 46, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-rm", "x": 61, "y": 63, "label": "RM", "side": "them", "dim": true }
+      ],
+      "arrows": [
+        {
+          "id": "ar-3",
+          "kind": "switch",
+          "from": { "x": 49, "y": 21 },
+          "to": { "x": 66, "y": 90 },
+          "bend": 0.3
+        }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-isolate",
+      "title": "One against one, with grass",
+      "caption": "This is what the whole move was for.",
+      "ball": { "x": 79, "y": 92 },
+      "tokens": [
+        { "id": "u-gk", "x": 6, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 28, "y": 32, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-rcb", "x": 26, "y": 58, "label": "CB", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 44, "y": 10, "label": "LB", "side": "us", "dim": true },
+        { "id": "u-rb", "x": 56, "y": 86, "label": "RB", "side": "us" },
+        { "id": "u-6", "x": 48, "y": 46, "label": "6", "side": "us", "dim": true },
+        { "id": "u-8", "x": 55, "y": 24, "label": "8", "side": "us", "dim": true },
+        { "id": "u-lw", "x": 78, "y": 16, "label": "LW", "side": "us" },
+        { "id": "u-9", "x": 86, "y": 46, "label": "9", "side": "us" },
+        { "id": "u-rw", "x": 79, "y": 92, "label": "RW", "side": "us" },
+        { "id": "o-lb", "x": 74, "y": 18, "label": "LB", "side": "them", "dim": true },
+        { "id": "o-lcb", "x": 82, "y": 34, "label": "CB", "side": "them" },
+        { "id": "o-rcb", "x": 84, "y": 55, "label": "CB", "side": "them" },
+        { "id": "o-rb", "x": 84, "y": 78, "label": "RB", "side": "them", "cue": "JOCKEY" },
+        { "id": "o-lm", "x": 58, "y": 18, "label": "LM", "side": "them", "dim": true },
+        { "id": "o-lcm", "x": 60, "y": 34, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-rcm", "x": 64, "y": 50, "label": "CM", "side": "them", "dim": true },
+        { "id": "o-rm", "x": 68, "y": 66, "label": "RM", "side": "them", "dim": true }
+      ],
+      "arrows": [
+        { "id": "ar-4", "kind": "carry", "from": { "x": 66, "y": 90 }, "to": { "x": 79, "y": 92 } },
+        {
+          "id": "ar-5",
+          "kind": "pass",
+          "from": { "x": 82, "y": 90 },
+          "to": { "x": 88, "y": 60 },
+          "bend": -0.2
+        }
+      ],
+      "bands": [
+        { "id": "bd-1v1", "kind": "danger", "rect": { "x": 70, "y": 70, "w": 28, "h": 28 } }
+      ]
+    }
+  ]
+}

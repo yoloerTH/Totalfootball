@@ -1,0 +1,95 @@
+{
+  "v": 1,
+  "title": "Beating The Two-Man Press",
+  "subtitle": "You do not need to be braver. You need one more man",
+  "pitch": "defending-half",
+  "matchBall": "al-rihla",
+  "teams": {
+    "us": { "name": "Our team", "base": "#08C16A", "deep": "#06A659", "text": "#FFFFFF" },
+    "them": { "name": "Opposition", "base": "#E2473B", "deep": "#B5392F", "text": "#FFFFFF" }
+  },
+  "acts": [
+    {
+      "id": "act-stuck",
+      "title": "Two of them, two of us",
+      "caption": "Even numbers at the back means no free man.",
+      "ball": { "x": 12, "y": 50 },
+      "tokens": [
+        { "id": "u-gk", "x": 12, "y": 50, "label": "GK", "side": "us" },
+        { "id": "u-lcb", "x": 30, "y": 28, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 30, "y": 72, "label": "CB", "side": "us" },
+        { "id": "u-6", "x": 54, "y": 50, "label": "6", "side": "us" },
+        { "id": "u-lb", "x": 46, "y": 8, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 46, "y": 92, "label": "RB", "side": "us" },
+        { "id": "o-9", "x": 44, "y": 34, "label": "9", "side": "them", "cue": "PRESS" },
+        { "id": "o-10", "x": 44, "y": 66, "label": "10", "side": "them", "cue": "PRESS" },
+        { "id": "o-6", "x": 64, "y": 50, "label": "6", "side": "them" }
+      ],
+      "arrows": [],
+      "bands": []
+    },
+    {
+      "id": "act-drop",
+      "title": "So the six drops in",
+      "caption": "He steps between the centre-backs. Nothing else changes.",
+      "ball": { "x": 12, "y": 50 },
+      "tokens": [
+        { "id": "u-gk", "x": 12, "y": 50, "label": "GK", "side": "us" },
+        { "id": "u-lcb", "x": 32, "y": 18, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 32, "y": 82, "label": "CB", "side": "us" },
+        { "id": "u-6", "x": 28, "y": 50, "label": "6", "side": "us", "cue": "DROP" },
+        { "id": "u-lb", "x": 56, "y": 8, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 56, "y": 92, "label": "RB", "side": "us" },
+        { "id": "o-9", "x": 46, "y": 34, "label": "9", "side": "them", "cue": "PRESS" },
+        { "id": "o-10", "x": 46, "y": 66, "label": "10", "side": "them", "cue": "PRESS" },
+        { "id": "o-6", "x": 64, "y": 50, "label": "6", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-1", "kind": "run", "from": { "x": 52, "y": 50 }, "to": { "x": 31, "y": 50 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-free",
+      "title": "Three against two",
+      "caption": "Two pressers cannot cover three players. One is free.",
+      "ball": { "x": 31, "y": 82 },
+      "tokens": [
+        { "id": "u-gk", "x": 14, "y": 50, "label": "GK", "side": "us" },
+        { "id": "u-lcb", "x": 32, "y": 18, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 32, "y": 82, "label": "CB", "side": "us", "cue": "SPARE" },
+        { "id": "u-6", "x": 28, "y": 50, "label": "6", "side": "us" },
+        { "id": "u-lb", "x": 60, "y": 8, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 62, "y": 92, "label": "RB", "side": "us" },
+        { "id": "o-9", "x": 42, "y": 30, "label": "9", "side": "them", "cue": "PRESS" },
+        { "id": "o-10", "x": 42, "y": 58, "label": "10", "side": "them", "cue": "COVER" },
+        { "id": "o-6", "x": 62, "y": 54, "label": "6", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 14, "y": 50 }, "to": { "x": 30, "y": 80 } }
+      ],
+      "bands": []
+    },
+    {
+      "id": "act-out",
+      "title": "And out",
+      "caption": "He carries it past the press. Both of them are gone.",
+      "ball": { "x": 50, "y": 84 },
+      "tokens": [
+        { "id": "u-gk", "x": 14, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lcb", "x": 34, "y": 18, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 50, "y": 84, "label": "CB", "side": "us" },
+        { "id": "u-6", "x": 34, "y": 52, "label": "6", "side": "us" },
+        { "id": "u-lb", "x": 66, "y": 8, "label": "LB", "side": "us" },
+        { "id": "u-rb", "x": 74, "y": 92, "label": "RB", "side": "us", "cue": "SPARE" },
+        { "id": "o-9", "x": 38, "y": 28, "label": "9", "side": "them", "dim": true },
+        { "id": "o-10", "x": 38, "y": 58, "label": "10", "side": "them", "dim": true },
+        { "id": "o-6", "x": 60, "y": 62, "label": "6", "side": "them", "cue": "JOCKEY" }
+      ],
+      "arrows": [
+        { "id": "ar-3", "kind": "carry", "from": { "x": 32, "y": 82 }, "to": { "x": 48, "y": 84 } }
+      ],
+      "bands": [{ "id": "bd-out", "kind": "danger", "rect": { "x": 52, "y": 62, "w": 40, "h": 34 } }]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "v": 1,
+  "title": "Why The Line Steps Up",
+  "subtitle": "A backward pass is free time. Spend it",
+  "pitch": "defending-half",
+  "matchBall": "trionda",
+  "teams": {
+    "us": { "name": "Our team", "base": "#08C16A", "deep": "#06A659", "text": "#FFFFFF" },
+    "them": { "name": "Opposition", "base": "#E2473B", "deep": "#B5392F", "text": "#FFFFFF" }
+  },
+  "acts": [
+    {
+      "id": "act-set",
+      "title": "Set, on the edge of the box",
+      "caption": "Four defenders, flat. The ball is on their pivot.",
+      "ball": { "x": 92, "y": 50 },
+      "tokens": [
+        { "id": "u-gk", "x": 8, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 36, "y": 16, "label": "LB", "side": "us" },
+        { "id": "u-lcb", "x": 34, "y": 39, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 34, "y": 61, "label": "CB", "side": "us" },
+        { "id": "u-rb", "x": 36, "y": 84, "label": "RB", "side": "us" },
+        { "id": "o-6", "x": 92, "y": 50, "label": "6", "side": "them" },
+        { "id": "o-lw", "x": 62, "y": 14, "label": "LW", "side": "them" },
+        { "id": "o-9", "x": 56, "y": 50, "label": "9", "side": "them" }
+      ],
+      "arrows": [],
+      "bands": [{ "id": "bd-behind", "kind": "block", "throughTokens": ["u-lb", "u-lcb", "u-rcb", "u-rb"] }]
+    },
+    {
+      "id": "act-jump",
+      "title": "One man jumps, and a door opens",
+      "caption": "The left-back presses. Look behind him.",
+      "ball": { "x": 66, "y": 14 },
+      "tokens": [
+        { "id": "u-gk", "x": 10, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 58, "y": 15, "label": "LB", "side": "us", "cue": "PRESS" },
+        { "id": "u-lcb", "x": 36, "y": 38, "label": "CB", "side": "us", "cue": "COVER" },
+        { "id": "u-rcb", "x": 35, "y": 60, "label": "CB", "side": "us", "cue": "COVER" },
+        { "id": "u-rb", "x": 36, "y": 84, "label": "RB", "side": "us", "cue": "BALANCE" },
+        { "id": "o-6", "x": 90, "y": 50, "label": "6", "side": "them" },
+        { "id": "o-lw", "x": 66, "y": 14, "label": "LW", "side": "them" },
+        { "id": "o-9", "x": 52, "y": 46, "label": "9", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-1", "kind": "pass", "from": { "x": 92, "y": 50 }, "to": { "x": 66, "y": 14 } }
+      ],
+      "bands": [{ "id": "bd-hole", "kind": "danger", "rect": { "x": 38, "y": 4, "w": 22, "h": 30 } }]
+    },
+    {
+      "id": "act-back",
+      "title": "It goes back. Nobody chases it",
+      "caption": "Chasing it is thirty metres to arrive out of breath.",
+      "ball": { "x": 90, "y": 50 },
+      "tokens": [
+        { "id": "u-gk", "x": 14, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 48, "y": 16, "label": "LB", "side": "us" },
+        { "id": "u-lcb", "x": 46, "y": 39, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 46, "y": 61, "label": "CB", "side": "us" },
+        { "id": "u-rb", "x": 48, "y": 84, "label": "RB", "side": "us" },
+        { "id": "o-6", "x": 90, "y": 50, "label": "6", "side": "them" },
+        { "id": "o-lw", "x": 68, "y": 14, "label": "LW", "side": "them" },
+        { "id": "o-9", "x": 50, "y": 46, "label": "9", "side": "them" }
+      ],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 66, "y": 14 }, "to": { "x": 90, "y": 50 } }
+      ],
+      "bands": [{ "id": "bd-behind2", "kind": "block", "throughTokens": ["u-lb", "u-lcb", "u-rcb", "u-rb"] }]
+    },
+    {
+      "id": "act-again",
+      "title": "Four times, and nothing opens",
+      "caption": "The presser is already there. The door never opens.",
+      "ball": { "x": 78, "y": 78 },
+      "tokens": [
+        { "id": "u-gk", "x": 20, "y": 50, "label": "GK", "side": "us", "dim": true },
+        { "id": "u-lb", "x": 68, "y": 18, "label": "LB", "side": "us" },
+        { "id": "u-lcb", "x": 66, "y": 39, "label": "CB", "side": "us" },
+        { "id": "u-rcb", "x": 66, "y": 61, "label": "CB", "side": "us" },
+        { "id": "u-rb", "x": 72, "y": 79, "label": "RB", "side": "us", "cue": "PRESS" },
+        { "id": "o-6", "x": 88, "y": 50, "label": "6", "side": "them", "dim": true },
+        { "id": "o-lw", "x": 78, "y": 78, "label": "LW", "side": "them" },
+        { "id": "o-9", "x": 62, "y": 48, "label": "9", "side": "them", "dim": true }
+      ],
+      "arrows": [
+        { "id": "ar-3", "kind": "pass", "from": { "x": 88, "y": 50 }, "to": { "x": 78, "y": 78 } }
+      ],
+      "bands": [{ "id": "bd-behind3", "kind": "block", "throughTokens": ["u-lb", "u-lcb", "u-rcb", "u-rb"] }]
+    }
+  ]
+}

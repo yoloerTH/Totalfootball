@@ -1,0 +1,106 @@
+---
+/**
+ * The render harness: a page whose only job is to be driven by a robot.
+ *
+ * `renderVideo()` needs WebCodecs, so it only runs in a browser. That is the
+ * right call for the product — the file costs us no render farm and the coach's
+ * document never leaves their machine (docs/STUDIO.md §3e) — but it means the
+ * only way to make a video has been for a person to open the studio and press
+ * Save. That is fine for a coach with one system and useless for OUR channel,
+ * which wants a batch of them.
+ *
+ * So: this page, plus `scripts/render-video.mjs`, which opens it in a real
+ * Chrome and hands it a document. The important property is that it adds NO
+ * rendering code. It is a `window` binding around the same `renderVideo()` the
+ * dialog calls, so a video made by the robot and a video made by a coach come
+ * out of the same function — the one-renderer rule of §3e, extended to the CLI
+ * rather than excused from it.
+ *
+ * NOT LINKED, `noindex`, AND HARMLESS IF FOUND. It ships in the production
+ * build because keeping it out would mean a second build config, and there is
+ * nothing here to protect: it renders a document that the caller supplies, in
+ * the caller's own browser, and reads nothing. A visitor who finds it sees the
+ * word "Renderer" on a blank page.
+ *
+ * It is deliberately NOT a React island. The editor mounts one because it is an
+ * application; this is a function call, and `client:only` would pull in the
+ * whole editor to reach a module the script can import directly.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+---
+
+<BaseLayout
+  title="Renderer"
+  description="Internal render harness."
+  path="/studio/render/"
+  noindex
+  bare
+>
+  <main style="font: 500 14px/1.5 system-ui, sans-serif; padding: 2rem; color: #161618;">
+    <p id="tf-status">Renderer ready.</p>
+  </main>
+</BaseLayout>
+
+<script>
+  import type { System } from '../../studio/schema'
+  import type { VideoOptions } from '../../studio/video'
+
+  /**
+   * The file comes back as base64 over CDP.
+   *
+   * A `Uint8Array` returned from `page.evaluate` is serialised as a JSON object
+   * with one numbered key PER BYTE — a 3MB film becomes a 40MB message and
+   * several seconds of parsing. base64 is a third bigger than the bytes and
+   * transfers as one string.
+   */
+  function base64(bytes: Uint8Array): string {
+    let s = ''
+    // Chunked for the same reason videoRender.ts chunks: spreading a multi-MB
+    // array into String.fromCharCode blows the argument limit, and it fails as
+    // a RangeError rather than as a bad file.
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      s += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    }
+    return btoa(s)
+  }
+
+  declare global {
+    interface Window {
+      __tfRender: (system: System, opts?: VideoOptions) => Promise<{
+        data: string
+        filename: string
+        ext: string
+        seconds: number
+      }>
+      /** Last progress fraction, polled by the CLI so a long render shows a bar. */
+      __tfProgress: number
+    }
+  }
+
+  window.__tfProgress = 0
+
+  window.__tfRender = async (system, opts = {}) => {
+    const status = document.getElementById('tf-status')
+    if (status) status.textContent = `Rendering “${system.title}”…`
+
+    // Dynamic, exactly as the dialog does it: this module carries a muxer, an
+    // encoder and a second copy of React's renderer, and nothing may import it
+    // eagerly (see the header of src/studio/videoRender.ts).
+    const { renderVideo } = await import('../../studio/videoRender')
+
+    const file = await renderVideo(system, {
+      ...opts,
+      onProgress: (f) => {
+        window.__tfProgress = f
+      },
+    })
+
+    if (status) status.textContent = `Done: ${file.filename}`
+    return {
+      data: base64(new Uint8Array(await file.blob.arrayBuffer())),
+      filename: file.filename,
+      ext: file.ext,
+      seconds: file.seconds,
+    }
+  }
+</script>
