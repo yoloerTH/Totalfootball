@@ -17,5 +17,12 @@ node_modules/
 # raw remotion exports — regenerate with media/export.sh
 media/raw/
 
+# rendered films — regenerate with scripts/render-video.mjs
+out/
+
+# promo plates — regenerate with scripts/shoot-studio.mjs. Hundreds of MB of
+# 2x PNGs, and the shoot is deterministic, so the script is the asset.
+shots/
+
 # Supabase CLI scratch (version check cache), not project state.
 supabase/.temp/

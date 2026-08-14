@@ -1,0 +1,187 @@
+---
+/**
+ * The shoot harness: the editor, opened by a robot instead of by a coach.
+ *
+ * `/studio/render/` exists so a film can be MADE without a person pressing
+ * Save. This page exists so the editor can be FILMED without a person using it
+ * — the footage that goes inside a promo. Same posture, same reasoning, and
+ * the same rule holds over both: it adds NO product code. It mounts the real
+ * `StudioEditor` with a document handed to it, and that is all it does.
+ *
+ * ── WHY NOT JUST DRIVE /studio/new/ ──────────────────────────────────────────
+ *
+ * Because `StudioMount` sends anyone without a session to /studio/login/ (see
+ * its header), and the promo has no business holding a real coach's credentials
+ * or a service key to get past that. `StudioMount` is also the only file in the
+ * editor that touches auth — `StudioEditor` is a pure function of
+ * `(systemId, initial)`, exactly as StudioMount's own comment says. So the
+ * robot skips the resolver and supplies the document itself.
+ *
+ * That is not a cheat that changes what is on film. The one thing the session
+ * reaches into the editor is `useCloudSync`, which returns 'off' when nobody is
+ * signed in — so the only visible difference between this and a coach's screen
+ * is the absence of the "Saved" chip, which is the correct thing for a promo to
+ * be missing anyway.
+ *
+ * ── NOT LINKED, `noindex`, AND HARMLESS IF FOUND ─────────────────────────────
+ *
+ * Same as the renderer. It ships in the production build because keeping it out
+ * would mean a second build config, and there is nothing here to protect: it
+ * opens a document that the caller supplies, in the caller's own browser, and
+ * reads nothing. Landing on it without a document gets you the word "Shoot" on
+ * a blank page.
+ *
+ * ── THE LAYOUT IS COPIED FROM new.astro ON PURPOSE ───────────────────────────
+ *
+ * `bare`, same wrapper, same everything. If this page framed the editor even
+ * slightly differently, the promo would be showing a screen that does not
+ * exist. Keep the two in step — if new.astro's chrome changes, change it here.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+---
+
+<BaseLayout
+  title="Shoot"
+  description="Internal shoot harness."
+  path="/studio/shoot/"
+  noindex
+  bare
+>
+  <div id="tf-shoot"></div>
+</BaseLayout>
+
+<script>
+  import type { System } from '../../studio/schema'
+  import type { GuideState } from '../../studio/storage'
+  // Static: it is a few hundred bytes of geometry, and __tfPoint has to be
+  // synchronous the moment the shoot script sees it appear on `window`. Only
+  // the editor is worth deferring, and it is deferred below.
+  import { PITCH_VIEWS, toUnits, viewBox as viewBoxOf } from '../../studio/board/pitch'
+
+  declare global {
+    interface Window {
+      /** Mount the editor on a document. Resolves once it has painted. */
+      __tfShootMount: (system: System, opts?: ShootOptions) => Promise<void>
+      /**
+       * A document coordinate, in CSS pixels on screen.
+       *
+       * The shoot script needs to put the pointer on a player, and a player's
+       * position is stored in percent of the crop. Rather than let the script
+       * work out where that lands — which would be a second copy of the board's
+       * geometry, drifting the first time a pitch view changed — it asks the
+       * board, through the board's own `toUnits` and the live `getScreenCTM`.
+       */
+      __tfPoint: (x: number, y: number) => { x: number; y: number }
+      /** The board's bounding box in CSS pixels, for framing a punch-in. */
+      __tfBoardRect: () => { x: number; y: number; width: number; height: number }
+    }
+  }
+
+  interface ShootOptions {
+    /**
+     * Guidance state to open with.
+     *
+     * Defaults to a coach who has been here before: no walkthrough over the
+     * board, no step rail down the side. Both are worth filming ON for a shot
+     * about the guidance layer, which is why this is an option and not a
+     * hardcoded suppression.
+     */
+    guide?: Partial<GuideState>
+  }
+
+  /** Must match GUIDE_KEY in ../../studio/storage.ts. */
+  const GUIDE_KEY = 'tf-studio:guide:v1'
+
+  /** The live root, kept so a second beat can tear the first one down. */
+  let root: import('react-dom/client').Root | null = null
+
+  window.__tfShootMount = async (system, opts = {}) => {
+    /*
+     * Seeded BEFORE the editor mounts, because `readGuide()` is called in a
+     * useState initialiser — writing it afterwards would leave a walkthrough
+     * already on screen and a rail already open, one frame into the film.
+     */
+    const guide: Partial<GuideState> = { seen: true, railOpen: false, ...opts.guide }
+    localStorage.setItem(GUIDE_KEY, JSON.stringify(guide))
+
+    // Dynamic so the page carries no editor until it is asked for one, the same
+    // way /studio/render/ carries no renderer. A visitor gets a blank page.
+    const [{ createRoot }, { createElement }, { default: StudioEditor }] = await Promise.all([
+      import('react-dom/client'),
+      import('react'),
+      import('../../studio/editor/StudioEditor'),
+    ])
+
+    /*
+     * Every mount is a CLEAN one.
+     *
+     * Beats are filmed one after another down a single page, and the first cut
+     * of this let them leak: the beat that adds a phase left a fifth phase on
+     * the board, and the share dialog filmed after it advertised a system with
+     * an empty "Phase 5" in the strip. Tearing the root down and rebuilding the
+     * host means each beat opens on the document it was given and nothing else.
+     */
+    let host = document.getElementById('tf-shoot')!
+    if (root) {
+      root.unmount()
+      const fresh = document.createElement('div')
+      fresh.id = 'tf-shoot'
+      host.replaceWith(fresh)
+      host = fresh
+    }
+    // Autosave writes the edited document under this id; clearing it stops one
+    // beat's edits reaching the next through localStorage as well.
+    localStorage.removeItem('tf-studio:v1')
+
+    root = createRoot(host)
+    root.render(createElement(StudioEditor, { systemId: 'shoot', initial: system }))
+
+    // Two frames: one for React to commit, one for the browser to paint it.
+    // Without this the first screenshot catches an empty board.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  }
+
+  /** The one <svg> the editor labels as the board. */
+  function boardSvg(): SVGSVGElement {
+    const svg = document.querySelector<SVGSVGElement>('svg[aria-label$="tactical board"]')
+    if (!svg) throw new Error('no board on the page yet — call __tfShootMount first')
+    return svg
+  }
+
+  window.__tfPoint = (x, y) => {
+    const svg = boardSvg()
+    const ctm = svg.getScreenCTM()
+    if (!ctm) throw new Error('the board is not on screen')
+
+    // The inverse of `clientToPercent` in ../../studio/board/Board.tsx, built
+    // out of the same two pieces: the view's percent→units map, then the live
+    // screen matrix. Imported rather than reimplemented for the usual reason.
+    const view = currentView()
+    const units = toUnits(view, x, y)
+    const pt = svg.createSVGPoint()
+    pt.x = units.x
+    pt.y = units.y
+    const screen = pt.matrixTransform(ctm)
+    return { x: screen.x, y: screen.y }
+  }
+
+  window.__tfBoardRect = () => {
+    const r = boardSvg().getBoundingClientRect()
+    return { x: r.x, y: r.y, width: r.width, height: r.height }
+  }
+
+  /*
+   * Which pitch view is on the board right now.
+   *
+   * Read off the live <svg>'s viewBox rather than off the document handed in,
+   * because the coach can change the view from the panel mid-shoot and the
+   * point we return has to follow what is actually drawn.
+   */
+  function currentView() {
+    const box = boardSvg().getAttribute('viewBox')
+    for (const view of Object.values(PITCH_VIEWS)) {
+      if (viewBoxOf(view) === box) return view
+    }
+    throw new Error(`no pitch view matches viewBox "${box}"`)
+  }
+</script>
