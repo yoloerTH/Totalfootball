@@ -258,6 +258,66 @@ const structuredData = [
     </ol>
   </section>
 
+  {/* ── The film ─────────────────────────────────────────────────────────
+      Placed here and nowhere else: the reader has just finished 01, 02, 03 in
+      prose, and this is the same three moves happening. Above the steps it
+      would be a trailer for something not yet explained.
+
+      IT DOES NOT GO IN THE HERO. StudioDeck is the hero, deliberately — pure
+      SVG and CSS, no JS, no layout cost, and the page's own header explains why
+      showing the gesture beats any headline about it. A 4.5MB autoplaying video
+      up there would undo that and fight the no-JS rule the README opens with.
+
+      `preload="none"` so it costs a visitor nothing until they ask for it, and
+      width/height so the poster reserves its box and the page does not jump —
+      the same reason the phase diagrams carry explicit dimensions.
+
+      4:5 because that is the master the film is cut in: the tallest an IG or FB
+      feed will show, and a portrait card sits in this column far better than a
+      16:9 letterbox would. The 9:16 derive is for TikTok and Reels and has no
+      business on a web page. */}
+  <section class="border-t border-ink-hair bg-paper-deep/40">
+    <div class="shell py-24 md:py-32">
+      <div class="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-16">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">The film · 37 seconds</p>
+          <h2 class="max-w-[16ch] text-title font-black" data-reveal="clip">
+            The three moves, happening.
+          </h2>
+          <p
+            class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft"
+            data-reveal="rise"
+          >
+            A shape goes down, a player moves, and the phase between the two plays
+            itself back. Then the link, and the file.
+          </p>
+          <p
+            class="mt-5 max-w-prose leading-relaxed text-ink-soft"
+            data-reveal="rise"
+            data-reveal-delay="80"
+          >
+            Everything on screen is the studio itself — filmed, not drawn. Nothing
+            in it is an illustration of a feature that does not exist yet.
+          </p>
+        </div>
+
+        <div data-reveal="fade" data-reveal-delay="160">
+          <video
+            class="mx-auto w-full max-w-[26rem] rounded-2xl border border-ink-hair shadow-paper"
+            src="/studio/promo/studio-4x5.mp4"
+            poster="/studio/promo/studio-4x5.webp"
+            width="1080"
+            height="1350"
+            controls
+            preload="none"
+            playsinline
+            data-track="studio:promo-play"
+          ></video>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {/* ── What you get out ─────────────────────────────────────────────── */}
   <section class="border-y border-ink-hair bg-paper-deep/30">
     <div class="shell py-24 md:py-32">

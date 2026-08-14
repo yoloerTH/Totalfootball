@@ -123,6 +123,25 @@ class Camera {
     this.cursor = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2, down: false }
     this.frames = []
     this.beats = []
+    this.rects = {}
+  }
+
+  /**
+   * Record where something is on screen, for the edit to frame against.
+   *
+   * The alternative is reading rectangles off a screenshot by eye and typing
+   * them into the composition, which is a second copy of the layout that goes
+   * wrong the first time a panel changes width. The page already knows.
+   */
+  async rect(name, selector) {
+    const box = await this.page.locator(selector).first().boundingBox()
+    if (!box) throw new Error(`cannot measure ${name}: nothing matches ${selector}`)
+    this.rects[name] = {
+      x: round(box.x),
+      y: round(box.y),
+      w: round(box.width),
+      h: round(box.height),
+    }
   }
 
   /** Take one frame exactly as the page stands. */
@@ -195,6 +214,7 @@ class Camera {
           scale: this.opts.scale,
           viewport: VIEWPORT,
           frames: this.n,
+          rects: this.rects,
           beats: this.beats,
           cursor: this.frames,
         },
@@ -247,6 +267,16 @@ const SHOTS = {
     const a = await cam.page.evaluate(([x, y]) => window.__tfPoint(x, y), [from.x, from.y])
     const b = await cam.page.evaluate(([x, y]) => window.__tfPoint(x, y), [mover.to.x, mover.to.y])
 
+    await cam.rect('board', 'svg[aria-label$="tactical board"]')
+    // The run itself, so the edit can punch onto the gesture rather than onto
+    // the middle of the board and hope the player crosses it.
+    cam.rects.run = {
+      x: round(Math.min(a.x, b.x)),
+      y: round(Math.min(a.y, b.y)),
+      w: round(Math.abs(b.x - a.x)),
+      h: round(Math.abs(b.y - a.y)),
+    }
+
     await cam.page.mouse.move(cam.cursor.x, cam.cursor.y)
     await cam.hold(6)
 
@@ -280,6 +310,14 @@ const SHOTS = {
     await cam.page.waitForTimeout(400)
 
     const add = await centreOf(cam.page, 'button:has-text("+ Add")')
+    await cam.rect('board', 'svg[aria-label$="tactical board"]')
+    // The whole run of thumbnails plus the button, which is what this beat is
+    // about — measured end to end rather than as one element, because the strip
+    // has no wrapper of its own to point at.
+    await cam.rect('firstPhase', '[title^="Phase 1:"]')
+    await cam.rect('addButton', 'button:has-text("+ Add")')
+    cam.rects.strip = union(cam.rects.firstPhase, cam.rects.addButton)
+
     await cam.hold(4)
 
     let start = cam.n
@@ -330,10 +368,25 @@ async function filmDialog(cam, name) {
 
   // Settle, unfilmed. See the note on SHOTS.share.
   await cam.page.waitForTimeout(700)
+  // The CARD, not the element carrying role="dialog" — that one is the
+  // full-viewport backdrop, and framing on it is framing on nothing.
+  await cam.rect('dialog', '[role="dialog"] > div')
 
   start = cam.n
   await cam.hold(24)
   cam.mark('dialog', start)
+}
+
+/** The smallest rectangle containing both. */
+function union(a, b) {
+  const x = Math.min(a.x, b.x)
+  const y = Math.min(a.y, b.y)
+  return {
+    x: round(x),
+    y: round(y),
+    w: round(Math.max(a.x + a.w, b.x + b.w) - x),
+    h: round(Math.max(a.y + a.h, b.y + b.h) - y),
+  }
 }
 
 /**
