@@ -67,7 +67,20 @@ const n = (v: number) => Number(v.toFixed(2))
 <svg
   viewBox="0 0 1200 800"
   preserveAspectRatio="xMidYMid slice"
-  class:list={['pg absolute inset-0 h-full w-full text-ink', draw && 'is-drawing', klass]}
+  {/*
+    `pointer-events-none` and `-z-10` are load-bearing, not tidiness. This is an
+    absolutely positioned element covering its whole section, so without them it
+    paints over the in-flow content and takes every click on it — which on the
+    login page meant a form nobody could type into or press. It is scenery: it
+    must never be hit-testable, wherever it is used. The callers give it an
+    `isolate`d parent so the negative z-index stops at that section rather than
+    sliding behind the page.
+  */}
+  class:list={[
+    'pg pointer-events-none absolute inset-0 -z-10 h-full w-full text-ink',
+    draw && 'is-drawing',
+    klass,
+  ]}
   style={`opacity:${opacity};` +
     '-webkit-mask-image:radial-gradient(ellipse 72% 70% at 50% 46%, #000 4%, transparent 76%);' +
     'mask-image:radial-gradient(ellipse 72% 70% at 50% 46%, #000 4%, transparent 76%)'}
