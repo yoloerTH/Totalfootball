@@ -177,7 +177,7 @@ export default function Viewer() {
           <Mark size={44} />
           <h1 className="mt-4 text-xl font-black tracking-display text-ink">This link did not open</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            Either the system it points at is no longer published, or the link was cut short on its way here —
+            Either the system it points at is no longer published, or the link was cut short on its way here,
             wrapped by an email, trimmed by a message app. Ask whoever sent it for a fresh one, or build your own.
           </p>
           <a
@@ -338,7 +338,7 @@ function PrintSheet({ system }: { system: System }) {
           {system.subtitle && <p className="tf-cover-sub">{system.subtitle}</p>}
           <p className="tf-cover-meta">
             {[credit?.presenter, credit?.team].filter(Boolean).join(' · ')}
-            {credit?.note ? ` — ${credit.note}` : ''}
+            {credit?.note ? ` · ${credit.note}` : ''}
           </p>
           <p className="tf-cover-date">{formatDate(credit?.sharedOn)}</p>
         </div>

@@ -41,8 +41,12 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
 import EarlyAccessForm from '../components/EarlyAccessForm.astro'
 import AgentFlow from '../components/visual/AgentFlow.astro'
+import RouteGlyph from '../components/visual/RouteGlyph.astro'
+import CountUp from '../components/visual/CountUp.astro'
 import Faq from '../components/Faq.astro'
 import { faqGroup } from '../data/faq'
+import { OPERATOR, CASE_STUDIES, caseStudyUrl } from '../data/naurra'
+import { CHANNEL } from '../data/channel'
 
 const courseFaqs = faqGroup('course')
 
@@ -70,78 +74,99 @@ const TRACKS: Record<Track, { label: string; note: string }> = {
   money: { label: 'The money', note: 'Parts 10–12 · social, B2B, B2C' },
 }
 
-const modules: { n: string; track: Track; title: string; body: string }[] = [
+/**
+ * Each part carries a `builds`: the thing you physically have at the end of it.
+ *
+ * That field is not decoration either. Twelve paragraphs of "you will learn"
+ * is the format every course page uses and it is why none of them are
+ * believed. A concrete artefact per part is checkable, it is what a reader is
+ * really buying, and it also forced the bodies to get shorter, because a part
+ * that cannot name what it produces was a part that was padding.
+ */
+const modules: { n: string; track: Track; title: string; body: string; builds: string }[] = [
   {
     n: '01',
     track: 'motion',
     title: 'The two styles that sell',
-    body: 'The explainer and the story short are different crafts. One teaches a system with choreography and no narration; the other carries a career, a night or a product through portraits, type and pacing. You build one of each, and they are the two formats every client and every platform pays for.',
+    body: 'The explainer and the story short are different crafts. One teaches a system with choreography and no narration, the other carries a career or a product through portraits, type and pacing. They are the two formats platforms reward and clients pay for.',
+    builds: 'One of each, briefed and storyboarded',
   },
   {
     n: '02',
     track: 'motion',
     title: 'The engine',
-    body: 'A reusable, scale-accurate scene with tokens, a subject the camera follows, and cues that reassign themselves as the action moves. Football is the worked example; the pattern is the same for a product tour or a process diagram. Once this exists, a new video is choreography rather than construction.',
+    body: 'A reusable, scale-accurate scene: tokens, a subject the camera follows, and cues that reassign themselves as the action moves. Football is the worked example; the same pattern draws a product tour or a process diagram. After this, a new video is choreography rather than construction.',
+    builds: 'Your own reusable engine',
   },
   {
     n: '03',
     track: 'motion',
     title: 'Choreography',
-    body: 'Why an eased fast-then-slow move reads as professional and a linear one does not. Holding a beat, staggering reveals so value keeps arriving, and the single most common failure: showing everything in four seconds and then sitting still.',
+    body: 'Why an eased fast-then-slow move reads as professional and a linear one does not. Holding a beat, staggering reveals so value keeps arriving, and the most common failure of all: showing everything in four seconds, then sitting still.',
+    builds: 'A timing sheet you reuse on every video',
   },
   {
     n: '04',
     track: 'motion',
-    title: 'Sound without a licence',
-    body: 'Synthesising your own effect kit, mapping cues tightly to motion, and ducking a bed under the transients. Copyright-safe by construction — which is what lets you sell the same video twice and post it on four platforms without a claim.',
+    title: 'Sound you own',
+    body: 'Synthesising your own effect kit, mapping cues tightly to motion, and ducking a bed under the transients. Copyright-safe by construction, which is what lets you sell the same video twice and post it on four platforms without a claim.',
+    builds: 'A sound kit that is legally yours',
   },
   {
     n: '05',
     track: 'motion',
     title: 'Shipping',
-    body: 'Export settings, the safe zones each platform crops, caption placement, and the trim discipline that turned out to matter more than anything done in the render.',
+    body: 'Export settings, the safe zone each platform crops to, caption placement, and the trim discipline that turned out to matter more than anything done in the render.',
+    builds: 'Your first finished video, published',
   },
   {
     n: '06',
     track: 'agents',
     title: 'The pipeline that runs itself',
-    body: 'The part nobody films: agentic workflows that watch a source, pull the data, draft the asset and queue the post. Where a model genuinely decides something, where it must not, and the checks that keep a wrong call off a channel that is not yours to break.',
+    body: 'The part nobody films: a workflow that watches a source, pulls the data, drafts the asset and queues the post. Where a model may decide something, where it may not, and the gate that keeps a wrong call off a channel.',
+    builds: 'A working end-to-end pipeline',
   },
   {
     n: '07',
     track: 'agents',
     title: 'Building your own agents',
-    body: 'Nodes, triggers, tools and the handoffs between them, built on what you already have rather than on a platform you have to marry. By the end you have one running workflow doing a job you currently do by hand.',
+    body: 'Nodes, triggers, tools, and the handoffs between them, built on what you already use rather than on a platform you have to marry.',
+    builds: 'One workflow doing a job you do by hand',
   },
   {
     n: '08',
     track: 'agents',
-    title: 'Wiring what you already pay for',
-    body: 'Models, a spreadsheet, a scheduler, a cheap box to run it on. What each part actually costs at real volume, which jobs are worth a frontier model and which are worth the cheapest one that works, and how to keep a runaway loop from becoming a bill.',
+    title: 'What the stack really costs',
+    body: 'Models, a spreadsheet, a scheduler, a cheap box to run it on. What each part costs at real volume, which jobs deserve a frontier model and which want the cheapest one that works, and how to stop a runaway loop becoming a bill.',
+    builds: 'A costed stack, priced per run',
   },
   {
     n: '09',
     track: 'agents',
     title: 'Running it for somebody else',
-    body: 'The step between a workflow that works for you and one you can hand over: separating a client’s data from yours, failing loudly instead of silently, and writing the handover so a support request does not arrive at midnight. This is what makes the automation sellable rather than personal.',
+    body: 'The step between a workflow that works for you and one you can hand over: keeping a client\u2019s data apart from yours, failing loudly instead of silently, and a handover that stops the support call arriving at midnight.',
+    builds: 'A client-ready version of your workflow',
   },
   {
     n: '10',
     track: 'money',
-    title: 'Social: building the audience that pays',
-    body: 'The pacing rules in this course are not taste — they came out of measuring 88 published shorts: where attention is lost, which second decides it, and why a whole-team system outperformed a technique clinic by a factor of seven. Then what to do with the attention: platform payouts, sponsorship, affiliate, and moving people to something you own before an algorithm changes its mind.',
+    title: 'Social: the audience that pays',
+    body: 'The pacing rules here are not taste. They came out of measuring 88 published shorts: where attention is lost, which second decides it, and why a whole-team system beat a technique clinic by a factor of seven. Then what to do with the attention once it arrives.',
+    builds: 'A posting plan, and your payout accounts live',
   },
   {
     n: '11',
     track: 'money',
-    title: 'B2B: selling video and automation to businesses',
-    body: 'Who actually buys this — clubs, academies, agencies, brands, and any operation drowning in a manual process. Finding them, the offer that gets a first yes, pricing a pilot against a retainer, and delivering without becoming a full-time freelancer. The automation half is the higher-margin half, and it is the one almost nobody in this niche can do.',
+    title: 'B2B: getting paid by businesses',
+    body: 'Who buys this: clubs, academies, agencies, brands, and any operation with a manual process eating its week. How to find them, the message that gets a first reply, quoting a paid pilot, and turning that pilot into a monthly retainer.',
+    builds: 'A priced offer and a list of who to send it to',
   },
   {
     n: '12',
     track: 'money',
     title: 'B2C: products that sell while you sleep',
-    body: 'The other direction: templates, presets, a paid channel, a membership, a course of your own. Choosing which of them your audience will actually buy, pricing it, the launch, and the list that makes the second launch easier than the first.',
+    body: 'The other direction: a template pack, a preset, a paid channel, a membership, a course of your own. Which one your audience will actually buy, what to charge, how to launch it, and the list that makes the second launch easier than the first.',
+    builds: 'One product, priced and ready to sell',
   },
 ]
 
@@ -149,44 +174,55 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
  * The three routes, stated before the outline so the ladder reads as an answer
  * to something rather than as a syllabus.
  *
- * NO OUTCOMES HERE. Every line names a mechanism a reader can picture and none
+ * `sell` and `paid` are the two questions this page kept answering vaguely.
+ * "Monetise your skills" means nothing. What a reader needs is the OBJECT that
+ * changes hands and the MECHANISM that pays for it, and both fit in a line
+ * each, so they get a line each and they sit above the detail.
+ *
+ * NO OUTCOMES HERE. Every line names something a reader can picture and none
  * names a number a reader cannot check. See the header note.
  */
 const ROUTES = [
   {
-    // The tags are the three words a reader is scanning for — social, B2B,
-    // B2C — and the titles map one-to-one onto the hero's last sentence, so
-    // the promise made up there is the promise being itemised down here.
+    // The tags are the three words a reader is scanning for (social, B2B, B2C)
+    // and the titles map one-to-one onto the hero's last sentence, so the
+    // promise made up there is the promise being itemised down here.
     tag: 'Social media',
     title: 'The audience',
-    lead: 'Post the work and let the audience compound.',
+    kind: 'audience' as const,
+    sell: 'Nothing, at first. You publish, and reach accumulates.',
+    paid: 'The platforms pay for views, then sponsors pay for the audience, then your own products sell to it.',
     items: [
-      'Platform payout programmes, and which ones are worth optimising for',
-      'Brand and sponsor deals, and what a page this size can honestly charge',
-      'Affiliate and product placement that does not cost you the audience',
-      'Moving people to an email list or a channel you own',
+      'Platform payout programmes, and which are worth optimising for',
+      'Sponsor and brand deals, and what a page of a given size can charge',
+      'Affiliate links and placements that do not cost you the audience',
+      'Moving followers onto an email list or a channel you own outright',
     ],
   },
   {
     tag: 'B2B',
     title: 'The clients',
-    lead: 'Sell the same two skills to people with budgets.',
+    kind: 'clients' as const,
+    sell: 'A fixed-price video package, or a workflow that removes a job from somebody\u2019s week.',
+    paid: 'A one-off fee for the video, and a monthly retainer for keeping the automation running.',
     items: [
-      'Explainer and social video as a productised service, not a bespoke quote',
-      'Automation retainers — the higher-margin half, and the rarer skill',
+      'Video sold as a fixed package, never as an hourly rate',
+      'Automation retainers: the higher-margin half, and the rarer skill',
       'Who buys: clubs, academies, agencies, brands, any manual back office',
-      'Pricing a pilot, then the retainer it turns into',
+      'Quoting a paid pilot, then converting it into a monthly retainer',
     ],
   },
   {
     tag: 'B2C',
     title: 'The products',
-    lead: 'Build it once, sell it while you are asleep.',
+    kind: 'products' as const,
+    sell: 'A file or an account: a template pack, a preset, a membership, a course.',
+    paid: 'Once per buyer, or every month, with no extra hour of your time per sale.',
     items: [
-      'Templates, presets and engines other people pay to skip building',
-      'A membership or a paid channel, and what keeps one alive past month three',
+      'Templates, presets and engines people pay to skip building',
+      'A membership or paid channel, and what keeps one alive past month three',
       'Your own course, run the way this one is',
-      'The list, the launch, and why the second one is easier',
+      'The list, the launch, and why the second launch is easier',
     ],
   },
 ]
@@ -195,7 +231,7 @@ const ROUTES = [
 
 <BaseLayout
   title="The course: AI motion graphics, AI automation, and what to sell with them"
-  description="Two AI skills and the three systems that turn them into income. Motion graphics of the kind this channel is made of, the agentic automation that runs it, and how each one gets sold — on social, to businesses, and as your own products. Early access at EUR 39 a month, locked for life."
+  description="Two AI skills and the three systems that turn them into income: motion graphics, agentic automation, and how each one gets sold on social, to businesses, and as your own products. Taught by the team behind 10 shipped AI systems. Early access at EUR 39 a month, locked for life."
   path="/course/"
 >
   <section class="stage border-b border-ink-hair">
@@ -217,7 +253,7 @@ const ROUTES = [
           opening a file.
         </p>
         <p class="mt-6 max-w-prose text-[17px] leading-[1.75] text-ink-soft">
-          Then the part these courses always leave out — the three systems that turn either skill
+          Then the part these courses always leave out: the three systems that turn either skill
           into money. An audience that pays, businesses that pay more, and products that keep paying
           after you have closed the laptop. Football is the worked example, not the subject.
         </p>
@@ -230,6 +266,22 @@ const ROUTES = [
             Lock <strong class="font-bold text-ink">€39/month</strong> for life
           </span>
         </div>
+
+        {/* The credential, in the first screen rather than four sections down.
+            "Why you" is the question a stranger asks before any of the others,
+            and the answer here is a checkable one. */}
+        <p class="mt-9 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-ink-hair pt-7 text-[14px] text-ink-soft">
+          <span
+            class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-tf-gradient-soft text-[11px] font-black tabular-nums text-ink"
+            aria-hidden="true">{OPERATOR.shipped}</span
+          >
+          Taught by the team behind {OPERATOR.shipped} shipped AI systems, this channel among them.
+          <a
+            href="#record"
+            class="font-semibold text-ink underline underline-offset-4 hover:text-ink-soft"
+            data-track="course:jump-record">See the record</a
+          >
+        </p>
       </div>
     </div>
   </section>
@@ -308,7 +360,7 @@ const ROUTES = [
         </h2>
         <p class="mt-6 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal="rise">
           Most people who learn this end up doing one of three things with it. The course covers all
-          three, in the detail it takes to actually run one — the offer, the pricing, and the part
+          three, in the detail it takes to actually run one: the offer, the pricing, and the part
           that goes wrong first.
         </p>
       </div>
@@ -316,12 +368,39 @@ const ROUTES = [
       <ul class="mt-14 grid list-none gap-px overflow-hidden rounded-2xl border border-ink-hair bg-ink-hair p-0 lg:grid-cols-3">
         {
           ROUTES.map((route, i) => (
-            <li class="bg-paper p-8 md:p-9" data-reveal="rise" data-reveal-delay={i * 90}>
-              <p class="micro mb-5">{route.tag}</p>
-              <h3 class="text-2xl font-black tracking-display">{route.title}</h3>
-              <p class="mt-3 text-[15px] font-semibold leading-relaxed text-ink">{route.lead}</p>
+            <li class="bg-paper p-7 md:p-8" data-reveal="rise" data-reveal-delay={i * 90}>
+              {/* The drawing first. Each route has a genuinely different shape
+                  and the shape is the argument, so it goes above the words
+                  rather than beside them. See RouteGlyph.astro. */}
+              <RouteGlyph kind={route.kind} delay={i * 900} class="mb-7" />
 
-              <ul class="mt-7 space-y-3.5">
+              <p class="micro mb-4">{route.tag}</p>
+              <h3 class="text-2xl font-black tracking-display">{route.title}</h3>
+
+              {/*
+                The two lines that were missing. "Monetise your skills" tells a
+                reader nothing; the object that changes hands and the mechanism
+                that pays for it tell them everything, and they are worth more
+                real estate than the bullet list underneath.
+              */}
+              {/* The min-height is what lines the three "Covered in the
+                  course" rules up across the row. Without it each card's
+                  divider sits at a different height, because the three
+                  answers are naturally different lengths, and a row of cards
+                  whose internal rules do not agree reads as three pages. */}
+              <dl class="mt-6 space-y-4 border-y border-ink-hair py-6 lg:min-h-[13.5rem]">
+                <div>
+                  <dt class="micro mb-1.5">You sell</dt>
+                  <dd class="text-[15px] font-semibold leading-relaxed text-ink">{route.sell}</dd>
+                </div>
+                <div>
+                  <dt class="micro mb-1.5">You get paid</dt>
+                  <dd class="text-[15px] leading-relaxed text-ink-soft">{route.paid}</dd>
+                </div>
+              </dl>
+
+              <p class="micro mb-4 mt-6">Covered in the course</p>
+              <ul class="space-y-3.5">
                 {route.items.map((item) => (
                   <li class="flex gap-3">
                     <span
@@ -339,10 +418,122 @@ const ROUTES = [
 
       <p class="mt-10 max-w-prose text-[15px] leading-relaxed text-ink-soft" data-reveal="fade">
         <strong class="font-bold text-ink">No income claims, and no screenshots of a dashboard.</strong>
-        {' '}What gets taught is the method and the real numbers behind this operation — 88 published
+        {' '}What gets taught is the method and the real numbers behind this operation: 88 published
         shorts, measured, and the automation that runs on top of them. What you earn with it depends
         on you, and anybody who tells you otherwise is selling you the screenshot.
       </p>
+    </div>
+  </section>
+
+  {/* ── Who is teaching this ─────────────────────────────────────────
+      The question the page never answered, and the only one that matters
+      before somebody hands over a card: why would I learn this from you.
+
+      The honest answer is not "we run a football channel". It is that this is
+      published by an AI company with ten delivered client systems behind it,
+      and the channel is one of them. Every card links out to the case study on
+      naurra.ai that substantiates it, because a claim that cannot be checked
+      is worth less than no claim. Figures come from data/naurra.ts, which is
+      copied from the company site and may not be embellished here. */}
+  <section id="record" class="scroll-mt-20 border-b border-ink-hair bg-paper-deep/40">
+    <div class="shell py-20 md:py-28">
+      <div class="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <p class="micro mb-6" data-reveal="fade">Who is teaching it</p>
+          <h2 class="max-w-[18ch] text-title font-black" data-reveal="clip">
+            We do this for clients. <span class="grad-text">All of it.</span>
+          </h2>
+          <p class="mt-6 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal="rise">
+            {OPERATOR.blurb}
+          </p>
+          <p class="mt-5 max-w-prose text-[15px] leading-relaxed text-ink-soft" data-reveal="rise" data-reveal-delay="80">
+            So nothing in the course is theory that worked once. It is the method used to ship paid
+            systems in travel, automotive, legal, e-commerce, HVAC and CRM, and the same method
+            pointed at a football channel.
+          </p>
+
+          <a
+            href={OPERATOR.caseStudiesUrl}
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost mt-9"
+            data-track="course:case-studies"
+            data-reveal="fade"
+            data-reveal-delay="140"
+          >
+            Read the case studies →
+          </a>
+        </div>
+
+        <div>
+          {/* The band. Three numbers, and the first one is the claim the rest
+              of this section exists to support. */}
+          <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-hair bg-ink-hair sm:grid-cols-3">
+            <div class="bg-paper p-6" data-reveal="rise">
+              <dt class="micro mb-3 min-h-[2.4em]">Systems shipped</dt>
+              <dd class="text-4xl font-black tabular-nums">
+                <CountUp value={OPERATOR.shipped} />
+              </dd>
+            </div>
+            {/*
+              These two are NOT CountUp, deliberately. CountUp reserves the
+              width of its final string, and "5,000,000" counting up to "5M+"
+              is four characters wider than the box it reserved, so in a cell
+              this narrow the digits ran out of the card. A number that breaks
+              the layout on the way to being impressive is worse than a number
+              that just sits there.
+            */}
+            <div class="bg-paper p-6" data-reveal="rise" data-reveal-delay="80">
+              <dt class="micro mb-3 min-h-[2.4em]">Plays on this one</dt>
+              <dd class="text-4xl font-black tabular-nums">{CHANNEL.totalPlaysLabel}</dd>
+            </div>
+            <div class="bg-paper p-6" data-reveal="rise" data-reveal-delay="160">
+              <dt class="micro mb-3 min-h-[2.4em]">Reach after the rebuild</dt>
+              <dd class="text-4xl font-black tabular-nums">5.4x</dd>
+            </div>
+          </dl>
+
+          <ul class="mt-6 grid list-none gap-4 p-0 sm:grid-cols-2">
+            {
+              CASE_STUDIES.map((study, i) => (
+                <li data-reveal="rise" data-reveal-delay={i * 70}>
+                  <a
+                    href={caseStudyUrl(study.slug)}
+                    target="_blank"
+                    rel="noopener"
+                    class="group flex h-full flex-col rounded-2xl border border-ink-hair bg-paper p-6 transition-all duration-300 hover:-translate-y-1 hover:border-ink/20 hover:shadow-paper"
+                    data-track={`course:case:${study.slug}`}
+                  >
+                    <div class="mb-4 flex items-center gap-2">
+                      <span class="rounded-full bg-tf-gradient-soft px-2.5 py-1 text-[11px] font-bold text-ink">
+                        {study.skill === 'motion' ? 'Motion graphics' : 'Automation'}
+                      </span>
+                      <span class="text-[11px] text-ink-faint">{study.industry}</span>
+                    </div>
+
+                    <p class="text-2xl font-black leading-none tracking-display">{study.metric}</p>
+                    <p class="mt-2 text-[14px] font-bold text-ink">{study.title}</p>
+                    <p class="mt-3 flex-1 text-[13px] leading-relaxed text-ink-soft">{study.note}</p>
+
+                    <span class="mt-5 text-[12px] font-semibold text-ink-faint transition-colors group-hover:text-ink">
+                      naurra.ai →
+                    </span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+
+          {/* Said here as well as under the routes, because this is the exact
+              spot where a stranger could read somebody else's revenue as a
+              forecast of their own. */}
+          <p class="mt-6 text-[13px] leading-relaxed text-ink-faint">
+            These are clients' results on their own businesses, published with their context on
+            naurra.ai. They are evidence that the people teaching this have shipped it. They are not
+            a forecast of what you will earn.
+          </p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -430,6 +621,28 @@ const ROUTES = [
                   <p class="mt-2.5 max-w-prose text-[15px] leading-relaxed text-ink-soft">
                     {m.body}
                   </p>
+
+                  {/* The artefact. A tick and four words break up twelve
+                      paragraphs, and more importantly they are the thing a
+                      reader is actually buying: not "you will learn", but the
+                      object you have at the end of the part. */}
+                  <p class="mt-4 inline-flex items-center gap-2 rounded-full border border-ink-hair bg-surface/60 py-1.5 pl-2.5 pr-4">
+                    <svg
+                      viewBox="0 0 24 24"
+                      class="h-3.5 w-3.5 shrink-0 text-green"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m5 13 4 4L19 7" />
+                    </svg>
+                    <span class="text-[13px] font-semibold text-ink">
+                      <span class="text-ink-faint">You build:</span> {m.builds}
+                    </span>
+                  </p>
                 </div>
               </div>
             </li>
@@ -478,7 +691,7 @@ const ROUTES = [
         </div>
         <div class="max-w-prose space-y-5 text-[17px] leading-relaxed text-ink-soft">
           <p data-reveal="rise">
-            A fixture lands, the data gets pulled, a board gets drafted and a post gets queued —
+            A fixture lands, the data gets pulled, a board gets drafted and a post gets queued,
             without anyone opening a file. The interesting part is not the wiring, it is knowing
             where a model should be allowed to decide something and where it absolutely should not.
           </p>
@@ -488,7 +701,7 @@ const ROUTES = [
           </p>
           <p data-reveal="rise" data-reveal-delay="160">
             Then you build one for somebody else, because this is the half almost nobody in this
-            niche can do — and a manual process quietly eating a company’s week is the easiest thing
+            niche can do, and a manual process quietly eating a company’s week is the easiest thing
             in the world to put a price on.
           </p>
         </div>

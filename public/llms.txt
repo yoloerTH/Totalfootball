@@ -27,7 +27,7 @@ library, plus the board the videos are made on.
 - /studio/ is a free browser tool for building the same kind of board yourself
 - /intelligence/ covers Total Stats, a football probability model published free on
   Telegram, with a graded public ledger
-- /course/ is a course in two AI skills and what to sell with them — AI motion
+- /course/ is a course in two AI skills and what to sell with them: AI motion
   graphics, agentic automation, and three routes to income (social audience,
   B2B services, B2C products). Waitlist only; no income claims are made
 - /faq/ answers what the site, the Studio, the Telegram channel and the course

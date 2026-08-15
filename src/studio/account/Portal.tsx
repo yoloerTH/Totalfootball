@@ -205,7 +205,7 @@ export default function Portal() {
       {load === 'local-only' && (
         <Notice tone="gold">
           <span className="font-bold">Showing what is on this machine.</span> We could not reach your
-          account just now — nothing is lost, and these will sync when the connection comes back.
+          account just now. Nothing is lost, and these will sync when the connection comes back.
         </Notice>
       )}
 

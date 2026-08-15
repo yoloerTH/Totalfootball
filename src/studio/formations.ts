@@ -502,7 +502,7 @@ export const FORMATIONS: Formation[] = [
   // ── the empty squad ─────────────────────────────────────────────────────────
   {
     id: 'blank-11',
-    name: 'Blank — place your own XI',
+    name: 'Blank: place your own XI',
     family: 'Start from scratch',
     hint: 'Eleven counters waiting on the touchline. Drag each one where you want it.',
     blank: true,

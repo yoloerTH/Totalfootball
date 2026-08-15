@@ -76,7 +76,7 @@ export function GuideRail({ done, open, onToggle, onReplay }: Props) {
           {complete ? (
             <p className="text-[11px] leading-relaxed text-ink-faint">
               That is everything you need to build a system. The rest of the controls all have a
-              hint — hover over one to see what it does.{' '}
+              hint. Hover over one to see what it does.{' '}
               <button type="button" onClick={onReplay} className="font-bold text-ink underline underline-offset-2">
                 Read the guide again
               </button>

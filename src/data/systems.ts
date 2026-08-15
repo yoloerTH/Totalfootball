@@ -133,12 +133,12 @@ export const SYSTEMS: System[] = [
       {
         id: 'zonal-or-man',
         q: 'Is a back four zonal or man-marking?',
-        a: 'The back four on this board is zonal. The four defend space as one connected unit and hand three jobs down the line — pressure, cover, balance — as the ball moves across, rather than each defender tracking a man wherever he goes. The same four players take a different role in every phase.',
+        a: 'The back four on this board is zonal. The four defend space as one connected unit and hand three jobs down the line (pressure, cover, balance) as the ball moves across, rather than each defender tracking a man wherever he goes. The same four players take a different role in every phase.',
       },
       {
         id: 'how-many-press',
         q: 'How many defenders should go to the ball?',
-        a: 'Exactly one, at any moment. The presser always has cover behind him on a diagonal, and neighbours on both sides when he is in the middle of the line. The other three are not watching the ball at all — they are already solving what happens after the pass.',
+        a: 'Exactly one, at any moment. The presser always has cover behind him on a diagonal, and neighbours on both sides when he is in the middle of the line. The other three are not watching the ball at all; they are already solving what happens after the pass.',
       },
       {
         id: 'far-fullback',
@@ -232,7 +232,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'press-trigger',
         q: 'When does a 4-4-2 mid-block actually press?',
-        a: 'When the ball travels down the touchline. Up to that moment the block waits and slides across as one. The wide pass is the signal to stop waiting, because out there the touchline acts as an extra defender — the receiver has only half a pitch to escape into.',
+        a: 'When the ball travels down the touchline. Up to that moment the block waits and slides across as one. The wide pass is the signal to stop waiting, because out there the touchline acts as an extra defender: the receiver has only half a pitch to escape into.',
       },
     ],
     phases: [
@@ -316,7 +316,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'which-player-drops',
         q: 'Which player drops between the centre-backs?',
-        a: 'The holding midfielder — the six. Once he is in the line, two pressing forwards are facing three passers, and one of the three is free by arithmetic rather than by luck.',
+        a: 'The holding midfielder, the six. Once he is in the line, two pressing forwards are facing three passers, and one of the three is free by arithmetic rather than by luck.',
       },
       {
         id: 'is-it-risky',
@@ -404,7 +404,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'what-is-the-bait',
         q: 'What is the bait in a pressing trap?',
-        a: 'One pass, left available on purpose. The inside is shut and exactly one door is open — the ball out to the touchline — so the pass you want played is the only sensible one on offer. The moment it travels, that is the trigger.',
+        a: 'One pass, left available on purpose. The inside is shut and exactly one door is open, the ball out to the touchline, so the pass you want played is the only sensible one on offer. The moment it travels, that is the trigger.',
       },
       {
         id: 'why-wide',
@@ -493,7 +493,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'why-it-works',
         q: 'Why does an underlap work?',
-        a: 'It is not trying to beat anybody. It hands one defender — usually their holding midfielder — two jobs at the same moment: stay with the man he is marking, or step out to the ball. He cannot do both, and whichever he lets go is the player who finishes the move.',
+        a: 'It is not trying to beat anybody. It hands one defender, usually their holding midfielder, two jobs at the same moment: stay with the man he is marking, or step out to the ball. He cannot do both, and whichever he lets go is the player who finishes the move.',
       },
       {
         id: 'winger-role',
@@ -581,7 +581,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'who-chases',
         q: 'Should anyone chase the pass back?',
-        a: 'One man goes to the ball. The other three do not follow him out — they step forward together. A line where everybody chases is a line with an open channel behind whoever moved first.',
+        a: 'One man goes to the ball. The other three do not follow him out; they step forward together. A line where everybody chases is a line with an open channel behind whoever moved first.',
       },
       {
         id: 'closing-the-gap',
@@ -683,7 +683,7 @@ export const SYSTEMS: System[] = [
         title: 'Four men, no wingers',
         caption: 'The diamond drawn as a figure, and the width it actually covers measured through it.',
         body: 'A midfield diamond is a holding midfielder, two shuttlers and a number ten, and the shape they make is drawn here as a technical figure: hatched face, doubled edges, rings at the four corners. It is rebuilt every frame from where the four players actually are, so it deforms as they move rather than being a graphic laid over the top. The dimension line runs straight through it at the shuttlers’ own depth and reads twenty metres of sixty-eight. That is the number the whole system turns on. The zone drawn around it is labelled the middle, theirs, and it is theirs: nobody is going to play through a diamond. What matters is that a diamond has no wide midfielders at all, which means the forty-eight metres that dimension line does not cover belong to nobody.',
-        alt: 'Tactics board: four red midfielders drawn as a hatched diamond figure in the centre of the pitch, with a dimension line through it reading twenty metres of sixty-eight, a dashed zone around it labelled THE MIDDLE — THEIRS, and green players spread across both flanks.',
+        alt: 'Tactics board: four red midfielders drawn as a hatched diamond figure in the centre of the pitch, with a dimension line through it reading twenty metres of sixty-eight, a dashed zone around it labelled to mark the middle as theirs, and green players spread across both flanks.',
         frame: 240,
       },
       {
@@ -795,7 +795,7 @@ export const SYSTEMS: System[] = [
         title: 'Rule three: two on the winger',
         caption: 'The ball goes wide and two shirts arrive together, so the duel never happens.',
         body: 'The ball is worked out to the winger, which is where a team with this attack expects to win the game. Two green players arrive on him at once: the full-back steps out, marked STEP OUT, and the midfielder tucks across to cover, marked COVER. The board calls it what it is, two against one and no dribble, and the counter that matters sits beside it reading zero. Doubling a winger looks wasteful, because it commits two players to one opponent and leaves someone free elsewhere. It is worth it anyway. A one-against-one on the flank against a genuinely elite dribbler is close to a coin flip; a two-against-one is not a duel at all, and the price of losing that coin flip is a shot at goal.',
-        alt: 'Tactics board on the flank: a red winger on the ball with a green full-back labelled STEP OUT and a green midfielder labelled COVER converging on him inside a dashed ring, a label reading 2 v 1 — NO DRIBBLE, and a stat chip showing zero dribbles.',
+        alt: 'Tactics board on the flank: a red winger on the ball with a green full-back labelled STEP OUT and a green midfielder labelled COVER converging on him inside a dashed ring, a label reading 2 v 1 with NO DRIBBLE under it, and a stat chip showing zero dribbles.',
         frame: 1633,
       },
       {
@@ -933,7 +933,7 @@ export const SYSTEMS: System[] = [
       {
         id: 'when-not-to-press',
         q: 'When should you not press?',
-        a: 'Whenever nothing has triggered it. A press is a reaction, not a decision — if the ball has not told you to go, you are just running, and the shape you left behind is the one they play through.',
+        a: 'Whenever nothing has triggered it. A press is a reaction, not a decision. If the ball has not told you to go, you are just running, and the shape you left behind is the one they play through.',
       },
       {
         id: 'will-i-get-there',
@@ -986,7 +986,7 @@ export const SYSTEMS: System[] = [
         n: 6,
         title: 'Won it, twenty-seven metres out',
         caption: 'Four signals, four options deleted, and the ball is theirs no longer.',
-        body: 'The ball is won twenty-seven metres from the opposition goal, and the sub-line is the summary worth taking away: four signals, four options gone. Look back at what actually happened over the whole sequence. Nobody made a tackle until the very last moment. Each press deleted exactly one option — forced wide, then forced inside, then forced back — and the fourth trigger was simply the option they had left. That is the difference between pressing as an attitude and pressing as a system. A team that chases the ball spends its energy on the ninety per cent of moments where nothing is available. A team that waits for these four spends it only where the ball has already done half the work.',
+        body: 'The ball is won twenty-seven metres from the opposition goal, and the sub-line is the summary worth taking away: four signals, four options gone. Look back at what actually happened over the whole sequence. Nobody made a tackle until the very last moment. Each press deleted exactly one option (forced wide, then forced inside, then forced back) and the fourth trigger was simply the option they had left. That is the difference between pressing as an attitude and pressing as a system. A team that chases the ball spends its energy on the ninety per cent of moments where nothing is available. A team that waits for these four spends it only where the ball has already done half the work.',
         alt: 'Tactics board: a green player has won the ball twenty-seven metres from the red goal, marked with a green WON IT stamp, with the headline reading WON IT 27 m OUT.',
         frame: 1018,
       },

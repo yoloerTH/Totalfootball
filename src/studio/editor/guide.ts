@@ -59,7 +59,7 @@ export const WALKTHROUGH: WalkStep[] = [
     id: 'board',
     title: 'This is your board',
     body: [
-      'The counters are your players. Pick one up and put it where you want it — the same as sliding a magnet across a whiteboard.',
+      'The counters are your players. Pick one up and put it where you want it, the same as sliding a magnet across a whiteboard.',
       'Everything else on the left picks football: which part of the pitch you are looking at, what shape your team lines up in, what colour they play in.',
     ],
   },
@@ -68,7 +68,7 @@ export const WALKTHROUGH: WalkStep[] = [
     title: 'A phase is a moment, not a slide',
     body: [
       'Set the players up the way the move starts. That is phase one.',
-      'Then add a phase. You get the same board again — and you move the players to where they end up.',
+      'Then add a phase. You get the same board again, and you move the players to where they end up.',
       'You never draw the movement. We work it out from the difference between the two, and that is what you get back as film.',
     ],
   },
@@ -84,7 +84,7 @@ export const WALKTHROUGH: WalkStep[] = [
     id: 'play',
     title: 'Press Play to see it move',
     body: [
-      'Once you have two phases, Play runs them in order and shows you the real thing — the same timing and the same easing as the videos.',
+      'Once you have two phases, Play runs them in order and shows you the real thing, with the same timing and the same easing as the videos.',
       'Nothing is exported yet. Play as often as you like while you get it right.',
     ],
   },
@@ -119,7 +119,7 @@ export const RAIL_STEPS: RailStep[] = [
     id: 'named',
     label: 'Name your system',
     detail:
-      'Type a name in the box at the top left — "Beating a low block", "Pressing from the front". It goes on the front of the finished deck.',
+      'Type a name in the box at the top left: "Beating a low block", "Pressing from the front". It goes on the front of the finished deck.',
   },
   {
     id: 'phased',
@@ -183,7 +183,7 @@ export const TOOL_DOC = {
   run: {
     label: 'Run',
     what: 'A player moving without the ball. Drawn as a dashed line.',
-    when: 'Use it for the runs that make the pass possible — the winger in behind, the full-back overlapping, the striker dragging a centre-back away.',
+    when: 'Use it for the runs that make the pass possible: the winger in behind, the full-back overlapping, the striker dragging a centre-back away.',
     drag: 'Drag from where the player starts to where the run finishes.',
   },
   carry: {
@@ -195,7 +195,7 @@ export const TOOL_DOC = {
   press: {
     label: 'Press',
     what: 'Pressure going on to the ball.',
-    when: 'Use it out of possession, to show who goes and — just as important — from which angle they approach.',
+    when: 'Use it out of possession, to show who goes and, just as important, from which angle they approach.',
     drag: 'Drag from the player pressing towards the ball they are going after.',
   },
   switch: {
@@ -206,7 +206,7 @@ export const TOOL_DOC = {
   },
   danger: {
     label: 'Danger area',
-    what: 'Shades an area in gold — the space the move is trying to reach.',
+    what: 'Shades an area in gold: the space the move is trying to reach.',
     when: 'Use it for the space you want attacked: the cutback zone, the pocket in front of their back four, the far post.',
     drag: 'Drag a box around the area you want to talk about.',
   },
@@ -239,17 +239,17 @@ export const HINT = {
   video: 'Saves the whole thing as a video file you can post. Made here on your machine, so nothing is uploaded.',
   help: 'Reopen the welcome guide.',
 
-  undo: 'Takes back the last thing you changed. Nothing you do here is permanent — move things, try it, take it back.',
+  undo: 'Takes back the last thing you changed. Nothing you do here is permanent: move things, try it, take it back.',
   redo: 'Puts back the change you just took away.',
   theme: 'Switches the panels between day and night. The board itself stays on paper in both, because that is how it will look when you show it.',
   reset: `Empties this system and starts you again with a fresh board and one ${PHASE.one}. Undo brings it all back if you press it by mistake.`,
 
   pitchView:
-    'How much of the pitch you are looking at. Changing it does not move anybody — everyone stays on the same patch of grass, you just see more or less of it.',
+    'How much of the pitch you are looking at. Changing it does not move anybody: everyone stays on the same patch of grass, you just see more or less of it.',
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
   ball:
-    'Which match ball sits on the board. Choose one for the era you are teaching — the 1974 Telstar for a Total Football session, the 2026 Trionda for anything current.',
+    'Which match ball sits on the board. Choose one for the era you are teaching: the 1974 Telstar for a Total Football session, the 2026 Trionda for anything current.',
 
   formationUs:
     'Lines your eleven up in this shape. It replaces where they are standing right now, so pick the shape before you start moving people.',
@@ -274,7 +274,7 @@ export const HINT = {
    * question it kept failing to answer.
    */
   block:
-    'Finds your deepest line — a back three, four or five, whichever you have on the board — and shades everything between them and the goal they are protecting. It is tied to those players, so it reshapes as you drag them.',
+    'Finds your deepest line (a back three, four or five, whichever you have on the board) and shades everything between them and the goal they are protecting. It is tied to those players, so it reshapes as you drag them.',
   blockThem:
     'The same shading for the opposition: their deepest line, and the space in front of the goal they are defending. Use it to show what your team is playing into.',
   blockRedraw:
@@ -285,7 +285,7 @@ export const HINT = {
   clearArrows: 'Removes every arrow from this phase.',
   clearZones: 'Removes every shaded area from this phase.',
 
-  phaseTitle: `A short name for this moment — "The trigger", "The switch". It shows under the board and in the strip of ${PHASE.many}.`,
+  phaseTitle: `A short name for this moment: "The trigger", "The switch". It shows under the board and in the strip of ${PHASE.many}.`,
   phaseCaption: 'One line explaining what is happening, in the words you would use to the group.',
   phaseNotes:
     'The longer version, for the printed page rather than the room: the coaching points, the triggers, what you want them watching for. Leave it empty and nothing shows.',
@@ -294,15 +294,15 @@ export const HINT = {
     'Makes a link to the finished thing. Whoever opens it sees your board play through, on a phone or a laptop, with no account and nothing to install.',
   addPhase: `Copies this ${PHASE.one} and adds it after. Move the players on the copy, and the movement between the two becomes the animation.`,
   deletePhase: `Removes this ${PHASE.one}. The others close up around it.`,
-  prevPhase: `Goes back to the ${PHASE.one} before this one. Nothing is changed or moved — you are just looking at a different moment.`,
+  prevPhase: `Goes back to the ${PHASE.one} before this one. Nothing is changed or moved: you are just looking at a different moment.`,
   nextPhase: `Goes on to the next ${PHASE.one}. The left and right arrow keys do the same thing.`,
   movePhaseBack: `Reorders your ${PHASE.many}: this one changes places with the one before it, so it happens earlier in the move.`,
   movePhaseOn: `Reorders your ${PHASE.many}: this one changes places with the one after it, so it happens later in the move.`,
 
-  playerLabel: 'What is printed on the counter. Up to four characters — CB, 6, GK.',
+  playerLabel: 'What is printed on the counter. Up to four characters: CB, 6, GK.',
   playerName: "The player's name, printed above the counter. Leave it blank for a shape nobody is named in.",
   playerCue:
-    'A live instruction under the counter — PRESS, COVER, BALANCE. Set it on the phase where the job changes and you can show a role being handed over.',
+    'A live instruction under the counter: PRESS, COVER, BALANCE. Set it on the phase where the job changes and you can show a role being handed over.',
   playerDim:
     'Greys this player back so the eye goes to the ones the phase is about. They are still on the pitch.',
   playerRemove: `Takes this player off this ${PHASE.one} only. They stay on the others.`,
@@ -321,7 +321,7 @@ export const HINT = {
  */
 export const SHARE = {
   title: 'Send it to someone',
-  body: 'They get your board, playing through every phase in order, with your captions under it. It opens in any browser — no account, nothing to install.',
+  body: 'They get your board, playing through every phase in order, with your captions under it. It opens in any browser, with no account and nothing to install.',
   publishing: 'Putting it up…',
   live: 'This link stays the same. Change something and press Share again, and everyone you sent it to sees the new version.',
   /**
@@ -330,7 +330,7 @@ export const SHARE = {
    * unlike the short one it is a snapshot rather than something that updates.
    */
   fallback:
-    'We could not reach the server, so this is the long version of the link — it carries your whole system inside it. It works exactly the same, but it is a copy: changing your system later will not change what they see.',
+    'We could not reach the server, so this is the long version of the link: it carries your whole system inside it. It works exactly the same, but it is a copy: changing your system later will not change what they see.',
   foot: 'Your name and club sit at the foot of every phase, with ours beside them. Fill them in above and it is signed.',
 } as const
 
@@ -344,17 +344,17 @@ export const SHARE = {
  */
 export const VIDEO = {
   title: 'Save it as a video',
-  body: `A film of your ${PHASE.many}, playing in order, shot on the pitch itself with your words over it. Use it where a link will not go — a story, a status, a group chat that flattens everything you send it.`,
+  body: `A film of your ${PHASE.many}, playing in order, shot on the pitch itself with your words over it. Use it where a link will not go: a story, a status, a group chat that flattens everything you send it.`,
   shape: 'What it is going on',
   /** The one thing in the credit line a coach might not want burnt in. */
   date: 'Show the date',
   making: 'Making the film…',
   slow: 'This runs on your own machine, so nothing is uploaded and nobody waits in a queue. A long system takes a minute.',
   ready: 'Ready. It has gone to your downloads.',
-  failed: 'That did not finish. Nothing was uploaded, and your system is untouched — worth trying once more.',
+  failed: 'That did not finish. Nothing was uploaded, and your system is untouched. Worth trying once more.',
   /** Shown instead of the button on a browser with no WebCodecs. */
   unsupported:
-    'This browser cannot make video files. Chrome, Edge or Safari can — or send the link instead, which works everywhere.',
+    'This browser cannot make video files. Chrome, Edge or Safari can, or send the link instead, which works everywhere.',
   foot: 'Your name and club are burnt into the picture, with ours beside them. A video travels further from you than anything else here, so it is worth signing.',
 } as const
 
@@ -380,5 +380,5 @@ export const SMALL = {
   copyCta: 'Copy the link for later',
   copied: 'Link copied',
   /** Shown once they are in on a small screen. The one tip that actually helps. */
-  phoneTip: 'On a phone, pick the upright pitch — it is the view the videos use for this shape of screen.',
+  phoneTip: 'On a phone, pick the upright pitch: it is the view the videos use for this shape of screen.',
 } as const

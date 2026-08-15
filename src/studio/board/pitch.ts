@@ -160,7 +160,7 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
     id: 'attacking-box',
     label: 'Their box',
     hint: 'Close in on the penalty area.',
-    useFor: 'Cutbacks, crosses, near-post runs — anything inside the width.',
+    useFor: 'Cutbacks, crosses, near-post runs: anything inside the width.',
     x0: 74,
     x1: 105,
     y0: 0,

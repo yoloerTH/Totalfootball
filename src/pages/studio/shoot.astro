@@ -144,7 +144,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
   /** The one <svg> the editor labels as the board. */
   function boardSvg(): SVGSVGElement {
     const svg = document.querySelector<SVGSVGElement>('svg[aria-label$="tactical board"]')
-    if (!svg) throw new Error('no board on the page yet — call __tfShootMount first')
+    if (!svg) throw new Error('no board on the page yet: call __tfShootMount first')
     return svg
   }
 

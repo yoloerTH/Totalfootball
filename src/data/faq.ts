@@ -59,7 +59,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'real-footage',
         q: 'Do you use real match footage?',
-        a: 'Never. Every frame is drawn. A broadcast clip shows you one camera angle of one moment, and the four players who moved at the same time are usually outside the frame — which is the part you actually needed to see. Drawing it means the whole shape is visible at once and the distances are geometrically real rather than guessed from a camera angle.',
+        a: 'Never. Every frame is drawn. A broadcast clip shows you one camera angle of one moment, and the four players who moved at the same time are usually outside the frame, which is the part you actually needed to see. Drawing it means the whole shape is visible at once and the distances are geometrically real rather than guessed from a camera angle.',
         more: { href: '/about/', label: 'How the videos are made' },
       },
       {
@@ -86,7 +86,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'reuse',
         q: 'Can I use the diagrams with my own team?',
-        a: 'Yes, and that is what they are for — show them in a session, put them on a screen in a dressing room, send them to a player. If you want to republish one publicly, credit Total Football and link to the page rather than rehosting the image.',
+        a: 'Yes, and that is what they are for: show them in a session, put them on a screen in a dressing room, send them to a player. If you want to republish one publicly, credit Total Football and link to the page rather than rehosting the image.',
       },
     ],
   },
@@ -105,7 +105,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'video-required',
         q: 'Do I have to watch the video to follow a page?',
-        a: 'No. Each page carries every phase in order — the diagram, a caption and the explanation — and reads top to bottom as an illustrated article on its own. The video is the same lesson compressed into twenty seconds.',
+        a: 'No. Each page carries every phase in order (the diagram, a caption and the explanation) and reads top to bottom as an illustrated article on its own. The video is the same lesson compressed into twenty seconds.',
       },
       {
         id: 'board-colours',
@@ -126,7 +126,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'request',
         q: 'Can I ask for a system to be covered?',
-        a: 'Yes. Reply to any newsletter or email athanasios@naurra.ai with the question you actually want answered — phrased the way you would ask a coach, not the way you would title a video. A good share of the library started as one of those.',
+        a: 'Yes. Reply to any newsletter or email athanasios@naurra.ai with the question you actually want answered, phrased the way you would ask a coach, not the way you would title a video. A good share of the library started as one of those.',
       },
     ],
   },
@@ -150,7 +150,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'studio-account',
         q: 'Do I need an account?',
-        a: 'To build a board, yes — sign in with Google and you are on it. To watch one, no: a board somebody shares with you opens on any device with no app, no account and no sign-in at the other end.',
+        a: 'To build a board, yes: sign in with Google and you are on it. To watch one, no: a board somebody shares with you opens on any device with no app, no account and no sign-in at the other end.',
       },
       {
         id: 'studio-animate',
@@ -165,17 +165,17 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'studio-share',
         q: 'How do I send somebody a board?',
-        a: 'You get a seven-character link. It opens on any phone, needs no app and no account, and if you change a phase afterwards everyone who already has the link sees the new version — you do not have to send it again.',
+        a: 'You get a seven-character link. It opens on any phone, needs no app and no account, and if you change a phase afterwards everyone who already has the link sees the new version, so you do not have to send it again.',
       },
       {
         id: 'studio-file',
         q: 'Can I get a video file rather than a link?',
-        a: 'Yes. The Studio encodes an MP4 on your own machine, landscape or vertical, with the ball audible every time it moves. It needs a reasonably recent browser — Chrome 94, Edge, Safari 16.4 or Firefox 130 and up — and because the encoding happens locally, the board never leaves your computer to make the file.',
+        a: 'Yes. The Studio encodes an MP4 on your own machine, landscape or vertical, with the ball audible every time it moves. It needs a reasonably recent browser (Chrome 94, Edge, Safari 16.4 or Firefox 130 and up), and because the encoding happens locally, the board never leaves your computer to make the file.',
       },
       {
         id: 'studio-pdf',
         q: 'Can I print a board for a session?',
-        a: 'Yes. Print any shared board and you get one phase a page with your notes underneath. It prints as vector rather than a screenshot, so it stays sharp at any size — which makes the same print sheet a perfectly good PDF to hand out.',
+        a: 'Yes. Print any shared board and you get one phase a page with your notes underneath. It prints as vector rather than a screenshot, so it stays sharp at any size, which makes the same print sheet a perfectly good PDF to hand out.',
       },
       {
         id: 'studio-saving',
@@ -242,7 +242,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'course-what',
         q: 'What is the course?',
-        a: 'Twelve parts in three tracks. The first is AI motion graphics: the two video styles, the reusable engine, choreography, sound you own the rights to, and shipping. The second is AI automation and engineering: agentic workflows that watch a source, pull the data, draft the asset and queue the post, and what it takes to run one for somebody other than yourself. The third is the money — the three systems that sell either skill.',
+        a: 'Twelve parts in three tracks. The first is AI motion graphics: the two video styles, the reusable engine, choreography, sound you own the rights to, and shipping. The second is AI automation and engineering: agentic workflows that watch a source, pull the data, draft the asset and queue the post, and what it takes to run one for somebody other than yourself. The third is the money: the three systems that sell either skill.',
         more: { href: '/course/', label: 'The full outline' },
       },
       {
@@ -253,7 +253,13 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'course-claims',
         q: 'Are there income guarantees?',
-        a: 'None, and there are no revenue screenshots on the page either. What is taught is the method, plus the real numbers behind this operation — eighty-eight published shorts, measured, and the automation running on top of them. What you earn with it depends on you, your market and your effort. Anybody in this category who promises otherwise is selling you the screenshot.',
+        a: 'None, and there are no revenue screenshots on the page either. What is taught is the method, plus the real numbers behind this operation: eighty-eight published shorts, measured, and the automation running on top of them. What you earn with it depends on you, your market and your effort. Anybody in this category who promises otherwise is selling you the screenshot.',
+      },
+      {
+        id: 'course-why-you',
+        q: 'Why learn this from you?',
+        a: 'Because it is the day job, not a side project. Total Football is published by Naurra AI, which builds these systems for paying clients: ten are published as case studies, across travel, automotive, legal, e-commerce, HVAC, CRM and media. One of the ten is this channel, built with the same method and now past five million plays. Everything in the course has been shipped for somebody who paid for it.',
+        more: { href: 'https://naurra.ai/case-studies/', label: 'Read the case studies' },
       },
       {
         id: 'course-when',
@@ -296,7 +302,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'tracking',
         q: 'Do you track me?',
-        a: 'Not in the way that word usually means. The site sets no cookies, stores nothing that identifies you, and uses no third-party analytics SDK. It counts page views so it is possible to tell which systems people read. That is also why there is no cookie banner — there is nothing to consent to.',
+        a: 'Not in the way that word usually means. The site sets no cookies, stores nothing that identifies you, and uses no third-party analytics SDK. It counts page views so it is possible to tell which systems people read. That is also why there is no cookie banner: there is nothing to consent to.',
         more: { href: '/privacy/', label: 'The privacy policy' },
       },
       {
@@ -307,7 +313,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'contact',
         q: 'How do I get in touch?',
-        a: 'Email athanasios@naurra.ai. Corrections to anything in the library are especially welcome — the boards are drawn to scale and if one of them is wrong it should be fixed rather than defended.',
+        a: 'Email athanasios@naurra.ai. Corrections to anything in the library are especially welcome, because the boards are drawn to scale and if one of them is wrong it should be fixed rather than defended.',
       },
       {
         id: 'follow',

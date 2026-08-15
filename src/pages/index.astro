@@ -20,6 +20,7 @@ import { SYSTEMS, THEMES, systemsByTheme } from '../data/systems'
 import { CHANNEL } from '../data/channel'
 import { LEDGER } from '../data/intelligence'
 import { faqGroup } from '../data/faq'
+import { OPERATOR } from '../data/naurra'
 import { SOCIAL } from '../lib/site'
 
 const featured = SYSTEMS.slice(0, 6)
@@ -325,9 +326,15 @@ const homeFaqs = faqGroup('basics')
             Make the videos. Build the agents. Sell both.
           </h2>
           <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal data-reveal-delay="140">
-            The two skills behind this channel — AI motion graphics and the agentic automation that
-            runs it — and the three systems that turn either one into income: an audience, business
+            The two skills behind this channel, AI motion graphics and the agentic automation that
+            runs it, plus the three systems that turn either one into income: an audience, business
             clients, and products of your own. Join the waitlist and you will hear first.
+          </p>
+          {/* The credential, in the one line it takes. This strip is where most
+              people first hear the course exists, and "why them" is the
+              question it was leaving completely unanswered. */}
+          <p class="mt-5 text-[14px] text-ink-faint" data-reveal data-reveal-delay="200">
+            Taught by the team behind {OPERATOR.shipped} shipped AI systems, this channel among them.
           </p>
         </div>
         <a href="/course/" class="btn-ghost shrink-0" data-track="home:course" data-reveal data-reveal-delay="240"

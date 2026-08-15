@@ -108,7 +108,7 @@ const ART: Record<string, React.ReactNode> = {
       <Dot x={303} y={40} r={6} fill={BOARD.goldDeep} />
 
       <text x={167} y={148} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={BOARD.ink} opacity={0.62}>
-        move him — we work out the rest
+        move him, and we work out the rest
       </text>
     </>
   ),

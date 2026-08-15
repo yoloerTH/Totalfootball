@@ -1127,7 +1127,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
           <span className="font-bold text-ink">
             {offCrop} {offCrop === 1 ? 'player is' : 'players are'} outside this view.
           </span>{' '}
-          They are still in your system — widen the pitch view to see them again, or press Re-place shapes to fit
+          They are still in your system: widen the pitch view to see them again, or press Re-place shapes to fit
           everyone inside it.
         </>
       ) : system.acts.length < 2 ? (
@@ -1135,13 +1135,13 @@ export default function StudioEditor({ systemId, initial }: Props) {
           <span className="font-bold text-ink-soft">
             {PHASE.One} {actIndex + 1} of {system.acts.length}.
           </span>{' '}
-          One {PHASE.one} is a still picture — add a second below and move someone, and it becomes a move.
+          One {PHASE.one} is a still picture. Add a second below and move someone, and it becomes a move.
         </>
       ) : (
         <>
           <span className="font-bold text-ink-soft">
             {PHASE.One} {actIndex + 1} of {system.acts.length}
-            {act.title ? ` — ${act.title}` : ''}.
+            {act.title ? `: ${act.title}` : ''}.
           </span>{' '}
           Move the players to where they finish, then press Play.
         </>

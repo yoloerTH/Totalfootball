@@ -128,7 +128,7 @@ export default function SignIn({ fallback = '/studio/portal/' }: { fallback?: st
         <h1 className={HEADING}>Accounts are not on yet</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
           This build has no account server behind it, so there is nothing to sign in to yet. Nothing
-          is broken — the deploy is just missing its keys.
+          is broken: the deploy is just missing its keys.
         </p>
         {/* NOT a link to /studio/new/. The studio redirects here when nobody is
             signed in, and with accounts off nobody ever can be, so that link

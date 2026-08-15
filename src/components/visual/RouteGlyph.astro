@@ -1,0 +1,320 @@
+---
+/**
+ * The three ways the work gets paid for, one small drawing each.
+ *
+ * The money section was three lists of words in a row, which is the one thing
+ * a reader skims past. Each route has a shape that is genuinely different from
+ * the other two, and the shape IS the argument:
+ *
+ *   audience  one thing published, fanning out to many people, money coming
+ *             back from the platform rather than from any of them
+ *   clients   one client, paying the same amount again every month, which is
+ *             why the retainer is the half worth having
+ *   products  one thing built once, sold to many people, none of whom cost
+ *             you another hour
+ *
+ * Same rules as StepGlyph.astro: pure SVG and CSS, one moving part each, long
+ * loops, staggered so a row of three never beats in unison, frozen under
+ * reduced-motion. These sit beside copy people are meant to be reading.
+ */
+interface Props {
+  kind: 'audience' | 'clients' | 'products'
+  class?: string
+  /** Staggers the loop so three in a row do not pulse together. */
+  delay?: number
+}
+
+const { kind, class: klass = '', delay = 0 } = Astro.props
+
+const GREEN = '#08C16A'
+const GOLD = '#E6B23A'
+const INK = 'currentColor'
+
+const style = delay ? `animation-delay:${delay}ms` : undefined
+
+/** The crowd, for `audience` and `products`. A grid reads as "many" at 3px. */
+const CROWD = Array.from({ length: 15 }, (_, i) => ({
+  x: 112 + (i % 3) * 16,
+  y: 24 + Math.floor(i / 3) * 14,
+}))
+---
+
+<svg viewBox="0 0 168 104" class={`block w-full text-ink ${klass}`} aria-hidden="true" focusable="false">
+  {/* One frame for all three, so the row reads as a set rather than as three
+      unrelated pictures. Same device as StepGlyph. */}
+  <rect
+    x="0.5"
+    y="0.5"
+    width="167"
+    height="103"
+    rx="6"
+    fill="rgb(var(--tf-paper))"
+    stroke={INK}
+    stroke-opacity="0.12"
+  />
+
+  {
+    kind === 'audience' && (
+      <g>
+        {/* What you made, once. */}
+        <rect
+          x="12"
+          y="34"
+          width="34"
+          height="36"
+          rx="5"
+          fill="rgb(var(--tf-surface))"
+          stroke={INK}
+          stroke-opacity="0.16"
+        />
+        <circle cx="24" cy="46" r="3.2" fill={GREEN} />
+        <circle cx="34" cy="52" r="3.2" fill={GREEN} />
+        <rect x="19" y="60" width="20" height="3" rx="1.5" fill={INK} fill-opacity="0.18" />
+
+        {/* Reach: three arcs out to the crowd. */}
+        <g fill="none" stroke={GREEN} stroke-opacity="0.4" stroke-width="1.2">
+          <path d="M48 44 C 72 30, 88 26, 106 26" />
+          <path d="M48 52 C 72 52, 88 52, 106 52" />
+          <path d="M48 60 C 72 74, 88 78, 106 78" />
+        </g>
+
+        <g fill={INK} fill-opacity="0.26">
+          {CROWD.map((p) => (
+            <circle cx={p.x} cy={p.y} r="3" />
+          ))}
+        </g>
+
+        {/* The return. It comes back along the middle, and it is gold because
+            gold is the money colour everywhere else on this site. */}
+        <g class="rg-return" style={style}>
+          <path
+            d="M104 92 L 52 92"
+            fill="none"
+            stroke={GOLD}
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path d="M56 88 L 50 92 L 56 96 Z" fill={GOLD} />
+          <circle cx="110" cy="92" r="5.5" fill={GOLD} fill-opacity="0.22" />
+          <circle cx="110" cy="92" r="2.4" fill={GOLD} />
+        </g>
+      </g>
+    )
+  }
+
+  {
+    kind === 'clients' && (
+      <g>
+        {/* You. */}
+        <circle cx="26" cy="52" r="11" fill={GREEN} />
+        <path d="M40 52 L 62 52" stroke={INK} stroke-opacity="0.25" stroke-width="1.4" />
+        <path d="M58 48 L 64 52 L 58 56 Z" fill={INK} fill-opacity="0.25" />
+
+        {/* One client, drawn as the building it lives in. */}
+        <rect
+          x="68"
+          y="26"
+          width="40"
+          height="52"
+          rx="4"
+          fill="rgb(var(--tf-surface))"
+          stroke={INK}
+          stroke-opacity="0.16"
+        />
+        <g fill={INK} fill-opacity="0.16">
+          <rect x="75" y="34" width="8" height="8" rx="1.5" />
+          <rect x="88" y="34" width="8" height="8" rx="1.5" />
+          <rect x="75" y="47" width="8" height="8" rx="1.5" />
+          <rect x="88" y="47" width="8" height="8" rx="1.5" />
+          <rect x="79" y="62" width="14" height="16" rx="1.5" fill-opacity="0.24" />
+        </g>
+
+        {/* The retainer: the same payment, arriving again, and again. Each bar
+            is one month and they fill in sequence, which is the entire
+            difference between a project and a retainer. */}
+        <g>
+          {[0, 1, 2, 3].map((i) => (
+            <g>
+              <rect
+                x={120}
+                y={26 + i * 14}
+                width="34"
+                height="9"
+                rx="4.5"
+                fill={INK}
+                fill-opacity="0.07"
+              />
+              <rect
+                class="rg-bar"
+                style={`animation-delay:${delay + i * 700}ms`}
+                x={120}
+                y={26 + i * 14}
+                width="34"
+                height="9"
+                rx="4.5"
+                fill={GOLD}
+                fill-opacity="0.75"
+              />
+            </g>
+          ))}
+        </g>
+      </g>
+    )
+  }
+
+  {
+    kind === 'products' && (
+      <g>
+        {/* Built once. The two ghosts behind it are the copies that cost you
+            nothing to make, which is the whole point of this route. */}
+        <g>
+          <rect
+            x="22"
+            y="30"
+            width="34"
+            height="44"
+            rx="5"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.1"
+            transform="translate(8 -6)"
+          />
+          <rect
+            x="22"
+            y="30"
+            width="34"
+            height="44"
+            rx="5"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.13"
+            transform="translate(4 -3)"
+          />
+          <rect
+            x="22"
+            y="30"
+            width="34"
+            height="44"
+            rx="5"
+            fill="rgb(var(--tf-surface))"
+            stroke={INK}
+            stroke-opacity="0.18"
+          />
+          <path d="M32 44 L 46 52 L 32 60 Z" fill={GOLD} />
+        </g>
+
+        {/* A copy leaving, on a loop. One is enough to say "again". */}
+        <g class="rg-ship" style={style}>
+          <rect
+            x="62"
+            y="42"
+            width="22"
+            height="28"
+            rx="4"
+            fill={GOLD}
+            fill-opacity="0.2"
+            stroke={GOLD}
+            stroke-opacity="0.5"
+          />
+        </g>
+
+        {/* Everybody who bought one. */}
+        <g fill={INK} fill-opacity="0.26">
+          {CROWD.map((p) => (
+            <circle cx={p.x} cy={p.y} r="3" />
+          ))}
+        </g>
+      </g>
+    )
+  }
+</svg>
+
+<style>
+  .rg-return,
+  .rg-bar,
+  .rg-ship {
+    animation-duration: 9s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .rg-return {
+    animation-name: rg-return;
+  }
+  .rg-ship {
+    animation-name: rg-ship;
+  }
+
+  /* The bars use their own shorter loop: four of them stepping in sequence is
+     the picture of a monthly retainer, and it has to come round often enough
+     to read as recurring rather than as a one-off fill. */
+  .rg-bar {
+    animation-name: rg-bar;
+    animation-duration: 3.4s;
+    transform-box: fill-box;
+    transform-origin: left center;
+  }
+
+  @keyframes rg-return {
+    0%,
+    12% {
+      opacity: 0;
+      transform: translateX(14px);
+    }
+    30%,
+    84% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    96%,
+    100% {
+      opacity: 0;
+      transform: translateX(14px);
+    }
+  }
+
+  @keyframes rg-bar {
+    0%,
+    6% {
+      transform: scaleX(0);
+    }
+    26%,
+    82% {
+      transform: scaleX(1);
+    }
+    96%,
+    100% {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes rg-ship {
+    0%,
+    10% {
+      opacity: 0;
+      transform: translateX(-14px);
+    }
+    28% {
+      opacity: 1;
+    }
+    72% {
+      opacity: 1;
+      transform: translateX(26px);
+    }
+    88%,
+    100% {
+      opacity: 0;
+      transform: translateX(38px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rg-return,
+    .rg-bar,
+    .rg-ship {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
