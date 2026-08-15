@@ -1,0 +1,172 @@
+---
+/**
+ * A block of questions and answers.
+ *
+ * NATIVE <details>, DELIBERATELY. No island, no state, no JavaScript at all.
+ * That is not minimalism for its own sake — it is the same rule the slide
+ * viewer obeys (README, "the one rule that shapes the code"): every answer is
+ * in the initial HTML, and the disclosure only changes which one is *visible*.
+ * With JS off, or in a crawler that does not run it, this renders as a plain
+ * definition list of every question and every answer, top to bottom.
+ *
+ * Two consequences worth knowing before "improving" it:
+ *
+ *  · No `name` attribute on the details. That would make this an exclusive
+ *    accordion, closing one answer to open the next, and somebody comparing
+ *    the share link with the MP4 wants both open at once.
+ *  · Each item has a stable id and a heading, so any single question is
+ *    linkable — /faq/#studio-phone is a legitimate thing to paste into a reply.
+ *    The ids come from data/faq.ts and are permanent by contract there.
+ *
+ * `open` is honoured for the first item only when `openFirst` is set, which the
+ * embedded blocks use so the section never reads as a stack of closed doors.
+ */
+import type { FaqItem } from '../data/faq'
+
+interface Props {
+  items: FaqItem[]
+  /** Heading level for each question. Depends on what wraps the block. */
+  level?: 2 | 3 | 4
+  /** Expand the first answer. Use on short embedded blocks, not on /faq/. */
+  openFirst?: boolean
+  /** Prefix for `data-track`, so opens are attributable to their page. */
+  track?: string
+  class?: string
+}
+
+const { items, level = 3, openFirst = false, track, class: className = '' } = Astro.props
+
+const Heading = `h${level}` as 'h2' | 'h3' | 'h4'
+---
+
+<div class:list={['grid gap-px overflow-hidden rounded-2xl border border-ink-hair bg-ink-hair', className]}>
+  {
+    items.map((item, i) => (
+      <details
+        id={item.id}
+        class="tf-faq scroll-mt-28 bg-paper target:bg-surface/60"
+        open={openFirst && i === 0}
+      >
+        {/*
+          The summary is the click target and the heading at once. The heading
+          lives INSIDE the summary rather than wrapping it: a <summary> is
+          already the interactive element, and putting an <h3> around it would
+          nest the heading outside the disclosure button and break the outline
+          the answer belongs to.
+        */}
+        <summary
+          class="flex cursor-pointer list-none items-start justify-between gap-6 px-6 py-5 transition-colors hover:bg-surface/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/25 sm:px-8"
+          data-track={track ? `faq:${track}:${item.id}` : undefined}
+        >
+          <Heading class="text-[16px] font-bold leading-snug text-ink sm:text-[17px]">
+            {item.q}
+          </Heading>
+
+          {/* A plus that becomes a minus. The vertical stroke collapses when the
+              item opens — cheaper than swapping an icon, and it animates, which
+              is the whole affordance. Driven from the stylesheet below rather
+              than a `group-open:` utility so it cannot depend on which Tailwind
+              variants happen to be generated. */}
+          <span class="tf-faq-sign relative mt-1 h-4 w-4 shrink-0 text-ink-faint" aria-hidden="true">
+            <span class="absolute left-0 top-1/2 h-[1.5px] w-4 -translate-y-1/2 bg-current"></span>
+            <span
+              class="tf-faq-bar absolute left-1/2 top-0 h-4 w-[1.5px] -translate-x-1/2 bg-current"
+            ></span>
+          </span>
+        </summary>
+
+        <div class="px-6 pb-6 pr-14 sm:px-8 sm:pb-7 sm:pr-20">
+          <p class="max-w-prose text-[15px] leading-[1.75] text-ink-soft">{item.a}</p>
+          {item.more && (
+            <a
+              href={item.more.href}
+              class="mt-4 inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink transition-colors hover:text-ink-soft"
+              data-track={track ? `faq:${track}:${item.id}:link` : undefined}
+            >
+              {item.more.label}
+              <span aria-hidden="true">→</span>
+            </a>
+          )}
+        </div>
+      </details>
+    ))
+  }
+</div>
+
+<style>
+  /* Safari still paints the disclosure triangle unless this is spelled out,
+     and `list-none` alone does not reach the shadow pseudo-element. */
+  .tf-faq summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* The answer slides rather than snapping. Only the content animates: the
+     <details> itself must not, or the summary would move under the cursor
+     mid-click. Reduced motion is honoured below. */
+  .tf-faq[open] > div {
+    animation: tf-faq-open 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes tf-faq-open {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tf-faq[open] > div {
+      animation: none;
+    }
+  }
+
+  /* The sign. Transform only, so nothing reflows while it turns. */
+  .tf-faq-bar {
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 200ms ease;
+  }
+
+  .tf-faq[open] .tf-faq-sign {
+    color: rgb(var(--tf-ink, 22 22 24));
+  }
+
+  .tf-faq[open] .tf-faq-bar {
+    transform: translateX(-50%) rotate(90deg) scaleX(0.001);
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tf-faq-bar {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // The ONLY script here, and it is a link-handling fix, not the component's
+  // behaviour: a <details> that is the target of a fragment stays closed in
+  // every browser except the newest, so a shared /faq/#studio-phone would land
+  // on a closed row. Open it, and keep doing so for in-page links.
+  function openTarget() {
+    const id = location.hash.slice(1)
+    if (!id) return
+    const el = document.getElementById(id)
+    if (el instanceof HTMLDetailsElement && !el.open) {
+      el.open = true
+      // Re-run the jump after opening, or the browser's scroll position was
+      // computed against the collapsed height. `start` rather than `center`,
+      // because the question has to be the thing on screen — centring a tall
+      // answer pushes its own heading off the top. `scroll-mt-28` on the row
+      // is what keeps it out from under the sticky header.
+      el.scrollIntoView({ block: 'start', behavior: 'auto' })
+    }
+  }
+
+  openTarget()
+  window.addEventListener('hashchange', openTarget)
+</script>

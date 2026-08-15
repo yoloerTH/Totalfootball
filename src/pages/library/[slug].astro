@@ -10,6 +10,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import SlideViewer from '../../components/library/SlideViewer.astro'
 import NewsletterForm from '../../components/NewsletterForm.astro'
+import Faq from '../../components/Faq.astro'
 import { SYSTEMS, THEMES, relatedSystems, type System } from '../../data/systems'
 import { abs, SITE, SITE_URL } from '../../lib/site'
 
@@ -165,6 +166,43 @@ const article = {
         </ol>
       </div>
     </section>
+
+    {/* ── The follow-up questions ──────────────────────────────────────
+        After the principles and before the siblings, because this is where a
+        reader who has understood the system starts asking about the edges of
+        it — is this zonal or man, who makes that run, what if he steps out.
+
+        Every question is a real long-tail query and every answer is already
+        true on the boards above (see the authoring rule in data/systems.ts),
+        which is why this adds reach without adding a second, looser version of
+        the page's own argument.
+
+        No FAQPage markup: the main content of a system page is the article,
+        not a list of questions, and saying otherwise in structured data would
+        be a false description of the document. See the note in data/faq.ts. */}
+    {
+      system.faqs && system.faqs.length > 0 && (
+        <section class="border-b border-ink-hair">
+          <div class="shell py-16 md:py-20">
+            <div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
+              <div class="lg:sticky lg:top-24 lg:self-start">
+                <p class="micro mb-6">Asked about this system</p>
+                <h2 class="max-w-[16ch] text-title font-black">The next questions.</h2>
+                <a
+                  href="/faq/"
+                  class="mt-7 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-ink"
+                  data-track={`system:${system.slug}:faq`}
+                >
+                  Questions about the site
+                  <span aria-hidden="true">→</span>
+                </a>
+              </div>
+              <Faq items={system.faqs} level={3} openFirst track={`system:${system.slug}`} />
+            </div>
+          </div>
+        </section>
+      )
+    }
 
     {/* ── Related ──────────────────────────────────────────────────── */}
     {

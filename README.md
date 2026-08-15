@@ -46,6 +46,37 @@ npm run build
 grep -c 'data-phase=' dist/library/defending-in-a-back-four/index.html   # = phase count
 ```
 
+The FAQ blocks obey the same rule for the same reason: they are native
+`<details>`, so every answer ships in the initial HTML and the disclosure only
+changes which one is *visible*. Do not turn `Faq.astro` into an island.
+
+## Questions
+
+All FAQ copy lives in **`src/data/faq.ts`**, in six groups, plus a `faqs` array
+per system in `src/data/systems.ts`. Nothing is authored inside a page.
+
+| Surface | Shows | Schema |
+|---|---|---|
+| `/faq/` | all six groups | `FAQPage` — the only one on the site |
+| `/` | the `basics` group | none |
+| `/studio/` | the `studio` group | none |
+| `/course/` | the `course` group | none |
+| `/intelligence/` | `intelligence`, minus the two the page already answers in prose | none |
+| `/library/<system>/` | that system's own `faqs` | none |
+
+Two rules that are easy to break by accident:
+
+1. **`FAQPage` markup goes only on `/faq/`.** Every other surface is an FAQ
+   *section* on a page whose main content is something else, and claiming
+   otherwise in structured data is a false description of the document. The
+   reasoning is in docs/SPEC.md §7 and at the foot of `src/data/faq.ts`.
+2. **A system FAQ may only restate what its own boards show.** Same discipline
+   as the phase prose (SPEC §13, lesson 1): write from the diagrams, never from
+   knowledge of the tactic, or the page ends up arguing with itself.
+
+Anchor ids in `faq.ts` are permanent — `/faq/#studio-phone` is a link people
+paste. Reword a question freely; never renumber or regenerate its id.
+
 ## Media pipeline
 
 Phase diagrams are real frames from the Remotion compositions in `../../editor`.

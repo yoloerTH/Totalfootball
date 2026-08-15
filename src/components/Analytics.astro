@@ -259,7 +259,11 @@ const VERSION = 1
       document.addEventListener(
         'click',
         function (e) {
-          var el = e.target && e.target.closest ? e.target.closest('a,button') : null
+          // `summary` is in the list because the FAQ disclosures are summaries
+          // rather than buttons, and which question somebody opens is the most
+          // useful signal on the page: it is a list of the things the site has
+          // failed to make obvious elsewhere.
+          var el = e.target && e.target.closest ? e.target.closest('a,button,summary') : null
           if (!el) return
           var label = el.getAttribute('data-track')
           if (!label && el.tagName === 'A' && el.href) {

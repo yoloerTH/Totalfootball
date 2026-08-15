@@ -28,6 +28,7 @@ const staticPages: Entry[] = [
   { loc: abs('/studio/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.9' },
   { loc: abs('/intelligence/'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   { loc: abs('/course/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.7' },
+  { loc: abs('/faq/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.7' },
   { loc: abs('/about/'), lastmod: TODAY, changefreq: 'monthly', priority: '0.6' },
   { loc: abs('/privacy/'), lastmod: TODAY, changefreq: 'yearly', priority: '0.2' },
   { loc: abs('/terms/'), lastmod: TODAY, changefreq: 'yearly', priority: '0.2' },

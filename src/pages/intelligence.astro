@@ -12,10 +12,29 @@ import TelegramMark from '../components/brand/TelegramMark.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
 import ModelCurve from '../components/visual/ModelCurve.astro'
 import CountUp from '../components/visual/CountUp.astro'
+import Faq from '../components/Faq.astro'
 import { LEDGER, HOW_IT_WORKS } from '../data/intelligence'
+import { faqGroup } from '../data/faq'
 import { abs } from '../lib/site'
 
 const { national, club } = LEDGER
+
+/**
+ * The group minus the two questions this page already answers in full prose.
+ *
+ * "Is it free, and is there an upsell" and "is this betting advice" are the
+ * first and third paragraphs of "What this is not" below, written at length
+ * and deliberately — the compliance copy is part of the design here, not a
+ * footnote. Asking them again eighty lines later, in a smaller typeface, would
+ * make the page look like it was assembled by two people who never met.
+ *
+ * The full set is still on /faq/, worded identically. This is a subset, not a
+ * second version.
+ */
+const ALREADY_ANSWERED_IN_PROSE = ['stats-cost', 'stats-advice']
+const pageFaqs = faqGroup('intelligence').items.filter(
+  (item) => !ALREADY_ANSWERED_IN_PROSE.includes(item.id)
+)
 
 const breadcrumb = {
   '@context': 'https://schema.org',
@@ -267,8 +286,30 @@ const asOfLabel = new Date(LEDGER.asOf).toLocaleDateString('en-GB', {
     </div>
   </section>
 
+  {/* ── Questions ──────────────────────────────────────────────────── */}
+  <section class="border-y border-ink-hair bg-paper-deep/30">
+    <div class="shell py-20 md:py-24">
+      <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div>
+          <p class="micro mb-6">Questions</p>
+          <h2 class="max-w-[14ch] text-title font-black">The rest of it.</h2>
+          <p class="mt-6 max-w-prose leading-relaxed text-ink-soft">
+            How the record is kept, and why some days there is nothing to post.
+          </p>
+          <a href="/faq/#intelligence" class="btn-ghost mt-9" data-track="intel:faq">
+            All questions →
+          </a>
+        </div>
+
+        <div>
+          <Faq items={pageFaqs} level={3} openFirst track="intelligence" />
+        </div>
+      </div>
+    </div>
+  </section>
+
   {/* ── Capture ────────────────────────────────────────────────────── */}
-  <section class="shell pb-8">
+  <section class="shell py-16 md:py-20">
     <div class="rounded-3xl border border-ink-hair bg-surface/50 p-8 md:p-12">
       <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
         <div>

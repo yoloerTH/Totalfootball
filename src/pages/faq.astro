@@ -1,0 +1,117 @@
+---
+/**
+ * /faq/ — every question the site gets, in one place.
+ *
+ * Two jobs, and they pull in the same direction rather than against each other:
+ *
+ *  1. USABILITY. The questions people actually arrive with — is the Studio
+ *     free, does it work on a phone, do you use real match footage, is the
+ *     Telegram channel an upsell — were answered nowhere, or answered halfway
+ *     down a landing page in a sentence written for a different purpose. A
+ *     person who has to guess at one of those leaves.
+ *
+ *  2. SEO. Not the FAQ rich result (dead since August 2023 for everyone but
+ *     government and health sites — see data/faq.ts) but the long tail: forty
+ *     odd question-shaped headings, each with a direct answer under it, on a
+ *     site whose entire strategy is answering questions people type. It is also
+ *     the page an answer engine can quote from without having to infer
+ *     anything, which docs/SPEC.md §7 names as a channel that matters here.
+ *
+ * The content lives in data/faq.ts. This page only arranges it, so an answer
+ * shown here and the same answer shown on /studio/ cannot drift apart.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Faq from '../components/Faq.astro'
+import NewsletterForm from '../components/NewsletterForm.astro'
+import { FAQ_GROUPS, ALL_FAQS, faqPageSchema } from '../data/faq'
+import { abs, ENTITY } from '../lib/site'
+
+const path = '/faq/'
+---
+
+<BaseLayout
+  title="Questions"
+  description="Everything people ask about Total Football: how the diagrams are made, what the Studio costs, how the daily Telegram card works, and what happens to your data."
+  path={path}
+  structuredData={[faqPageSchema(ALL_FAQS, abs(path), 'Total Football: frequently asked questions')]}
+>
+  {/* ── Head ─────────────────────────────────────────────────────────── */}
+  <header class="stage border-b border-ink-hair">
+    <div class="shell py-16 md:py-24">
+      <p class="micro mb-6" data-reveal="fade">Questions</p>
+      <h1 class="max-w-[16ch] text-display font-black" data-reveal="clip" data-reveal-delay="80">
+        Answers, without the runaround.
+      </h1>
+      <p class="mt-8 max-w-prose text-xl leading-[1.6] text-ink/85" data-reveal data-reveal-delay="200">
+        {ALL_FAQS.length} questions, answered plainly. If the one you have is not here, email
+        <a href={`mailto:${ENTITY.email}`} class="underline underline-offset-4 hover:text-ink"
+          >{ENTITY.email}</a
+        > and it will be — both in the reply and on this page.
+      </p>
+
+      {/*
+        The jump list. Six groups is exactly the size where a table of contents
+        stops being furniture and starts saving a scroll, and every entry is a
+        real anchor so it works with JavaScript off.
+      */}
+      <nav aria-label="Sections" class="mt-12" data-reveal data-reveal-delay="300">
+        <ul class="flex flex-wrap gap-2.5">
+          {
+            FAQ_GROUPS.map((group) => (
+              <li>
+                <a
+                  href={`#${group.id}`}
+                  class="inline-flex items-center gap-2 rounded-full border border-ink-hair bg-paper/70 px-4 py-2 text-[13px] font-semibold text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+                  data-track={`faq:jump:${group.id}`}
+                >
+                  {group.title}
+                  <span class="text-[11px] tabular-nums text-ink-faint">{group.items.length}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  {/* ── The groups ───────────────────────────────────────────────────── */}
+  <div class="shell py-16 md:py-20">
+    <div class="space-y-16 md:space-y-20">
+      {
+        FAQ_GROUPS.map((group) => (
+          <section id={group.id} class="scroll-mt-28">
+            <div class="mb-8 max-w-prose">
+              <h2 class="text-section font-black" data-reveal="clip">
+                {group.title}
+              </h2>
+              <p class="mt-3 text-[15px] leading-relaxed text-ink-soft" data-reveal>
+                {group.blurb}
+              </p>
+            </div>
+            {/* One answer open per group, not none and not all. Thirty-nine
+                collapsed rows is a page that appears to contain nothing;
+                thirty-nine open ones is a wall nobody scans. Opening the first
+                shows what a row does and gives each group something to read. */}
+            <Faq items={group.items} level={3} openFirst track={group.id} />
+          </section>
+        ))
+      }
+    </div>
+  </div>
+
+  {/* ── Close ────────────────────────────────────────────────────────── */}
+  <section class="shell pb-8">
+    <div class="rounded-3xl border border-ink-hair bg-surface/50 p-8 md:p-12">
+      <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
+        <div>
+          <h2 class="text-section font-black">Still the best answer is a diagram.</h2>
+          <p class="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+            One system a week, drawn and explained the same way as the rest of the library.
+          </p>
+        </div>
+        <NewsletterForm source="faq" />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

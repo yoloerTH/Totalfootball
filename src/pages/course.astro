@@ -20,6 +20,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
 import EarlyAccessForm from '../components/EarlyAccessForm.astro'
 import AgentFlow from '../components/visual/AgentFlow.astro'
+import Faq from '../components/Faq.astro'
+import { faqGroup } from '../data/faq'
+
+const courseFaqs = faqGroup('course')
 
 /**
  * The outline.
@@ -338,7 +342,36 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
     </div>
   </section>
 
+  {/* ── Questions ────────────────────────────────────────────────────
+      A waitlist page's job is to be believed, and the three things standing in
+      the way of that are the price, the date and whether this is aimed at
+      somebody like the reader. All three were previously scattered through the
+      offer copy; they are stated plainly here, immediately before the softer
+      "just tell me when it opens" ask. */}
   <section class="border-t border-ink-hair">
+    <div class="shell py-20 md:py-24">
+      <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">Questions</p>
+          <h2 class="max-w-[14ch] text-title font-black" data-reveal="clip">
+            What you are joining.
+          </h2>
+          <p class="mt-6 max-w-prose leading-relaxed text-ink-soft" data-reveal="rise">
+            The price, the timing, and who this is actually built for.
+          </p>
+          <a href="/faq/" class="btn btn-ghost mt-9" data-track="course:faq" data-reveal="fade" data-reveal-delay="160">
+            All questions →
+          </a>
+        </div>
+
+        <div data-reveal="fade" data-reveal-delay="120">
+          <Faq items={courseFaqs.items} level={3} openFirst track="course" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-t border-ink-hair bg-paper-deep/30">
     <div class="shell py-20">
       <div class="grid gap-10 md:grid-cols-[1fr_auto] md:items-end">
         <div class="max-w-prose">

@@ -15,13 +15,27 @@ import CameraCrop from '../components/visual/CameraCrop.astro'
 import ModelCurve from '../components/visual/ModelCurve.astro'
 import ThemeGlyph from '../components/visual/ThemeGlyph.astro'
 import CountUp from '../components/visual/CountUp.astro'
+import Faq from '../components/Faq.astro'
 import { SYSTEMS, THEMES, systemsByTheme } from '../data/systems'
 import { CHANNEL } from '../data/channel'
 import { LEDGER } from '../data/intelligence'
+import { faqGroup } from '../data/faq'
 import { SOCIAL } from '../lib/site'
 
 const featured = SYSTEMS.slice(0, 6)
 const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
+
+/**
+ * The six-or-so things somebody wants settled before they commit to reading a
+ * tactics site: what it is, whether the footage is stolen, what it costs, who
+ * is behind it. They were previously answered in scattered half-sentences or
+ * not at all.
+ *
+ * No FAQPage markup here, and that is on purpose — see the note at the foot of
+ * data/faq.ts. The homepage is not an FAQ document, so claiming it is one in
+ * structured data would be a lie told to a machine.
+ */
+const homeFaqs = faqGroup('basics')
 ---
 
 <BaseLayout path="/">
@@ -320,6 +334,37 @@ const populatedThemes = THEMES.filter((t) => systemsByTheme(t.slug).length > 0)
         >
       </div>
       <div class="mt-10 h-px w-full origin-left bg-ink-hair" data-reveal="line"></div>
+    </div>
+  </section>
+
+  {/* ── Questions ──────────────────────────────────────────────────── */}
+  <section class="border-t border-ink-hair bg-paper-deep/30">
+    <div class="shell py-20 md:py-28">
+      <div class="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+        {/* Sticky, because the answers column is several times taller than
+            this one and a reader four questions down should still have the
+            heading and the way out of the section in view. */}
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <p class="micro mb-5" data-reveal="fade">Before you start</p>
+          <h2 class="max-w-[16ch] text-title font-black" data-reveal="clip">
+            The things people ask first.
+          </h2>
+          <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal data-reveal-delay="120">
+            Short answers, and none of them a sales pitch.
+          </p>
+          <a
+            href="/faq/"
+            class="btn-ghost mt-9"
+            data-track="home:faq"
+            data-reveal
+            data-reveal-delay="200">All questions →</a
+          >
+        </div>
+
+        <div data-reveal="rise" data-reveal-delay="120">
+          <Faq items={homeFaqs.items} level={3} openFirst track="home" />
+        </div>
+      </div>
     </div>
   </section>
 </BaseLayout>

@@ -14,7 +14,16 @@
  *  · `alt` is authored per phase. Never generated, never "diagram of tactics".
  *  · `related` uses the sibling graph already recorded in the project memory
  *    index rather than inventing associations.
+ *  · `faqs` are the follow-up questions this system gets, phrased the way they
+ *    are typed. THEY MUST BE ANSWERABLE FROM THE BOARD. Every answer below is
+ *    a restatement of something already in this system's `answer`, its
+ *    `principles` or a phase body — which is the same rule as Phase B's
+ *    lesson 1 (docs/SPEC.md §13): write from the frames, not from knowledge of
+ *    the tactic. A FAQ that teaches something the diagrams do not show is a
+ *    page contradicting itself.
  */
+
+import type { FaqItem } from './faq'
 
 export type ThemeSlug = 'defending' | 'build-up' | 'pressing' | 'attacking' | 'set-pieces'
 
@@ -88,6 +97,12 @@ export interface System {
   principles: string[]
   /** Sibling slugs. */
   related: string[]
+  /**
+   * The questions this system gets asked next. Three or four, each one a real
+   * long-tail query, each answer already true on the board. Optional so a newly
+   * added system can ship without them rather than with invented ones.
+   */
+  faqs?: FaqItem[]
   phases: Phase[]
   /** Optional social proof, only where the number is real and checked. */
   plays?: number
@@ -114,6 +129,23 @@ export const SYSTEMS: System[] = [
       'The far-side full-back marks nobody on purpose. His job is the switch, not his winger.',
     ],
     related: ['the-back-four-reset', 'the-4-4-2-mid-block', 'the-pressing-trap'],
+    faqs: [
+      {
+        id: 'zonal-or-man',
+        q: 'Is a back four zonal or man-marking?',
+        a: 'The back four on this board is zonal. The four defend space as one connected unit and hand three jobs down the line — pressure, cover, balance — as the ball moves across, rather than each defender tracking a man wherever he goes. The same four players take a different role in every phase.',
+      },
+      {
+        id: 'how-many-press',
+        q: 'How many defenders should go to the ball?',
+        a: 'Exactly one, at any moment. The presser always has cover behind him on a diagonal, and neighbours on both sides when he is in the middle of the line. The other three are not watching the ball at all — they are already solving what happens after the pass.',
+      },
+      {
+        id: 'far-fullback',
+        q: 'What is the far-side full-back supposed to be doing?',
+        a: 'Marking nobody, on purpose. He leaves his own winger and tucks in to balance the shape, because his job is the switch across the pitch rather than the man in front of him. If he stays wide with his winger, the hole he leaves in the middle is worth far more than the player he covered.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -186,6 +218,23 @@ export const SYSTEMS: System[] = [
       'The touchline is an extra defender: press wide, because he only has half a pitch to escape into.',
     ],
     related: ['how-to-beat-a-diamond', 'defending-in-a-back-four', 'how-spain-caged-france'],
+    faqs: [
+      {
+        id: 'gap-between-banks',
+        q: 'How far apart should the two banks of four be?',
+        a: 'About fourteen metres, and holding that distance is the whole system. It is close enough that nothing can be received between the lines and turned, and the moment it stretches, the block stops being a block and becomes eight players standing in two rows.',
+      },
+      {
+        id: 'strikers-job',
+        q: 'What are the two strikers doing in a mid-block?',
+        a: 'Screening the opponent’s deepest midfielder rather than chasing centre-backs. Standing in front of the pivot kills every inside lane, so the ball has to travel around the block instead of through it. They are also the outlet: the two who stayed high are who the ball goes to the moment it is won.',
+      },
+      {
+        id: 'press-trigger',
+        q: 'When does a 4-4-2 mid-block actually press?',
+        a: 'When the ball travels down the touchline. Up to that moment the block waits and slides across as one. The wide pass is the signal to stop waiting, because out there the touchline acts as an extra defender — the receiver has only half a pitch to escape into.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -258,6 +307,23 @@ export const SYSTEMS: System[] = [
       'When a presser steps out, he leaves the space he was standing in. Play through that space.',
     ],
     related: ['playing-out-from-the-back', 'the-4-4-2-mid-block', 'the-pressing-trap'],
+    faqs: [
+      {
+        id: 'what-it-means',
+        q: 'What does “Salida Lavolpiana” actually mean?',
+        a: 'It is named after Ricardo La Volpe, the coach whose signature it became. Stripped of the name, it is one movement: the holding midfielder drops between the two centre-backs to build from the back, turning a back four into a back three with the ball.',
+      },
+      {
+        id: 'which-player-drops',
+        q: 'Which player drops between the centre-backs?',
+        a: 'The holding midfielder — the six. Once he is in the line, two pressing forwards are facing three passers, and one of the three is free by arithmetic rather than by luck.',
+      },
+      {
+        id: 'is-it-risky',
+        q: 'Isn’t building from the back like this just inviting pressure?',
+        a: 'It invites it deliberately. Every presser who steps out leaves the ground he was standing in, and that ground is where the free man carries the ball. The risk is real but it is the smaller one: the alternative is a fifty-fifty in the air and possession handed back.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -329,6 +395,23 @@ export const SYSTEMS: System[] = [
       'Press wide, not central. The touchline removes half of the receiver’s options for free.',
     ],
     related: ['when-to-press', 'the-4-4-2-mid-block', 'how-spain-caged-france'],
+    faqs: [
+      {
+        id: 'press-ninety-minutes',
+        q: 'Can a team press for ninety minutes?',
+        a: 'No, and this system starts by admitting it. Nobody presses for ninety minutes; teams that try are walking by the hour mark and the shape they abandoned is the one they concede through. You choose the moment instead, and manufacture it.',
+      },
+      {
+        id: 'what-is-the-bait',
+        q: 'What is the bait in a pressing trap?',
+        a: 'One pass, left available on purpose. The inside is shut and exactly one door is open — the ball out to the touchline — so the pass you want played is the only sensible one on offer. The moment it travels, that is the trigger.',
+      },
+      {
+        id: 'why-wide',
+        q: 'Why spring the trap wide rather than centrally?',
+        a: 'Because the sideline marks for free. A player pressed in the middle can turn either way; pressed near the touchline, half his options are gone before anyone arrives. Four players collapse on him, the line covers the rest, and the ball is won twenty yards from his own goal.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -401,6 +484,23 @@ export const SYSTEMS: System[] = [
       'Whichever job he drops is your goal. Watch the man he abandons, not the man on the ball.',
     ],
     related: ['how-to-beat-a-diamond', 'salida-lavolpiana', 'the-pressing-trap'],
+    faqs: [
+      {
+        id: 'underlap-vs-overlap',
+        q: 'What is the difference between an underlap and an overlap?',
+        a: 'The path the full-back takes. An overlap goes around the outside of the winger and usually ends in a cross from a wide angle. An underlap goes inside him, into the space between the opposition full-back and centre-back, and ends in a shot or a cutback.',
+      },
+      {
+        id: 'why-it-works',
+        q: 'Why does an underlap work?',
+        a: 'It is not trying to beat anybody. It hands one defender — usually their holding midfielder — two jobs at the same moment: stay with the man he is marking, or step out to the ball. He cannot do both, and whichever he lets go is the player who finishes the move.',
+      },
+      {
+        id: 'winger-role',
+        q: 'What does the winger do while the full-back underlaps?',
+        a: 'Nothing, and that is the job. He holds the width and stays high, which pins the opposition full-back outside and is what opens the gap inside him in the first place. If the winger drifts in too, there is no space left to run into.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -472,6 +572,23 @@ export const SYSTEMS: System[] = [
       'The higher the line starts, the smaller the hole the presser leaves. Height fixes it, not speed.',
     ],
     related: ['defending-in-a-back-four', 'the-4-4-2-mid-block', 'how-spain-caged-france'],
+    faqs: [
+      {
+        id: 'why-step-up',
+        q: 'Why does a defensive line step up when the ball goes backwards?',
+        a: 'Because a backward pass is free time. While the ball is travelling away from goal there is nobody who has to be marked, so the four use that half second to square up and step about two and a half metres higher. Do it four times and the same defenders are eight metres up the pitch.',
+      },
+      {
+        id: 'who-chases',
+        q: 'Should anyone chase the pass back?',
+        a: 'One man goes to the ball. The other three do not follow him out — they step forward together. A line where everybody chases is a line with an open channel behind whoever moved first.',
+      },
+      {
+        id: 'closing-the-gap',
+        q: 'How do you stop a gap opening when a defender steps out to press?',
+        a: 'With height rather than speed. Every time a defender jumps out, the channel he was standing in opens behind him; the higher the line was when he went, the less ground there is for that channel to be. By the fourth reset the presser is already there and nothing opens at all.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -543,6 +660,23 @@ export const SYSTEMS: System[] = [
       'The ball crosses fifty-seven metres while their nearest man covers four. That is the whole idea.',
     ],
     related: ['the-4-4-2-mid-block', 'the-underlap', 'the-pressing-trap'],
+    faqs: [
+      {
+        id: 'diamond-weakness',
+        q: 'What is the weakness of a midfield diamond?',
+        a: 'Width. It has no wide midfielders at all, so its four men occupy about twenty-two of the pitch’s sixty-eight metres and everything outside that band has to be covered by somebody travelling to it.',
+      },
+      {
+        id: 'why-pockets-first',
+        q: 'Why stand in the pockets before switching the ball?',
+        a: 'Because standing there makes the diamond narrower still. The shuttlers follow you inside and twenty-two metres becomes about fourteen. Narrowing it first is what turns the switch from a nice pass into a decisive one.',
+      },
+      {
+        id: 'how-to-punish',
+        q: 'How do you actually punish a diamond once it is narrow?',
+        a: 'Switch to the far touchline. The ball crosses fifty-seven metres in the time their nearest man covers four, so it arrives on a winger with his full-back overlapping against one defender, and no help is coming.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -614,6 +748,23 @@ export const SYSTEMS: System[] = [
       'Never allow a one-against-one on the flank. Two shirts every time, even when it looks excessive.',
     ],
     related: ['the-4-4-2-mid-block', 'the-pressing-trap', 'the-back-four-reset'],
+    faqs: [
+      {
+        id: 'stop-fast-counter',
+        q: 'How do you stop a team that counter-attacks with pace?',
+        a: 'Three rules, in this order. Keep the ball, because a turnover is the only ball their runners can run onto. Hold your two banks close enough that nothing can be received between them. And put two players on the winger every time, so the one-against-one never happens.',
+      },
+      {
+        id: 'compact-vs-deep',
+        q: 'Does defending compact mean sitting deep?',
+        a: 'No. Compact is the distance between your own two banks, not how far from your goal they stand. A deep line with a large gap in front of it is not compact; a mid-block with nothing receivable between the lines is.',
+      },
+      {
+        id: 'why-double-up',
+        q: 'Why double up on the winger every single time?',
+        a: 'Because a one-against-one against genuine pace is a coin flip, and it is a coin flip you never have to accept. Two shirts arriving together means the duel does not take place. It looks excessive until the one time nobody goes across.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -685,6 +836,23 @@ export const SYSTEMS: System[] = [
       'Marked from behind? Do not turn. One touch back to the man who can see the whole pitch.',
     ],
     related: ['salida-lavolpiana', 'when-to-press', 'the-4-4-2-mid-block'],
+    faqs: [
+      {
+        id: 'beat-man-marking',
+        q: 'How do you beat a man-to-man press?',
+        a: 'By making an extra man. A man-to-man press has one presser for every player, so you field one more passer than they have pressers: the centre-backs split wide and the goalkeeper steps into the line, and it is three against two.',
+      },
+      {
+        id: 'goalkeeper',
+        q: 'Should the goalkeeper join the build-up?',
+        a: 'Yes. The goalkeeper is a player, and declining to use him is volunteering to be a man short in the one part of the pitch where being a man short costs a goal directly.',
+      },
+      {
+        id: 'marked-from-behind',
+        q: 'What should a midfielder do when he is marked from behind?',
+        a: 'Not turn. One touch straight back to the man who can see the whole pitch, and let him play the pass that cannot be seen from a back-to-goal position. That single bounce pass is what beats the press on this board.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -756,6 +924,23 @@ export const SYSTEMS: System[] = [
       'Each trigger only deletes one option. Four of them in a row is what actually wins the ball.',
     ],
     related: ['the-pressing-trap', 'playing-out-from-the-back', 'how-spain-caged-france'],
+    faqs: [
+      {
+        id: 'the-four-triggers',
+        q: 'What are the pressing triggers in football?',
+        a: 'Four. The ball has been played backwards, it has got away from someone’s foot, the man receiving it has his back turned, or it is in the air. Each one buys a second in which the player on the ball cannot punish you for arriving.',
+      },
+      {
+        id: 'when-not-to-press',
+        q: 'When should you not press?',
+        a: 'Whenever nothing has triggered it. A press is a reaction, not a decision — if the ball has not told you to go, you are just running, and the shape you left behind is the one they play through.',
+      },
+      {
+        id: 'will-i-get-there',
+        q: 'How do you know you will reach the ball in time?',
+        a: 'Compare two clocks: how long the man on the ball needs in order to be safe, against how long you need to reach him. Shorter clock goes. Each trigger only deletes one of his options, which is why several of them stacked in a row is what actually wins the ball.',
+      },
+    ],
     phases: [
       {
         n: 1,
@@ -827,6 +1012,28 @@ export const SYSTEMS: System[] = [
       'Always leave two or three back. The counter off a defensive corner is the fastest goal in football.',
     ],
     related: ['the-underlap', 'defending-in-a-back-four', 'the-4-4-2-mid-block'],
+    faqs: [
+      {
+        id: 'why-routines-work',
+        q: 'Why do some corner routines work when most do not?',
+        a: 'Because a routine is not a delivery. Every one that works removes one specific defender from one specific patch of grass and then puts the ball on that grass. Putting it in the mixer removes nobody, which is why it is not a routine at all.',
+      },
+      {
+        id: 'near-post',
+        q: 'Why attack the near post from a corner?',
+        a: 'A ball flicked on at the near post travels away from the goalkeeper rather than towards him, into the ground he has just committed to leaving. Attacking the near post also drags the zonal line forward, which opens the space behind it for the far-post runner.',
+      },
+      {
+        id: 'short-corner',
+        q: 'What is the point of a short corner?',
+        a: 'It makes it two against one at the flag, so the defending team has to send a body out or concede a free crosser. Either way the cross improves before it has been taken: one fewer defender in the box, and a delivery from ten metres further infield that runs along the goal rather than across it.',
+      },
+      {
+        id: 'how-many-back',
+        q: 'How many players should stay back at an attacking corner?',
+        a: 'Two or three, always. The counter-attack off a defensive corner is the fastest goal in football, because every body worth having is at the wrong end of the pitch when it starts.',
+      },
+    ],
     phases: [
       {
         n: 1,

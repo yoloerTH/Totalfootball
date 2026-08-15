@@ -26,10 +26,23 @@ import StudioDeck from '../../components/visual/StudioDeck.astro'
 import PoseToFilm from '../../components/visual/PoseToFilm.astro'
 import StepGlyph from '../../components/visual/StepGlyph.astro'
 import SystemCard from '../../components/library/SystemCard.astro'
+import Faq from '../../components/Faq.astro'
 import { SYSTEMS } from '../../data/systems'
+import { faqGroup } from '../../data/faq'
 import { SITE_URL } from '../../lib/site'
 
 const featured = SYSTEMS.slice(0, 3)
+
+/**
+ * The objections, answered before the sign-in wall rather than after it.
+ *
+ * Every question in this group was previously answerable only by opening the
+ * Studio and finding out: whether it costs anything, whether it needs an
+ * account, whether it works on the phone the coach is holding, where the work
+ * is saved. Somebody who cannot settle those does not click "Open the Studio",
+ * they close the tab.
+ */
+const studioFaqs = faqGroup('studio')
 
 /**
  * The three things a coach does, in the order they do them. Numbered because
@@ -364,8 +377,38 @@ const structuredData = [
     </div>
   </section>
 
+  {/* ── Questions ────────────────────────────────────────────────────────
+      Immediately before the last CTA, which is the point at which a coach is
+      deciding. Answering "does it work on my phone" three screens earlier, in
+      the middle of the feature tour, would be answering it before it is
+      being asked. */}
+  <section class="border-y border-ink-hair bg-paper-deep/30">
+    <div class="shell py-24 md:py-32">
+      <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        {/* Sticky: eleven questions is a tall column, and the CTA out of the
+            section should not scroll away above the reader. */}
+        <div class="lg:sticky lg:top-24 lg:self-start">
+          <p class="micro mb-6" data-reveal="fade">Before you open it</p>
+          <h2 class="max-w-[14ch] text-title font-black" data-reveal="clip">
+            Fair questions.
+          </h2>
+          <p class="mt-6 max-w-prose leading-relaxed text-ink-soft" data-reveal="rise">
+            What it costs, what it needs, and what happens to the boards you build.
+          </p>
+          <a href="/faq/" class="btn btn-ghost mt-9" data-track="studio:faq" data-reveal="fade" data-reveal-delay="160">
+            All questions →
+          </a>
+        </div>
+
+        <div data-reveal="fade" data-reveal-delay="120">
+          <Faq items={studioFaqs.items} level={3} openFirst track="studio" />
+        </div>
+      </div>
+    </div>
+  </section>
+
   {/* ── Close ────────────────────────────────────────────────────────── */}
-  <section class="border-t border-ink-hair bg-paper-deep/40">
+  <section class="bg-paper-deep/40">
     <div class="shell py-24 text-center md:py-32">
       <h2 class="mx-auto max-w-[18ch] text-title font-black" data-reveal="clip">
         Build the first one tonight.

@@ -79,6 +79,7 @@ font CDN, no third-party JS before first paint.
 /library/[slug]/         ONE SYSTEM — the slide deck + full description   ← the SEO engine
 /intelligence/           the EV Lab / Telegram page
 /course/                 waitlist placeholder (phase 2)
+/faq/                    every question, grouped — the only FAQPage on the site
 /about/                  what Total Football is, who makes it, the method
 /privacy/  /terms/
 /sitemap.xml  /robots.txt  /rss.xml  /llms.txt
@@ -191,9 +192,23 @@ correct there; retyping it would only introduce bugs.
   with `SearchAction`.
 - Library page: `Article` + `BreadcrumbList` + `ImageObject` for the diagrams.
 - `VideoObject` **only** where a real video file is genuinely embedded on that page.
-- Explicitly **not** using `HowTo` (Google removed the rich result entirely) or
-  `FAQPage` (restricted to authoritative gov/health sites since Aug 2023). Marking
+- Explicitly **not** using `HowTo` (Google removed the rich result entirely). Marking
   up for rich results that no longer exist is wasted effort — a trap worth naming.
+- `FAQPage` on **`/faq/` and nowhere else** (amended 2026-08-15; it was previously
+  ruled out entirely). The original reasoning still holds for the rich result:
+  Google restricted it to authoritative government and health sites in August 2023,
+  so no accordion is appearing in anyone's SERP from this. What changed is the
+  second reader. `/faq/` is a document whose main content genuinely *is* a list of
+  questions, the markup is therefore a true description of it, and the answer
+  engines this section already names as a real channel can lift a question and its
+  answer without inferring anything. That is a different bet from marking up a
+  landing page and hoping for a widget.
+  **The line to hold:** the schema goes on the page that is an FAQ. It does **not**
+  go on the homepage, `/studio/`, `/course/`, `/intelligence/` or a system page,
+  all of which now carry an FAQ *section*. On those, the main content is something
+  else, and saying otherwise in structured data is a false claim about the document.
+  Enforced by a single helper in `src/data/faq.ts`; read the note at the foot of it
+  before adding a second caller.
 
 **Technical**
 - Static HTML, no blocking JS. Self-hosted Inter subset, `font-display: swap`,
