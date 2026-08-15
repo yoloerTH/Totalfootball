@@ -237,13 +237,23 @@ export const FAQ_GROUPS: FaqGroup[] = [
   {
     id: 'course',
     title: 'The course',
-    blurb: 'Making videos like these, and the pipeline behind them.',
+    blurb: 'Two AI skills, and the three systems that turn them into income.',
     items: [
       {
         id: 'course-what',
         q: 'What is the course?',
-        a: 'Eight parts in two halves. The first six are the craft: the two video styles, the board engine, choreography, sound you own the rights to, what the numbers from eighty-eight published shorts actually say about pacing, and shipping. The last two are the pipeline — the agentic workflows that watch the fixtures, pull the data and draft the board without you.',
+        a: 'Twelve parts in three tracks. The first is AI motion graphics: the two video styles, the reusable engine, choreography, sound you own the rights to, and shipping. The second is AI automation and engineering: agentic workflows that watch a source, pull the data, draft the asset and queue the post, and what it takes to run one for somebody other than yourself. The third is the money — the three systems that sell either skill.',
         more: { href: '/course/', label: 'The full outline' },
+      },
+      {
+        id: 'course-money',
+        q: 'Does it actually teach how to make money from this?',
+        a: 'Yes, and it is a third of the course rather than a bonus module at the end. Three routes are covered in the detail it takes to run one: social, where an audience pays through platform programmes, sponsors and affiliates; B2B, where the same two skills are sold to clubs, agencies, brands and any operation with a manual process eating its week; and B2C, where you build a template, a membership or a course once and sell it repeatedly. The offer, the pricing, and the part that goes wrong first, for each.',
+      },
+      {
+        id: 'course-claims',
+        q: 'Are there income guarantees?',
+        a: 'None, and there are no revenue screenshots on the page either. What is taught is the method, plus the real numbers behind this operation — eighty-eight published shorts, measured, and the automation running on top of them. What you earn with it depends on you, your market and your effort. Anybody in this category who promises otherwise is selling you the screenshot.',
       },
       {
         id: 'course-when',
@@ -258,7 +268,17 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'course-for-who',
         q: 'Who is it for?',
-        a: 'Somebody who wants to make this kind of video themselves rather than watch more of them — an analyst, a coach with a channel, or an editor who has watched a tactics short and wondered how the board was built. You finish with one video of each style and one workflow running a job you currently do by hand.',
+        a: 'Somebody who wants to make this kind of work rather than watch more of it: an editor or designer adding AI motion graphics, a creator who wants the machine that posts without them, a freelancer looking for a service worth retaining, or an analyst or coach with a channel. You finish with one finished video, one workflow still running, and one offer written down and priced.',
+      },
+      {
+        id: 'course-football',
+        q: 'Do I need to care about football?',
+        a: 'No. Football is the worked example because it is what this operation has measured to death, but nothing in the three tracks is sport-specific. The engine pattern is the same for a product tour or a process diagram, the agents do not know what a fixture is, and the three ways of selling are the three ways anything like this gets sold.',
+      },
+      {
+        id: 'course-coding',
+        q: 'Do I need to be able to code?',
+        a: 'You need to be comfortable with tools, not with computer science. The automation half is built from nodes, triggers and the services you already pay for rather than written from scratch, and where code does appear it is short and handed to you. If you have ever wired two apps together and been annoyed at the seam, you are the right level.',
       },
     ],
   },

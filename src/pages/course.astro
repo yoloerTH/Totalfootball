@@ -2,19 +2,40 @@
 /**
  * /course/ is waitlist only for now (docs/SPEC.md §11).
  *
- * The page is deliberately honest that it is not built yet: a waitlist that
- * pretends to be a product converts once and burns the list. The outline below
- * describes work that genuinely exists: the board engine, the two video
- * styles, and the measured pacing rules, so nothing here is a promise we
- * cannot keep.
+ * WHAT THIS PAGE IS ABOUT — REPOSITIONED 2026-08-15 (user).
  *
- * The page now carries one commercial offer: early access at a founding rate of
- * EUR 39/month, locked for the life of the membership, with limited positions.
- * No payment is taken, so this collects a name and an email and nothing else.
- * The count of places taken is deliberately NOT shown; it goes to the daily
- * Telegram report instead (user, 2026-08-09).
+ * It used to sell one thing: how the football videos get made. That was the
+ * smallest true description of the course and it undersold it badly, because a
+ * person who does not care about football read the H1 and left. What is
+ * actually being taught is two transferable skills and what to do with them:
  *
- * TODO(thanos): "who is it for" in one line, then this copy gets tightened.
+ *   1. AI motion graphics — video of the kind this channel is made of.
+ *   2. AI automation and engineering — the agents that run it without anybody
+ *      opening a file.
+ *   3. The three systems that turn either one into income: an audience,
+ *      business clients, and products of your own.
+ *
+ * Football is now the worked example rather than the subject. The page says so
+ * outright, because the sport-agnostic reader is the one it was losing.
+ *
+ * THE LINE ON MONEY, AND WHY IT IS DRAWN WHERE IT IS.
+ *
+ * A permanent, indexable page about making money is the same risk surface as
+ * /intelligence/ (docs/SPEC.md §10), and it gets the same discipline: name the
+ * METHOD, never the outcome. No income figures, no screenshots, no "replace
+ * your salary". The only numbers on this page are ones this operation actually
+ * measured about its own channel. The honesty is also the sales argument —
+ * every competing page in this category leads with a revenue screenshot, and
+ * not having one is the most credible thing here.
+ *
+ * The page stays honest that it is not built yet: a waitlist that pretends to
+ * be a product converts once and burns the list.
+ *
+ * The one commercial offer is early access at a founding rate of EUR 39/month,
+ * locked for the life of the membership, with limited positions. No payment is
+ * taken, so this collects a name and an email and nothing else. The count of
+ * places taken is deliberately NOT shown; it goes to the daily Telegram report
+ * instead (user, 2026-08-09).
  */
 import BaseLayout from '../layouts/BaseLayout.astro'
 import NewsletterForm from '../components/NewsletterForm.astro'
@@ -28,88 +49,177 @@ const courseFaqs = faqGroup('course')
 /**
  * The outline.
  *
- * `track` is not decoration: the course genuinely changes gear at part 07, from
- * making one video by hand to building the thing that makes them without you.
- * The ladder below marks that changeover — the spine goes dashed and the
- * heading changes — because a coach deciding whether to pay for this needs to
- * see at a glance that they are buying two halves, not eight lessons.
+ * `track` is not decoration. The course changes gear twice, and the ladder
+ * below draws both changeovers — the spine changes and the run gets its own
+ * heading — because somebody deciding whether to pay for this needs to see at
+ * a glance that they are buying three things, not twelve lessons:
+ *
+ *   motion → the video craft, by hand
+ *   agents → the machine that makes it without you
+ *   money  → the three systems that sell either one
+ *
+ * The money track is a third of the course, not a bonus module bolted on the
+ * end, and the ladder has to make that visible or the page is lying about its
+ * own shape.
  */
-type Track = 'craft' | 'pipeline'
+type Track = 'motion' | 'agents' | 'money'
 
 const TRACKS: Record<Track, { label: string; note: string }> = {
-  craft: { label: 'The craft', note: 'Parts 01–06 · making one, by hand' },
-  pipeline: { label: 'The pipeline', note: 'Parts 07–08 · making it run without you' },
+  motion: { label: 'AI motion graphics', note: 'Parts 01–05 · making the video' },
+  agents: { label: 'AI automation', note: 'Parts 06–09 · making it run without you' },
+  money: { label: 'The money', note: 'Parts 10–12 · social, B2B, B2C' },
 }
 
 const modules: { n: string; track: Track; title: string; body: string }[] = [
   {
     n: '01',
-    track: 'craft',
-    title: 'The two styles',
-    body: 'The tactics board and the story short are different crafts. One teaches a system with choreography and no narration; the other carries a career or a night through portraits, type and pacing. You build one of each.',
+    track: 'motion',
+    title: 'The two styles that sell',
+    body: 'The explainer and the story short are different crafts. One teaches a system with choreography and no narration; the other carries a career, a night or a product through portraits, type and pacing. You build one of each, and they are the two formats every client and every platform pays for.',
   },
   {
     n: '02',
-    track: 'craft',
-    title: 'The board engine',
-    body: 'A reusable, scale-accurate pitch with tokens, a ball locked to the carrier, a follow-camera, and role cues that reassign themselves as the ball moves. Once this exists, a new breakdown is choreography rather than construction.',
+    track: 'motion',
+    title: 'The engine',
+    body: 'A reusable, scale-accurate scene with tokens, a subject the camera follows, and cues that reassign themselves as the action moves. Football is the worked example; the pattern is the same for a product tour or a process diagram. Once this exists, a new video is choreography rather than construction.',
   },
   {
     n: '03',
-    track: 'craft',
+    track: 'motion',
     title: 'Choreography',
     body: 'Why an eased fast-then-slow move reads as professional and a linear one does not. Holding a beat, staggering reveals so value keeps arriving, and the single most common failure: showing everything in four seconds and then sitting still.',
   },
   {
     n: '04',
-    track: 'craft',
+    track: 'motion',
     title: 'Sound without a licence',
-    body: 'Synthesising your own effect kit, mapping cues tightly to motion, and ducking a bed under the transients. Copyright-safe by construction, which matters more in football than in any other niche.',
+    body: 'Synthesising your own effect kit, mapping cues tightly to motion, and ducking a bed under the transients. Copyright-safe by construction — which is what lets you sell the same video twice and post it on four platforms without a claim.',
   },
   {
     n: '05',
-    track: 'craft',
-    title: 'What the numbers actually say',
-    body: 'The pacing rules in this course are not taste. They came out of measuring 88 published shorts: where attention is lost, which second decides it, and why a whole-team system outperforms a technique clinic by a factor of seven.',
-  },
-  {
-    n: '06',
-    track: 'craft',
+    track: 'motion',
     title: 'Shipping',
     body: 'Export settings, the safe zones each platform crops, caption placement, and the trim discipline that turned out to matter more than anything done in the render.',
   },
   {
-    n: '07',
-    track: 'pipeline',
+    n: '06',
+    track: 'agents',
     title: 'The pipeline that runs itself',
-    body: 'The part nobody films: agentic workflows that watch the fixtures, pull the data, draft the board and queue the post. Where a model genuinely decides something, where it must not, and the checks that keep a wrong call off the channel.',
+    body: 'The part nobody films: agentic workflows that watch a source, pull the data, draft the asset and queue the post. Where a model genuinely decides something, where it must not, and the checks that keep a wrong call off a channel that is not yours to break.',
+  },
+  {
+    n: '07',
+    track: 'agents',
+    title: 'Building your own agents',
+    body: 'Nodes, triggers, tools and the handoffs between them, built on what you already have rather than on a platform you have to marry. By the end you have one running workflow doing a job you currently do by hand.',
   },
   {
     n: '08',
-    track: 'pipeline',
-    title: 'Building your own agents',
-    body: 'Nodes, triggers, tools and the handoffs between them, built on what you already have rather than on a platform you have to marry. By the end you have one running workflow doing a job you currently do by hand.',
+    track: 'agents',
+    title: 'Wiring what you already pay for',
+    body: 'Models, a spreadsheet, a scheduler, a cheap box to run it on. What each part actually costs at real volume, which jobs are worth a frontier model and which are worth the cheapest one that works, and how to keep a runaway loop from becoming a bill.',
+  },
+  {
+    n: '09',
+    track: 'agents',
+    title: 'Running it for somebody else',
+    body: 'The step between a workflow that works for you and one you can hand over: separating a client’s data from yours, failing loudly instead of silently, and writing the handover so a support request does not arrive at midnight. This is what makes the automation sellable rather than personal.',
+  },
+  {
+    n: '10',
+    track: 'money',
+    title: 'Social: building the audience that pays',
+    body: 'The pacing rules in this course are not taste — they came out of measuring 88 published shorts: where attention is lost, which second decides it, and why a whole-team system outperformed a technique clinic by a factor of seven. Then what to do with the attention: platform payouts, sponsorship, affiliate, and moving people to something you own before an algorithm changes its mind.',
+  },
+  {
+    n: '11',
+    track: 'money',
+    title: 'B2B: selling video and automation to businesses',
+    body: 'Who actually buys this — clubs, academies, agencies, brands, and any operation drowning in a manual process. Finding them, the offer that gets a first yes, pricing a pilot against a retainer, and delivering without becoming a full-time freelancer. The automation half is the higher-margin half, and it is the one almost nobody in this niche can do.',
+  },
+  {
+    n: '12',
+    track: 'money',
+    title: 'B2C: products that sell while you sleep',
+    body: 'The other direction: templates, presets, a paid channel, a membership, a course of your own. Choosing which of them your audience will actually buy, pricing it, the launch, and the list that makes the second launch easier than the first.',
+  },
+]
+
+/**
+ * The three routes, stated before the outline so the ladder reads as an answer
+ * to something rather than as a syllabus.
+ *
+ * NO OUTCOMES HERE. Every line names a mechanism a reader can picture and none
+ * names a number a reader cannot check. See the header note.
+ */
+const ROUTES = [
+  {
+    // The tags are the three words a reader is scanning for — social, B2B,
+    // B2C — and the titles map one-to-one onto the hero's last sentence, so
+    // the promise made up there is the promise being itemised down here.
+    tag: 'Social media',
+    title: 'The audience',
+    lead: 'Post the work and let the audience compound.',
+    items: [
+      'Platform payout programmes, and which ones are worth optimising for',
+      'Brand and sponsor deals, and what a page this size can honestly charge',
+      'Affiliate and product placement that does not cost you the audience',
+      'Moving people to an email list or a channel you own',
+    ],
+  },
+  {
+    tag: 'B2B',
+    title: 'The clients',
+    lead: 'Sell the same two skills to people with budgets.',
+    items: [
+      'Explainer and social video as a productised service, not a bespoke quote',
+      'Automation retainers — the higher-margin half, and the rarer skill',
+      'Who buys: clubs, academies, agencies, brands, any manual back office',
+      'Pricing a pilot, then the retainer it turns into',
+    ],
+  },
+  {
+    tag: 'B2C',
+    title: 'The products',
+    lead: 'Build it once, sell it while you are asleep.',
+    items: [
+      'Templates, presets and engines other people pay to skip building',
+      'A membership or a paid channel, and what keeps one alive past month three',
+      'Your own course, run the way this one is',
+      'The list, the launch, and why the second one is easier',
+    ],
   },
 ]
 
 ---
 
 <BaseLayout
-  title="The course: how these videos get made"
-  description="How the Total Football breakdowns are made, end to end: the board engine, the choreography, the measured pacing rules, and the agentic automation that runs the channel. Early access at EUR 39 a month, locked for life."
+  title="The course: AI motion graphics, AI automation, and what to sell with them"
+  description="Two AI skills and the three systems that turn them into income. Motion graphics of the kind this channel is made of, the agentic automation that runs it, and how each one gets sold — on social, to businesses, and as your own products. Early access at EUR 39 a month, locked for life."
   path="/course/"
 >
   <section class="stage border-b border-ink-hair">
     <div class="shell py-20 md:py-28">
       <div class="max-w-[46rem]">
         <p class="micro mb-7" data-reveal="fade">In production</p>
+        {/*
+          Three lines because there are three things, and the third is the one
+          that was missing. The old H1 — "how these are actually made" — was the
+          smallest true description of the course and it lost every reader who
+          does not care about football before they reached a word of the offer.
+        */}
         <h1 class="text-display font-black" data-reveal="clip" data-reveal-delay="80">
-          How these are<br /><span class="grad-text">actually made.</span>
+          Make the videos.<br />Build the agents.<br /><span class="grad-text">Sell both.</span>
         </h1>
         <p class="mt-9 max-w-prose text-xl leading-[1.6] text-ink/85">
-          Not a motion-graphics course with a football example bolted on. The specific pipeline that
-          produced this channel: the engine, the choreography, and the pacing rules that came out of
-          measuring what people actually watched.
+          Two skills that pay on their own and pay far better together: AI motion graphics of the
+          kind this channel is made of, and the agentic automation that produces it without anybody
+          opening a file.
+        </p>
+        <p class="mt-6 max-w-prose text-[17px] leading-[1.75] text-ink-soft">
+          Then the part these courses always leave out — the three systems that turn either skill
+          into money. An audience that pays, businesses that pay more, and products that keep paying
+          after you have closed the laptop. Football is the worked example, not the subject.
         </p>
 
         <div class="mt-11 flex flex-wrap items-center gap-3">
@@ -180,6 +290,62 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
     </div>
   </section>
 
+  {/* ── The three routes ─────────────────────────────────────────────
+      Directly under the offer, because "what do I actually do with this" is
+      the question the offer creates and the old page answered nowhere.
+
+      Three columns rather than prose: these are alternatives, not a sequence,
+      and a reader is picking the one that sounds like them. The honesty line
+      underneath is not a disclaimer bolted on — in a category where every
+      competing page opens with a revenue screenshot, not having one is the
+      most persuasive thing on this page. */}
+  <section class="border-b border-ink-hair">
+    <div class="shell py-20 md:py-28">
+      <div class="max-w-[46rem]">
+        <p class="micro mb-6" data-reveal="fade">What it is for</p>
+        <h2 class="text-title font-black" data-reveal="clip">
+          Three ways the same two skills <span class="grad-text">get paid.</span>
+        </h2>
+        <p class="mt-6 max-w-prose text-[17px] leading-relaxed text-ink-soft" data-reveal="rise">
+          Most people who learn this end up doing one of three things with it. The course covers all
+          three, in the detail it takes to actually run one — the offer, the pricing, and the part
+          that goes wrong first.
+        </p>
+      </div>
+
+      <ul class="mt-14 grid list-none gap-px overflow-hidden rounded-2xl border border-ink-hair bg-ink-hair p-0 lg:grid-cols-3">
+        {
+          ROUTES.map((route, i) => (
+            <li class="bg-paper p-8 md:p-9" data-reveal="rise" data-reveal-delay={i * 90}>
+              <p class="micro mb-5">{route.tag}</p>
+              <h3 class="text-2xl font-black tracking-display">{route.title}</h3>
+              <p class="mt-3 text-[15px] font-semibold leading-relaxed text-ink">{route.lead}</p>
+
+              <ul class="mt-7 space-y-3.5">
+                {route.items.map((item) => (
+                  <li class="flex gap-3">
+                    <span
+                      class="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-tf-gradient"
+                      aria-hidden="true"
+                    />
+                    <span class="text-[15px] leading-relaxed text-ink-soft">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="mt-10 max-w-prose text-[15px] leading-relaxed text-ink-soft" data-reveal="fade">
+        <strong class="font-bold text-ink">No income claims, and no screenshots of a dashboard.</strong>
+        {' '}What gets taught is the method and the real numbers behind this operation — 88 published
+        shorts, measured, and the automation that runs on top of them. What you earn with it depends
+        on you, and anybody who tells you otherwise is selling you the screenshot.
+      </p>
+    </div>
+  </section>
+
   <section class="shell py-20 md:py-28">
     <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
       {/* The heading holds the left column and stays there while the ladder
@@ -188,33 +354,38 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
       <div class="lg:sticky lg:top-24 lg:self-start">
         <p class="micro mb-6">The outline</p>
         <h2 class="text-title font-black" data-reveal="clip">
-          Eight parts, one finished short at the end.
+          Twelve parts, in three tracks.
         </h2>
         <p class="mt-5 max-w-prose text-[17px] leading-relaxed text-ink-soft">
-          Subject to change while it is being built, and the waitlist gets told when it does.
+          Two of them are skills and one is what to do with them. Subject to change while it is being
+          built, and the waitlist gets told when it changes.
         </p>
-        <dl class="mt-10 flex gap-10">
+        <dl class="mt-10 flex flex-wrap gap-x-10 gap-y-6">
           <div>
             <dt class="micro mb-2">Parts</dt>
-            <dd class="text-3xl font-black tabular-nums">8</dd>
+            <dd class="text-3xl font-black tabular-nums">12</dd>
+          </div>
+          <div>
+            <dt class="micro mb-2">Tracks</dt>
+            <dd class="text-3xl font-black tabular-nums">3</dd>
           </div>
           <div>
             <dt class="micro mb-2">You finish with</dt>
-            <dd class="text-3xl font-black">1 short</dd>
+            <dd class="text-3xl font-black">3 things</dd>
           </div>
         </dl>
       </div>
 
       <div>
     {/*
-      A ladder rather than a grid of eight boxes.
+      A ladder rather than a grid of twelve boxes.
 
       Two things the grid could not say and this does. First, the parts are a
-      SEQUENCE — part 03 assumes part 02 — and eight equal tiles say the
-      opposite, that they are a menu. Second, the course changes gear at 07,
-      from making one video by hand to building the thing that makes them
-      without you; the spine goes dashed there and the run gets its own
-      heading, so the two halves are visible before a word is read.
+      SEQUENCE — part 03 assumes part 02 — and twelve equal tiles say the
+      opposite, that they are a menu. Second, the course changes gear twice:
+      solid spine while you are making the thing by hand, dashed once the
+      machine is making it, gradient once the subject is what it sells for.
+      Three runs, visible before a word is read.
     */}
     <ol class="list-none p-0">
       {
@@ -245,9 +416,9 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
                     <span
                       class:list={[
                         'absolute -bottom-1 left-1/2 top-10 -translate-x-1/2',
-                        m.track === 'pipeline'
-                          ? 'border-l border-dashed border-ink/20'
-                          : 'w-px bg-ink-hair',
+                        m.track === 'agents' && 'border-l border-dashed border-ink/20',
+                        m.track === 'money' && 'w-px bg-tf-gradient opacity-50',
+                        m.track === 'motion' && 'w-px bg-ink-hair',
                       ]}
                       aria-hidden="true"
                     />
@@ -274,8 +445,9 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
         >
           <p class="micro mb-3">What you leave with</p>
           <p class="max-w-prose text-[17px] leading-relaxed text-ink">
-            One finished short that you made, start to finish. And one workflow still running after
-            you have closed the laptop.
+            One finished video that you made, start to finish. One workflow still running after you
+            have closed the laptop. And one offer written down, priced, and pointed at the people who
+            buy it.
           </p>
           <a href="#early-access" class="btn-primary mt-7" data-track="course:cta-outline">
             Get early access
@@ -313,6 +485,11 @@ const modules: { n: string; track: Track; title: string; body: string }[] = [
           <p data-reveal="rise" data-reveal-delay="80">
             You build one that does a job you currently do by hand, with the checks that keep a wrong
             call off your channel.
+          </p>
+          <p data-reveal="rise" data-reveal-delay="160">
+            Then you build one for somebody else, because this is the half almost nobody in this
+            niche can do — and a manual process quietly eating a company’s week is the easiest thing
+            in the world to put a price on.
           </p>
         </div>
       </div>

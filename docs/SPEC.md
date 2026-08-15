@@ -300,6 +300,31 @@ Reserved for later, already proven in `voice-ai-client`: Supabase auth + Stripe
 checkout. The foundation must not make that harder — so no routing or layout
 decision here assumes every page is public.
 
+### What the course is about (repositioned 2026-08-15)
+
+The original framing — "how these football videos get made" — was the smallest
+true description of it, and it lost every reader who does not care about
+football before they reached the offer. The subject is **two transferable AI
+skills and what to sell with them**, in three tracks:
+
+| Track | Parts | Content |
+|---|---|---|
+| AI motion graphics | 01–05 | the two styles, the reusable engine, choreography, licence-free sound, shipping |
+| AI automation | 06–09 | agentic pipelines, building your own agents, what the stack really costs, running one for a client |
+| The money | 10–12 | social (audience → payouts, sponsors, affiliates), B2B (productised video + automation retainers), B2C (templates, membership, your own course) |
+
+Football is the worked example, not the subject, and the page says so.
+
+**The money track carries the same discipline as §10.** A permanent, indexable
+page about earning is the same risk surface as one about betting profits, so:
+name the **method**, never the **outcome**. No income figures, no dashboard
+screenshots, no "replace your salary". The only numbers allowed are ones this
+operation actually measured about itself (88 shorts, the 7× system-vs-technique
+result). The `course-claims` entry in `src/data/faq.ts` and the honesty
+paragraph under the three routes are load-bearing — do not quietly drop them to
+tighten the page. In a category where every competing page opens with a revenue
+screenshot, not having one is the most persuasive thing on this page.
+
 ---
 
 ## 12. Launch set — the 12 systems
