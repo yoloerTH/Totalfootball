@@ -1,15 +1,19 @@
 /**
- * The pitch itself: paper stage, turf checker, and every marking, drawn once in
+ * The pitch itself: the stage, the mown turf, and every marking, drawn once in
  * metre space. The parent <svg>'s viewBox decides which part you see, so this
  * component takes no view and has no conditionals — a half-pitch is the same
  * drawing, cropped. See ./pitch.ts for why.
+ *
+ * The colours come from the document's surface (./surfaces.ts) through context,
+ * never from a constant: this file draws the grass, and grass that ignored the
+ * chosen surface would be the one part of the board that did.
  *
  * Everything here is inert: no state, no measurement, no effects. That is what
  * lets the same markup be serialised straight to a PNG at export time.
  */
 
 import { MARK, PITCH, U, penaltyArcHalfHeight } from './pitch'
-import { BOARD } from './palette'
+import { useSurface } from './surfaces'
 
 /** metres → SVG user units. */
 const u = (m: number) => m * U
@@ -35,6 +39,7 @@ interface Props {
 }
 
 export function Pitch({ idp, texture = false }: Props) {
+  const p = useSurface()
   const arcH = penaltyArcHalfHeight()
 
   // Both ends are mirrored from the same constants, so they cannot drift apart.
@@ -46,33 +51,58 @@ export function Pitch({ idp, texture = false }: Props) {
   return (
     <>
       <defs>
+        {/*
+         * The mow.
+         *
+         * Two patterns behind one id, because the two looks are not variants of
+         * each other: paper carries the videos' faint checker, a printed
+         * texture, while the grass surfaces carry mown BANDS across the length
+         * of the pitch, which is what a groundsman actually cuts and what a
+         * televised pitch reads as. Both are drawn inside `boardTransform`, so
+         * an upright board stands its bands up with it.
+         */}
         <pattern
           id={`${idp}-turf`}
-          width={u(7)}
-          height={u(7)}
+          width={p.mow.kind === 'stripe' ? u(p.mow.size * 2) : u(p.mow.size)}
+          height={u(p.mow.size)}
           patternUnits="userSpaceOnUse"
         >
-          <rect width="50%" height="50%" fill={BOARD.turf} />
-          <rect x="50%" y="50%" width="50%" height="50%" fill={BOARD.turf} />
+          {p.mow.kind === 'checker' ? (
+            <>
+              <rect width="50%" height="50%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
+              <rect x="50%" y="50%" width="50%" height="50%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
+            </>
+          ) : p.mow.kind === 'stripe' ? (
+            <rect width="50%" height="100%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
+          ) : null}
         </pattern>
 
-        {/* The stage's soft cool fall-off, straight off the videos. */}
+        {/* The stage's soft fall-off, straight off the videos. */}
         <linearGradient id={`${idp}-paper`} x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0%" stopColor="#F2F4EF" />
-          <stop offset="55%" stopColor={BOARD.paper} />
-          <stop offset="100%" stopColor={BOARD.paper2} />
+          <stop offset="0%" stopColor={p.stage[0]} />
+          <stop offset="55%" stopColor={p.stage[1]} />
+          <stop offset="100%" stopColor={p.stage[2]} />
         </linearGradient>
 
-        {/* Top-light: keeps the white from reading flat. */}
+        {/* The pitch's own ground, where the surface has one distinct from the stage. */}
+        {p.grass && (
+          <linearGradient id={`${idp}-grass`} x1="0" y1="0" x2="0.25" y2="1">
+            <stop offset="0%" stopColor={p.grass[0]} />
+            <stop offset="100%" stopColor={p.grass[1]} />
+          </linearGradient>
+        )}
+
+        {/* Top-light: keeps the ground from reading flat, and on the night
+            surfaces it is the floodlight pooling in the middle. */}
         <radialGradient id={`${idp}-light`} cx="0.5" cy="0.3" r="0.62">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="0%" stopColor={p.light.color} stopOpacity={p.light.opacity} />
+          <stop offset="100%" stopColor={p.light.color} stopOpacity="0" />
         </radialGradient>
 
         {/* Edge vignette, so the board sits in its frame rather than floating. */}
         <radialGradient id={`${idp}-vignette`} cx="0.5" cy="0.48" r="0.72">
-          <stop offset="55%" stopColor="#141A16" stopOpacity="0" />
-          <stop offset="100%" stopColor="#141A16" stopOpacity="0.18" />
+          <stop offset="55%" stopColor={p.vignette.color} stopOpacity="0" />
+          <stop offset="100%" stopColor={p.vignette.color} stopOpacity={p.vignette.opacity} />
         </radialGradient>
 
         {texture && (
@@ -83,11 +113,17 @@ export function Pitch({ idp, texture = false }: Props) {
               numOctaves="2"
               stitchTiles="stitch"
             />
+            {/* feTurbulence makes COLOURED noise. Multiplied into paper at 5%
+                that is the videos' grain and reads as grain. Screened onto a
+                dark ground it reads as confetti, so the surfaces that screen
+                take the saturation out of it first. */}
+            {p.grain.blend === 'screen' && <feColorMatrix type="saturate" values="0" />}
           </filter>
         )}
       </defs>
 
-      {/* The stage extends well past the pitch so the padding is paper too. */}
+      {/* The stage extends well past the pitch, so the crop's padding is ground
+          too — the run-off around the grass, on the surfaces that have grass. */}
       <rect
         x={u(-PITCH.length)}
         y={u(-PITCH.width)}
@@ -95,11 +131,12 @@ export function Pitch({ idp, texture = false }: Props) {
         height={u(PITCH.width * 3)}
         fill={`url(#${idp}-paper)`}
       />
+      {p.grass && <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-grass)`} />}
       <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-turf)`} />
 
       <g
         fill="none"
-        stroke={BOARD.line}
+        stroke={p.line}
         strokeWidth={LINE}
         strokeLinecap="square"
       >
@@ -109,12 +146,12 @@ export function Pitch({ idp, texture = false }: Props) {
         {/* halfway line, centre circle, centre spot */}
         <line x1={u(L / 2)} y1={0} x2={u(L / 2)} y2={u(W)} />
         <circle cx={u(L / 2)} cy={u(MID)} r={u(MARK.circle)} />
-        <circle cx={u(L / 2)} cy={u(MID)} r={LINE * 1.6} fill={BOARD.line} stroke="none" />
+        <circle cx={u(L / 2)} cy={u(MID)} r={LINE * 1.6} fill={p.line} stroke="none" />
 
         {/* ── left end ── */}
         <rect x={0} y={u(penY0)} width={u(MARK.penDepth)} height={u(MARK.penWidth)} />
         <rect x={0} y={u(sixY0)} width={u(MARK.sixDepth)} height={u(MARK.sixWidth)} />
-        <circle cx={u(MARK.penSpot)} cy={u(MID)} r={LINE * 1.6} fill={BOARD.line} stroke="none" />
+        <circle cx={u(MARK.penSpot)} cy={u(MID)} r={LINE * 1.6} fill={p.line} stroke="none" />
         <path
           d={`M ${u(MARK.penDepth)} ${u(MID - arcH)} A ${u(MARK.circle)} ${u(MARK.circle)} 0 0 1 ${u(MARK.penDepth)} ${u(MID + arcH)}`}
         />
@@ -142,7 +179,7 @@ export function Pitch({ idp, texture = false }: Props) {
           cx={u(L - MARK.penSpot)}
           cy={u(MID)}
           r={LINE * 1.6}
-          fill={BOARD.line}
+          fill={p.line}
           stroke="none"
         />
         <path
@@ -189,8 +226,11 @@ export function Pitch({ idp, texture = false }: Props) {
           width={u(PITCH.length * 3)}
           height={u(PITCH.width * 3)}
           filter={`url(#${idp}-grain)`}
-          opacity={0.05}
-          style={{ mixBlendMode: 'multiply' }}
+          opacity={p.grain.opacity}
+          // Multiply darkens, which is what grain does to paper and what it
+          // does to a dark ground is nothing at all. The dark surfaces screen
+          // instead, so the noise lifts out of the grass as it would on film.
+          style={{ mixBlendMode: p.grain.blend }}
           pointerEvents="none"
         />
       )}

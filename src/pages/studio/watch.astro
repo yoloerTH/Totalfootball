@@ -46,9 +46,11 @@ import Viewer from '../../studio/viewer/Viewer'
   }
 
   @media print {
-    /* Night mode must not follow a coach onto paper. */
+    /* No theme follows a coach onto paper — not night, not either pitch. The
+       attribute selector is deliberately open: a theme added later is covered
+       by it, where a list of ids would print the next one on a green sheet. */
     :root,
-    :root[data-theme='dark'] {
+    :root[data-theme] {
       --tf-paper: 255 255 255;
       --tf-paper-deep: 255 255 255;
       --tf-surface: 255 255 255;

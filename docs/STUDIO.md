@@ -36,7 +36,7 @@ back the film. Nothing else here is hard to copy — that is.
 | Decision | Choice | Why |
 |---|---|---|
 | Where it lives | Inside `totalfootball-web`, routes under `/studio/` | Inherits theme, brand, traffic |
-| Board theme | **Board is always the light paper stage**; only the chrome follows `data-theme` | The paper stage is the brand, and an exported deck must look like the videos regardless of the coach's screen setting |
+| Board theme | **The board never follows the viewer's theme.** It is drawn on a *surface* stored on the document, chosen by the coach; paper is the default | An exported deck must look the same to everyone who opens it. A board that followed `data-theme` renders the same shared link two different ways |
 | Board tech | **SVG**, not DOM | Makes export `serialise → canvas → PNG` with no server. Constrains everything: no CSS filters, no `<image href>`, no un-inlinable webfont |
 | Shared code | New SVG core in the web app; **not** a shared package with `editor/` | Extracting a package first would mean refactoring 123 working compositions before shipping a feature |
 | Export v1 | **A shared LINK, not a file.** See §3c. PPTX still to do |
@@ -45,7 +45,8 @@ back the film. Nothing else here is hard to copy — that is.
 | Where a shared system lives | **Stored, behind a 7-character id**: `/s/k7f3q9`. The self-contained fragment link is kept as the fallback | The fragment link was right about everything except the only thing that mattered — it was 2,000 characters, and nobody can send that |
 | Who can read the shares table | **Only the function.** RLS on, zero policies, service-role key server-side | Keeps the browser holding no Supabase key at all, matching the posture in `.env.example` |
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
-| Dark mode | The studio chrome follows the site's `data-theme`; **the board never does** | The paper stage is the brand and is what an exported deck must look like. Night mode is a property of the room, not of the diagram |
+| Themes | **Four**: Day, Night, Pitch Broadcast, Pitch Night. Chrome only, in `src/lib/theme.ts` | A room the coach reads in. Two of them are named after pitch surfaces and neither touches a board — see the row above |
+| Pitch surfaces | **Four**: Paper (default), Broadcast, Night, Chalk, in `board/surfaces.ts`. Picked like the match ball, stored as `System.surface` | A property of the diagram, so it travels into every export, print and link. The whole palette swaps, not just the grass: an arrow left on paper's ink vanishes on green |
 | Small screens | A **door, not a wall**: told once that it wants a laptop, offered the link for later, and let through | A coach on a touchline looking at what they built is a good reason to be on a phone |
 | Watermark | **Footer credit bar**: their crest + team name left, "Made with Total Football" + our mark right | Reads as a credit line, not a watermark, so nobody tries to crop it |
 | The date on a video | **Off unless asked for** | It is stamped when a link is made, which is right for a link. A file lives in a group chat for a season, where a date only makes a system that is still true look out of date (user, 2026-08-14) |
@@ -73,9 +74,18 @@ Remotion-free SVG port of `editor/src/components/football/TacticsBoard.tsx`.
   must agree about where the penalty spot is. Adding a view is four numbers.
   Also owns the **upright view's quarter turn**, which lives in the coordinate
   transform (`metresToUnits`) and not in the markup — see §6.
-- **`palette.ts`** — `BOARD`, `CUE_COLOR`, `ARROW_STYLE`, `BAND_STYLE`, plus
-  `darken()` and `readableText()` (WCAG relative luminance, so a yellow kit gets
-  ink labels automatically).
+- **`palette.ts`** — `BOARD`, the paper stage's hexes, plus `darken()` and
+  `readableText()` (WCAG relative luminance, so a yellow kit gets ink labels
+  automatically).
+- **`surfaces.ts`** — the four **pitch surfaces**, each a complete
+  `BoardPalette`: stage, grass, mow, lines, ink, halo, accents, light, vignette,
+  grain. `Board.tsx` reads `System.surface` once and provides the palette
+  through `SurfaceContext`; every other component takes it from `useSurface()`,
+  so nothing can be left drawing in paper's ink on a night pitch. `cueColor()`,
+  `arrowStyle()` and `bandStyle()` are functions of a palette — a run arrow
+  fixed to `#06A659` is invisible on broadcast turf. The paper instances are
+  still exported as `CUE_COLOR` / `ARROW_STYLE` / `BAND_STYLE`, for the
+  illustrations that draw a mark outside a board.
 - **`PitchMarkings.tsx`** — every marking, drawn once in metre space.
 - **`Token.tsx`** — the glossy domed counter and the ball.
 - **`Overlays.tsx`** — arrows (5 intents) and bands (block / danger / zone).

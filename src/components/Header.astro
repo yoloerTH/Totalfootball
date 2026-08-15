@@ -1,5 +1,6 @@
 ---
 import Mark from './brand/Mark.astro'
+import { THEMES } from '../lib/theme'
 
 const nav = [
   { href: '/library/', label: 'Library' },
@@ -40,42 +41,74 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
     </nav>
 
     <div class="flex items-center gap-2">
-      {/* Night mode. Light stays the default; this only ever sets an override. */}
-      <button
-        type="button"
-        id="tf-theme"
-        class="grid h-9 w-9 place-items-center rounded-full border border-ink-hair text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
-        aria-label="Switch to night mode"
-        aria-pressed="false"
-        title="Night mode"
-      >
-        <svg
-          class="tf-moon h-[17px] w-[17px]"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      {/*
+        The theme picker. Four grounds now rather than two, which is one more
+        than a toggle can carry: a button that cycles day → night → broadcast →
+        floodlit makes a reader press it three times to get back to where they
+        were and never says what the next press will do. So it is a menu, and
+        every option is visible with its own swatch before anything changes.
+
+        Light is still the default and still the absence of an attribute.
+      */}
+      <div class="relative">
+        <button
+          type="button"
+          id="tf-theme"
+          class="flex h-9 items-center gap-2 rounded-full border border-ink-hair pl-1.5 pr-3 text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="Theme"
         >
-          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
-        </svg>
-        <svg
-          class="tf-sun hidden h-[17px] w-[17px]"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+          <span
+            id="tf-theme-swatch"
+            class="h-6 w-6 shrink-0 rounded-full border border-ink-hair"
+            style="background:#F4F4F2"
+            aria-hidden="true"></span>
+          <span id="tf-theme-name" class="text-[13px] font-medium">Day</span>
+        </button>
+
+        <div
+          id="tf-theme-menu"
+          role="menu"
+          aria-label="Theme"
+          hidden
+          class="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-ink-hair bg-surface p-1.5 shadow-lift"
         >
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
-          ></path>
-        </svg>
-      </button>
+          {
+            THEMES.map((t) => (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked="false"
+                data-theme-id={t.id}
+                class="flex w-full items-start gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-paper"
+              >
+                <span
+                  class="mt-0.5 h-6 w-6 shrink-0 rounded-full border border-ink-hair"
+                  style={`background:linear-gradient(135deg, ${t.paper} 55%, ${t.accent} 55%)`}
+                  aria-hidden="true"
+                />
+                <span class="min-w-0">
+                  <span class="block text-[13px] font-semibold text-ink">{t.label}</span>
+                  <span class="block text-[11px] leading-snug text-ink-faint">{t.hint}</span>
+                </span>
+                <svg
+                  class="tf-tick ml-auto mt-1 hidden h-4 w-4 shrink-0 text-ink"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 10.5 8 14.5 16 6" />
+                </svg>
+              </button>
+            ))
+          }
+        </div>
+      </div>
 
       <a href="/library/" class="btn-primary !px-5 !py-2 text-[13px]" data-track="nav:library"
         >Browse systems</a
@@ -105,37 +138,88 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
   </nav>
 </header>
 
-<script is:inline>
+<script is:inline define:vars={{ THEME_LIST: THEMES }}>
   ;(function () {
     var btn = document.getElementById('tf-theme')
-    if (!btn) return
+    var menu = document.getElementById('tf-theme-menu')
+    if (!btn || !menu) return
+
     var root = document.documentElement
-    var moon = btn.querySelector('.tf-moon')
-    var sun = btn.querySelector('.tf-sun')
+    var swatch = document.getElementById('tf-theme-swatch')
+    var name = document.getElementById('tf-theme-name')
     var meta = document.querySelector('meta[name="theme-color"]')
+    var items = menu.querySelectorAll('[data-theme-id]')
+
+    function current() {
+      var id = root.getAttribute('data-theme') || 'light'
+      for (var i = 0; i < THEME_LIST.length; i++) {
+        if (THEME_LIST[i].id === id) return THEME_LIST[i]
+      }
+      return THEME_LIST[0]
+    }
 
     function render() {
-      var dark = root.getAttribute('data-theme') === 'dark'
-      moon.classList.toggle('hidden', dark)
-      sun.classList.toggle('hidden', !dark)
-      btn.setAttribute('aria-pressed', dark ? 'true' : 'false')
-      btn.setAttribute('aria-label', dark ? 'Switch to day mode' : 'Switch to night mode')
-      btn.setAttribute('title', dark ? 'Day mode' : 'Night mode')
-      if (meta) meta.setAttribute('content', dark ? '#0A0C0B' : '#F4F4F2')
+      var t = current()
+      swatch.style.background = 'linear-gradient(135deg, ' + t.paper + ' 55%, ' + t.accent + ' 55%)'
+      name.textContent = t.label
+      if (meta) meta.setAttribute('content', t.paper)
+      items.forEach(function (el) {
+        var on = el.getAttribute('data-theme-id') === t.id
+        el.setAttribute('aria-checked', on ? 'true' : 'false')
+        el.querySelector('.tf-tick').classList.toggle('hidden', !on)
+      })
+    }
+
+    function open(state) {
+      menu.hidden = !state
+      btn.setAttribute('aria-expanded', state ? 'true' : 'false')
+    }
+
+    // Light is the ABSENCE of the attribute, not a value of it, so that a
+    // first-time visitor and a visitor who has chosen day are the same page.
+    function apply(id, remember) {
+      if (id === 'light') root.removeAttribute('data-theme')
+      else root.setAttribute('data-theme', id)
+      if (remember) {
+        try {
+          localStorage.setItem('tf_theme', id)
+        } catch (e) {
+          // Private mode. The theme still applies for this session.
+        }
+      }
+      render()
     }
 
     render()
 
-    btn.addEventListener('click', function () {
-      var dark = root.getAttribute('data-theme') === 'dark'
-      if (dark) {
-        root.removeAttribute('data-theme')
-        try { localStorage.setItem('tf_theme', 'light') } catch (e) {}
-      } else {
-        root.setAttribute('data-theme', 'dark')
-        try { localStorage.setItem('tf_theme', 'dark') } catch (e) {}
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation()
+      open(menu.hidden)
+    })
+
+    items.forEach(function (el) {
+      el.addEventListener('click', function () {
+        apply(el.getAttribute('data-theme-id'), true)
+        open(false)
+        btn.focus()
+      })
+    })
+
+    document.addEventListener('click', function (e) {
+      if (!menu.hidden && !menu.contains(e.target)) open(false)
+    })
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !menu.hidden) {
+        open(false)
+        btn.focus()
       }
-      render()
+    })
+
+    // A second tab — or the studio, which writes the same key — changing the
+    // theme changes it here too. Not remembered again: it is already stored,
+    // and writing back would bounce the event between two open tabs.
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'tf_theme' && e.newValue) apply(e.newValue, false)
     })
   })()
 </script>

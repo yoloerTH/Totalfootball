@@ -14,7 +14,7 @@
  */
 
 import { U } from './pitch'
-import { BOARD, CUE_COLOR } from './palette'
+import { cueColor, useSurface } from './surfaces'
 import type { Side, TeamStyle } from '../schema'
 
 const u = (m: number) => m * U
@@ -52,10 +52,14 @@ export function Token({
   scale = 1,
   active = false,
 }: TokenProps) {
+  const p = useSurface()
   const r = u(TOKEN_R * scale)
   const gid = `${idp}-dome-${side}-${style.base.replace('#', '')}`
   const isPress = cue === 'PRESS'
-  const cueCol = cue ? (CUE_COLOR[cue] ?? BOARD.ink) : BOARD.ink
+  const cueCol = cue ? (cueColor(p)[cue] ?? p.ink) : p.ink
+  // A cue chip is filled with its own colour and lettered in white — except the
+  // two that are drawn in the board's ink, which on a dark surface IS white.
+  const inkChip = cueCol === p.ink || cueCol === p.inkSoft
 
   // Estimated, because SVG cannot size a rect to its text. Inter's caps run
   // about 0.62em wide; the padding is generous enough that the estimate being
@@ -103,7 +107,7 @@ export function Token({
           cy={cy}
           r={r * 1.2}
           fill="none"
-          stroke={BOARD.goldDeep}
+          stroke={p.goldDeep}
           strokeWidth={r * 0.14}
         />
       )}
@@ -114,7 +118,7 @@ export function Token({
           cy={cy}
           r={r * 1.34}
           fill="none"
-          stroke={BOARD.gold}
+          stroke={p.gold}
           strokeWidth={r * 0.09}
           strokeDasharray={`${r * 0.34} ${r * 0.26}`}
         />
@@ -168,8 +172,8 @@ export function Token({
           fontFamily="Inter Variable, Inter, system-ui, sans-serif"
           fontWeight={800}
           fontSize={r * 0.5}
-          fill={BOARD.ink}
-          stroke={BOARD.paper}
+          fill={p.ink}
+          stroke={p.halo}
           strokeWidth={r * 0.12}
           paintOrder="stroke"
           style={{ userSelect: 'none' }}
@@ -186,7 +190,7 @@ export function Token({
             width={cueW}
             height={cueH}
             rx={cueH * 0.28}
-            fill={cueCol === BOARD.ink ? 'rgba(22,22,24,0.92)' : cueCol}
+            fill={cueCol === p.ink ? p.inkChip : cueCol}
           />
           <text
             x={cx}
@@ -197,7 +201,7 @@ export function Token({
             fontWeight={900}
             fontSize={cueSize}
             letterSpacing={cueSize * 0.04}
-            fill="#FFFFFF"
+            fill={inkChip ? p.onInk : '#FFFFFF'}
             style={{ userSelect: 'none' }}
           >
             {cue}
@@ -214,6 +218,9 @@ export function Token({
  * proportion the videos composite theirs at.
  */
 export const BALL_R = 1.05
+
+/** The drawn ball's own markings. See the note where they are used. */
+const BALL_INK = '#161618'
 
 /**
  * The ball.
@@ -274,16 +281,20 @@ export function Ball({
         // bounding box IS the ball and no preserveAspectRatio fudge is needed.
         <image href={href} x={cx - r} y={cy - r} width={r * 2} height={r * 2} />
       ) : (
+        // BALL_INK, not the surface's ink. The pentagons are markings on a white
+        // ball — a physical object that looks the same on every pitch — where
+        // the surface's ink is the colour we WRITE in, and on a dark surface that
+        // is nearly white. Following it would draw a white ball with white spots.
         <>
           <circle
             cx={cx}
             cy={cy}
             r={r}
             fill={`url(#${gid})`}
-            stroke={BOARD.ink}
+            stroke={BALL_INK}
             strokeWidth={r * 0.14}
           />
-          <circle cx={cx} cy={cy} r={r * 0.3} fill={BOARD.ink} />
+          <circle cx={cx} cy={cy} r={r * 0.3} fill={BALL_INK} />
           {[0, 72, 144, 216, 288].map((deg) => {
             const rad = ((deg - 90) * Math.PI) / 180
             return (
@@ -292,7 +303,7 @@ export function Ball({
                 cx={cx + Math.cos(rad) * r * 0.62}
                 cy={cy + Math.sin(rad) * r * 0.62}
                 r={r * 0.17}
-                fill={BOARD.ink}
+                fill={BALL_INK}
               />
             )
           })}

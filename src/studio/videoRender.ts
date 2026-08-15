@@ -66,7 +66,7 @@ import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal
 
 import { kickTrack } from './audio'
 import { Board } from './board/Board'
-import { BOARD } from './board/palette'
+import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
 import type { System } from './schema'
@@ -306,8 +306,12 @@ function layout(shape: VideoShape): Layout {
 
 const FACE = `'Inter Variable', Inter, system-ui, sans-serif`
 
-/** The paper stage, as channels, so the scrims can fade it out. */
-const PAPER_RGB = '236,238,233'
+/*
+ * PAPER_RGB used to live here, as the one colour the chrome's glow was thrown
+ * in. It is now the surface's own `halo` — the chrome is drawn straight onto the
+ * board, so the glow that separates a caption from the grass has to be the
+ * colour of that grass. See ./board/surfaces.ts.
+ */
 
 /**
  * Width of `text` measured the way `drawTracked` draws it — one glyph at a
@@ -399,9 +403,9 @@ function wrapText(
  * Two passes with the shadow on, because one pass of a 95%-opaque blur is not
  * enough separation over a red counter, and a third is not visible.
  */
-function glow(ctx: CanvasRenderingContext2D, size: number, draw: () => void): void {
+function glow(ctx: CanvasRenderingContext2D, p: BoardPalette, size: number, draw: () => void): void {
   ctx.save()
-  ctx.shadowColor = `rgba(${PAPER_RGB},0.92)`
+  ctx.shadowColor = rgba(p.halo, 0.92)
   ctx.shadowBlur = Math.max(6, size * 0.55)
   draw()
   draw()
@@ -473,6 +477,7 @@ function drawChrome(
   progress: number,
   mark: HTMLCanvasElement | null,
   showDate: boolean,
+  p: BoardPalette,
 ): void {
   const max = l.w - l.left * 2
 
@@ -482,12 +487,12 @@ function drawChrome(
   // ── top left: the standing head ────────────────────────────────────────────
 
   let y = l.top
-  ctx.fillStyle = BOARD.goldDeep
-  glow(ctx, l.rule.h * 2, () => ctx.fillRect(l.left, y, l.rule.w, l.rule.h))
+  ctx.fillStyle = p.goldDeep
+  glow(ctx, p, l.rule.h * 2, () => ctx.fillRect(l.left, y, l.rule.w, l.rule.h))
   y += l.rule.h + Math.round(l.eyebrowSize * 1.6)
 
   ctx.font = `800 ${l.eyebrowSize}px ${FACE}`
-  ctx.fillStyle = BOARD.inkSoft
+  ctx.fillStyle = p.inkSoft
 
   const counter = system.acts.length > 1
     ? `${pad2(words.index + 1)} / ${pad2(system.acts.length)}`
@@ -500,7 +505,7 @@ function drawChrome(
     max - (counterW ? counterW + l.left : 0),
     l.track,
   )
-  glow(ctx, l.eyebrowSize, () => drawTracked(ctx, eyebrow, l.left, y, l.track))
+  glow(ctx, p, l.eyebrowSize, () => drawTracked(ctx, eyebrow, l.left, y, l.track))
 
   // ── the phase's own words, which are the part that changes ─────────────────
 
@@ -510,7 +515,7 @@ function drawChrome(
 
   if (counter) {
     const cy = y
-    glow(ctx, l.eyebrowSize, () => drawTracked(ctx, counter, l.w - l.left - counterW, cy, l.track))
+    glow(ctx, p, l.eyebrowSize, () => drawTracked(ctx, counter, l.w - l.left - counterW, cy, l.track))
   }
 
   const act = system.acts[words.index]
@@ -518,23 +523,23 @@ function drawChrome(
 
   if (act.title) {
     ctx.font = `900 ${l.titleSize}px ${FACE}`
-    ctx.fillStyle = BOARD.ink
+    ctx.fillStyle = p.ink
     for (const line of wrapText(ctx, act.title, max, 2)) {
       y += Math.round(l.titleSize * 1.06)
       const ty = y
-      glow(ctx, l.titleSize, () => ctx.fillText(line, l.left, ty))
+      glow(ctx, p, l.titleSize, () => ctx.fillText(line, l.left, ty))
     }
   }
 
   if (act.caption) {
     ctx.font = `500 ${l.captionSize}px ${FACE}`
-    ctx.fillStyle = BOARD.inkSoft
+    ctx.fillStyle = p.inkSoft
     let first = true
     for (const line of wrapText(ctx, act.caption, max, 2)) {
       y += Math.round(l.captionSize * (first ? 1.5 : 1.32))
       first = false
       const cy = y
-      glow(ctx, l.captionSize, () => ctx.fillText(line, l.left, cy))
+      glow(ctx, p, l.captionSize, () => ctx.fillText(line, l.left, cy))
     }
   }
 
@@ -558,11 +563,11 @@ function drawChrome(
   const lineTwo = base
   const lineOne = base - Math.round(l.microSize * 1.5)
 
-  ctx.fillStyle = BOARD.inkSoft
-  glow(ctx, l.microSize, () =>
+  ctx.fillStyle = p.inkSoft
+  glow(ctx, p, l.microSize, () =>
     drawTracked(ctx, 'MADE WITH', lockLeft + (textW - madeW), lineOne, lockTrack))
-  ctx.fillStyle = BOARD.ink
-  glow(ctx, l.microSize, () =>
+  ctx.fillStyle = p.ink
+  glow(ctx, p, l.microSize, () =>
     drawTracked(ctx, 'TOTAL FOOTBALL', lockLeft + (textW - tfW), lineTwo, lockTrack))
 
   if (mark) {
@@ -571,7 +576,7 @@ function drawChrome(
     const bottom = lineTwo + l.microSize * 0.12
     const at = Math.round((top + bottom) / 2 - l.markSize / 2)
     ctx.globalAlpha = 0.92
-    glow(ctx, l.markSize * 0.5, () => ctx.drawImage(mark, l.w - l.left - l.markSize, at))
+    glow(ctx, p, l.markSize * 0.5, () => ctx.drawImage(mark, l.w - l.left - l.markSize, at))
     ctx.globalAlpha = 1
   }
 
@@ -586,23 +591,23 @@ function drawChrome(
 
   ctx.textAlign = 'left'
   ctx.font = `800 ${l.creditSize}px ${FACE}`
-  ctx.fillStyle = BOARD.ink
+  ctx.fillStyle = p.ink
   const line = fitText(ctx, theirs || system.title || 'A tactical system', theirMax)
   const lineY = under ? base - Math.round(l.noteSize * 1.55) : base
-  glow(ctx, l.creditSize, () => ctx.fillText(line, l.left, lineY))
+  glow(ctx, p, l.creditSize, () => ctx.fillText(line, l.left, lineY))
 
   if (under) {
     ctx.font = `500 ${l.noteSize}px ${FACE}`
-    ctx.fillStyle = BOARD.inkSoft
+    ctx.fillStyle = p.inkSoft
     const text = fitText(ctx, under, theirMax)
-    glow(ctx, l.noteSize, () => ctx.fillText(text, l.left, base))
+    glow(ctx, p, l.noteSize, () => ctx.fillText(text, l.left, base))
   }
 
   // ── the film's own clock ───────────────────────────────────────────────────
 
-  ctx.fillStyle = `rgba(22,22,24,0.10)`
+  ctx.fillStyle = rgba(p.ink, 0.14)
   ctx.fillRect(0, l.h - l.bar, l.w, l.bar)
-  ctx.fillStyle = BOARD.goldDeep
+  ctx.fillStyle = p.goldDeep
   ctx.fillRect(0, l.h - l.bar, l.w * clamp01(progress), l.bar)
 }
 
@@ -615,9 +620,9 @@ function drawChrome(
  * bar or on the end card of a short. Returns null on failure, which costs the
  * glyph and not the export — the words beside it still say whose this is.
  */
-async function rasterMark(size: number): Promise<HTMLCanvasElement | null> {
+async function rasterMark(size: number, ink: string): Promise<HTMLCanvasElement | null> {
   try {
-    const markup = renderToStaticMarkup(createElement(Mark, { size, ink: BOARD.ink }))
+    const markup = renderToStaticMarkup(createElement(Mark, { size, ink }))
     // Mark draws for the DOM, where the SVG namespace is implied. An <img> is
     // parsing a standalone document and needs it spelled out, or it fails to
     // decode and the mark is silently absent.
@@ -656,7 +661,10 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   const [css, ball] = await Promise.all([boardFontCss(), inlineBall(resolveBall(system.matchBall).id)])
   await document.fonts.ready
   // Once, up front: it is the same picture on all four hundred frames.
-  const mark = await rasterMark(l.markSize)
+  // The chrome is drawn on top of the board, so it takes the board's palette:
+  // ink on paper, bone on a floodlit pitch.
+  const p = resolveSurface(system.surface).palette
+  const mark = await rasterMark(l.markSize, p.ink)
 
   // If the photograph could not be inlined, the document draws the vector ball
   // instead. The alternative is an <image> pointing at a path the canvas will
@@ -771,6 +779,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
         (i + 1) / frames,
         mark,
         Boolean(opts.date),
+        p,
       )
 
       await source.add(i / VIDEO_FPS, 1 / VIDEO_FPS)

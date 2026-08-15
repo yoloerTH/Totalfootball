@@ -38,7 +38,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Board, clampToBoard, clientToPercent } from '../board/Board'
 import { PITCH_VIEWS, PITCH_VIEW_LIST, aspect, remap, resolveViewId, toMetres } from '../board/pitch'
 import type { PitchView } from '../board/pitch'
-import { ARROW_STYLE, BAND_STYLE, readableText, darken } from '../board/palette'
+import { readableText, darken } from '../board/palette'
+import {
+  PITCH_SURFACES,
+  DEFAULT_SURFACE,
+  arrowStyle,
+  bandStyle,
+  resolveSurface,
+  type PitchSurfaceId,
+} from '../board/surfaces'
 import { BALLS, DEFAULT_BALL, resolveBall, type BallId } from '../balls'
 import {
   FORMATION_BY_ID,
@@ -95,6 +103,7 @@ import {
   PicturePicker,
   Segmented,
   Select,
+  SurfacePicker,
   TextArea,
   TextInput,
   Toggle,
@@ -890,6 +899,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const blockFor = (side: Side) => act?.bands.find((b) => b.kind === 'block' && bandSide(b, act) === side)
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
   const ball = resolveBall(system.matchBall)
+  const surface = resolveSurface(system.surface)
   const formationGroups = useMemo(
     () =>
       formationsByFamily().map((g) => ({
@@ -1329,6 +1339,23 @@ export default function StudioEditor({ systemId, initial }: Props) {
         </p>
       </Panel>
 
+      <Panel title="Pitch">
+        <Tip text={HINT.surface} title="What the pitch is drawn on" block>
+          <SurfacePicker
+            label="Pitch"
+            value={system.surface ?? DEFAULT_SURFACE}
+            onChange={(id: PitchSurfaceId) => {
+              edit('surface', (s) => ({ ...s, surface: id }))
+              seal()
+            }}
+            items={PITCH_SURFACES.map((s) => ({ value: s.id, label: s.name, palette: s.palette }))}
+          />
+        </Tip>
+        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          <span className="font-bold text-ink-soft">{surface.name}.</span> {surface.story}
+        </p>
+      </Panel>
+
       <Panel title="Counters">
         <Tip text={HINT.labels} title="What is on the counters" block>
           <Select
@@ -1426,17 +1453,22 @@ export default function StudioEditor({ systemId, initial }: Props) {
   )
 
   // ── the phase panel (right on a wide screen) ───────────────────────────────
+  // The chips in this list are the marks that are on the board, so they are
+  // tinted from the board's own palette rather than from paper's: a run arrow
+  // listed in #06A659 beside a run arrow drawn in mint is two different things.
+  const arrows = arrowStyle(surface.palette)
+  const bands = bandStyle(surface.palette)
   const marks: { id: string; name: string; tone: string; kind: 'arrow' | 'band' }[] = [
     ...act.arrows.map((a) => ({
       id: a.id,
       name: TOOL_DOC[a.kind].label,
-      tone: ARROW_STYLE[a.kind].color,
+      tone: arrows[a.kind].color,
       kind: 'arrow' as const,
     })),
     ...act.bands.map((b) => ({
       id: b.id,
       name: markName(b, act),
-      tone: BAND_STYLE[b.kind].tone,
+      tone: bands[b.kind].tone,
       kind: 'band' as const,
     })),
   ]
@@ -1597,11 +1629,18 @@ export default function StudioEditor({ systemId, initial }: Props) {
                     onClick={() => setSelection({ kind: 'mark', id: m.id })}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
+                    {/* The dot sits on a disc of the board's own ground, which
+                        is both a truer picture of the mark and the only way it
+                        reads: on the chalk surface a pass is drawn in near
+                        white, and a bare white dot on a day-mode panel is
+                        nothing at all. */}
                     <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: m.tone }}
+                      className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-ink-hair"
+                      style={{ background: surface.palette.halo }}
                       aria-hidden="true"
-                    />
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ background: m.tone }} />
+                    </span>
                     <span className="truncate text-[11px] font-bold text-ink-soft">{m.name}</span>
                   </button>
                   <button
@@ -1831,6 +1870,7 @@ export function newSystem(): System {
     title: '',
     pitch: 'full',
     matchBall: DEFAULT_BALL,
+    surface: DEFAULT_SURFACE,
     teams: { us: DEFAULT_US, them: null },
     acts: [
       {

@@ -17,6 +17,7 @@
 
 import type { BallId } from './balls'
 import type { PitchViewId } from './board/pitch'
+import type { PitchSurfaceId } from './board/surfaces'
 
 /** Which side of the ball a token belongs to. Drives its colour. */
 export type Side = 'us' | 'them'
@@ -137,6 +138,17 @@ export interface System {
    * — `resolveBall()` in ./balls.ts supplies the default.
    */
   matchBall?: BallId
+  /**
+   * What the board is drawn on: paper, broadcast turf, floodlit night, slate.
+   *
+   * On the document rather than on the coach's settings, and that is the whole
+   * design of it. A surface travels with the system into every export, print and
+   * shared link, so what the room sees is what the coach chose — where a surface
+   * that followed the VIEWER's day/night setting would render the same link two
+   * different ways. Undefined on documents written before surfaces existed;
+   * `resolveSurface()` in ./board/surfaces.ts supplies paper.
+   */
+  surface?: PitchSurfaceId
   teams: {
     us: TeamStyle
     /** null = no opposition on the board. */

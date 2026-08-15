@@ -16,7 +16,25 @@ const channel = (name) => `rgb(var(${name}) / <alpha-value>)`
 
 export default {
   content: ['./src/**/*.{astro,js,ts,jsx,tsx,md,mdx}'],
-  darkMode: ['selector', '[data-theme="dark"]'],
+  /*
+   * `dark:` means "on a dark ground", which is three of the four themes and not
+   * one of them — the two pitch themes are dark too. A single selector would
+   * leave anything written with `dark:` reading as if the page were still white
+   * on Pitch Broadcast.
+   *
+   * Nearly nothing needs it: the neutrals already resolve through the variables
+   * below, so a theme is a palette block in global.css and no utilities at all.
+   * `dark:` is for the handful of places where a FIXED colour has to change —
+   * the darkened gold in ModelCurve.astro, which is the only one today.
+   */
+  darkMode: [
+    'variant',
+    [
+      '&:where([data-theme="dark"], [data-theme="dark"] *)',
+      '&:where([data-theme="pitch"], [data-theme="pitch"] *)',
+      '&:where([data-theme="pitch-night"], [data-theme="pitch-night"] *)',
+    ],
+  ],
   theme: {
     extend: {
       colors: {

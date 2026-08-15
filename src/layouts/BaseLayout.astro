@@ -222,16 +222,27 @@ const siteSchema = {
 
       Note there is no prefers-color-scheme fallback. Light is the brand default
       and stays the default until someone chooses otherwise.
+
+      The theme list is duplicated from src/lib/theme.ts because this runs
+      inline, before any module loads — that is the price of not flashing.
+      Anything not in it falls through to light, so a retired theme id left in
+      someone's storage is a shrug rather than an unstyled page.
     */}
     <script is:inline>
       ;(function () {
         var root = document.documentElement
         root.classList.add('js')
+        var PAPER = {
+          dark: '#0A0C0B',
+          pitch: '#15512D',
+          'pitch-night': '#081A11',
+        }
         try {
-          if (localStorage.getItem('tf_theme') === 'dark') {
-            root.setAttribute('data-theme', 'dark')
+          var saved = localStorage.getItem('tf_theme')
+          if (saved && PAPER[saved]) {
+            root.setAttribute('data-theme', saved)
             var m = document.querySelector('meta[name="theme-color"]')
-            if (m) m.setAttribute('content', '#0A0C0B')
+            if (m) m.setAttribute('content', PAPER[saved])
           }
         } catch (e) {}
         // Transitions are enabled only after the initial theme is settled, so

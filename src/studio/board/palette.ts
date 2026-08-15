@@ -8,11 +8,15 @@
  * the two projects do not share a package, and these constants change roughly
  * never. If one of them ever does change, grep the hex.
  *
- * NOTE THE BOARD IS ALWAYS LIGHT. The studio chrome follows the site's
- * data-theme, but the pitch stays on the paper stage in both modes, because
- * the paper stage IS the brand and an exported deck has to look like the
- * videos no matter what the coach's screen was set to when they made it.
- * See src/styles/global.css for the chrome's tokens.
+ * THE BOARD NEVER FOLLOWS THE VIEWER'S THEME. The studio chrome follows the
+ * site's data-theme; the board does not, in either direction, because an
+ * exported deck has to look the same to everyone who opens it no matter what
+ * their screen was set to. See src/styles/global.css for the chrome's tokens.
+ *
+ * The board can still be drawn on something other than paper — see
+ * ./surfaces.ts — but that is a choice stored on the DOCUMENT, made once by the
+ * coach and carried into every export, which is a different thing entirely.
+ * These values are the paper surface, and the one place its hexes live.
  */
 
 export const BOARD = {
@@ -34,41 +38,14 @@ export const BOARD = {
   redDeep: '#B5392F',
 } as const
 
-/**
- * Cue colours. PRESS is the hot one — it is the job that moves, and gold is
- * what the videos use to say "this is the player to watch".
+/*
+ * Cue colours, arrow treatments and band fills used to live here as three
+ * constants built out of BOARD. They are now functions of a surface's palette,
+ * in ./surfaces.ts — an arrow whose colour is fixed to paper's ink is an arrow
+ * that vanishes on a green pitch. `CUE_COLOR`, `ARROW_STYLE` and `BAND_STYLE`
+ * are still exported from there, as the paper instances, for the illustrations
+ * that draw a mark outside a board.
  */
-export const CUE_COLOR: Record<string, string> = {
-  PRESS: BOARD.goldDeep,
-  COVER: BOARD.ink,
-  BALANCE: BOARD.greenDeep,
-  SPARE: BOARD.inkSoft,
-  JOCKEY: BOARD.goldDeep,
-  DROP: BOARD.greenDeep,
-}
-
-/**
- * Arrow treatments, one per intent.
- *
- * `width` and `dash` are in METRES, like every other size on the board, and are
- * converted at draw time. Storing a dash as a ready-made SVG string is the
- * trap here: `strokeDasharray` is in user units, so "1.6 1.1" would mean 16cm
- * of ink and 11cm of gap and render as a solid line.
- */
-export const ARROW_STYLE = {
-  pass: { color: BOARD.ink, dash: null as [number, number] | null, width: 0.42 },
-  run: { color: BOARD.greenDeep, dash: [1.5, 1.05] as [number, number] | null, width: 0.42 },
-  carry: { color: BOARD.ink, dash: null as [number, number] | null, width: 0.42, wavy: true },
-  press: { color: BOARD.goldDeep, dash: null as [number, number] | null, width: 0.5 },
-  switch: { color: BOARD.ink, dash: [2.4, 1.3] as [number, number] | null, width: 0.5 },
-} as const
-
-/** Band fills, keyed by kind. Widths and opacities match the videos' BlockBand. */
-export const BAND_STYLE = {
-  block: { tone: BOARD.green, fill: 0.22, edge: 0.4, string: 0.7 },
-  danger: { tone: BOARD.gold, fill: 0.18, edge: 0.35, string: 0 },
-  zone: { tone: BOARD.ink, fill: 0.08, edge: 0.22, string: 0 },
-} as const
 
 /**
  * Darken a hex colour by `amount` (0–1), used to derive a kit's `deep` shade

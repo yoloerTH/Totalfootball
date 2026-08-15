@@ -44,6 +44,7 @@ import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
 import { Arrow, BlockBand, Zone } from './Overlays'
 import type { Pt } from './Overlays'
+import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
 import type { System, TeamStyle } from '../schema'
 import type { RenderAct } from '../tween'
@@ -112,11 +113,16 @@ export function Board({
   const view: PitchView = viewOverride ?? PITCH_VIEWS[resolveViewId(system.pitch)]
   const pos = (x: number, y: number) => toUnits(view, x, y)
   const crop = cropRect(view)
+  // The surface is read here and nowhere else. Everything under this <svg> takes
+  // it from context, so there is no component that can be left drawing in
+  // paper's ink on a night pitch — see ./surfaces.ts.
+  const surface = resolveSurface(system.surface)
 
   const styleFor = (side: 'us' | 'them'): TeamStyle =>
     side === 'us' ? system.teams.us : (system.teams.them ?? system.teams.us)
 
   return (
+    <SurfaceContext.Provider value={surface.palette}>
     <svg
       ref={svgRef}
       viewBox={viewBox(view)}
@@ -274,6 +280,7 @@ export function Board({
         )}
       </g>
     </svg>
+    </SurfaceContext.Provider>
   )
 }
 

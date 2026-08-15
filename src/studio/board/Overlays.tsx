@@ -14,7 +14,7 @@
  */
 
 import { U } from './pitch'
-import { ARROW_STYLE, BAND_STYLE, BOARD } from './palette'
+import { arrowStyle, bandStyle, useSurface } from './surfaces'
 import type { ArrowKind, BandKind } from '../schema'
 
 const u = (m: number) => m * U
@@ -95,7 +95,8 @@ interface ArrowProps {
 }
 
 export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDown }: ArrowProps) {
-  const s = ARROW_STYLE[kind]
+  const p = useSurface()
+  const s = arrowStyle(p)[kind]
   const { c, mid, len } = arrowGeometry(a, b, bend)
   const w = u(s.width)
   const head = w * 3.1
@@ -108,7 +109,7 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
   const uy = tipDy / tipLen
   const end = { x: b.x - ux * head * 0.82, y: b.y - uy * head * 0.82 }
 
-  const wavy = 'wavy' in s && s.wavy
+  const wavy = s.wavy
   const d = wavy
     ? wavyPath(a, c, end, w * 1.5)
     : `M ${a.x} ${a.y} Q ${c.x} ${c.y} ${end.x} ${end.y}`
@@ -126,11 +127,13 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
 
   return (
     <g pointerEvents="none">
-      {/* a paper-coloured casing, so an arrow crossing a counter still reads */}
+      {/* A casing in the GROUND's own colour, so an arrow crossing a counter still
+          reads. Fixed off-white here would draw a halo round every arrow on a
+          green pitch, which is why `halo` is part of the surface. */}
       <path
         d={d}
         fill="none"
-        stroke={BOARD.paper}
+        stroke={p.halo}
         strokeOpacity={0.85}
         strokeWidth={w * 2.5}
         strokeLinecap="round"
@@ -141,7 +144,7 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
         <path
           d={d}
           fill="none"
-          stroke={BOARD.gold}
+          stroke={p.gold}
           strokeOpacity={0.45}
           strokeWidth={w * 4}
           strokeLinecap="round"
@@ -150,12 +153,12 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
       <path
         d={d}
         fill="none"
-        stroke={active ? BOARD.goldDeep : s.color}
+        stroke={active ? p.goldDeep : s.color}
         strokeWidth={w}
         strokeLinecap="round"
         strokeDasharray={s.dash ? `${u(s.dash[0])} ${u(s.dash[1])}` : undefined}
       />
-      <path d={`M ${headPts} Z`} fill={active ? BOARD.goldDeep : s.color} />
+      <path d={`M ${headPts} Z`} fill={active ? p.goldDeep : s.color} />
 
       {onPointerDown && (
         <path
@@ -179,7 +182,7 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
           fontWeight={800}
           fontSize={Math.min(u(2), Math.max(u(1.1), len * 0.06))}
           fill={s.color}
-          stroke={BOARD.paper}
+          stroke={p.halo}
           strokeWidth={u(0.34)}
           paintOrder="stroke"
         >
@@ -214,7 +217,8 @@ interface BlockBandProps {
  */
 export function BlockBand({ idp, kind, pts, close, label, active, onPointerDown }: BlockBandProps) {
   if (pts.length < 2) return null
-  const s = BAND_STYLE[kind]
+  const p = useSurface()
+  const s = bandStyle(p)[kind]
   const gid = `${idp}-band-${kind}`
   const first = pts[0]
   const last = pts[pts.length - 1]
@@ -253,7 +257,7 @@ export function BlockBand({ idp, kind, pts, close, label, active, onPointerDown 
       <path
         d={fill}
         fill={`url(#${gid})`}
-        stroke={active ? BOARD.goldDeep : s.tone}
+        stroke={active ? p.goldDeep : s.tone}
         strokeOpacity={active ? 0.9 : s.edge}
         strokeWidth={active ? u(0.5) : u(0.26)}
         pointerEvents={onPointerDown ? 'fill' : undefined}
@@ -284,7 +288,7 @@ export function BlockBand({ idp, kind, pts, close, label, active, onPointerDown 
           fontSize={u(1.7)}
           letterSpacing={u(0.08)}
           fill={s.tone}
-          stroke={BOARD.paper}
+          stroke={p.halo}
           strokeWidth={u(0.34)}
           paintOrder="stroke"
         >
@@ -307,7 +311,8 @@ interface ZoneProps {
 
 /** A plain shaded rectangle: the danger zone, a channel, a trap. */
 export function Zone({ idp, kind, rect, label, active, onPointerDown }: ZoneProps) {
-  const s = BAND_STYLE[kind]
+  const p = useSurface()
+  const s = bandStyle(p)[kind]
   const gid = `${idp}-zone-${kind}`
   return (
     <g pointerEvents="none">
@@ -324,7 +329,7 @@ export function Zone({ idp, kind, rect, label, active, onPointerDown }: ZoneProp
         height={rect.h}
         rx={u(0.6)}
         fill={`url(#${gid})`}
-        stroke={active ? BOARD.goldDeep : s.tone}
+        stroke={active ? p.goldDeep : s.tone}
         strokeOpacity={active ? 0.9 : s.edge}
         strokeWidth={active ? u(0.5) : u(0.26)}
         strokeDasharray={`${u(1.4)} ${u(0.9)}`}
@@ -342,7 +347,7 @@ export function Zone({ idp, kind, rect, label, active, onPointerDown }: ZoneProp
           fontSize={u(1.7)}
           letterSpacing={u(0.08)}
           fill={s.tone}
-          stroke={BOARD.paper}
+          stroke={p.halo}
           strokeWidth={u(0.34)}
           paintOrder="stroke"
         >

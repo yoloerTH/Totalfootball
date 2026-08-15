@@ -1,81 +1,149 @@
 /**
- * Day / night, inside the studio.
+ * The room, inside the studio.
  *
- * The site already has this — a button in Header.astro that sets `data-theme`
+ * The site already has this — a picker in Header.astro that sets `data-theme`
  * on <html> and remembers it under `tf_theme`, with an inline script in
  * BaseLayout.astro applying it before first paint so a night reader never gets
  * flashed a white page. The studio renders `bare`, without that header, which
- * is the only reason it had no toggle: a coach who had chosen dark everywhere
- * else arrived at the one page on the site that could not honour it.
+ * is the only reason it had none: a coach who had chosen dark everywhere else
+ * arrived at the one page on the site that could not honour it.
  *
  * So this is the same mechanism, not a second one. Same attribute, same storage
- * key, same theme-colour meta update, so switching here and switching on the
- * library page are the same switch and neither surprises the other.
+ * key, same theme-colour meta, same list in ../../lib/theme.ts, so switching
+ * here and switching on the library page are the same switch.
  *
- * THE BOARD STAYS ON PAPER IN BOTH. That is not an oversight — see
- * ../board/palette.ts. The paper stage is the brand and it is what an exported
- * deck has to look like, so night mode is a property of the room, not of the
- * diagram. A board that inverted itself would mean a coach could not tell what
- * they were about to hand to a room full of players.
+ * THIS IS THE ROOM, NOT THE BOARD. There are two pitch themes in the list and
+ * neither of them touches the pitch — what the board is drawn on is a property
+ * of the document, chosen under "Pitch" in the side panel, and it stays put
+ * whichever room the coach is sitting in. That is not an oversight; see
+ * ../board/surfaces.ts. A board that followed the viewer would mean a coach
+ * could not tell what they were about to hand to a room full of players.
  */
 
-import { useEffect, useState } from 'react'
-import { Tip } from './Tip'
+import { useEffect, useRef, useState } from 'react'
+import { THEMES, resolveTheme, THEME_STORAGE_KEY, type ThemeId } from '../../lib/theme'
 import { HINT } from './guide'
 import { Button } from './ui'
 
-function isDark(): boolean {
-  if (typeof document === 'undefined') return false
-  return document.documentElement.getAttribute('data-theme') === 'dark'
+function currentId(): ThemeId {
+  if (typeof document === 'undefined') return 'light'
+  return resolveTheme(document.documentElement.getAttribute('data-theme')).id
 }
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false)
-
   // Read after mount rather than in the initial state: this island is
   // `client:only`, but the attribute is set by the inline script in the
   // document head, and reading it during the first render of a component that
   // may be hydrated twice is a hydration mismatch waiting to be introduced.
-  useEffect(() => setDark(isDark()), [])
+  const [id, setId] = useState<ThemeId>('light')
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
 
-  const toggle = () => {
-    const next = !isDark()
+  useEffect(() => setId(currentId()), [])
+
+  useEffect(() => {
+    if (!open) return
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+
+  const apply = (next: ThemeId) => {
     const root = document.documentElement
-    if (next) root.setAttribute('data-theme', 'dark')
-    else root.removeAttribute('data-theme')
+    // Light is the ABSENCE of the attribute, not a value of it.
+    if (next === 'light') root.removeAttribute('data-theme')
+    else root.setAttribute('data-theme', next)
     try {
-      localStorage.setItem('tf_theme', next ? 'dark' : 'light')
+      localStorage.setItem(THEME_STORAGE_KEY, next)
     } catch {
       // Private mode. The theme still applies for this session.
     }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next ? '#0A0C0B' : '#F4F4F2')
-    setDark(next)
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', resolveTheme(next).paper)
+    setId(next)
+    setOpen(false)
   }
 
+  const theme = resolveTheme(id)
+
   return (
-    <Tip text={HINT.theme} title={dark ? 'Day mode' : 'Night mode'} side="bottom">
+    <div className="relative" ref={box}>
+      {/*
+       * No Tip on this one, and that is on purpose: a hover tooltip and a menu
+       * opened by the same button land on top of each other, and the tooltip
+       * wins — it covered the first two themes. The explanation lives at the
+       * foot of the menu instead, where it is read at the moment it is needed.
+       */}
       <Button
-        onClick={toggle}
+        onClick={() => setOpen((o) => !o)}
         className="!px-2"
-        aria-label={dark ? 'Switch to day mode' : 'Switch to night mode'}
+        title={`Room: ${theme.label}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Room: ${theme.label}`}
       >
-        {dark ? (
-          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <circle cx="10" cy="10" r="3.6" />
-            <path
-              d="M10 2.4v1.8M10 15.8v1.8M2.4 10h1.8M15.8 10h1.8M4.6 4.6l1.3 1.3M14.1 14.1l1.3 1.3M15.4 4.6l-1.3 1.3M5.9 14.1l-1.3 1.3"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <path
-              d="M16.3 12.4A6.9 6.9 0 0 1 7.6 3.7a6.9 6.9 0 1 0 8.7 8.7Z"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
+        <span
+          className="h-4 w-4 rounded-full border border-ink-hair"
+          style={{ background: `linear-gradient(135deg, ${theme.paper} 55%, ${theme.accent} 55%)` }}
+          aria-hidden="true"
+        />
       </Button>
-    </Tip>
+
+      {open && (
+        <div
+          role="menu"
+          aria-label="Theme"
+          className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-ink-hair bg-surface p-1.5 shadow-lift"
+        >
+          {THEMES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="menuitemradio"
+              aria-checked={t.id === id}
+              onClick={() => apply(t.id)}
+              className="flex w-full items-start gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-paper"
+            >
+              <span
+                className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-ink-hair"
+                style={{ background: `linear-gradient(135deg, ${t.paper} 55%, ${t.accent} 55%)` }}
+                aria-hidden="true"
+              />
+              <span className="min-w-0">
+                <span className="block text-[12px] font-bold text-ink">{t.label}</span>
+                <span className="block text-[11px] leading-snug text-ink-faint">{t.hint}</span>
+              </span>
+              {t.id === id && (
+                <svg
+                  className="ml-auto mt-1 h-3.5 w-3.5 shrink-0 text-ink"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 10.5 8 14.5 16 6" />
+                </svg>
+              )}
+            </button>
+          ))}
+          <p className="border-t border-ink-hair px-2 pb-1 pt-2 text-[11px] leading-snug text-ink-faint">
+            {HINT.theme}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

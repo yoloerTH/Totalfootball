@@ -31,6 +31,16 @@
 
     --tf-grid: 22 22 24;
     --tf-grid-alpha: 0.055;
+
+    /*
+     * The stage's pattern, as a variable, because the two pitch themes do not
+     * want a grid at all — they want mown bands. Anything that draws a stage
+     * reads these two rather than hardcoding the grid, so a new theme is a
+     * palette block and nothing else.
+     */
+    --tf-stage-pattern: linear-gradient(rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px, transparent 1px);
+    --tf-stage-size: 68px 68px;
   }
 
   /*
@@ -52,6 +62,61 @@
 
     --tf-grid: 245 245 243;
     --tf-grid-alpha: 0.05;
+  }
+
+  /*
+   * ── THE TWO PITCH THEMES ─────────────────────────────────────────────────
+   *
+   * The same two grounds the board can be drawn on (src/studio/board/
+   * surfaces.ts), brought up to the whole page: broadcast turf, and that pitch
+   * under floodlights. They are CHROME. Choosing one does not change anybody's
+   * board — see src/lib/theme.ts for why those are wired apart.
+   *
+   * The values are the surfaces' own, held at the value that carries a page of
+   * running text rather than a diagram: the page is the deep run-off green, and
+   * the panels are the grass, so a panel LIFTS off the page the way a pitch
+   * lifts out of the surround. Inverting that gives you type on bright turf,
+   * which is unreadable at paragraph length however good it looks in a swatch.
+   *
+   * The grid becomes mown bands, wide and faint, running the way a groundsman
+   * cuts them. That is the whole reason the pattern is a variable.
+   */
+  :root[data-theme='pitch'] {
+    --tf-paper: 21 81 45; /* #15512D */
+    --tf-paper-deep: 16 67 36; /* #104324 */
+    --tf-surface: 32 104 60; /* #20683C */
+    --tf-ink: 245 249 243; /* #F5F9F3 */
+
+    --tf-shadow-paper: 0 0 0 1px rgb(245 249 243 / 0.08), 0 18px 40px -20px rgb(2 18 9 / 0.7);
+    --tf-shadow-lift: 0 0 0 1px rgb(245 249 243 / 0.12), 0 30px 60px -24px rgb(2 18 9 / 0.85);
+
+    --tf-grid: 245 249 243;
+    --tf-grid-alpha: 0.05;
+    --tf-stage-pattern: repeating-linear-gradient(
+      90deg,
+      rgb(var(--tf-grid) / var(--tf-grid-alpha)) 0 108px,
+      transparent 108px 216px
+    );
+    --tf-stage-size: auto;
+  }
+
+  :root[data-theme='pitch-night'] {
+    --tf-paper: 8 26 17; /* #081A11 */
+    --tf-paper-deep: 5 18 11; /* #05120B */
+    --tf-surface: 16 57 35; /* #103923 */
+    --tf-ink: 236 245 238; /* #ECF5EE */
+
+    --tf-shadow-paper: 0 0 0 1px rgb(236 245 238 / 0.07), 0 18px 40px -20px rgb(0 0 0 / 0.85);
+    --tf-shadow-lift: 0 0 0 1px rgb(236 245 238 / 0.11), 0 30px 60px -24px rgb(0 0 0 / 0.95);
+
+    --tf-grid: 236 245 238;
+    --tf-grid-alpha: 0.035;
+    --tf-stage-pattern: repeating-linear-gradient(
+      90deg,
+      rgb(var(--tf-grid) / var(--tf-grid-alpha)) 0 108px,
+      transparent 108px 216px
+    );
+    --tf-stage-size: auto;
   }
 
   /* Theme swaps should feel deliberate, not like a page reload. */
@@ -114,12 +179,8 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background-image: linear-gradient(
-        rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px,
-        transparent 1px
-      ),
-      linear-gradient(90deg, rgb(var(--tf-grid) / var(--tf-grid-alpha)) 1px, transparent 1px);
-    background-size: 68px 68px;
+    background-image: var(--tf-stage-pattern);
+    background-size: var(--tf-stage-size);
     -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
     mask-image: radial-gradient(ellipse 90% 70% at 50% 38%, #000 35%, transparent 78%);
     pointer-events: none;

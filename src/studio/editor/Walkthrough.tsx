@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { ARROW_STYLE, BOARD } from '../board/palette'
+import { BOARD } from '../board/palette'
+import { ARROW_STYLE } from '../board/surfaces'
 import { DEFAULT_THEM, DEFAULT_US } from '../schema'
 import { WALKTHROUGH } from './guide'
 import { Button } from './ui'

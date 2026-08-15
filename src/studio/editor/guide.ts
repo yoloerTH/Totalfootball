@@ -241,7 +241,7 @@ export const HINT = {
 
   undo: 'Takes back the last thing you changed. Nothing you do here is permanent: move things, try it, take it back.',
   redo: 'Puts back the change you just took away.',
-  theme: 'Switches the panels between day and night. The board itself stays on paper in both, because that is how it will look when you show it.',
+  theme: 'Changes the room you are working in: day, night, or one of the two pitch skins. It only changes these panels. What the pitch is drawn on is set under Pitch, and that is the part everyone else sees.',
   reset: `Empties this system and starts you again with a fresh board and one ${PHASE.one}. Undo brings it all back if you press it by mistake.`,
 
   pitchView:
@@ -250,6 +250,8 @@ export const HINT = {
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
   ball:
     'Which match ball sits on the board. Choose one for the era you are teaching: the 1974 Telstar for a Total Football session, the 2026 Trionda for anything current.',
+  surface:
+    'What the pitch is drawn on. Paper is what the videos use and what prints best. Broadcast and Night look like a match on television, which reads well on a screen in a dark room. This travels with the system, so everyone you send it to sees the pitch you chose.',
 
   formationUs:
     'Lines your eleven up in this shape. It replaces where they are standing right now, so pick the shape before you start moving people.',

@@ -3,13 +3,17 @@
  *
  * These follow the SITE's theme tokens (paper/surface/ink from
  * src/styles/global.css), which is the whole point of the split decided at the
- * start: the panels go dark with the rest of the site, the board never does.
- * So nothing in this file may hardcode a neutral — use the tokens, and the
- * dark mode comes for free.
+ * start: the panels follow the room the coach is working in, the board follows
+ * the document. So nothing in this file may hardcode a neutral — use the
+ * tokens, and every theme comes for free.
+ *
+ * `SurfacePicker` is the one place that draws in board colours rather than
+ * chrome ones, and it has to: it is a picture OF a board.
  */
 
 import { useEffect, useState } from 'react'
 import type React from 'react'
+import type { BoardPalette } from '../board/surfaces'
 
 export function Panel({
   title,
@@ -37,6 +41,8 @@ export function Button({
   disabled = false,
   className = '',
   'aria-label': ariaLabel,
+  'aria-haspopup': ariaHasPopup,
+  'aria-expanded': ariaExpanded,
 }: {
   children: React.ReactNode
   onClick?: () => void
@@ -52,6 +58,9 @@ export function Button({
   className?: string
   /** Needed by the icon-only buttons, whose label is an arrow or a question mark. */
   'aria-label'?: string
+  /** For the buttons that open a menu rather than doing something. */
+  'aria-haspopup'?: 'menu'
+  'aria-expanded'?: boolean
 }) {
   const base =
     'inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-bold transition-colors disabled:opacity-40 disabled:pointer-events-none'
@@ -68,6 +77,8 @@ export function Button({
       type="button"
       title={title}
       aria-label={ariaLabel}
+      aria-haspopup={ariaHasPopup}
+      aria-expanded={ariaExpanded}
       onClick={onClick}
       disabled={disabled}
       className={`${base} ${look} ${className}`}
@@ -333,6 +344,74 @@ export function PicturePicker<T extends string>({
           )}
         </button>
       ))}
+    </div>
+  )
+}
+
+/**
+ * A row of miniature pitches — used for the pitch surface.
+ *
+ * The same control as the match ball's, for the same reason: nobody picks a
+ * ground by its name, everybody picks it on sight. Each swatch is a real pitch
+ * drawn in that surface's own palette — its grass, its mow, its line colour —
+ * rather than a flat colour chip, because "Night" and "Chalk" are both dark and
+ * a coach choosing between two dark squares is guessing. A halfway line and a
+ * centre circle are enough to make each one obviously a pitch.
+ */
+export function SurfacePicker<T extends string>({
+  value,
+  onChange,
+  items,
+  label,
+}: {
+  value: T
+  onChange: (v: T) => void
+  items: { value: T; label: string; palette: BoardPalette }[]
+  label: string
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>
+      {items.map((it) => {
+        const p = it.palette
+        const grass = p.grass ? p.grass[0] : p.stage[1]
+        const grassDeep = p.grass ? p.grass[1] : p.stage[2]
+        return (
+          <button
+            key={it.value}
+            type="button"
+            role="radio"
+            aria-checked={value === it.value}
+            aria-label={it.label}
+            title={it.label}
+            onClick={() => onChange(it.value)}
+            className={`h-11 w-[3.4rem] overflow-hidden rounded-lg border-2 transition ${
+              value === it.value ? 'border-gold' : 'border-ink-hair hover:border-ink-faint'
+            }`}
+          >
+            <svg viewBox="0 0 68 44" className="h-full w-full" aria-hidden="true">
+              <defs>
+                <linearGradient id={`sw-${it.value}`} x1="0" y1="0" x2="0.3" y2="1">
+                  <stop offset="0%" stopColor={grass} />
+                  <stop offset="100%" stopColor={grassDeep} />
+                </linearGradient>
+              </defs>
+              <rect width="68" height="44" fill={`url(#sw-${it.value})`} />
+              {p.mow.kind === 'stripe' && (
+                <g fill={p.mow.color} fillOpacity={p.mow.alpha * 2.2}>
+                  {[0, 2, 4].map((i) => (
+                    <rect key={i} x={i * 11.4} y="0" width="11.4" height="44" />
+                  ))}
+                </g>
+              )}
+              <g fill="none" stroke={p.line} strokeWidth="1.1">
+                <rect x="3.5" y="3.5" width="61" height="37" />
+                <line x1="34" y1="3.5" x2="34" y2="40.5" />
+                <circle cx="34" cy="22" r="7" />
+              </g>
+            </svg>
+          </button>
+        )
+      })}
     </div>
   )
 }
