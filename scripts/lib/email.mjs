@@ -1,13 +1,24 @@
 /**
- * Sending, the unsubscribe token, and the HTML shell — shared by
- * scripts/send-newsletter.mjs (run by hand, holds the service role key) and
- * netlify/functions/{subscribe,unsubscribe}.mts (run by Netlify, hold the
- * env vars Netlify was given). Netlify Functions bundle each file
- * independently, so this module is imported by the scripts side only; the
- * two functions carry their own copy of the ~15 lines they need rather than
- * import across the netlify/functions boundary, matching how subscribe.mts
- * and daily-report.mts already duplicate their small helpers instead of
- * sharing a lib.
+ * Sending, the unsubscribe token, the message templates and the HTML shell.
+ *
+ * Imported by scripts/send-{newsletter,welcome}.mjs, which run by hand and
+ * hold the service role key, AND by netlify/functions/subscribe.mts, which
+ * runs on Netlify with whatever env vars Netlify was given. That second one
+ * crosses the netlify/functions boundary on purpose, against the convention
+ * elsewhere in that directory of duplicating small helpers rather than
+ * sharing a lib. The convention is right for fifteen lines of HMAC and wrong
+ * for an entire email: the welcome used to be built inside subscribe.mts, and
+ * because it is seen only by people who have just subscribed and never by the
+ * person who wrote it, the copy quietly drifted until the first mail a
+ * subscriber received looked like a different company from the second.
+ * Netlify's bundler follows relative imports anywhere in the repo, so the
+ * only cost is that this file must stay safe to import in a Lambda — hence
+ * the .env read below being wrapped in a try/catch that falls back to
+ * process.env rather than assuming a filesystem.
+ *
+ * netlify/functions/unsubscribe.mts still carries its own copy of the token
+ * check, because it only VERIFIES and must keep working even if this module
+ * is broken or absent.
  *
  * Brand colours lifted from src/styles/global.css's default (light) theme:
  * --tf-ink 22 22 24 (#161618), --tf-surface 255 255 255, plus the gold from
@@ -181,17 +192,18 @@ export function wrapEmail({
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${'&#8199;&#65279;&#847; '.repeat(30)}</div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${PAPER};">
-<tr><td align="center" style="padding:40px 16px;">
+<tr><td align="center" style="padding:28px 16px 40px;">
 
 <!--[if mso]><table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:${width}px;margin:0 auto;">
 
 ${masthead(edition)}
 
-<tr><td style="background-color:${SURFACE};border-top:3px solid ${INK};">
+<tr><td style="background-color:${SURFACE};border:1px solid #D8DDD5;border-top:4px solid ${INK};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${fieldStrip()}
 ${hero ? heroRow(hero, width) : ''}
-    <tr><td style="padding:${hero ? '36px' : '44px'} 40px 44px;
+    <tr><td style="padding:${hero ? '34px' : '40px'} 40px 42px;
                    font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};">
 ${bodyHtml}
     </td></tr>
@@ -221,7 +233,7 @@ ${footer(unsubscribe)}
  * blocked — the default in Outlook and for any first-time sender — still
  * shows the brand as live text rather than an empty box.
  */
-const masthead = (edition) => `<tr><td style="padding:0 2px 16px;">
+const masthead = (edition) => `<tr><td style="padding:0 2px 14px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td align="left" valign="middle">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -230,8 +242,8 @@ const masthead = (edition) => `<tr><td style="padding:0 2px 16px;">
                style="display:block;width:30px;height:30px;border-radius:50%;border:0;outline:none;text-decoration:none;">
         </td>
         <td valign="middle">
-          <a href="${SITE}/" style="font-family:${SANS};font-size:13px;line-height:1;font-weight:800;
-                   letter-spacing:.16em;text-transform:uppercase;color:${INK};text-decoration:none;">Total&nbsp;Football</a>
+          <a href="${SITE}/" style="font-family:${SANS};font-size:12px;line-height:1;font-weight:800;
+                   letter-spacing:.17em;text-transform:uppercase;color:${INK};text-decoration:none;">Total&nbsp;Football</a>
         </td>
       </tr></table>
     </td>
@@ -241,6 +253,34 @@ const masthead = (edition) => `<tr><td style="padding:0 2px 16px;">
              font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${INK_FAINT};">${escapeHtml(edition)}</td>`
         : ''
     }
+  </tr></table>
+</td></tr>`
+
+/**
+ * A field-side marker which gives every email the same publication identity as
+ * the website's paper-and-pitch stage. This is intentionally table-only: no
+ * background images, SVG or CSS pseudo-elements that would disappear in an
+ * inbox. The five tiny marks read as players across a touchline, but remain a
+ * clean graphic bar when a client rounds off the cells.
+ */
+const fieldStrip = () => `<tr><td style="background-color:#173E2D;padding:11px 22px 10px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td valign="middle" style="font-family:${SANS};font-size:10px;line-height:1;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#F1F3EC;">
+      The tactics notebook
+    </td>
+    <td align="right" valign="middle">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr>
+        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
+      </tr></table>
+    </td>
   </tr></table>
 </td></tr>`
 
@@ -264,9 +304,9 @@ const heroRow = (hero, width) => `<tr><td style="font-size:0;line-height:0;">
       </a>
     </td></tr>`
 
-const footer = (unsubscribe) => `<tr><td style="padding:24px 4px 0;">
+const footer = (unsubscribe) => `<tr><td style="padding:22px 4px 0;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td style="border-top:1px solid ${HAIRLINE};padding-top:20px;
+    <td style="border-top:1px solid #D8DDD5;padding-top:20px;
                font-family:${SANS};font-size:12px;line-height:1.7;font-weight:400;
                color:${INK_FAINT};text-align:center;">
       NAURRA AI LTD &middot; 10 Kyriakou Matsi, Liliana Court, 4th Floor, Nicosia 1082, Cyprus<br>
