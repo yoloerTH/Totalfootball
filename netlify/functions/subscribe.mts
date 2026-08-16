@@ -13,9 +13,60 @@
  *   SUPABASE_URL
  *   SUPABASE_ANON_KEY      insert-only via RLS
  *   ALLOWED_ORIGIN         the site origin, for the cross-origin check
+ *
+ * Also sends the welcome automation on a genuinely new signup (see
+ * sendWelcome below), which needs a mail transport and the signing secret:
+ *   ZOHO_SMTP_USER / ZOHO_SMTP_PASS   or   RESEND_API_KEY
+ *   UNSUBSCRIBE_SECRET     same value as netlify/functions/unsubscribe.mts
+ *   EMAIL_FROM
+ *   EMAIL_REPLY_TO
+ * Any of these missing just skips the welcome email — the signup itself
+ * never depends on them.
  */
 
+import { welcomeEmail, sendBatch, transportName } from '../../scripts/lib/email.mjs'
+
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+/**
+ * The welcome automation. Fire-and-forget in spirit, but AWAITED here: a
+ * Netlify Function's process can be frozen the instant a Response is
+ * returned, so "fire and forget" without awaiting would race the function
+ * being torn down and the email would sometimes just never send. A 8s cap
+ * keeps a slow send from making a visitor wait on their confirmation page for
+ * it — if it fails or times out, the signup still succeeded and is simply not
+ * welcomed by email; it is not retried or logged as a failure the visitor
+ * needs to know about.
+ *
+ * The message itself comes from scripts/lib/email.mjs rather than being built
+ * here. It used to be built here, and that is exactly how it went stale: the
+ * welcome is seen only by people who have just subscribed and never by the
+ * person who wrote it, so a copy living on its own drifts until the first
+ * email a subscriber gets looks like a different company from the second.
+ * Sharing the module also means this function inherits the transport choice
+ * (Zoho SMTP or Resend), the plain-text part and the RFC 8058 unsubscribe
+ * headers without restating any of them.
+ *
+ * Env — any of it missing just skips the welcome, and the signup still
+ * succeeds:
+ *   UNSUBSCRIBE_SECRET                     same value as unsubscribe.mts
+ *   ZOHO_SMTP_USER / ZOHO_SMTP_PASS        or RESEND_API_KEY
+ *   EMAIL_FROM / EMAIL_REPLY_TO
+ */
+async function sendWelcome(email: string, source: string, name: string | null) {
+  if (!transportName() || !process.env.UNSUBSCRIBE_SECRET) return
+
+  try {
+    await Promise.race([
+      sendBatch([welcomeEmail({ email, source, name })]),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('welcome email timed out')), 8000),
+      ),
+    ])
+  } catch (err) {
+    console.error('subscribe: welcome email failed —', err)
+  }
+}
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
@@ -149,6 +200,10 @@ export default async (request: Request) => {
       ? page(502, 'Could not save that', 'Something went wrong on our side. Please try again.')
       : json(502, { error: 'Could not save that right now.' })
   }
+
+  // A genuinely new row, not the 409-duplicate case above — the only time a
+  // welcome email is warranted.
+  await sendWelcome(email, source, cleanName)
 
   return isForm
     ? page(200, 'You are on the list', 'Thanks. The next breakdown will land in your inbox.')
