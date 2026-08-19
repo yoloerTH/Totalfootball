@@ -190,6 +190,57 @@ console.log(
   )
 )
 
+/*
+ * What coaches said.
+ *
+ * Last, and printed as whole sentences rather than squeezed into the table
+ * helper. Every other section here is a count you scan; this is the only one
+ * you read, and a note chopped into a fixed-width column to keep the borders
+ * straight is a note nobody finishes. The daily Telegram report sends each of
+ * these as its own message for the same reason.
+ */
+const stars = (v) => {
+  if (v == null) return '-'
+  const full = Math.floor(Number(v))
+  const half = Number(v) - full >= 0.5
+  return '*'.repeat(full) + (half ? '.' : '') + ' '.repeat(Math.max(0, 5 - full - (half ? 1 : 0))) + ` ${v}/5`
+}
+
+const feedback = await sql(`select rating, recommend, note, context,
+    to_char(created_at at time zone 'Europe/Athens', 'DD Mon HH24:MI') as at
+  from public.studio_feedback where created_at >= ${SINCE}
+  order by created_at desc, id desc limit 40`)
+
+const [fbAll] = await sql(`select count(*) as n, round(avg(rating), 2) as avg_rating,
+    round(avg(recommend), 1) as avg_rec
+  from public.studio_feedback`)
+
+console.log('\nFEEDBACK')
+if (!feedback.length) {
+  console.log('  (nothing in this window)')
+} else {
+  for (const f of feedback) {
+    console.log(`  ${f.at}  ${stars(f.rating)}  tell-a-friend ${f.recommend ?? '-'}/10  (${f.context})`)
+    if (f.note) {
+      // Wrapped by hand at 76 so a long note stays inside a terminal without
+      // depending on the terminal to break it somewhere sensible.
+      const words = String(f.note).split(/\s+/)
+      let line = ''
+      for (const w of words) {
+        if ((line + ' ' + w).trim().length > 76) {
+          console.log(`      ${line.trim()}`)
+          line = w
+        } else line += ' ' + w
+      }
+      if (line.trim()) console.log(`      ${line.trim()}`)
+    }
+    console.log()
+  }
+}
+if (fbAll && Number(fbAll.n) > 0) {
+  console.log(`  all time: ${fbAll.n} answer${Number(fbAll.n) === 1 ? '' : 's'} · ${fbAll.avg_rating ?? '-'}/5 · would mention ${fbAll.avg_rec ?? '-'}/10`)
+}
+
 console.log('\nSUBSCRIBERS BY SOURCE')
 console.log(
   table(

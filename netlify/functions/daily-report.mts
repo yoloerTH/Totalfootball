@@ -85,6 +85,29 @@ const esc = (s: unknown) =>
 
 const secs = (ms: unknown) => (ms == null ? '0s' : `${Math.round(Number(ms) / 1000)}s`)
 
+/**
+ * Half stars as characters, because the number alone does not land.
+ *
+ * "3.5" is something you read; "★★★½☆" is something you feel before you have
+ * read it, which is the whole point of putting this in a phone notification.
+ * The digits stay alongside it — a glance at the shape, a check against the
+ * number.
+ */
+function stars(v: unknown): string {
+  if (v == null) return '—'
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '—'
+  const full = Math.floor(n)
+  const half = n - full >= 0.5
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(Math.max(0, 5 - full - (half ? 1 : 0))) + ` ${n}/5`
+}
+
+/** What the coach had just finished when they were asked. See src/studio/feedback.ts. */
+const WHEN: Record<string, string> = {
+  share: 'just after publishing a link',
+  video: 'just after saving a film',
+}
+
 /** "+12" / "-3" / "level", so a glance tells you the direction. */
 function delta(now: number, before: number): string {
   const d = now - before
@@ -227,6 +250,31 @@ export default async () => {
       (select count(*) from public.studio_systems where created_at >= ${WINDOW})  as new_systems`
   )
 
+  /**
+   * What coaches said, in full.
+   *
+   * Every column, not a count: this is the one table on the site whose rows are
+   * worth reading individually, and it is small by design — the studio asks
+   * after a win and then goes quiet for 45 days, so a busy week is a handful of
+   * rows rather than a feed. Ordered oldest first because they are sent as
+   * separate messages below, and a chat reads down the page.
+   */
+  const feedback = await sql(
+    'feedback',
+    `select rating, recommend, note, context,
+            to_char(created_at at time zone 'Europe/Athens', 'HH24:MI') as at
+     from public.studio_feedback
+     where created_at >= ${WINDOW}
+     order by created_at asc, id asc
+     limit 25`
+  )
+
+  const [feedbackAll] = await sql(
+    'feedback totals',
+    `select count(*) as n, round(avg(rating), 1) as avg_rating, round(avg(recommend), 1) as avg_rec
+     from public.studio_feedback`
+  )
+
   const visits = Number(totals?.visits ?? 0)
   const views = Number(totals?.pageviews ?? 0)
   const newSubs = subs.reduce((a, r) => a + Number(r.n), 0)
@@ -237,7 +285,7 @@ export default async () => {
   const newSystems = Number(accounts?.new_systems ?? 0)
   /** Did anything happen in the product today? Decides whether it gets a section. */
   const studioMoved =
-    published + refreshed + opens + newSystems + studioEvents.length > 0
+    published + refreshed + opens + newSystems + studioEvents.length + feedback.length > 0
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'short',
@@ -249,6 +297,23 @@ export default async () => {
   L.push(`⚽️ <b>TOTAL FOOTBALL · DAILY</b>`)
   L.push(`<i>${esc(today)} · last 24 hours</i>`)
   L.push('')
+
+  /**
+   * The digest line. The individual notes go out as their own messages below,
+   * so this says only how many there were and how they scored — enough to know
+   * whether to go and read them.
+   */
+  const feedbackLine = (): string[] => {
+    if (!feedback.length) return []
+    const rated = feedback.filter((f) => f.rating != null)
+    const recs = feedback.filter((f) => f.recommend != null)
+    const mean = (rows: Row[], k: string) =>
+      rows.reduce((a, r) => a + Number(r[k]), 0) / rows.length
+    const bits = [`💬 <b>${feedback.length}</b> piece${feedback.length === 1 ? '' : 's'} of feedback`]
+    if (rated.length) bits.push(`${stars(Math.round(mean(rated, 'rating') * 2) / 2)}`)
+    if (recs.length) bits.push(`would mention <b>${mean(recs, 'recommend').toFixed(1)}</b>/10`)
+    return ['', bits.join(' · '), '<i>Each one follows as its own message.</i>']
+  }
 
   if (visits === 0 && newSubs === 0 && !studioMoved) {
     // A quiet day is information too. Say it plainly instead of sending an
@@ -327,6 +392,7 @@ export default async () => {
     if (subs.length) L.push(subs.map((s) => `${esc(s.source)} (${s.n})`).join(' · '))
     L.push(`Total list: <b>${Number(subTotal?.n ?? 0)}</b>`)
     L.push(`🎟 Early access claimed: <b>${Number(spots?.taken ?? 0)}</b>/100`)
+    L.push(...feedbackLine())
   }
 
   /**
@@ -347,16 +413,19 @@ export default async () => {
     return new Response('not configured', { status: 500 })
   }
 
-  const send = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chat,
-      text,
-      parse_mode: 'HTML',
-      disable_web_page_preview: true,
-    }),
-  })
+  const post = (body: string) =>
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chat,
+        text: body,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    })
+
+  const send = await post(text)
 
   if (!send.ok) {
     const body = await send.text()
@@ -364,8 +433,47 @@ export default async () => {
     return new Response(`telegram ${send.status}`, { status: 502 })
   }
 
+  /**
+   * Every piece of feedback, one message each.
+   *
+   * NOT folded into the digest, and that is the whole point of doing it this
+   * way. A coach's sentence is the only thing on this report that is worth
+   * reading twice, and buried at the foot of a wall of counts it gets skimmed
+   * with everything above it. On its own it is a message you can reply to a
+   * thought about, forward, or sit with — and it arrives with its own
+   * notification, which a line inside a digest never does.
+   *
+   * Sent AFTER the digest has already gone, and never allowed to fail the
+   * function. The report landing is the job; these are the good part, but a
+   * Telegram hiccup on the third note must not turn a delivered report into a
+   * 502 and a retry that sends the whole thing twice.
+   */
+  let notesSent = 0
+  for (const f of feedback) {
+    const head = [
+      `💬 <b>Feedback</b> · <i>${esc(f.at)}</i>`,
+      stars(f.rating),
+      f.recommend == null ? null : `Would mention it: <b>${Number(f.recommend)}</b>/10`,
+      `<i>Given ${esc(WHEN[String(f.context)] ?? String(f.context))}.</i>`,
+    ].filter(Boolean)
+
+    // The note last and set apart, so the eye lands on the words rather than on
+    // the scores it had to scroll past.
+    const note = String(f.note ?? '').trim()
+    if (note) head.push('', `<blockquote>${esc(note)}</blockquote>`)
+
+    try {
+      const one = await post(head.join('\n'))
+      if (one.ok) notesSent++
+      else console.error('daily-report: feedback message', one.status, await one.text())
+    } catch (err) {
+      console.error('daily-report: feedback message failed —', err)
+    }
+  }
+
   console.log(
-    `daily-report: sent (${visits} visits, ${newSubs} signups, ${published} published` +
+    `daily-report: sent (${visits} visits, ${newSubs} signups, ${published} published, ` +
+      `${notesSent}/${feedback.length} feedback` +
       `${failed.length ? `, ${failed.length} section(s) missing: ${failed.join(', ')}` : ''})`
   )
   return new Response('ok')

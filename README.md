@@ -273,6 +273,20 @@ system, a title or an id.
 share ids. Rows written before that are brought into line by the backfill at the
 foot of `supabase/006_reporting.sql`.
 
+**Feedback arrives as its own messages.** `public.studio_feedback` is the one
+table on the site whose rows are worth reading individually, so the daily report
+puts a tally in the digest and then sends each answer as a separate Telegram
+message — a coach's sentence gets its own notification instead of being skimmed
+along with the counts above it. They are sent after the digest has landed and a
+failure on one is logged rather than thrown, because a hiccup on the third note
+must not turn a delivered report into a retry that sends everything twice.
+`analytics-report.mjs` prints the same answers in full, wrapped, under FEEDBACK.
+
+The table is insert-only for `anon` and carries no identity at all — no owner,
+no email. Both readers reach it through `execute_sql` on the service role. See
+`supabase/008_studio_feedback.sql` for why anonymity was chosen and what it
+costs.
+
 **A broken section does not cost the report.** Every query in the daily report
 is asked for by name; one that fails is left out and named at the foot of the
 message. Silence used to be the failure mode, and silence reads exactly like a
