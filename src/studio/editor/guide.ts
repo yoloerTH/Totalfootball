@@ -249,6 +249,9 @@ export const HINT = {
     'How much of the pitch you are looking at. Changing it does not move anybody: everyone stays on the same patch of grass, you just see more or less of it.',
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
+  pace:
+    'How long each phase stands still before it moves on. Bring it down and the whole thing plays quicker — the film, the share link and Play, all together, because the speed belongs to the system rather than to whoever is watching it. The move between phases is not shortened: that is the part carrying the football.',
+
   camera:
     'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball pushes in on whatever each phase is about — the ball, your arrows, anyone you have given a role cue — and travels between them, the way the videos are shot. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
 
@@ -390,6 +393,30 @@ export const NEWS = {
   },
   /** On an entry the coach has not had in front of them before. */
   unread: 'Not read yet',
+} as const
+
+/**
+ * The pace control, in the two places it appears.
+ *
+ * `line` is a function because the sentence has numbers in it and the numbers
+ * are the point — a coach dragging the slider is watching the film get shorter,
+ * not reading a label. It still belongs in this file: the words are here, only
+ * the arithmetic is at the call site.
+ */
+export const PACE = {
+  label: `How long each ${PHASE.one} holds`,
+  /** What the current setting buys, in the two units a coach thinks in. */
+  line: (holdSeconds: number, filmSeconds: number, phases: number) =>
+    `Each ${PHASE.one} holds for ${holdSeconds.toFixed(1)}s, then takes about a second to move. ` +
+    `${phases} ${phases === 1 ? PHASE.one : PHASE.many} ${phases === 1 ? 'runs' : 'run'} ${filmSeconds.toFixed(1)}s.`,
+  /**
+   * Shown at the fast end. Says what the limit is protecting rather than that a
+   * limit exists — "minimum 1.2s" is a rule, "gone before the room has seen it"
+   * is a reason.
+   */
+  floor: 'As quick as it goes. Any less and a pose is gone before a room has taken it in.',
+  slower: 'Slower',
+  quicker: 'Quicker',
 } as const
 
 // ── the small-screen door ────────────────────────────────────────────────────

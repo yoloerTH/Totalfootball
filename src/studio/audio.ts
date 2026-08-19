@@ -38,6 +38,7 @@
  */
 
 import type { System } from './schema'
+import { holdMs } from './pace'
 import { HOLD_MS, MOVE_MS } from './tween'
 
 /** Lives in public/, like the match balls. Same reasoning as ./balls.ts. */
@@ -148,7 +149,9 @@ export async function kickTrack(
   totalMs: number,
   sampleRate = 48_000,
 ): Promise<AudioBuffer | null> {
-  const marks = kicks(system)
+  // The system's own pace, not the default: a ball struck on the beat of a
+  // 2.6s hold lands in silence once the coach has taken the film down to 1.4s.
+  const marks = kicks(system, holdMs(system))
   if (!marks.length) return null
 
   let sample: AudioBuffer

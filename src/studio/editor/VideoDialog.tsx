@@ -16,12 +16,32 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { System } from '../schema'
 import { VIDEO_SHAPES, saveVideo, videoSeconds, videoSupported, type VideoShape } from '../video'
 import { Button, Field, Segmented, Toggle } from './ui'
+import { PaceField } from './PaceField'
 import { VIDEO } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
 
 type Status = 'idle' | 'working' | 'done' | 'failed'
 
-export function VideoDialog({ system, onClose }: { system: System; onClose: () => void }) {
+export function VideoDialog({
+  system,
+  onHold,
+  onHoldCommit,
+  onClose,
+}: {
+  system: System
+  /**
+   * Pace edits the DOCUMENT from inside an export dialog, which looks like a
+   * layering mistake and is not. A coach only discovers a film is too slow by
+   * watching one, and this is where they are standing when they find out —
+   * sending them back to a side panel to fix it, then back here to re-render,
+   * is three steps for a setting they are already looking at the effect of.
+   * What it writes is the system's own pace, so Play and the share link move
+   * with it; see ../pace.ts for why that is the right place for it to live.
+   */
+  onHold: (ms: number) => void
+  onHoldCommit: () => void
+  onClose: () => void
+}) {
   const [shape, setShape] = useState<VideoShape['id']>('landscape')
   // Off by default, and only offered when there is one to show — see the note
   // on `VideoOptions.date`. A file outlives the day it was made.
@@ -117,6 +137,10 @@ export function VideoDialog({ system, onClose }: { system: System; onClose: () =
               <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
                 {VIDEO_SHAPES.find((s) => s.id === shape)?.note}
               </p>
+
+              <div className="mt-4 border-t border-ink-hair pt-3">
+                <PaceField system={system} onChange={onHold} onCommit={onHoldCommit} />
+              </div>
 
               {system.credit?.sharedOn && (
                 <div className="mt-3 border-t border-ink-hair pt-2">

@@ -80,6 +80,7 @@ import {
   type System,
   type Token,
 } from '../schema'
+import { holdMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
@@ -102,6 +103,7 @@ import { ThemeToggle } from './ThemeToggle'
 import { VideoDialog } from './VideoDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
+import { PaceField } from './PaceField'
 import { NewsBell } from './WhatsNew'
 import {
   Button,
@@ -311,6 +313,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
     else if (!guideRef.current.seen) setWalkthrough(true)
     else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
   }, [openNews])
+
+  // Every clock in the editor reads this one value — playback below, the
+  // length quoted in the video dialog, and the beat the ball is struck on.
+  const hold = holdMs(system)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const view = PITCH_VIEWS[resolveViewId(system.pitch)]
@@ -623,7 +629,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
     if (playhead === null) return
     let raf = 0
     const start = performance.now() - playhead
-    const total = totalDuration(system.acts.length)
+    const total = totalDuration(system.acts.length, hold)
     const step = () => {
       const t = performance.now() - start
       if (t >= total) {
@@ -639,9 +645,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // Restarting on every playhead tick would reset `start`; the ref-free
     // approach here is to depend only on whether playback is on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playhead === null, system.acts.length])
+  }, [playhead === null, system.acts.length, hold])
 
-  const timeline = playhead === null ? null : timelineAt(playhead, system.acts.length)
+  const timeline = playhead === null ? null : timelineAt(playhead, system.acts.length, hold)
   const rendered = useMemo(() => {
     if (timeline) {
       return tweenActs(system.acts[timeline.index], system.acts[timeline.next], timeline.p, system)
@@ -1474,6 +1480,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
         )}
       </Panel>
 
+      <Panel title="Pace">
+        <Tip text={HINT.pace} title="How long each phase holds" block>
+          <PaceField
+            system={system}
+            onChange={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
+            onCommit={seal}
+          />
+        </Tip>
+      </Panel>
+
       <Panel title="Counters">
         <Tip text={HINT.labels} title="What is on the counters" block>
           <Select
@@ -1841,7 +1857,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
           onClose={() => setSharing(false)}
         />
       )}
-      {makingVideo && <VideoDialog system={system} onClose={() => setMakingVideo(false)} />}
+      {makingVideo && (
+        <VideoDialog
+          system={system}
+          onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
+          onHoldCommit={seal}
+          onClose={() => setMakingVideo(false)}
+        />
+      )}
     </>
   )
 

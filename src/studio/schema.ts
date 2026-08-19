@@ -166,6 +166,22 @@ export interface System {
    * `resolveCamera()` supplies 'off', which is exactly what they already did.
    */
   camera?: CameraMode
+  /**
+   * How long each phase sits on screen before it starts moving, in
+   * milliseconds. The move that follows it is a fixed length and is not part of
+   * this number.
+   *
+   * On the document beside the camera and the surface, and for the same reason:
+   * how quickly a system reads is something the coach decided, not something
+   * the person watching it should have to. It drives Play, the shared viewer,
+   * the video and the ball audio off one value, so the preview cannot promise a
+   * pace the file does not keep.
+   *
+   * Undefined on documents written before pace existed. `holdMs()` in ./pace.ts
+   * supplies 2600, which is what they have always run at, and clamps anything
+   * outside the range this build will render.
+   */
+  hold?: number
   teams: {
     us: TeamStyle
     /** null = no opposition on the board. */

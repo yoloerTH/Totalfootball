@@ -450,6 +450,63 @@ export function ColorWell({
   )
 }
 
+/**
+ * A slider, for the one setting that is a quantity rather than a choice.
+ *
+ * Native `input[type=range]`, not a custom track. It is the only control here a
+ * coach might reach for on a touchscreen mid-drag, and the platform's own is
+ * the one with the right thumb size, the right keyboard behaviour and the right
+ * accessible name already attached.
+ *
+ * `onCommit` is separate from `onChange` because a drag fires change on every
+ * pixel. The caller wants all of those in the document as they happen — the
+ * number beside the slider has to move — and exactly one of them in the undo
+ * stack. See `seal` in ./history.ts.
+ */
+export function Slider({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  onCommit,
+  label,
+  readout,
+}: {
+  value: number
+  min: number
+  max: number
+  step: number
+  onChange: (v: number) => void
+  /** Fired when the drag lands. */
+  onCommit?: () => void
+  label: string
+  /** What the current value says, in the coach's units. */
+  readout: string
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-bold text-ink-soft">{label}</span>
+        <span className="text-[11px] font-bold tabular-nums text-ink">{readout}</span>
+      </div>
+      <input
+        type="range"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        aria-label={label}
+        onChange={(e) => onChange(Number(e.target.value))}
+        onPointerUp={onCommit}
+        onKeyUp={onCommit}
+        onBlur={onCommit}
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-ink-hair accent-gold outline-none"
+      />
+    </div>
+  )
+}
+
 export function Toggle({
   checked,
   onChange,

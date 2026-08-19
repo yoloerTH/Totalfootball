@@ -28,7 +28,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
-import { HOLD_MS, MOVE_MS, resolveAct, tweenActs } from '../tween'
+import { DEFAULT_HOLD_MS, holdMs } from '../pace'
+import { MOVE_MS, resolveAct, tweenActs } from '../tween'
 import { fetchShared, idFromPath, systemFromHash } from '../share'
 import type { System } from '../schema'
 import { CreditBar, formatDate } from './CreditBar'
@@ -92,6 +93,13 @@ export default function Viewer() {
   // One animation loop for both the manual step and the autoplay run. Autoplay
   // is "hold, then move", the pacing from ../tween.ts — the same beat as the
   // shorts, so a system watched here has the rhythm of one that was filmed.
+  /*
+   * The pace the coach set, so a link plays at the speed of the film it came
+   * from. The fallback is only reached before the document has loaded, when
+   * there is nothing on screen to pace anyway.
+   */
+  const hold = system ? holdMs(system) : DEFAULT_HOLD_MS
+
   const holdUntil = useRef(0)
   useEffect(() => {
     if (!move && !playing) return
@@ -103,7 +111,7 @@ export default function Viewer() {
         setP(t)
         if (t >= 1) {
           setMove(null)
-          holdUntil.current = now + HOLD_MS
+          holdUntil.current = now + hold
         }
       } else if (playing) {
         if (now >= holdUntil.current) {
@@ -115,7 +123,7 @@ export default function Viewer() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [move, playing, index, count, goTo])
+  }, [move, playing, index, count, goTo, hold])
 
   const play = () => {
     if (playing) {
@@ -130,7 +138,7 @@ export default function Viewer() {
       setMove(null)
       setP(1)
     }
-    holdUntil.current = performance.now() + HOLD_MS * 0.6
+    holdUntil.current = performance.now() + hold * 0.6
   }
 
   useEffect(() => {
