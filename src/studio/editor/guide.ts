@@ -238,6 +238,7 @@ export const HINT = {
   stop: 'Stop and go back to editing.',
   video: 'Saves the whole thing as a video file you can post. Made here on your machine, so nothing is uploaded.',
   help: 'Reopen the welcome guide.',
+  news: 'Everything that has been added to the studio, newest first. It opens on its own when there is something on it you have not seen.',
 
   undo: 'Takes back the last thing you changed. Nothing you do here is permanent: move things, try it, take it back.',
   redo: 'Puts back the change you just took away.',
@@ -361,6 +362,34 @@ export const VIDEO = {
   unsupported:
     'This browser cannot make video files. Chrome, Edge or Safari can, or send the link instead, which works everywhere.',
   foot: 'Your name and club are burnt into the picture, with ours beside them. A video travels further from you than anything else here, so it is worth signing.',
+} as const
+
+/**
+ * The what's-new panel's own words.
+ *
+ * The entries themselves are NOT here — they live in src/data/whatsnew.ts, for
+ * the reason set out at the top of that file: guidance gets rewritten whenever
+ * a control changes, and a record must not be. What is here is the chrome
+ * around the list, which is guidance like everything else in this file.
+ *
+ * The heading does one job the entries cannot do for themselves: say that this
+ * is a list of things that are already there and already free. Coaches have
+ * been trained by every other tool that a panel which appears on its own and
+ * says "new" is about to ask them for money.
+ */
+export const NEWS = {
+  title: "What's new",
+  body: 'Everything added to the studio since you last looked. It is all here already, and all included.',
+  /** Shown to a coach who opens the panel with nothing waiting in it. */
+  empty: 'Nothing new since you were last here.',
+  /** The markers on an entry. Say the size of the change, not the department. */
+  kind: {
+    new: 'New',
+    better: 'Better',
+    fixed: 'Fixed',
+  },
+  /** On an entry the coach has not had in front of them before. */
+  unread: 'Not read yet',
 } as const
 
 // ── the small-screen door ────────────────────────────────────────────────────

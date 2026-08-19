@@ -152,6 +152,22 @@ export interface GuideState {
   /** The step-by-step rail is open. Defaults on — this is a first-use tool. */
   railOpen: boolean
   /**
+   * The id of the newest entry in data/whatsnew.ts this coach has had in front
+   * of them. Empty means they have never opened the panel, which is right for
+   * somebody who has been building systems since before there was a panel.
+   *
+   * A watermark rather than a set of read ids, and rather than a count of
+   * visits. The question a coach wants answered is "is there anything here I
+   * have not seen", and that is one comparison against an ordered list. A visit
+   * count answers a different question badly: somebody who has signed in three
+   * times without finishing a system wants the guide, not a changelog, and
+   * somebody back after three months wants the changelog on their first return.
+   *
+   * The one field here that is not a latch, because it moves forward rather
+   * than turning on. It still never moves back.
+   */
+  newsSeen: string
+  /**
    * Has been told the studio wants a bigger screen, and chosen to carry on
    * anyway. Latches like the rest: somebody who has made that decision once
    * should not be asked again every time they open the tab on the same phone.
@@ -167,6 +183,7 @@ const GUIDE_DEFAULTS: GuideState = {
   drew: false,
   played: false,
   railOpen: true,
+  newsSeen: '',
   smallOk: false,
 }
 

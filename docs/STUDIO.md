@@ -49,6 +49,7 @@ back the film. Nothing else here is hard to copy — that is.
 | Camera | **Two modes on the document: Fixed, and Follow the ball.** A shot is a BOX in percent-of-crop, derived per phase and interpolated, applied as the SVG viewBox | Ported from the videos' `Camera` in `TacticsBoard.tsx`, where a keyframe is a beat; here a keyframe is a phase, because a coach authors poses and not time. A box rather than a zoom factor so the video's widened export view frames identically to the preview. It is NOT a second pitch view: it never touches a percent coord. See `src/studio/camera.ts` |
 | Where the camera applies | **Playback, the shared viewer, the video and the print sheet. Never while posing** — the editor draws the shot as an outline instead | You cannot drag a player you cannot see |
 | Pitch surfaces | **Four**: Paper (default), Broadcast, Night, Chalk, in `board/surfaces.ts`. Picked like the match ball, stored as `System.surface` | A property of the diagram, so it travels into every export, print and link. The whole palette swaps, not just the grass: an arrow left on paper's ink vanishes on green |
+| What's new | **A bell in the toolbar, with a panel behind it, listing `src/data/whatsnew.ts`.** It opens itself when there is something unseen **and** the walkthrough is already behind them | Build-time data, like `data/faq.ts`: the list only ever changes when a deploy changes it, so a table would buy a round trip, a loading state and an RLS policy for nothing. The trigger is a watermark (`newsSeen` in `storage.ts`) and deliberately **not** a login count — somebody who has signed in three times without finishing a system wants the guide, not a changelog, and somebody back after three months wants the changelog on their first return. It shares one arrival chain with the walkthrough and the small-screen door, so exactly one of the three can open |
 | Small screens | A **door, not a wall**: told once that it wants a laptop, offered the link for later, and let through | A coach on a touchline looking at what they built is a good reason to be on a phone |
 | Watermark | **Footer credit bar**: their crest + team name left, "Made with Total Football" + our mark right | Reads as a credit line, not a watermark, so nobody tries to crop it |
 | The date on a video | **Off unless asked for** | It is stamped when a link is made, which is right for a link. A file lives in a group chat for a season, where a date only makes a system that is still true look out of date (user, 2026-08-14) |
@@ -199,6 +200,18 @@ for, who are coaches in their fifties rather than people who use editors.
 - **`GuideRail.tsx`** — the step-by-step rail in the right panel. Five actions in
   order, only the current one expanded. Latched, never re-derived (see
   `GuideState`): deleting your only arrow does not un-teach you what arrows are.
+- **`WhatsNew.tsx`** — the bell in the toolbar and the list behind it. A
+  **panel, not a modal**, because it opens by itself and anything that opens by
+  itself has to be cheap to ignore: the board stays visible underneath and a
+  click anywhere dismisses it. The walkthrough earns a modal because a coach who
+  has never seen the studio cannot use it yet; a list of things that got better
+  does not. Two things it is easy to get wrong and both are commented in place:
+  the watermark moves on **open**, not on close (a dot that survives being read
+  is a dot that never goes away), and the per-entry "not read yet" markers come
+  off a list frozen at mount, or they would clear in the same frame the panel
+  appeared. The entries themselves live in `src/data/whatsnew.ts` and not in
+  `guide.ts`: guidance gets rewritten whenever a control changes, and a record
+  must not be.
 - **`Tip.tsx`** — real tooltips, portalled to `document.body` because both side
   panels scroll and an absolutely positioned bubble inside a scroll container is
   clipped by it. Shows on hover **and on focus**, unlike `title=`.

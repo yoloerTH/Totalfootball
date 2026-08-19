@@ -57,6 +57,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
   // synchronous the moment the shoot script sees it appear on `window`. Only
   // the editor is worth deferring, and it is deferred below.
   import { PITCH_VIEWS, toUnits, viewBox as viewBoxOf } from '../../studio/board/pitch'
+  import { NEWEST_NEWS_ID } from '../../data/whatsnew'
 
   declare global {
     interface Window {
@@ -101,7 +102,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
      * useState initialiser — writing it afterwards would leave a walkthrough
      * already on screen and a rail already open, one frame into the film.
      */
-    const guide: Partial<GuideState> = { seen: true, railOpen: false, ...opts.guide }
+    /*
+     * `newsSeen` is part of "has been here before", and it has to be seeded for
+     * the same reason `seen` is: without it the what's-new panel counts every
+     * entry as unread and opens itself over the corner of the board, one frame
+     * into the film. A promo showing a changelog is not a promo showing the
+     * studio.
+     */
+    const guide: Partial<GuideState> = {
+      seen: true,
+      railOpen: false,
+      newsSeen: NEWEST_NEWS_ID,
+      ...opts.guide,
+    }
     localStorage.setItem(GUIDE_KEY, JSON.stringify(guide))
 
     // Dynamic so the page carries no editor until it is asked for one, the same

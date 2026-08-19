@@ -87,6 +87,7 @@ import { GuideRail } from './GuideRail'
 import {
   ARROW_TOOL_IDS,
   HINT,
+  NEWS,
   PHASE,
   RAIL_STEPS,
   TOOL_DOC,
@@ -101,6 +102,7 @@ import { ThemeToggle } from './ThemeToggle'
 import { VideoDialog } from './VideoDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
+import { NewsBell } from './WhatsNew'
 import {
   Button,
   ColorWell,
@@ -115,6 +117,7 @@ import {
   TextInput,
   Toggle,
 } from './ui'
+import { NEWEST_NEWS_ID, unseenNews } from '../../data/whatsnew'
 
 const CUES: Cue[] = ['PRESS', 'COVER', 'BALANCE', 'SPARE', 'JOCKEY', 'DROP']
 
@@ -244,6 +247,23 @@ export default function StudioEditor({ systemId, initial }: Props) {
   // ── what the coach has been taught ─────────────────────────────────────────
   const [guide, setGuide] = useState<GuideState>(() => readGuide())
   const [walkthrough, setWalkthrough] = useState(false)
+  const [news, setNews] = useState(false)
+  /**
+   * Which what's-new entries carry a "not read yet" marker, decided once on
+   * mount and never recomputed.
+   *
+   * It has to be frozen, because opening the panel moves the watermark forward
+   * immediately — see `openNews`. Deriving the markers from the watermark would
+   * clear every one of them in the same frame the list appeared.
+   *
+   * A coach who has not been through the walkthrough gets none. Everything on
+   * the list shipped before they arrived, so none of it is news to them; they
+   * are marked caught up when the walkthrough closes.
+   */
+  const [newsUnread] = useState<string[]>(() => {
+    const g = readGuide()
+    return g.seen ? unseenNews(g.newsSeen).map((e) => e.id) : []
+  })
   const [sharing, setSharing] = useState(false)
   const [makingVideo, setMakingVideo] = useState(false)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
@@ -262,10 +282,35 @@ export default function StudioEditor({ systemId, initial }: Props) {
     if (changed) setGuide(writeGuide(patch))
   }, [])
 
+  /**
+   * The watermark moves when the panel OPENS, not when it closes.
+   *
+   * Opening it is the coach having been told; what they do next is their
+   * business. Waiting for a close would mean a dot that survives being read and
+   * comes back on the next visit for anyone who dismisses the panel with
+   * Escape, or by clicking the board, which is most people.
+   */
+  const openNews = useCallback(() => {
+    setNews(true)
+    markGuide({ newsSeen: NEWEST_NEWS_ID })
+  }, [markGuide])
+
+  /**
+   * One gate, one thing on arrival.
+   *
+   * The three are mutually exclusive on purpose and the chain is the only place
+   * that decides between them: a phone is told it is a phone, a coach who has
+   * never been here is taught the studio, and everybody else is shown what
+   * changed. Two of these opening together is the failure this shape exists to
+   * prevent — the walkthrough and the what's-new panel would sit on top of each
+   * other on the one load where a returning coach most needs the studio to look
+   * like it knows what it is doing.
+   */
   useEffect(() => {
     if (isSmallScreen() && !guideRef.current.smallOk) setTooSmall(true)
     else if (!guideRef.current.seen) setWalkthrough(true)
-  }, [])
+    else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
+  }, [openNews])
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const view = PITCH_VIEWS[resolveViewId(system.pitch)]
@@ -980,7 +1025,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
         onContinue={() => {
           markGuide({ smallOk: true })
           setTooSmall(false)
+          // Picks the chain back up where it left off, so a coach who came in
+          // through the door still gets whichever of the two was owed to them.
           if (!guideRef.current.seen) setWalkthrough(true)
+          else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
         }}
       />
     )
@@ -1064,6 +1112,15 @@ export default function StudioEditor({ systemId, initial }: Props) {
       )}
 
       <ThemeToggle />
+
+      <Tip text={HINT.news} title={NEWS.title} side="bottom">
+        <NewsBell
+          open={news}
+          unread={newsUnread}
+          onOpen={openNews}
+          onClose={() => setNews(false)}
+        />
+      </Tip>
 
       <Tip text={HINT.help} title="Guide" side="bottom">
         <Button onClick={() => setWalkthrough(true)} className="!px-2" aria-label="Reopen the guide">
@@ -1768,7 +1825,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <Walkthrough
           onClose={() => {
             setWalkthrough(false)
-            markGuide({ seen: true })
+            // Caught up, not behind. Somebody who has just been shown the
+            // studio for the first time has no "since you were last here", and
+            // a list of six things they have never not had is a worse welcome
+            // than no list at all.
+            markGuide({ seen: true, newsSeen: NEWEST_NEWS_ID })
           }}
         />
       )}
