@@ -26,6 +26,7 @@ export function VideoDialog({
   system,
   onHold,
   onHoldCommit,
+  onSaved,
   onClose,
 }: {
   system: System
@@ -40,6 +41,8 @@ export function VideoDialog({
    */
   onHold: (ms: number) => void
   onHoldCommit: () => void
+  /** A file was actually written. Not "Save was pressed" — see `start`. */
+  onSaved?: () => void
   onClose: () => void
 }) {
   const [shape, setShape] = useState<VideoShape['id']>('landscape')
@@ -86,13 +89,14 @@ export function VideoDialog({
       // a render that was stopped or that failed is not a video, and the two
       // numbers diverging is the point of measuring it.
       track(STUDIO_EVENTS.videoSaved, shape)
+      onSaved?.()
     } catch (err) {
       // Stopping is not failing, and must not be reported as if it were.
       setStatus((err as Error)?.name === 'AbortError' ? 'idle' : 'failed')
     } finally {
       abort.current = null
     }
-  }, [system, shape, date])
+  }, [system, shape, date, onSaved])
 
   const stop = useCallback(() => {
     abort.current?.abort()

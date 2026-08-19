@@ -92,6 +92,7 @@ import {
   type System,
   type Token,
 } from '../schema'
+import { shouldAsk, type FeedbackContext } from '../feedback'
 import { holdMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
@@ -115,6 +116,7 @@ import { ThemeToggle } from './ThemeToggle'
 import { VideoDialog } from './VideoDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
+import { FeedbackDialog } from './FeedbackDialog'
 import { PaceField } from './PaceField'
 import { NewsBell } from './WhatsNew'
 import {
@@ -279,6 +281,17 @@ export default function StudioEditor({ systemId, initial }: Props) {
     return g.seen ? unseenNews(g.newsSeen).map((e) => e.id) : []
   })
   const [sharing, setSharing] = useState(false)
+  const [feedback, setFeedback] = useState<FeedbackContext | null>(null)
+  /*
+   * A win that has happened but has not been acted on yet.
+   *
+   * The ask waits for the export dialog to CLOSE rather than firing the moment
+   * a link is published, because otherwise two modals stack — the coach is
+   * looking at the link they just made, and a form lands on top of it. A ref
+   * rather than state: nothing renders differently for it, and it is written
+   * from inside a callback the dialog owns.
+   */
+  const pendingWin = useRef<FeedbackContext | null>(null)
   const [makingVideo, setMakingVideo] = useState(false)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
   // have an interstitial thrown over their work. See ./SmallScreen.tsx.
@@ -293,7 +306,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const markGuide = useCallback((patch: Partial<GuideState>) => {
     const cur = guideRef.current
     const changed = (Object.keys(patch) as (keyof GuideState)[]).some((k) => cur[k] !== patch[k])
-    if (changed) setGuide(writeGuide(patch))
+    if (!changed) return
+    const next = writeGuide(patch)
+    // The ref is normally refreshed on render, which is too late for anything
+    // that latches a flag and then reads the guide back in the same tick — the
+    // feedback ask does exactly that. Writing it here as well makes the ref
+    // mean "what is stored", always.
+    guideRef.current = next
+    setGuide(next)
   }, [])
 
   /**
@@ -797,6 +817,38 @@ export default function StudioEditor({ systemId, initial }: Props) {
     patchAct('frame', (a) => ({ ...a, shot }))
     seal()
   }, [patchAct, seal])
+
+  /**
+   * The tool did its job. Counted, and remembered until the dialog is out of
+   * the way — see ../feedback.ts for why this is what times the one question we
+   * ask, and why a count of visits would have been the wrong number.
+   */
+  const recordWin = useCallback(
+    (context: FeedbackContext) => {
+      markGuide({ wins: guideRef.current.wins + 1 })
+      pendingWin.current = context
+    },
+    [markGuide],
+  )
+
+  /**
+   * Shutting an export dialog, and asking on the way out if this is the one.
+   *
+   * `feedbackAskedAt` is stamped when the dialog OPENS, not when it is
+   * answered. Dismissing is an answer for our purposes: somebody who did not
+   * want to be asked today is exactly the person who must not be asked again
+   * next week.
+   */
+  const closeExport = useCallback(() => {
+    setSharing(false)
+    setMakingVideo(false)
+    const win = pendingWin.current
+    pendingWin.current = null
+    if (win && shouldAsk(guideRef.current)) {
+      markGuide({ feedbackAskedAt: Date.now() })
+      setFeedback(win)
+    }
+  }, [markGuide])
 
   const playing = playhead !== null
   const drawing = tool !== 'select'
@@ -2014,8 +2066,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <ShareDialog
           system={system}
           onCredit={patchCredit}
-          onPublished={rememberShareId}
-          onClose={() => setSharing(false)}
+          onPublished={(id) => {
+            rememberShareId(id)
+            recordWin('share')
+          }}
+          onClose={closeExport}
         />
       )}
       {makingVideo && (
@@ -2023,7 +2078,17 @@ export default function StudioEditor({ systemId, initial }: Props) {
           system={system}
           onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
           onHoldCommit={seal}
-          onClose={() => setMakingVideo(false)}
+          onSaved={() => recordWin('video')}
+          onClose={closeExport}
+        />
+      )}
+      {feedback && (
+        <FeedbackDialog
+          context={feedback}
+          onClose={(sent) => {
+            if (sent) markGuide({ feedbackSentAt: Date.now() })
+            setFeedback(null)
+          }}
         />
       )}
     </>

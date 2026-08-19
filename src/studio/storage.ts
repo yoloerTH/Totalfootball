@@ -168,6 +168,20 @@ export interface GuideState {
    */
   newsSeen: string
   /**
+   * How many times the studio has finished the job: a share link published, a
+   * film written. Not visits, and not systems started.
+   *
+   * It exists to time the one question we ask a coach (../feedback.ts). A
+   * number of sessions would have been easier and would have measured
+   * attendance; this measures whether the tool worked, which is the only thing
+   * that makes somebody's opinion worth having.
+   */
+  wins: number
+  /** When we last put the feedback dialog in front of them. 0 = never. */
+  feedbackAskedAt: number
+  /** When they last actually sent something. 0 = never. */
+  feedbackSentAt: number
+  /**
    * Has been told the studio wants a bigger screen, and chosen to carry on
    * anyway. Latches like the rest: somebody who has made that decision once
    * should not be asked again every time they open the tab on the same phone.
@@ -184,6 +198,9 @@ const GUIDE_DEFAULTS: GuideState = {
   played: false,
   railOpen: true,
   newsSeen: '',
+  wins: 0,
+  feedbackAskedAt: 0,
+  feedbackSentAt: 0,
   smallOk: false,
 }
 

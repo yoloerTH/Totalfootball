@@ -419,6 +419,39 @@ export const PACE = {
   quicker: 'Quicker',
 } as const
 
+/**
+ * The one question we ask a coach.
+ *
+ * Written to be answerable in twenty seconds by somebody who did not come here
+ * to fill in a form, which is why it says what it is for and what it is not:
+ * nobody reads a survey, everybody reads "this is us, not a robot". The
+ * "nothing is required" line is doing real work — a coach who only wants to
+ * report one broken thing must not feel they have to score us first.
+ *
+ * No exclamation marks and no gratitude in advance. It thanks them afterwards,
+ * once, and gets out of the way.
+ */
+export const FEEDBACK = {
+  title: 'How is the studio treating you?',
+  body: 'It is a small team and we read every one of these. Nothing here is required — answer the part you have an opinion about and leave the rest.',
+  rating: 'How is it going?',
+  ratingHint: 'Half a star counts.',
+  recommend: 'Would you mention it to another coach?',
+  recommendLow: 'No chance',
+  recommendHigh: 'Already have',
+  note: 'Anything you would change?',
+  notePlaceholder: 'The thing that annoyed you most is the useful one.',
+  send: 'Send it',
+  later: 'Not now',
+  /** After it lands. One line, and the dialog closes itself. */
+  thanks: 'Thank you. That genuinely helps.',
+  /**
+   * Under the buttons. Says the two things a coach might reasonably wonder
+   * before typing something honest.
+   */
+  foot: 'Sent without your name on it, and we will not ask again for a good while.',
+} as const
+
 // ── the small-screen door ────────────────────────────────────────────────────
 
 /**
