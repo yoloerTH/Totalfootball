@@ -157,7 +157,12 @@ export default function Portal() {
         <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
           <div>
             <h1 className="text-title font-black tracking-display text-ink">Your systems</h1>
-            {load !== 'working' && systems.length > 0 && <Tally {...tally} />}
+            {load !== 'working' && systems.length > 0 && (
+              <>
+                <Tally {...tally} />
+                <DownToOurs />
+              </>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -236,6 +241,47 @@ export default function Portal() {
   )
 }
 
+/**
+ * The signpost to the section at the foot of the page.
+ *
+ * A coach with a full shelf never scrolls past it, so five systems they could
+ * have started from sit below the fold being no use to anybody. This is the
+ * quietest thing that fixes that: a line of small type under the tally, in the
+ * column that describes the shelf rather than in the row of buttons that acts
+ * on it — because it is a signpost, not an action, and putting it beside
+ * "New system" would make it compete with the thing most coaches came here to
+ * press.
+ *
+ * Shown only when there IS a shelf. The empty state has its own door to the
+ * same place and does not need two.
+ *
+ * The arrow drops a little on hover, which is the entire animation budget for
+ * a hint: enough to read as "down there", not enough to be a thing that moves
+ * on a page of boards.
+ */
+function DownToOurs() {
+  return (
+    <a
+      href="#start-from-ours"
+      className="group mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-ink-faint no-underline transition-colors hover:text-ink"
+    >
+      Or start from one of ours
+      <svg
+        viewBox="0 0 16 16"
+        className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-y-0.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" />
+      </svg>
+    </a>
+  )
+}
+
 // ── one of ours ──────────────────────────────────────────────────────────────
 
 /**
@@ -253,7 +299,7 @@ export default function Portal() {
  */
 function OursToStartFrom() {
   return (
-    <section id="start-from-ours" className="mt-20 border-t border-ink-hair pt-12">
+    <section id="start-from-ours" className="mt-20 scroll-mt-12 border-t border-ink-hair pt-12">
       <h2 className="text-section font-black tracking-display text-ink">Or start from one of ours</h2>
       <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
         Five systems built on this board, the same ones the films are made from. Open one and it is

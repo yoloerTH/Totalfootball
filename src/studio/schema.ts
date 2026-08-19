@@ -86,6 +86,30 @@ export interface Band {
   label?: string
 }
 
+/**
+ * The rectangle of board to look at: a centre, and the box that must be in shot.
+ *
+ * All four numbers are percent-of-crop — the same space a token stores — so a
+ * shot means the same thing as the marks it is framing, and `{50,50,100,100}`
+ * is the whole view.
+ *
+ * A BOX RATHER THAN A ZOOM FACTOR, and the reason is the video. The exporter
+ * renders through a widened, sometimes turned view so the grass reaches all
+ * four edges of a 16:9 or 9:16 frame (`frameView` in ./videoRender.ts). A zoom
+ * expressed as a fraction of the crop would mean something different against
+ * that wider crop, and the film would come out framed looser than the preview a
+ * coach approved. A box of grass means the same thing at every aspect: each
+ * renderer fits it into whatever frame it has. Percent-of-crop is measured
+ * against `x0..x1`, which the export view does not move — that is what makes
+ * this work, and it is the same property tokens already rely on.
+ */
+export interface Shot {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface Act {
   id: string
   /** Shown on the slide and in the act strip. */
@@ -104,6 +128,23 @@ export interface Act {
    * useless for the second.
    */
   notes?: string
+  /**
+   * Where the camera looks on THIS phase, when the coach has said so themselves.
+   *
+   * Undefined means "work it out", which is what every phase did before this
+   * existed and what most of them should go on doing — the derivation in
+   * ./camera.ts reads what the coach has already marked and is right nearly all
+   * the time. This is the override for the phase where it is not: a phase about
+   * a run nobody drew an arrow for, or one the coach simply wants wider.
+   *
+   * It is ignored entirely while the camera is Fixed. A hand-drawn frame is a
+   * camera instruction, and a system with no camera has nothing to instruct.
+   *
+   * On the ACT and not on the system, unlike the mode: this is the one part of
+   * the camera that is genuinely per-phase, which is the whole reason it needed
+   * somewhere of its own to live.
+   */
+  shot?: Shot
   tokens: Token[]
   /** Percent coords, or null when the act is about shape rather than the ball. */
   ball: { x: number; y: number } | null

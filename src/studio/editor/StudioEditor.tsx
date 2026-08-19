@@ -35,8 +35,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Board, clampToBoard, clientToPercent } from '../board/Board'
-import { PITCH_VIEWS, PITCH_VIEW_LIST, aspect, remap, resolveViewId, toMetres } from '../board/pitch'
+import { Board, clampToBoard, clientToPercent, type FramePart } from '../board/Board'
+import {
+  PITCH_VIEWS,
+  PITCH_VIEW_LIST,
+  aspect,
+  cropRect,
+  remap,
+  resolveViewId,
+  toMetres,
+  toUnits,
+  unitsToPercent,
+} from '../board/pitch'
 import type { PitchView } from '../board/pitch'
 import { readableText, darken } from '../board/palette'
 import {
@@ -50,6 +60,7 @@ import {
 import { BALLS, DEFAULT_BALL, resolveBall, type BallId } from '../balls'
 import {
   CAMERA_MODES,
+  cameraRect,
   frameMetres,
   resolveCamera,
   viewMetres,
@@ -76,6 +87,7 @@ import {
   type BandKind,
   type Credit,
   type Cue,
+  type Shot,
   type Side,
   type System,
   type Token,
@@ -319,6 +331,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const hold = holdMs(system)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
+  /*
+   * The frame currently on screen, for the drag handler to start from.
+   *
+   * A ref because `beginFrameDrag` is built long before `rendered` exists, and
+   * because taking the shot as a dependency would rebuild the handler on every
+   * frame of the very drag it is running.
+   */
+  const shotRef = useRef<Shot | null>(null)
   const view = PITCH_VIEWS[resolveViewId(system.pitch)]
   const act = system.acts[Math.min(actIndex, system.acts.length - 1)]
   const stacked = useMediaQuery('(max-width: 1023px)')
@@ -574,6 +594,82 @@ export default function StudioEditor({ systemId, initial }: Props) {
     [bindGesture, view, patchAct, markGuide, seal],
   )
 
+  /**
+   * Adjusting the camera's frame.
+   *
+   * The maths is done in BOARD UNITS rather than in percent, and that is the
+   * only interesting thing about it. Percent-of-crop is measured along the
+   * pitch, and the upright views stand the pitch on its end — so the corner a
+   * coach grabbed at the top left of their screen is not the top-left corner in
+   * percent, and a resize written in percent moves a box the coach did not
+   * touch. Units are what is actually on screen. The two conversions are exact
+   * inverses (`toUnits` / `unitsToPercent` in ../board/pitch.ts), so the round
+   * trip costs nothing and the geometry stays in the space the pointer is in.
+   *
+   * The starting box comes from `cameraRect`, not from `act.shot`: what is
+   * drawn has already been fitted to the crop's aspect and clamped to the
+   * grass, and grabbing the corner of one rectangle only to watch a DIFFERENT
+   * one start moving is what makes a tool feel broken.
+   *
+   * A derived frame is grabbable, and grabbing it is what turns it into the
+   * coach's own — there is no mode to enter first. The Camera panel's "Back to
+   * automatic" is how they hand it back.
+   */
+  const beginFrameDrag = useCallback(
+    (part: FramePart, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      if (!svg) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const start = cameraRect(view, shotRef.current)
+      const crop = cropRect(view)
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const downU = toUnits(view, down.x, down.y)
+      // The corner that stays put while its opposite is dragged.
+      const anchor = {
+        x: part === 'nw' || part === 'sw' ? start.x + start.w : start.x,
+        y: part === 'nw' || part === 'ne' ? start.y + start.h : start.y,
+      }
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const p = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const pu = toUnits(view, p.x, p.y)
+
+          let box: { x: number; y: number; w: number; h: number }
+          if (part === 'move') {
+            box = { ...start, x: start.x + (pu.x - downU.x), y: start.y + (pu.y - downU.y) }
+          } else {
+            // Never degenerate. `cameraRect` enforces the real floor on the way
+            // out; this only stops a box of no width being stored on the way in.
+            const min = crop.w * 0.08
+            const x0 = Math.min(anchor.x, pu.x)
+            const x1 = Math.max(anchor.x, pu.x)
+            const y0 = Math.min(anchor.y, pu.y)
+            const y1 = Math.max(anchor.y, pu.y)
+            box = { x: x0, y: y0, w: Math.max(min, x1 - x0), h: Math.max(min, y1 - y0) }
+          }
+
+          const a = unitsToPercent(view, box.x, box.y)
+          const b = unitsToPercent(view, box.x + box.w, box.y + box.h)
+          patchAct('frame', (act2) => ({
+            ...act2,
+            shot: {
+              x: (a.x + b.x) / 2,
+              y: (a.y + b.y) / 2,
+              w: Math.abs(b.x - a.x),
+              h: Math.abs(b.y - a.y),
+            },
+          }))
+        },
+        () => seal(),
+      )
+    },
+    [bindGesture, view, patchAct, seal],
+  )
+
   /*
    * Arrows and shaded areas are the same gesture: press, drag, release. They
    * differ only in what gets committed, so they share one handler rather than
@@ -683,6 +779,24 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // depends on the document. The cost is re-posing 22 counters when a title
     // is typed, which is nothing.
   }, [timeline, system, act, pending, tool])
+
+  shotRef.current = rendered.shot
+
+  /**
+   * Hand this phase a frame to drag.
+   *
+   * It starts as exactly what the camera was already doing, so pressing it
+   * changes nothing on screen — which is the point. A button that jumped the
+   * shot somewhere else before the coach had touched anything would be asking
+   * them to undo it first. When there is nothing derived to copy, it opens on a
+   * middling box over the middle of the board: something to grab, and obviously
+   * a starting point rather than an opinion.
+   */
+  const frameByHand = useCallback(() => {
+    const shot = shotRef.current ?? { x: 50, y: 50, w: 62, h: 62 }
+    patchAct('frame', (a) => ({ ...a, shot }))
+    seal()
+  }, [patchAct, seal])
 
   const playing = playhead !== null
   const drawing = tool !== 'select'
@@ -1149,6 +1263,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
         /* Wide while posing with the shot outlined on top; the real push-in
            happens on Play. See `showFrame` in ../board/Board.tsx. */
         showFrame={!playing}
+        /* Withheld while a drawing tool is armed, for the same reason marks
+           are: a coach dragging out a zone across the frame's edge must not
+           have the camera grab the gesture instead. */
+        onFramePointerDown={playing || drawing ? undefined : beginFrameDrag}
         activeTokenId={dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null)}
         activeMarkId={selectedMarkId}
         onTokenPointerDown={
@@ -1463,20 +1581,63 @@ export default function StudioEditor({ systemId, initial }: Props) {
           <span className="font-bold text-ink-soft">{cameraMode.label}.</span> {cameraMode.hint}
         </p>
         {camera === 'follow' && (
-          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-            {rendered.shot ? (
-              <>
-                This {PHASE.one} is shot{' '}
-                <span className="font-bold text-ink-soft">{Math.round(frameWide)} metres</span>{' '}
-                across, out of {Math.round(viewWide)}. The dashed box is what the film sees.
-              </>
-            ) : (
-              <>
-                This {PHASE.one} is shot wide. Put the ball on the board, or draw an arrow, and the
-                camera has something to point at.
-              </>
-            )}
-          </p>
+          <>
+            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+              {rendered.shot ? (
+                <>
+                  This {PHASE.one} is shot{' '}
+                  <span className="font-bold text-ink-soft">{Math.round(frameWide)} metres</span>{' '}
+                  across, out of {Math.round(viewWide)}. The dashed box is what the film sees
+                  {act.shot ? ', and you set it' : ''}.
+                </>
+              ) : (
+                <>
+                  This {PHASE.one} is shot wide. Put the ball on the board, or draw an arrow, and the
+                  camera has something to point at.
+                </>
+              )}
+            </p>
+
+            {/*
+             * Two states, one line of type between them.
+             *
+             * With a box on the board there is nothing to press: dragging it is
+             * the control, and a button that says "now you may move it" would
+             * be a step in the way of a thing that already works. What needs a
+             * button is the way BACK — an automatic frame is the good default
+             * and a coach who has overridden one phase must be able to undo
+             * that without knowing where they dragged it from.
+             */}
+            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+              {act.shot
+                ? 'Drag the box to move it, or a corner to change how tight it is.'
+                : rendered.shot
+                  ? 'Worked out from what is on this ' +
+                    PHASE.one +
+                    '. Drag the box, or a corner, to set it yourself.'
+                  : 'You can still frame it by hand.'}
+            </p>
+
+            <div className="mt-2.5">
+              {act.shot ? (
+                <Tip
+                  text={`Throws away the frame you drew on this ${PHASE.one} and goes back to working it out from the ball, the arrows and anyone you have given a role to.`}
+                  title="Back to automatic"
+                >
+                  <Button onClick={() => patchAct('frame', (a) => ({ ...a, shot: undefined }))}>
+                    Back to automatic
+                  </Button>
+                </Tip>
+              ) : (
+                <Tip
+                  text={`Puts a frame on this ${PHASE.one} for you to drag. Until you move it, it is exactly what the camera was going to do anyway.`}
+                  title="Frame it yourself"
+                >
+                  <Button onClick={frameByHand}>Frame it yourself</Button>
+                </Tip>
+              )}
+            </div>
+          </>
         )}
       </Panel>
 

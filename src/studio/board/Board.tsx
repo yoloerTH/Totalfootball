@@ -101,10 +101,31 @@ interface Props {
    * serialised SVG. See ../balls.ts `inlineBall`.
    */
   ballHref?: string
+  /**
+   * Passing this makes the camera's frame adjustable: a grip on each corner to
+   * resize it, and the outline itself to slide it about.
+   *
+   * The INSIDE of the frame stays inert whatever happens here, which is not an
+   * oversight — on a full pitch most of the squad is inside the shot, and a box
+   * that swallowed pointer events would make every player under it undraggable
+   * the moment a coach switched the camera on. Only the border and the four
+   * corners take a pointer, so what you can grab is exactly what is drawn.
+   */
+  onFramePointerDown?: (part: FramePart, e: React.PointerEvent<SVGElement>) => void
   onBackgroundPointerDown?: (e: React.PointerEvent<SVGSVGElement>) => void
   className?: string
   svgRef?: React.Ref<SVGSVGElement>
 }
+
+/** Which part of the camera frame a pointer went down on. */
+export type FramePart = 'move' | 'nw' | 'ne' | 'sw' | 'se'
+
+const FRAME_CORNERS: { part: FramePart; fx: number; fy: number; cursor: string }[] = [
+  { part: 'nw', fx: 0, fy: 0, cursor: 'nwse-resize' },
+  { part: 'ne', fx: 1, fy: 0, cursor: 'nesw-resize' },
+  { part: 'sw', fx: 0, fy: 1, cursor: 'nesw-resize' },
+  { part: 'se', fx: 1, fy: 1, cursor: 'nwse-resize' },
+]
 
 export function Board({
   system,
@@ -119,6 +140,7 @@ export function Board({
   onBandPointerDown,
   onBallPointerDown,
   onBackgroundPointerDown,
+  onFramePointerDown,
   ballHref,
   className,
   svgRef,
@@ -130,6 +152,12 @@ export function Board({
   // The camera. `showFrame` inverts it: outline the shot rather than move to it.
   const shot = showFrame ? null : act.shot
   const frame = showFrame && act.shot ? cameraRect(view, act.shot) : null
+  // A grip, in board units. Proportional to the crop so it is the same size on
+  // screen whether the system is a full pitch or a penalty box.
+  const grip = crop.w * 0.021
+  /** The grab band along the outline, and how far the corners sit inside it. */
+  const hit = grip * 1.5
+  const inset = grip * 0.34
   // The surface is read here and nowhere else. Everything under this <svg> takes
   // it from context, so there is no component that can be left drawing in
   // paper's ink on a night pitch — see ./surfaces.ts.
@@ -306,8 +334,9 @@ export function Board({
          * it never eats a drag that starts on a player underneath it.
          */}
         {frame && (
-          <g pointerEvents="none">
+          <g>
             <path
+              pointerEvents="none"
               d={`M${crop.x} ${crop.y} h${crop.w} v${crop.h} h${-crop.w} Z M${frame.x} ${frame.y} h${frame.w} v${frame.h} h${-frame.w} Z`}
               fillRule="evenodd"
               fill={surface.palette.ink}
@@ -317,6 +346,7 @@ export function Board({
               opacity={0.15}
             />
             <rect
+              pointerEvents="none"
               x={frame.x}
               y={frame.y}
               width={frame.w}
@@ -326,6 +356,56 @@ export function Board({
               strokeWidth={2.6}
               strokeDasharray="16 10"
             />
+
+            {/*
+             * The grips. Drawn only when somebody is listening for them, so the
+             * shared viewer, the print sheet and the exporter — none of which
+             * can adjust anything — get the plain outline they had before.
+             */}
+            {onFramePointerDown && (
+              <g>
+                {/*
+                 * Everything grabbable is drawn INSIDE the frame, and that is a
+                 * fix rather than a preference. `cameraRect` clamps the shot to
+                 * the grass, so a frame very often sits flush against an edge of
+                 * the crop — and a grip centred on that edge has half of itself
+                 * outside the board, where it is clipped and cannot be hit at
+                 * all. Two of the four corners were unclickable on an upright
+                 * pitch for exactly this reason.
+                 *
+                 * The outline again, fat and invisible: a dashed 2.6-unit line
+                 * is a hard thing to hit with a finger, and the gaps in it are
+                 * not targets at all. Inset by half its own width so the band
+                 * lies just inside the line the coach can see.
+                 */}
+                <rect
+                  x={frame.x + hit / 2}
+                  y={frame.y + hit / 2}
+                  width={Math.max(0, frame.w - hit)}
+                  height={Math.max(0, frame.h - hit)}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={hit}
+                  style={{ cursor: 'move' }}
+                  onPointerDown={(e) => onFramePointerDown('move', e)}
+                />
+                {FRAME_CORNERS.map(({ part, fx, fy, cursor }) => (
+                  <rect
+                    key={part}
+                    x={frame.x + inset + fx * Math.max(0, frame.w - grip - inset * 2)}
+                    y={frame.y + inset + fy * Math.max(0, frame.h - grip - inset * 2)}
+                    width={grip}
+                    height={grip}
+                    rx={grip * 0.22}
+                    fill={surface.palette.gold}
+                    stroke={surface.palette.halo}
+                    strokeWidth={grip * 0.14}
+                    style={{ cursor }}
+                    onPointerDown={(e) => onFramePointerDown(part, e)}
+                  />
+                ))}
+              </g>
+            )}
           </g>
         )}
       </g>

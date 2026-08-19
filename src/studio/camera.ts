@@ -52,31 +52,14 @@
 
 import { PITCH, U, cropRect, toMetres, toUnits } from './board/pitch'
 import type { PitchView } from './board/pitch'
-import type { Act, System } from './schema'
+import type { Act, Shot, System } from './schema'
 
-/**
- * The rectangle of board to look at: a centre, and the box that must be in shot.
- *
- * All four numbers are percent-of-crop — the same space a token stores — so a
- * shot means the same thing as the marks it is framing, and `{50,50,100,100}`
- * is the whole view.
- *
- * A BOX RATHER THAN A ZOOM FACTOR, and the reason is the video. The exporter
- * renders through a widened, sometimes turned view so the grass reaches all
- * four edges of a 16:9 or 9:16 frame (`frameView` in ./videoRender.ts). A zoom
- * expressed as a fraction of the crop would mean something different against
- * that wider crop, and the film would come out framed looser than the preview a
- * coach approved. A box of grass means the same thing at every aspect: each
- * renderer fits it into whatever frame it has. Percent-of-crop is measured
- * against `x0..x1`, which the export view does not move — that is what makes
- * this work, and it is the same property tokens already rely on.
+/*
+ * `Shot` itself lives in ./schema.ts, because a coach can now draw one by hand
+ * and anything a coach can author is part of the document format. Re-exported
+ * here so every reader of the camera still finds it where it was.
  */
-export interface Shot {
-  x: number
-  y: number
-  w: number
-  h: number
-}
+export type { Shot } from './schema'
 
 export type CameraMode = 'off' | 'follow'
 
@@ -194,6 +177,19 @@ function interest(act: Act): Pt[] {
  */
 export function shotFor(system: System, act: Act, view: PitchView): Shot | null {
   if (resolveCamera(system.camera) !== 'follow') return null
+
+  /*
+   * A frame the coach drew wins outright, and skips every test below it.
+   *
+   * Including `WORTH_IT`: that rule exists to stop the DERIVATION creeping in
+   * by 4% and back out again on a phase it had nothing much to point at, which
+   * looks broken. A coach who has dragged a box to almost the size of the crop
+   * has said what they want, and quietly discarding it because the maths judged
+   * it not worth doing would be the tool arguing with them about their own
+   * board. `cameraRect` still bounds it, so "what they want" cannot mean a
+   * frame full of grass that is not there.
+   */
+  if (act.shot) return act.shot
 
   const pts = interest(act)
   // A phase about shape rather than about the ball, with nothing marked on it.

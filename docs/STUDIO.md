@@ -48,6 +48,7 @@ back the film. Nothing else here is hard to copy — that is.
 | Themes | **Four**: Day, Night, Pitch Broadcast, Pitch Night. Chrome only, in `src/lib/theme.ts` | A room the coach reads in. Two of them are named after pitch surfaces and neither touches a board — see the row above |
 | Camera | **Two modes on the document: Fixed, and Follow the ball.** A shot is a BOX in percent-of-crop, derived per phase and interpolated, applied as the SVG viewBox | Ported from the videos' `Camera` in `TacticsBoard.tsx`, where a keyframe is a beat; here a keyframe is a phase, because a coach authors poses and not time. A box rather than a zoom factor so the video's widened export view frames identically to the preview. It is NOT a second pitch view: it never touches a percent coord. See `src/studio/camera.ts` |
 | Start from one of ours | **Five real documents, copied on open** (`src/studio/templates.ts` over `content/systems/*.json`), new id, credit and `shareId` stripped, the coach's name taken but **not** their colours | The two screens that pointed at `/library/` were offering an article where they promised a board. These five are already rendered end to end by the film scripts, so a worked example that has never been opened cannot reach a coach. Dropping `shareId` is the load-bearing half: a copy carrying it would let the coach's Share button republish over the link we sent. Colours are kept because a worked example that no longer looks like the film it came from teaches less |
+| Framing by hand | **`Act.shot`, dragged on the board.** A derived frame is grabbable as it stands — there is no mode to enter — and grabbing it is what makes it the coach's. Overrides every test in the derivation, including `WORTH_IT`; still bounded by `cameraRect` | Per-phase, because that is the one part of the camera that genuinely varies phase to phase. The drag maths is done in **board units, not percent**: percent runs along the pitch and the upright views stand the pitch on its end, so a resize written in percent moves a box the coach did not touch. Grips are drawn **inside** the frame — `cameraRect` clamps a shot flush to the crop, and a grip centred on that edge is half outside the board and unhittable, which cost two of the four corners on an upright pitch |
 | Pace | **One hold per system, on the document** (`System.hold`, `src/studio/pace.ts`), floor 1.2s, ceiling 6s, default the 2.6s everything has always run at. The move between phases is fixed and does not scale | A film that drags is a property of the presentation, not of the export — so Play, the shared viewer, the video and the ball audio all read the one value and the preview cannot promise a pace the file does not keep. The hold is reading time and is the part that drags; the move is the football and squeezing it saves no waiting. The floor is flat and NOT derived from caption length: tried against the shipped systems, whose captions run 13–19 words, a reading-time floor pushes every one of them slower than its own default |
 | Where the camera applies | **Playback, the shared viewer, the video and the print sheet. Never while posing** — the editor draws the shot as an outline instead | You cannot drag a player you cannot see |
 | Pitch surfaces | **Four**: Paper (default), Broadcast, Night, Chalk, in `board/surfaces.ts`. Picked like the match ball, stored as `System.surface` | A property of the diagram, so it travels into every export, print and link. The whole palette swaps, not just the grass: an arrow left on paper's ink vanishes on green |
@@ -479,10 +480,11 @@ Editor gaps, in order:
   ghost of the previous phase under the board would make posing much faster, and
   it is the natural companion to the "a phase is a moment" idea the walkthrough
   teaches.
-- **Manual per-phase framing.** `camera.ts` already stores a shot as a box in
-  percent-of-crop and every renderer goes through `cameraRect`, so this is a UI
-  job and nothing else: add `shot?: Shot` to `Act`, let the coach drag the box
-  out on the board, and prefer it over the derived one when it is set.
+- ~~**Manual per-phase framing.**~~ — **built.** `Act.shot`, dragged on the
+  board: the outline slides it, the four corners size it, and the Camera panel
+  hands a phase back to the automatic framing. What is left is a **keyboard
+  path** — the frame is pointer-only today, which is the same gap the marks
+  have.
 - ~~**A worked example a coach can open.**~~ — **built.** Five of them, in
   `src/studio/templates.ts`, reached at `/studio/new/?t=<id>` and offered under
   the shelf on the portal. They are the documents in `content/systems/` that the

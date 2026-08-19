@@ -56,6 +56,30 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'frame-by-hand',
+    date: '2026-08-19',
+    kind: 'new',
+    title: 'Move the camera box yourself',
+    body: 'The camera works out what each phase is about and frames it, and it is right most of the time. When it is not, the dashed gold box is now yours to move: drag it to slide the shot, drag a corner to go tighter or wider. It is per phase, so one awkward phase does not cost you the automatic framing on the rest, and there is a button to hand any phase back.',
+    where: 'The Camera panel, with Follow the ball on',
+  },
+  {
+    id: 'start-from-ours',
+    date: '2026-08-19',
+    kind: 'new',
+    title: 'Five systems of ours you can open',
+    body: 'The False Nine, the third man run, overload to isolate, beating a two-man press, and why a line steps up. They are the boards the films are made on, not pictures of them, so you can open one and move the players yourself. What you open is yours from that moment: rename it, rewrite the words, keep the half you want and throw the rest away. It does not touch ours.',
+    where: 'Below your systems, on your systems page',
+  },
+  {
+    id: 'phase-pace',
+    date: '2026-08-19',
+    kind: 'new',
+    title: 'Set how long each phase holds',
+    body: 'A system you already know plays too slowly, and until now every one of them held for the same two and a half seconds. Now you set it, from a second and a bit up to six, and the whole thing follows: the film you save, the link you send, and Play. The move between phases is left alone — that is the part carrying the football, and shortening it only makes the game harder to follow.',
+    where: 'The Pace panel, and inside Video',
+  },
+  {
     id: 'camera-follow',
     date: '2026-08-19',
     kind: 'new',
