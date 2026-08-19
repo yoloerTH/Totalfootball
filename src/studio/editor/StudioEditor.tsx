@@ -620,7 +620,18 @@ export default function StudioEditor({ systemId, initial }: Props) {
       }
     }
     return base
-  }, [timeline, system.acts, act, pending, tool])
+    // On the WHOLE system, not on `system.acts`.
+    //
+    // The narrow list was right while a pose was only ever a function of the
+    // acts. It stopped being right the moment the camera arrived: the shot is
+    // derived from `system.camera` and `system.pitch`, and flipping the camera
+    // makes a new system object while leaving the acts array — and `act` — at
+    // the same reference, so nothing here changed and the board went on
+    // drawing the previous frame. Naming the two fields would fix today's bug
+    // and leave the same trap set for the next render-affecting field, so this
+    // depends on the document. The cost is re-posing 22 counters when a title
+    // is typed, which is nothing.
+  }, [timeline, system, act, pending, tool])
 
   const playing = playhead !== null
   const drawing = tool !== 'select'
