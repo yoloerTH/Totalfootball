@@ -1,0 +1,337 @@
+/**
+ * The camera: where the eye goes while the film plays.
+ *
+ * Ported from the videos, where every short keyframes a `Camera` — see
+ * `PitchBoard` in editor/src/components/football/TacticsBoard.tsx and the
+ * `cameraAt(frame)` tables in BreakShort, Zone14Short and JockeyShort. There it
+ * is `{ tx, ty, scale }` applied as one transform to the whole field plane, with
+ * the keyframes hand-written per beat and eased between. The model here is the
+ * same one; only two things are different, and both come from the studio being
+ * a tool rather than a composition:
+ *
+ *  · A KEYFRAME IS A PHASE. The videos put camera keys wherever the edit wants
+ *    one. A coach does not author time, they author poses — so a shot belongs to
+ *    a phase, and the movement between two phases is derived, exactly the way
+ *    the players' movement already is (see ./tween.ts).
+ *
+ *  · IT IS THE VIEWBOX, NOT A TRANSFORM. The videos scale the plane. Narrowing
+ *    the SVG viewBox does the same thing to the picture — counters grow as the
+ *    camera pushes in, which is the house look and is what makes a push-in read
+ *    as a push-in — and it does it without putting a transform between the
+ *    coach's pointer and the board. `clientToPercent` in ./board/Board.tsx goes
+ *    through `getScreenCTM()`, so dragging keeps landing where the coach let go
+ *    at any zoom, with nothing to change.
+ *
+ * ── THE LINE THIS MUST NOT CROSS ────────────────────────────────────────────
+ *
+ * There are now two things that mean "look closer", and they are not the same
+ * thing:
+ *
+ *   PITCH VIEW is what pitch this system is ABOUT. It is the space percent
+ *   coords are measured in (./board/pitch.ts), so changing it moves where a
+ *   stored 50,50 lands, which is why changing it has to remap every mark.
+ *
+ *   THE CAMERA is where the eye goes DURING the film. It must never touch a
+ *   percent coord. It is a render-time crop and nothing else, in the same
+ *   posture as the video exporter's `view` override.
+ *
+ * Keep them apart and a coach can widen the camera without disturbing a single
+ * player. Let them merge and every zoom is a destructive edit.
+ *
+ * ── WHY THE SHOT IS DERIVED PER PHASE AND NOT PER FRAME ─────────────────────
+ *
+ * The obvious implementation is for the board to look at whatever pose it has
+ * been handed and frame that. It is wrong, and visibly so. Mid-move the pose is
+ * a BLEND (./tween.ts): arrows are dropped at 35% and the next set arrives at
+ * 55%, and players who only exist in the next phase pop in at their new
+ * positions. A frame derived from that jumps twice in the middle of every beat.
+ *
+ * So a shot is computed from a phase at REST, and two shots are interpolated.
+ * Continuous by construction, and the same model the videos use.
+ */
+
+import { PITCH, U, cropRect, toMetres, toUnits } from './board/pitch'
+import type { PitchView } from './board/pitch'
+import type { Act, System } from './schema'
+
+/**
+ * The rectangle of board to look at: a centre, and the box that must be in shot.
+ *
+ * All four numbers are percent-of-crop — the same space a token stores — so a
+ * shot means the same thing as the marks it is framing, and `{50,50,100,100}`
+ * is the whole view.
+ *
+ * A BOX RATHER THAN A ZOOM FACTOR, and the reason is the video. The exporter
+ * renders through a widened, sometimes turned view so the grass reaches all
+ * four edges of a 16:9 or 9:16 frame (`frameView` in ./videoRender.ts). A zoom
+ * expressed as a fraction of the crop would mean something different against
+ * that wider crop, and the film would come out framed looser than the preview a
+ * coach approved. A box of grass means the same thing at every aspect: each
+ * renderer fits it into whatever frame it has. Percent-of-crop is measured
+ * against `x0..x1`, which the export view does not move — that is what makes
+ * this work, and it is the same property tokens already rely on.
+ */
+export interface Shot {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export type CameraMode = 'off' | 'follow'
+
+export const CAMERA_MODES: { id: CameraMode; label: string; hint: string }[] = [
+  {
+    id: 'off',
+    label: 'Fixed',
+    hint: 'The whole pitch view, every phase. What a coach draws on a whiteboard.',
+  },
+  {
+    id: 'follow',
+    label: 'Follow the ball',
+    hint: 'Pushes in on what each phase is about and travels between them, the way the videos are shot.',
+  },
+]
+
+export const DEFAULT_CAMERA: CameraMode = 'off'
+
+/** Coerce anything stored on a document — including nothing — to a live mode. */
+export function resolveCamera(id: string | undefined): CameraMode {
+  return id === 'follow' ? 'follow' : 'off'
+}
+
+// ── deriving a shot ──────────────────────────────────────────────────────────
+
+/**
+ * Never pushes in past this, as a fraction of the crop.
+ *
+ * Tighter than about a third of the view and a full-back is off the side of the
+ * frame with no warning that they were ever there.
+ */
+const TIGHTEST = 0.45
+
+/**
+ * Grass left around the action, in metres.
+ *
+ * Generous on purpose. A frame drawn tight to the outermost counter reads as a
+ * crop; the videos always leave the move somewhere to travel to.
+ */
+const MARGIN = 9
+
+/**
+ * Under this much push-in, don't bother.
+ *
+ * A camera that creeps in by 4% and back out again is a camera that looks
+ * broken. Unless the box is meaningfully smaller than the crop the phase is
+ * simply framed wide, which also means a system of team-shape phases gets no
+ * camera movement at all rather than a constant nervous drift.
+ */
+const WORTH_IT = 0.93
+
+/** How many players to pull in when the ball is the only thing we were told about. */
+const NEAREST = 5
+
+interface Pt {
+  x: number
+  y: number
+}
+
+/**
+ * What this phase is ABOUT, in percent-of-crop.
+ *
+ * Not "everything on the board" — that is both teams, which is the whole pitch,
+ * which is no camera at all. The coach has already said what matters here and
+ * this reads it back:
+ *
+ *  · the ball, which is the subject whenever there is one
+ *  · every arrow's ends, which are their own statement of what happens next
+ *  · anyone carrying a role cue, which is who has a job in this phase
+ *  · any zone or danger area, which is the space being talked about
+ *
+ * Dimmed players are excluded by definition — `dim` means "not part of this
+ * act's lesson" (./schema.ts), and framing on someone the coach has greyed out
+ * would contradict them on their own board.
+ */
+function interest(act: Act): Pt[] {
+  const pts: Pt[] = []
+  const at = (x: number, y: number) => pts.push({ x, y })
+
+  if (act.ball) at(act.ball.x, act.ball.y)
+  for (const a of act.arrows) {
+    at(a.from.x, a.from.y)
+    at(a.to.x, a.to.y)
+  }
+  for (const t of act.tokens) if (t.cue && !t.dim) at(t.x, t.y)
+  for (const b of act.bands) {
+    if (!b.rect) continue
+    at(b.rect.x, b.rect.y)
+    at(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
+  }
+
+  // Told only where the ball is: frame it with the players around it, which is
+  // the ball carrier and their immediate options. Without this a phase whose
+  // whole content is "the ball is here" would push in to the hard cap on a
+  // single point.
+  if (pts.length === 1 && act.ball) {
+    const ball = pts[0]
+    const near = act.tokens
+      .filter((t) => !t.dim)
+      .map((t) => ({ t, d: (t.x - ball.x) ** 2 + (t.y - ball.y) ** 2 }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, NEAREST)
+    for (const n of near) at(n.t.x, n.t.y)
+  }
+
+  return pts
+}
+
+/**
+ * The shot for one phase, or null to leave it wide.
+ *
+ * Null rather than a box of the whole view, so that "this phase has no camera"
+ * and "this phase is deliberately framed wide" stay tellable apart — see
+ * `lerpShot`, where the difference decides what a move to a wide phase does.
+ */
+export function shotFor(system: System, act: Act, view: PitchView): Shot | null {
+  if (resolveCamera(system.camera) !== 'follow') return null
+
+  const pts = interest(act)
+  // A phase about shape rather than about the ball, with nothing marked on it.
+  // Staying wide is the honest answer; there is nothing here to point at.
+  if (pts.length < 2) return null
+
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -Infinity
+  let y1 = -Infinity
+  for (const p of pts) {
+    x0 = Math.min(x0, p.x)
+    y0 = Math.min(y0, p.y)
+    x1 = Math.max(x1, p.x)
+    y1 = Math.max(y1, p.y)
+  }
+
+  // The margin is real grass, so it is converted per axis: the same nine metres
+  // is a bigger slice of a crop that is only half a pitch long than of a full
+  // one, and a fixed percentage would breathe differently on every view.
+  const mx = (MARGIN / (view.x1 - view.x0)) * 100
+  const my = (MARGIN / (view.y1 - view.y0)) * 100
+
+  const shot: Shot = {
+    x: (x0 + x1) / 2,
+    y: (y0 + y1) / 2,
+    w: x1 - x0 + mx * 2,
+    h: y1 - y0 + my * 2,
+  }
+
+  // Judged on the frame this actually produces, not on the box asked for: a
+  // wide flat box on a tall crop fits to the full width and moves nothing.
+  const crop = cropRect(view)
+  return cameraRect(view, shot).w >= crop.w * WORTH_IT ? null : shot
+}
+
+/**
+ * A wide shot, for interpolating against.
+ *
+ * The whole crop — which is what a board with no camera is already showing, so
+ * a phase with a shot moving to a phase without one pulls out rather than cuts.
+ */
+const WIDE: Shot = { x: 50, y: 50, w: 100, h: 100 }
+
+/** Blend two shots. `t` is already eased by the caller. */
+export function lerpShot(a: Shot | null, b: Shot | null, t: number): Shot | null {
+  if (!a && !b) return null
+  const from = a ?? WIDE
+  const to = b ?? WIDE
+  const mix = (u: number, v: number) => u + (v - u) * t
+  return {
+    x: mix(from.x, to.x),
+    y: mix(from.y, to.y),
+    w: mix(from.w, to.w),
+    h: mix(from.h, to.h),
+  }
+}
+
+// ── turning a shot into a frame ──────────────────────────────────────────────
+
+/**
+ * The camera's rectangle, in SVG units.
+ *
+ * Three things happen here, in this order, and all three are what make a
+ * derived camera safe to hand to a coach:
+ *
+ *  1. THE BOX IS TURNED. Percent-of-crop is metre space, so on an upright view
+ *     the shot's corners land rotated a quarter turn. Taking the bounds of all
+ *     four is what keeps the frame axis-aligned on both orientations.
+ *  2. IT IS FITTED, never stretched. The frame keeps the crop's aspect and
+ *     grows on whichever axis is short, so the box asked for is always fully in
+ *     shot. This is also what makes the video match the preview across the
+ *     exporter's widened, sometimes turned view.
+ *  3. IT IS CLAMPED inside the crop. A shot centred near a touchline would
+ *     otherwise frame grass that does not exist and render a strip of void down
+ *     one side. Clamping after the interpolation bounds the whole camera path,
+ *     not only its endpoints.
+ */
+export function cameraRect(
+  view: PitchView,
+  shot: Shot | null,
+): { x: number; y: number; w: number; h: number } {
+  const crop = cropRect(view)
+  if (!shot) return crop
+
+  const hw = shot.w / 2
+  const hh = shot.h / 2
+  const corners = [
+    toUnits(view, shot.x - hw, shot.y - hh),
+    toUnits(view, shot.x + hw, shot.y - hh),
+    toUnits(view, shot.x - hw, shot.y + hh),
+    toUnits(view, shot.x + hw, shot.y + hh),
+  ]
+  const bx0 = Math.min(...corners.map((c) => c.x))
+  const bx1 = Math.max(...corners.map((c) => c.x))
+  const by0 = Math.min(...corners.map((c) => c.y))
+  const by1 = Math.max(...corners.map((c) => c.y))
+
+  const aspect = crop.w / crop.h
+  let w = Math.max(bx1 - bx0, (by1 - by0) * aspect)
+  // Never tighter than the cap, never wider than there is grass for.
+  w = Math.min(Math.max(w, crop.w * TIGHTEST), crop.w)
+  const h = w / aspect
+
+  const cx = (bx0 + bx1) / 2
+  const cy = (by0 + by1) / 2
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+  return {
+    x: clamp(cx - w / 2, crop.x, crop.x + crop.w - w),
+    y: clamp(cy - h / 2, crop.y, crop.y + crop.h - h),
+    w,
+    h,
+  }
+}
+
+/** The viewBox a board draws through. Falls back to the whole crop. */
+export function cameraViewBox(view: PitchView, shot: Shot | null): string {
+  const r = cameraRect(view, shot)
+  return `${r.x} ${r.y} ${r.w} ${r.h}`
+}
+
+/**
+ * How wide the frame is, in metres of real grass.
+ *
+ * For the editor's read-out. "1.6x" means nothing to anybody; "48 metres
+ * across" is a distance a coach can picture, because they have stood on it.
+ */
+export function frameMetres(view: PitchView, shot: Shot | null): number {
+  const r = cameraRect(view, shot)
+  // Upright views stand the pitch on its end, so the frame's width is measured
+  // along the pitch's short axis either way — units are units, and U is the
+  // only conversion. Capped at the pitch so padding is not reported as grass.
+  return Math.min(r.w / U, view.vertical ? PITCH.width : PITCH.length)
+}
+
+/** The metre span of a whole view, so the read-out has something to compare to. */
+export function viewMetres(view: PitchView): number {
+  const m0 = toMetres(view, 0, 50)
+  const m1 = toMetres(view, 100, 50)
+  return view.vertical ? view.y1 - view.y0 : m1.x - m0.x
+}

@@ -196,7 +196,9 @@ export default function Viewer() {
   // `p` is linear time. tweenActs applies the house curve itself — easing it
   // here as well would ease it twice and land somewhere nobody chose.
   const rendered =
-    move && p < 1 ? tweenActs(system.acts[move.from], system.acts[move.to], p) : resolveAct(act)
+    move && p < 1
+      ? tweenActs(system.acts[move.from], system.acts[move.to], p, system)
+      : resolveAct(act, system)
 
   return (
     <>
@@ -357,7 +359,7 @@ function PrintSheet({ system }: { system: System }) {
           </header>
 
           <div className="tf-slide-board" style={{ aspectRatio: aspect(view) }}>
-            <Board system={system} act={resolveAct(a)} idp={`print-${a.id}`} />
+            <Board system={system} act={resolveAct(a, system)} idp={`print-${a.id}`} />
           </div>
 
           {a.caption && <p className="tf-slide-caption">{a.caption}</p>}

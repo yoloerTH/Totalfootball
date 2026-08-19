@@ -18,6 +18,7 @@
 import type { BallId } from './balls'
 import type { PitchViewId } from './board/pitch'
 import type { PitchSurfaceId } from './board/surfaces'
+import type { CameraMode } from './camera'
 
 /** Which side of the ball a token belongs to. Drives its colour. */
 export type Side = 'us' | 'them'
@@ -149,6 +150,22 @@ export interface System {
    * `resolveSurface()` in ./board/surfaces.ts supplies paper.
    */
   surface?: PitchSurfaceId
+  /**
+   * Whether the film moves, and how.
+   *
+   * On the document, alongside the surface and the match ball, because it is a
+   * property of the presentation and not of whoever is watching it: a coach who
+   * shot a system to follow the ball is handing over a system that follows the
+   * ball, in the share link, the video and the printed page alike.
+   *
+   * It is NOT a second pitch view. Where the crop lands is what the system is
+   * about and is the space every mark is stored in; this is only where the eye
+   * goes while it plays, and it never moves a player. See ./camera.ts.
+   *
+   * Undefined on documents written before the camera existed —
+   * `resolveCamera()` supplies 'off', which is exactly what they already did.
+   */
+  camera?: CameraMode
   teams: {
     us: TeamStyle
     /** null = no opposition on the board. */

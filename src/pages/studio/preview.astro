@@ -106,6 +106,43 @@ const actB: Act = {
   bands: [{ id: 'b1', kind: 'block', throughTokens: ['us-LB', 'us-LCB', 'us-RCB', 'us-RB'] }],
 }
 const samples = [0, 0.25, 0.5, 0.75, 1]
+
+/**
+ * The camera, on those same two acts.
+ *
+ * Nothing about the document changes except `camera`, which is the claim worth
+ * proving: the same two poses, shot two ways. The first pair is what the editor
+ * shows while posing — the full view with the shot outlined — and the strip
+ * below is what the film does with it.
+ */
+const camSystem: System = { ...tweenSystem, title: 'Camera', camera: 'follow' }
+
+/**
+ * The camera on an UPRIGHT view, which is the one that can go wrong quietly.
+ *
+ * A shot is stored in percent-of-crop, which is metre space — so on a vertical
+ * board its corners land a quarter turn round from where they were written
+ * (`metresToUnits` in board/pitch.ts). If `cameraRect` ever stops turning all
+ * four of them, the frame here goes square-on to the wrong axis and frames the
+ * wrong half of the pitch, while every horizontal view carries on looking fine.
+ */
+const upSystem: System = {
+  v: 1,
+  title: 'Camera, upright',
+  pitch: 'full-vertical',
+  camera: 'follow',
+  teams,
+  acts: [],
+}
+const upAct: Act = {
+  ...emptyAct(
+    place(FORMATION_BY_ID.get('4-3-3')!, 'us', 'full-vertical').map((t) =>
+      t.id === 'us-ST' ? { ...t, cue: 'PRESS' as const } : t,
+    ),
+  ),
+  ball: { x: 42, y: 26 },
+  arrows: [{ id: 'u1', kind: 'pass', from: { x: 42, y: 26 }, to: { x: 62, y: 14 }, bend: 0.25 }],
+}
 ---
 
 <BaseLayout title="Board proof sheet" path="/studio/preview/" noindex bare>
@@ -166,6 +203,63 @@ const samples = [0, 0.25, 0.5, 0.75, 1]
             <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
               <div style={`height:250px;aspect-ratio:${aspect(PITCH_VIEWS[tweenSystem.pitch])};max-width:100%`}>
                 <Board system={tweenSystem} act={tweenActs(actA, actB, p)} idp={`tw-${p}`} />
+              </div>
+              <figcaption class="mt-2 text-micro uppercase text-ink-faint">{Math.round(p * 100)}%</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="mt-20">
+      <h2 class="text-section font-black tracking-display text-ink">The camera</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        The same two acts as above with <code>camera: 'follow'</code> and nothing else changed.
+        Left: what the editor shows while posing — the whole view, with the shot outlined, so
+        nobody is dragged somewhere they cannot be seen. Right: what the film frames. Check that
+        the frame holds the ball and the cued player, that it never opens a strip of void at an
+        edge, and that the strip below travels rather than cutting.
+      </p>
+      <div class="mt-8 grid gap-6 sm:grid-cols-2">
+        {
+          [
+            { act: actA, label: 'Phase 1 — posing' },
+            { act: actB, label: 'Phase 2 — posing' },
+          ].map(({ act, label }, i) => (
+            <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+              <div style={`height:280px;aspect-ratio:${aspect(PITCH_VIEWS[camSystem.pitch])};max-width:100%`}>
+                <Board system={camSystem} act={resolveAct(act, camSystem)} idp={`cam-pose-${i}`} showFrame />
+              </div>
+              <figcaption class="mt-2 text-micro uppercase text-ink-faint">{label}</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <p class="mt-8 max-w-prose text-sm text-ink-soft">
+        And the same thing stood on its end. The frame must sit around the ball and the arrow, not
+        square-on to the wrong axis — see the note in the source.
+      </p>
+      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+        <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+          <div style={`height:340px;aspect-ratio:${aspect(PITCH_VIEWS['full-vertical'])};max-width:100%`}>
+            <Board system={upSystem} act={resolveAct(upAct, upSystem)} idp="cam-up-pose" showFrame />
+          </div>
+          <figcaption class="mt-2 text-micro uppercase text-ink-faint">Upright — posing</figcaption>
+        </figure>
+        <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+          <div style={`height:340px;aspect-ratio:${aspect(PITCH_VIEWS['full-vertical'])};max-width:100%`}>
+            <Board system={upSystem} act={resolveAct(upAct, upSystem)} idp="cam-up-shot" />
+          </div>
+          <figcaption class="mt-2 text-micro uppercase text-ink-faint">Upright — framed</figcaption>
+        </figure>
+      </div>
+
+      <div class="mt-6 grid gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {
+          samples.map((p) => (
+            <figure class="flex flex-col items-center rounded-lg bg-surface p-3 shadow-paper">
+              <div style={`height:250px;aspect-ratio:${aspect(PITCH_VIEWS[camSystem.pitch])};max-width:100%`}>
+                <Board system={camSystem} act={tweenActs(actA, actB, p, camSystem)} idp={`cam-${p}`} />
               </div>
               <figcaption class="mt-2 text-micro uppercase text-ink-faint">{Math.round(p * 100)}%</figcaption>
             </figure>

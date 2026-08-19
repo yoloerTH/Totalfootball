@@ -37,9 +37,9 @@ import {
   resolveViewId,
   toUnits,
   unitsToPercent,
-  viewBox,
 } from './pitch'
 import type { PitchView } from './pitch'
+import { cameraRect, cameraViewBox } from '../camera'
 import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
 import { Arrow, BlockBand, Zone } from './Overlays'
@@ -64,6 +64,19 @@ interface Props {
   view?: PitchView
   /** Paper grain. Off while editing (it is a per-frame filter), on for export. */
   texture?: boolean
+  /**
+   * Draw what the camera will frame, instead of framing it.
+   *
+   * The editor's board must stay wide while a coach is posing — you cannot drag
+   * a player you cannot see, and a board that pushed in the moment the camera
+   * was switched on would put half the squad off the edge of the work surface.
+   * So the editor renders the full view and outlines the shot on top of it,
+   * which is also the only way to see what the film will do without playing it.
+   *
+   * Ignored unless the pose actually carries a shot, so it costs nothing on a
+   * system with the camera off.
+   */
+  showFrame?: boolean
   /** Token currently being dragged, drawn with a marching-ants ring. */
   activeTokenId?: string | null
   /**
@@ -98,6 +111,7 @@ export function Board({
   act,
   idp,
   texture = false,
+  showFrame = false,
   activeTokenId = null,
   activeMarkId = null,
   onTokenPointerDown,
@@ -113,6 +127,9 @@ export function Board({
   const view: PitchView = viewOverride ?? PITCH_VIEWS[resolveViewId(system.pitch)]
   const pos = (x: number, y: number) => toUnits(view, x, y)
   const crop = cropRect(view)
+  // The camera. `showFrame` inverts it: outline the shot rather than move to it.
+  const shot = showFrame ? null : act.shot
+  const frame = showFrame && act.shot ? cameraRect(view, act.shot) : null
   // The surface is read here and nowhere else. Everything under this <svg> takes
   // it from context, so there is no component that can be left drawing in
   // paper's ink on a night pitch — see ./surfaces.ts.
@@ -125,7 +142,7 @@ export function Board({
     <SurfaceContext.Provider value={surface.palette}>
     <svg
       ref={svgRef}
-      viewBox={viewBox(view)}
+      viewBox={cameraViewBox(view, shot)}
       className={className}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
@@ -275,6 +292,39 @@ export function Board({
               cx={pos(act.ball.x, act.ball.y).x}
               cy={pos(act.ball.x, act.ball.y).y}
               href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
+            />
+          </g>
+        )}
+
+        {/*
+         * The camera's frame, while posing. Everything outside it is knocked
+         * back rather than hidden: a coach needs to see that the full-back they
+         * just dragged is OUT of shot, which a hard mask would not tell them —
+         * it would simply look like the player had gone.
+         *
+         * Drawn last so it sits over the counters, and inert to the pointer so
+         * it never eats a drag that starts on a player underneath it.
+         */}
+        {frame && (
+          <g pointerEvents="none">
+            <path
+              d={`M${crop.x} ${crop.y} h${crop.w} v${crop.h} h${-crop.w} Z M${frame.x} ${frame.y} h${frame.w} v${frame.h} h${-frame.w} Z`}
+              fillRule="evenodd"
+              fill={surface.palette.ink}
+              /* Light. On a full pitch most of the board is outside the shot,
+                 and a coach has to keep working on it — this marks what is out
+                 of frame, it does not put it behind frosted glass. */
+              opacity={0.15}
+            />
+            <rect
+              x={frame.x}
+              y={frame.y}
+              width={frame.w}
+              height={frame.h}
+              fill="none"
+              stroke={surface.palette.gold}
+              strokeWidth={2.6}
+              strokeDasharray="16 10"
             />
           </g>
         )}

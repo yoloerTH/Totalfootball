@@ -248,6 +248,9 @@ export const HINT = {
     'How much of the pitch you are looking at. Changing it does not move anybody: everyone stays on the same patch of grass, you just see more or less of it.',
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
+  camera:
+    'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball pushes in on whatever each phase is about — the ball, your arrows, anyone you have given a role cue — and travels between them, the way the videos are shot. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
+
   ball:
     'Which match ball sits on the board. Choose one for the era you are teaching: the 1974 Telstar for a Total Football session, the 2026 Trionda for anything current.',
   surface:

@@ -761,8 +761,8 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
       if (key !== lastKey) {
         const act =
           tl.p === 0
-            ? resolveAct(system.acts[tl.index])
-            : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p)
+            ? resolveAct(system.acts[tl.index], drawSystem)
+            : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p, drawSystem)
         lastBoard = await raster(frameSvg(drawSystem, act, l.w, l.h, ballHref, css, view), l.w, l.h)
         lastKey = key
       }

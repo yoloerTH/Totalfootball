@@ -14,7 +14,9 @@
  * animation state.
  */
 
-import type { Act, Arrow, Band, Token } from './schema'
+import { PITCH_VIEWS, resolveViewId } from './board/pitch'
+import { lerpShot, shotFor, type Shot } from './camera'
+import type { Act, Arrow, Band, System, Token } from './schema'
 
 export interface RenderToken extends Token {
   opacity: number
@@ -31,6 +33,34 @@ export interface RenderAct {
   ball: { x: number; y: number; opacity: number } | null
   arrows: RenderArrow[]
   bands: Band[]
+  /**
+   * Where the camera is pointed for this pose, or null for the whole view.
+   *
+   * It rides on the render model rather than being threaded through every
+   * caller because that is what makes the camera arrive everywhere at once: the
+   * editor's playback, the shared viewer, the video exporter and the print
+   * sheet all build a RenderAct and hand it to the same Board, so none of them
+   * needed a line changing beyond saying which system it came from.
+   *
+   * Which is also why it is computed HERE and not inside Board. Board is handed
+   * blended poses mid-move, and a shot derived from a blend jumps twice a beat
+   * — see the note at the top of ../camera.ts.
+   */
+  shot: Shot | null
+}
+
+/**
+ * The camera's shot for one act, or null when there is no camera.
+ *
+ * `system` is optional on both builders below, and its absence means "no
+ * camera" rather than "the default camera". That is deliberate and it is doing
+ * real work: the editor poses through `resolveAct(act)` with no system, so the
+ * board a coach is dragging players around on is always the full view. You
+ * cannot pose what you cannot see.
+ */
+function shotOf(system: System | undefined, act: Act): Shot | null {
+  if (!system) return null
+  return shotFor(system, act, PITCH_VIEWS[resolveViewId(system.pitch)])
 }
 
 /**
@@ -78,12 +108,13 @@ const span = (x: number, a: number, b: number) =>
   b === a ? (x < a ? 0 : 1) : Math.min(1, Math.max(0, (x - a) / (b - a)))
 
 /** An act at rest — everything present, nothing arriving. */
-export function resolveAct(act: Act): RenderAct {
+export function resolveAct(act: Act, system?: System): RenderAct {
   return {
     tokens: act.tokens.map((t) => ({ ...t, opacity: 1, scale: 1 })),
     ball: act.ball ? { ...act.ball, opacity: 1 } : null,
     arrows: act.arrows.map((a) => ({ ...a, opacity: 1 })),
     bands: act.bands,
+    shot: shotOf(system, act),
   }
 }
 
@@ -102,8 +133,10 @@ export function resolveAct(act: Act): RenderAct {
  *    new set does not start until 55%. An arrow that lingered into a shape it
  *    no longer describes is the fastest way to make a board look wrong.
  *  · Cues switch at the midpoint, once the players are roughly in place.
+ *  · The CAMERA moves across the whole beat on the same curve as the players,
+ *    so a push-in lands with the shape rather than chasing it.
  */
-export function tweenActs(from: Act, to: Act, p: number): RenderAct {
+export function tweenActs(from: Act, to: Act, p: number, system?: System): RenderAct {
   const t = easeHouse(Math.min(1, Math.max(0, p)))
   const byId = new Map(to.tokens.map((tok) => [tok.id, tok]))
   const fromIds = new Set(from.tokens.map((tok) => tok.id))
@@ -157,7 +190,11 @@ export function tweenActs(from: Act, to: Act, p: number): RenderAct {
   // here. Only presence needs deciding, and the midpoint is the honest answer.
   const bands = p < 0.5 ? from.bands : to.bands
 
-  return { tokens, ball, arrows, bands }
+  // The camera travels on the same curve as the players, so the push-in and
+  // the move arrive together instead of the frame chasing the ball.
+  const shot = lerpShot(shotOf(system, from), shotOf(system, to), t)
+
+  return { tokens, ball, arrows, bands, shot }
 }
 
 /**

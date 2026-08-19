@@ -46,6 +46,8 @@ back the film. Nothing else here is hard to copy — that is.
 | Who can read the shares table | **Only the function.** RLS on, zero policies, service-role key server-side | Keeps the browser holding no Supabase key at all, matching the posture in `.env.example` |
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
 | Themes | **Four**: Day, Night, Pitch Broadcast, Pitch Night. Chrome only, in `src/lib/theme.ts` | A room the coach reads in. Two of them are named after pitch surfaces and neither touches a board — see the row above |
+| Camera | **Two modes on the document: Fixed, and Follow the ball.** A shot is a BOX in percent-of-crop, derived per phase and interpolated, applied as the SVG viewBox | Ported from the videos' `Camera` in `TacticsBoard.tsx`, where a keyframe is a beat; here a keyframe is a phase, because a coach authors poses and not time. A box rather than a zoom factor so the video's widened export view frames identically to the preview. It is NOT a second pitch view: it never touches a percent coord. See `src/studio/camera.ts` |
+| Where the camera applies | **Playback, the shared viewer, the video and the print sheet. Never while posing** — the editor draws the shot as an outline instead | You cannot drag a player you cannot see |
 | Pitch surfaces | **Four**: Paper (default), Broadcast, Night, Chalk, in `board/surfaces.ts`. Picked like the match ball, stored as `System.surface` | A property of the diagram, so it travels into every export, print and link. The whole palette swaps, not just the grass: an arrow left on paper's ink vanishes on green |
 | Small screens | A **door, not a wall**: told once that it wants a laptop, offered the link for later, and let through | A coach on a touchline looking at what they built is a good reason to be on a phone |
 | Watermark | **Footer credit bar**: their crest + team name left, "Made with Total Football" + our mark right | Reads as a credit line, not a watermark, so nobody tries to crop it |
@@ -462,6 +464,10 @@ Editor gaps, in order:
   ghost of the previous phase under the board would make posing much faster, and
   it is the natural companion to the "a phase is a moment" idea the walkthrough
   teaches.
+- **Manual per-phase framing.** `camera.ts` already stores a shot as a box in
+  percent-of-crop and every renderer goes through `cameraRect`, so this is a UI
+  job and nothing else: add `shot?: Shot` to `Act`, let the coach drag the box
+  out on the board, and prefer it over the derived one when it is set.
 - **A worked example a coach can open.** "Show me one" beats any amount of
   instruction, and we have 123 published systems to adapt one from.
 - **Touch.** The tooltips deliberately do not fire on touch. The line under the

@@ -49,6 +49,13 @@ import {
 } from '../board/surfaces'
 import { BALLS, DEFAULT_BALL, resolveBall, type BallId } from '../balls'
 import {
+  CAMERA_MODES,
+  frameMetres,
+  resolveCamera,
+  viewMetres,
+  type CameraMode,
+} from '../camera'
+import {
   FORMATION_BY_ID,
   castFor,
   formationsByFamily,
@@ -592,9 +599,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const timeline = playhead === null ? null : timelineAt(playhead, system.acts.length)
   const rendered = useMemo(() => {
     if (timeline) {
-      return tweenActs(system.acts[timeline.index], system.acts[timeline.next], timeline.p)
+      return tweenActs(system.acts[timeline.index], system.acts[timeline.next], timeline.p, system)
     }
-    const base = resolveAct(act)
+    const base = resolveAct(act, system)
     if (!pending) return base
     // Preview the mark being drawn, without committing it to the document.
     if (isArrowTool(tool)) {
@@ -900,6 +907,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
   const ball = resolveBall(system.matchBall)
   const surface = resolveSurface(system.surface)
+  const camera = resolveCamera(system.camera)
+  const cameraMode = CAMERA_MODES.find((c) => c.id === camera) ?? CAMERA_MODES[0]
+  // Read out in metres of grass rather than as a zoom factor — see ../camera.ts.
+  const frameWide = frameMetres(view, rendered.shot)
+  const viewWide = viewMetres(view)
   const formationGroups = useMemo(
     () =>
       formationsByFamily().map((g) => ({
@@ -1060,6 +1072,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
         system={system}
         act={rendered}
         idp="studio"
+        /* Wide while posing with the shot outlined on top; the real push-in
+           happens on Play. See `showFrame` in ../board/Board.tsx. */
+        showFrame={!playing}
         activeTokenId={dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null)}
         activeMarkId={selectedMarkId}
         onTokenPointerDown={
@@ -1193,6 +1208,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
             style={{ width: stacked ? 72 : 96, aspectRatio: aspect(view) }}
             title={`${PHASE.One} ${i + 1}${a.title ? `: ${a.title}` : ''}`}
           >
+            {/* No system, so no camera: a thumbnail is for finding a phase by
+                its shape, which a push-in would crop away. */}
             <Board system={system} act={resolveAct(a)} idp={`thumb-${a.id}`} />
             <span className="absolute bottom-0 left-0 right-0 bg-ink/75 px-1 py-0.5 text-[10px] font-bold text-paper">
               {i + 1}. {a.title}
@@ -1354,6 +1371,39 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <p className="mt-2 text-[11px] leading-snug text-ink-faint">
           <span className="font-bold text-ink-soft">{surface.name}.</span> {surface.story}
         </p>
+      </Panel>
+
+      <Panel title="Camera">
+        <Tip text={HINT.camera} title="How the film is shot" block>
+          <Segmented
+            label="Camera"
+            value={camera}
+            onChange={(id: CameraMode) => {
+              edit('camera', (s) => ({ ...s, camera: id }))
+              seal()
+            }}
+            options={CAMERA_MODES.map((c) => ({ value: c.id, label: c.label }))}
+          />
+        </Tip>
+        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          <span className="font-bold text-ink-soft">{cameraMode.label}.</span> {cameraMode.hint}
+        </p>
+        {camera === 'follow' && (
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {rendered.shot ? (
+              <>
+                This {PHASE.one} is shot{' '}
+                <span className="font-bold text-ink-soft">{Math.round(frameWide)} metres</span>{' '}
+                across, out of {Math.round(viewWide)}. The dashed box is what the film sees.
+              </>
+            ) : (
+              <>
+                This {PHASE.one} is shot wide. Put the ball on the board, or draw an arrow, and the
+                camera has something to point at.
+              </>
+            )}
+          </p>
+        )}
       </Panel>
 
       <Panel title="Counters">
