@@ -1,6 +1,10 @@
 ---
 import Mark from './brand/Mark.astro'
-import { THEMES } from '../lib/theme'
+import { DEFAULT_THEME, THEMES, resolveTheme, themeSwatch } from '../lib/theme'
+
+// Every swatch, built once here and handed to the inline script below, so the
+// button and the menu cannot end up drawing the same theme two ways.
+const SWATCHES = Object.fromEntries(THEMES.map((t) => [t.id, themeSwatch(t)]))
 
 const nav = [
   { href: '/library/', label: 'Library' },
@@ -62,7 +66,7 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
           <span
             id="tf-theme-swatch"
             class="h-6 w-6 shrink-0 rounded-full border border-ink-hair"
-            style="background:#F4F4F2"
+            style={`background:${themeSwatch(resolveTheme(DEFAULT_THEME))}`}
             aria-hidden="true"></span>
           <span id="tf-theme-name" class="text-[13px] font-medium">Day</span>
         </button>
@@ -85,7 +89,7 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
               >
                 <span
                   class="mt-0.5 h-6 w-6 shrink-0 rounded-full border border-ink-hair"
-                  style={`background:linear-gradient(135deg, ${t.paper} 55%, ${t.accent} 55%)`}
+                  style={`background:${themeSwatch(t)}`}
                   aria-hidden="true"
                 />
                 <span class="min-w-0">
@@ -138,7 +142,7 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
   </nav>
 </header>
 
-<script is:inline define:vars={{ THEME_LIST: THEMES }}>
+<script is:inline define:vars={{ THEME_LIST: THEMES, SWATCHES }}>
   ;(function () {
     var btn = document.getElementById('tf-theme')
     var menu = document.getElementById('tf-theme-menu')
@@ -160,7 +164,7 @@ const isCurrent = (href: string) => here === href || (href !== '/' && here.start
 
     function render() {
       var t = current()
-      swatch.style.background = 'linear-gradient(135deg, ' + t.paper + ' 55%, ' + t.accent + ' 55%)'
+      swatch.style.background = SWATCHES[t.id]
       name.textContent = t.label
       if (meta) meta.setAttribute('content', t.paper)
       items.forEach(function (el) {

@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { THEMES, resolveTheme, THEME_STORAGE_KEY, type ThemeId } from '../../lib/theme'
+import { THEMES, resolveTheme, themeSwatch, THEME_STORAGE_KEY, type ThemeId } from '../../lib/theme'
 import { HINT } from './guide'
 import { Button } from './ui'
 
@@ -94,7 +94,7 @@ export function ThemeToggle() {
       >
         <span
           className="h-4 w-4 rounded-full border border-ink-hair"
-          style={{ background: `linear-gradient(135deg, ${theme.paper} 55%, ${theme.accent} 55%)` }}
+          style={{ background: themeSwatch(theme) }}
           aria-hidden="true"
         />
       </Button>
@@ -116,7 +116,7 @@ export function ThemeToggle() {
             >
               <span
                 className="mt-0.5 h-5 w-5 shrink-0 rounded-full border border-ink-hair"
-                style={{ background: `linear-gradient(135deg, ${t.paper} 55%, ${t.accent} 55%)` }}
+                style={{ background: themeSwatch(t) }}
                 aria-hidden="true"
               />
               <span className="min-w-0">
