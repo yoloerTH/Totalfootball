@@ -47,6 +47,7 @@ back the film. Nothing else here is hard to copy — that is.
 | PDF | The viewer's **print stylesheet**, not a canvas rasteriser | Walks around the unsolved font-embedding problem instead of solving it, and prints better. See §6 |
 | Themes | **Four**: Day, Night, Pitch Broadcast, Pitch Night. Chrome only, in `src/lib/theme.ts` | A room the coach reads in. Two of them are named after pitch surfaces and neither touches a board — see the row above |
 | Camera | **Two modes on the document: Fixed, and Follow the ball.** A shot is a BOX in percent-of-crop, derived per phase and interpolated, applied as the SVG viewBox | Ported from the videos' `Camera` in `TacticsBoard.tsx`, where a keyframe is a beat; here a keyframe is a phase, because a coach authors poses and not time. A box rather than a zoom factor so the video's widened export view frames identically to the preview. It is NOT a second pitch view: it never touches a percent coord. See `src/studio/camera.ts` |
+| Start from one of ours | **Five real documents, copied on open** (`src/studio/templates.ts` over `content/systems/*.json`), new id, credit and `shareId` stripped, the coach's name taken but **not** their colours | The two screens that pointed at `/library/` were offering an article where they promised a board. These five are already rendered end to end by the film scripts, so a worked example that has never been opened cannot reach a coach. Dropping `shareId` is the load-bearing half: a copy carrying it would let the coach's Share button republish over the link we sent. Colours are kept because a worked example that no longer looks like the film it came from teaches less |
 | Pace | **One hold per system, on the document** (`System.hold`, `src/studio/pace.ts`), floor 1.2s, ceiling 6s, default the 2.6s everything has always run at. The move between phases is fixed and does not scale | A film that drags is a property of the presentation, not of the export — so Play, the shared viewer, the video and the ball audio all read the one value and the preview cannot promise a pace the file does not keep. The hold is reading time and is the part that drags; the move is the football and squeezing it saves no waiting. The floor is flat and NOT derived from caption length: tried against the shipped systems, whose captions run 13–19 words, a reading-time floor pushes every one of them slower than its own default |
 | Where the camera applies | **Playback, the shared viewer, the video and the print sheet. Never while posing** — the editor draws the shot as an outline instead | You cannot drag a player you cannot see |
 | Pitch surfaces | **Four**: Paper (default), Broadcast, Night, Chalk, in `board/surfaces.ts`. Picked like the match ball, stored as `System.surface` | A property of the diagram, so it travels into every export, print and link. The whole palette swaps, not just the grass: an arrow left on paper's ink vanishes on green |
@@ -482,8 +483,15 @@ Editor gaps, in order:
   percent-of-crop and every renderer goes through `cameraRect`, so this is a UI
   job and nothing else: add `shot?: Shot` to `Act`, let the coach drag the box
   out on the board, and prefer it over the derived one when it is set.
-- **A worked example a coach can open.** "Show me one" beats any amount of
-  instruction, and we have 123 published systems to adapt one from.
+- ~~**A worked example a coach can open.**~~ — **built.** Five of them, in
+  `src/studio/templates.ts`, reached at `/studio/new/?t=<id>` and offered under
+  the shelf on the portal. They are the documents in `content/systems/` that the
+  film scripts already render, imported rather than copied, so there is one
+  version of each. Not adapted from the 123 published shorts: a library system's
+  phases are PNGs out of Remotion and the token positions are not recoverable
+  from a picture. What is left of this item is **more of them** — the next one is
+  authored as a `content/systems/*.json` and given a line in the registry, and
+  it needs nothing else.
 - **Touch.** The tooltips deliberately do not fire on touch. The line under the
   board now carries each tool's full "what + when" while it is armed, which
   covers the tools; the rest of the panels are still hover-only on an iPad.

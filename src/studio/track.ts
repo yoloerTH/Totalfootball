@@ -22,6 +22,16 @@
 export const STUDIO_EVENTS = {
   /** A coach asked for a blank board. The top of the funnel. */
   newSystem: 'studio:new-system',
+  /**
+   * A coach opened one of ours to work on, with which one.
+   *
+   * Counted apart from `newSystem` because the two answer different questions.
+   * A blank board is somebody who knows what they want to build; a template is
+   * somebody who wants to be shown. If this one is where the coaches go, the
+   * five documents in content/systems/ are worth more attention than the next
+   * feature, and which of the five they pick says what to author next.
+   */
+  templateOpened: 'studio:template-opened',
   /** A short link was written. The moment the tool did its job. */
   sharePublished: 'studio:share-published',
   /**

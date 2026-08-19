@@ -11,6 +11,10 @@
  *
  * ── WHERE A DOCUMENT COMES FROM, IN ORDER ────────────────────────────────────
  *
+ *  0. `?t=<template>`, which is not really "where a document came from" so much
+ *     as "make me one": one of ours, copied, under a new id. It jumps the queue
+ *     because it is the only case where the coach has asked for a NEW document
+ *     rather than for the one they were working on — see the note by it below.
  *  1. localStorage. Always tried first, always instant, and correct on the
  *     machine the coach actually built the thing on.
  *  2. The account, but only if (1) missed AND somebody is signed in. This is
@@ -29,6 +33,7 @@ import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, loadSystem, newSystemId } from '../storage'
 import { loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
+import { fromTemplate, templateById } from '../templates'
 import { useSession } from '../account/session'
 import type { System } from '../schema'
 
@@ -60,10 +65,41 @@ export default function StudioMount() {
     if (status !== 'in') return
 
     let live = true
-    const requested = new URLSearchParams(window.location.search).get('s')
-    const id = requested ?? lastOpened() ?? newSystemId()
+    const params = new URLSearchParams(window.location.search)
+    const requested = params.get('s')
+
+    /*
+     * "Open one of ours."
+     *
+     * Always a NEW id, never `lastOpened()`, and it must be decided before the
+     * id is: resuming the last system here would be the worst outcome available
+     * — a coach presses "Start from this one" and lands on the thing they were
+     * already editing, with no sign anything went wrong.
+     *
+     * The copy is the coach's from this moment on. `fromTemplate` takes our
+     * credit line and our share id off it, so pressing Share publishes THEIR
+     * link rather than republishing ours.
+     */
+    const template = templateById(params.get('t'))
+    const id = template ? newSystemId() : (requested ?? lastOpened() ?? newSystemId())
 
     const open = async () => {
+      if (template) {
+        const profile = await loadProfile()
+        const copy = fromTemplate(template)
+        if (!profile) return copy
+        /*
+         * The coach's name, but NOT the coach's colours.
+         *
+         * `withProfile` repaints the home kit, which is right for a blank board
+         * — its own comment says it only fills what is empty — and wrong here:
+         * these five were coloured deliberately, and a worked example that no
+         * longer looks like the film it came from teaches less. Blanking the
+         * colour is how you ask that function for the credit half, rather than
+         * writing a second copy of it here that can drift.
+         */
+        return withProfile(copy, { ...profile, teamColour: '' })
+      }
       const local = loadSystem(id)
       if (local) return local
       const remote = await loadCloudSystem(id)
@@ -79,9 +115,14 @@ export default function StudioMount() {
       setState({ id, initial })
       // Keep the URL pointing at the system being edited, so a reload or a
       // shared link comes back to the same board rather than starting over.
-      if (!requested) {
+      //
+      // `t` is dropped at the same time, and that is the important half: left
+      // in place, a reload would hand the coach a SECOND copy of the template
+      // and abandon the one they had started editing.
+      if (!requested || template) {
         const url = new URL(window.location.href)
         url.searchParams.set('s', id)
+        url.searchParams.delete('t')
         window.history.replaceState(null, '', url)
       }
     })

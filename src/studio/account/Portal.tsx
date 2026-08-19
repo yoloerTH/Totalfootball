@@ -32,6 +32,7 @@ import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
 import type { System } from '../schema'
 import { listSystems, newSystemId, saveSystem, deleteSystem as deleteLocal } from '../storage'
 import { STUDIO_EVENTS, track } from '../track'
+import { TEMPLATES, type Template } from '../templates'
 import { resolveAct } from '../tween'
 import { useSession, signOut } from './session'
 import {
@@ -229,7 +230,79 @@ export default function Portal() {
           ))}
         </ul>
       )}
+
+      <OursToStartFrom />
     </div>
+  )
+}
+
+// ── one of ours ──────────────────────────────────────────────────────────────
+
+/**
+ * Systems of ours, offered as a starting point.
+ *
+ * Under the shelf rather than mixed into it, and that is the whole layout
+ * decision. These are not the coach's systems, and putting them in the same
+ * grid would mean a shelf that fills up with five things they did not make and
+ * cannot delete. Below it, the grid still reads as "yours", and this reads as
+ * what it is: a second door, in the room, not blocking it.
+ *
+ * It stays on the page when the shelf is full. A coach who has built three
+ * systems is exactly the person who might want to see how we do a switch of
+ * play, and hiding it once they are "experienced" would be guessing.
+ */
+function OursToStartFrom() {
+  return (
+    <section id="start-from-ours" className="mt-20 border-t border-ink-hair pt-12">
+      <h2 className="text-section font-black tracking-display text-ink">Or start from one of ours</h2>
+      <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+        Five systems built on this board, the same ones the films are made from. Open one and it is
+        yours: move the players, rewrite the words, keep what is useful.
+      </p>
+      <ul className="mt-8 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+        {TEMPLATES.map((t) => (
+          <TemplateCard key={t.id} template={t} />
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function TemplateCard({ template }: { template: Template }) {
+  const { system } = template
+  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const first = system.acts[0]
+  const href = `/studio/new/?t=${encodeURIComponent(template.id)}`
+  // Same reason as the shelf's cards: one <defs> namespace per page.
+  const idp = useMemo(() => `tpl-${template.id}`, [template.id])
+
+  return (
+    <li className="group flex flex-col overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-paper transition duration-300 hover:-translate-y-0.5 hover:shadow-lift">
+      <a
+        href={href}
+        onClick={() => track(STUDIO_EVENTS.templateOpened, template.id)}
+        className="flex flex-1 flex-col no-underline"
+        aria-label={`Start from ${system.title}`}
+      >
+        <div className="w-full overflow-hidden bg-paper" style={{ aspectRatio: aspect(view) }}>
+          <div className="h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]">
+            {first && <Board system={system} act={resolveAct(first)} idp={idp} />}
+          </div>
+        </div>
+        <div className="flex flex-1 flex-col border-t border-ink-hair p-4">
+          <span className="block text-[15px] font-bold leading-tight text-ink">{system.title}</span>
+          <span className="mt-2 block flex-1 text-[13px] leading-relaxed text-ink-soft">
+            {template.teaches}
+          </span>
+          <span className="mt-3.5 flex items-center gap-2.5">
+            <Phases n={system.acts.length} />
+            <span className="text-[12px] font-bold text-ink transition-colors group-hover:text-ink">
+              Start from this one →
+            </span>
+          </span>
+        </div>
+      </a>
+    </li>
   )
 }
 
@@ -543,11 +616,13 @@ function Empty({ onNew }: { onNew: () => void }) {
         >
           Start a new system
         </button>
+        {/* Was /library/, which is an article about a system rather than the
+            system. It now goes to the five below, which actually open. */}
         <a
-          href="/library/"
+          href="#start-from-ours"
           className="rounded-full border border-ink-hair px-6 py-3 text-sm font-bold text-ink no-underline transition-colors hover:border-ink/25 hover:bg-surface/60"
         >
-          Look at one of ours first
+          Start from one of ours
         </a>
       </div>
     </div>
