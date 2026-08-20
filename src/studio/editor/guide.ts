@@ -411,7 +411,7 @@ export const PACE = {
     `${phases} ${phases === 1 ? PHASE.one : PHASE.many} ${phases === 1 ? 'runs' : 'run'} ${filmSeconds.toFixed(1)}s.`,
   /**
    * Shown at the fast end. Says what the limit is protecting rather than that a
-   * limit exists — "minimum 1.2s" is a rule, "gone before the room has seen it"
+   * limit exists — "minimum 0.2s" is a rule, "gone before the room has seen it"
    * is a reason.
    */
   floor: 'As quick as it goes. Any less and a pose is gone before a room has taken it in.',

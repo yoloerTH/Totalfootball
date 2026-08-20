@@ -46,11 +46,11 @@ import { HOLD_MS } from './tween'
 /**
  * The shortest hold the studio will render.
  *
- * At 1.2s a pose gets about a second of stillness before the move takes over,
- * which is the least that reads as a held position rather than a stutter
- * between two moves. Below this the film stops being a sequence of poses.
+ * At 0.2s a pose can be used as a very brief beat before the move takes over.
+ * This is intentionally permissive: the coach may want a near-instant cue,
+ * and the fixed move still gives the transition a readable shape.
  */
-export const MIN_HOLD_MS = 1200
+export const MIN_HOLD_MS = 200
 
 /**
  * The longest. Past six seconds a coach is not pacing a film, they are pausing
