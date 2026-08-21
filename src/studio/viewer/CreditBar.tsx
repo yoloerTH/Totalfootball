@@ -12,6 +12,7 @@
  */
 
 import type { Credit } from '../schema'
+import { CreditCta } from './BuildCta'
 import { Mark } from './Mark'
 
 /** "12 August 2026" — a date a coach reads, not an ISO stamp. */
@@ -22,7 +23,27 @@ export function formatDate(iso?: string): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function CreditBar({ credit, compact = false }: { credit?: Credit; compact?: boolean }) {
+export function CreditBar({
+  credit,
+  compact = false,
+  /**
+   * Whether our half is a live invitation or a plain credit.
+   *
+   * ON SCREEN it is a door: somebody reading a shared system is the person most
+   * likely to want one of their own, and a credit nobody knows is clickable
+   * converts nobody. See ./BuildCta.tsx.
+   *
+   * ON PAPER it is a credit and nothing else. A printed sheet cannot be pressed,
+   * and "Build your own →" under a coach's team sheet is an advert printed on
+   * somebody else's handout. The print stylesheet renders the same component,
+   * so this is the switch that keeps the two honest.
+   */
+  cta = true,
+}: {
+  credit?: Credit
+  compact?: boolean
+  cta?: boolean
+}) {
   const presenter = credit?.presenter?.trim()
   const team = credit?.team?.trim()
   const note = credit?.note?.trim()
@@ -47,14 +68,18 @@ export function CreditBar({ credit, compact = false }: { credit?: Credit; compac
         {under && <p className="truncate text-[11px] leading-tight text-ink-faint">{under}</p>}
       </div>
 
-      <a href="/studio/new/" className="flex shrink-0 items-center gap-2 text-ink-soft no-underline">
-        <span className="text-right text-[10px] font-bold uppercase leading-tight tracking-micro">
-          Made with
-          <br />
-          Total Football
+      {cta ? (
+        <CreditCta compact={compact} />
+      ) : (
+        <span className="flex shrink-0 items-center gap-2 text-ink-soft">
+          <span className="text-right text-[10px] font-bold uppercase leading-tight tracking-micro">
+            Made with
+            <br />
+            Total Football
+          </span>
+          <Mark size={compact ? 22 : 28} />
         </span>
-        <Mark size={compact ? 22 : 28} />
-      </a>
+      )}
     </div>
   )
 }

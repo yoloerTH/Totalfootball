@@ -106,6 +106,9 @@ function stars(v: unknown): string {
 const WHEN: Record<string, string> = {
   share: 'just after publishing a link',
   video: 'just after saving a film',
+  // Not after anything. See FeedbackContext in src/studio/feedback.ts for why
+  // these are the ones to read twice.
+  open: 'on opening the studio, unprompted',
 }
 
 /** "+12" / "-3" / "level", so a glance tells you the direction. */
@@ -275,6 +278,24 @@ export default async () => {
      from public.studio_feedback`
   )
 
+  /**
+   * Housekeeping: fold every day of traffic older than the raw window into one
+   * row and delete the rows it was made of. See supabase/009_site_events_rollup.sql.
+   *
+   * RUN AFTER EVERY FIGURE ABOVE HAS BEEN READ, and that ordering is the whole
+   * safety argument. The report works in rolling hours — 24 back, and 48 back
+   * for the comparison — and the function keeps four whole days, so there is a
+   * two-day margin between what is printed and what is deleted. Reading first
+   * means even that margin is not being relied on: the numbers in this message
+   * came off the table before anything was removed from it.
+   *
+   * Through `sql()` like everything else, so a failure here is a named line at
+   * the foot of the report rather than a lost report. A night without a fold
+   * costs a day of rows and is fixed by the next run.
+   */
+  const [fold] = await sql('housekeeping', `select public.compact_site_events(4) as r`)
+  const folded = (fold?.r ?? {}) as { days?: number; events?: number; from?: string; to?: string }
+
   const visits = Number(totals?.visits ?? 0)
   const views = Number(totals?.pageviews ?? 0)
   const newSubs = subs.reduce((a, r) => a + Number(r.n), 0)
@@ -396,6 +417,23 @@ export default async () => {
   }
 
   /**
+   * What the fold did, on the nights it did anything.
+   *
+   * One line, at the foot, and only when rows actually moved. It is not a
+   * figure about the business and it does not belong up with the ones that are
+   * — but a job that quietly deletes rows every night must say so somewhere a
+   * person actually reads, or the first anybody hears of a bug in it is a hole
+   * in the history.
+   */
+  if (Number(folded.events ?? 0) > 0) {
+    L.push(
+      '',
+      `<i>🗜 Folded ${Number(folded.events)} events into ${Number(folded.days)} ` +
+        `day${Number(folded.days) === 1 ? '' : 's'} of history.</i>`
+    )
+  }
+
+  /**
    * Anything that could not be answered, named. A missing section is a fault to
    * be fixed, and a report that hides its own gaps is worse than one that owns
    * them — a zero and a broken query look identical otherwise.
@@ -473,7 +511,8 @@ export default async () => {
 
   console.log(
     `daily-report: sent (${visits} visits, ${newSubs} signups, ${published} published, ` +
-      `${notesSent}/${feedback.length} feedback` +
+      `${notesSent}/${feedback.length} feedback, ` +
+      `folded ${Number(folded.events ?? 0)} events` +
       `${failed.length ? `, ${failed.length} section(s) missing: ${failed.join(', ')}` : ''})`
   )
   return new Response('ok')

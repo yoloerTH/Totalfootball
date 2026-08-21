@@ -72,7 +72,15 @@ import { inlineBall, resolveBall } from './balls'
 import type { System } from './schema'
 import { holdMs } from './pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs, type Timeline } from './tween'
-import { VIDEO_FPS, VIDEO_SHAPES, videoSupported, type VideoFile, type VideoOptions, type VideoShape } from './video'
+import {
+  frameSize,
+  resolveFps,
+  resolveQuality,
+  resolveShape,
+  videoSupported,
+  type VideoFile,
+  type VideoOptions,
+} from './video'
 import { formatDate } from './viewer/CreditBar'
 import { Mark } from './viewer/Mark'
 
@@ -218,10 +226,25 @@ async function raster(svg: string, w: number, h: number): Promise<HTMLCanvasElem
  * The board is then rendered at the FULL frame size and drawn at 0,0. There is
  * no longer any part of the picture that is not pitch.
  */
-function frameView(view: PitchView, shape: VideoShape): PitchView {
+/**
+ * The canvas, in pixels. Worked out once in `renderVideo` from the shape the
+ * coach picked and the quality they picked, and passed down from there.
+ *
+ * Everything below takes this rather than the shape, and that is the whole
+ * reason the export could grow a resolution setting without touching the
+ * layout: the chrome is already written as fractions of the short side, so
+ * 720p is the same design at a smaller number and there are no second
+ * measurements to keep in step. See `layout`.
+ */
+interface Frame {
+  w: number
+  h: number
+}
+
+function frameView(view: PitchView, frame: Frame): PitchView {
   const lenX = view.x1 - view.x0
   const lenY = view.y1 - view.y0
-  const want = shape.w / shape.h
+  const want = frame.w / frame.h
 
   // Aspects are compared as ratios, not differences: 2.0 sits as far from 1.0
   // as 0.5 does, which is how an eye reads it and is not what 2−1 and 1−0.5 say.
@@ -277,20 +300,20 @@ interface Layout {
   track: number
 }
 
-function layout(shape: VideoShape): Layout {
-  const short = Math.min(shape.w, shape.h)
-  const upright = shape.h > shape.w
+function layout(frame: Frame): Layout {
+  const short = Math.min(frame.w, frame.h)
+  const upright = frame.h > frame.w
 
   return {
-    w: shape.w,
-    h: shape.h,
+    w: frame.w,
+    h: frame.h,
     left: Math.round(short * 0.058),
-    top: Math.round(shape.h * (upright ? 0.055 : 0.062)),
+    top: Math.round(frame.h * (upright ? 0.055 : 0.062)),
     // A vertical video is posted somewhere that stamps its own buttons over the
     // bottom of the picture, so the credit sits further up than it would on a
     // laptop. It cannot clear a Reels UI entirely without looking mispositioned
     // everywhere else; this clears the worst of it.
-    bottom: Math.round(shape.h * (upright ? 0.075 : 0.062)),
+    bottom: Math.round(frame.h * (upright ? 0.075 : 0.062)),
     eyebrowSize: Math.round(short * 0.021),
     titleSize: Math.round(short * 0.052),
     captionSize: Math.round(short * 0.031),
@@ -653,9 +676,15 @@ function slug(title: string): string {
 export async function renderVideo(system: System, opts: VideoOptions = {}): Promise<VideoFile> {
   if (!videoSupported()) throw new Error('This browser cannot make video files.')
 
-  const shape = VIDEO_SHAPES.find((s) => s.id === opts.shape) ?? VIDEO_SHAPES[0]
-  const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], shape)
-  const l = layout(shape)
+  const shape = resolveShape(opts.shape)
+  const quality = resolveQuality(opts.quality)
+  // 30 or 60, and never whatever came in. This is reachable from the render
+  // harness and from a script, so an unrecognised number becomes the house rate
+  // rather than a frameRate the muxer will reject after a minute of encoding.
+  const fps = resolveFps(opts.fps)
+  const frame = frameSize(shape, quality)
+  const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
+  const l = layout(frame)
 
   // Everything that is fetched rather than computed, up front: a failure here
   // should happen before the coach has watched a progress bar for a minute.
@@ -692,7 +721,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
 
   const hold = holdMs(system)
   const totalMs = totalDuration(system.acts.length, hold)
-  const frames = Math.max(1, Math.round((totalMs / 1000) * VIDEO_FPS))
+  const frames = Math.max(1, Math.round((totalMs / 1000) * fps))
 
   // H.264 in MP4 is the only combination every phone, every messenger and every
   // social upload accepts. VP9/WebM is the fallback for browsers that cannot
@@ -710,7 +739,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
     target,
   })
   const source = new CanvasSource(canvas, { codec, quality: QUALITY_HIGH, keyFrameInterval: 2 })
-  output.addVideoTrack(source, { frameRate: VIDEO_FPS })
+  output.addVideoTrack(source, { frameRate: fps })
 
   /*
    * THE BALL BEING KICKED, every time the ball moves. ./audio.ts derives the
@@ -757,7 +786,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
     for (let i = 0; i < frames; i++) {
       if (opts.signal?.aborted) throw new DOMException('Export stopped', 'AbortError')
 
-      const tl = timelineAt((i / VIDEO_FPS) * 1000, system.acts.length, hold)
+      const tl = timelineAt((i / fps) * 1000, system.acts.length, hold)
       const key = tl.p === 0 ? `hold:${tl.index}` : `${tl.index}:${tl.p.toFixed(4)}`
 
       if (key !== lastKey) {
@@ -784,7 +813,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
         p,
       )
 
-      await source.add(i / VIDEO_FPS, 1 / VIDEO_FPS)
+      await source.add(i / fps, 1 / fps)
       opts.onProgress?.((i + 1) / frames)
     }
 

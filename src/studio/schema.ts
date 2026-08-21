@@ -71,6 +71,17 @@ export interface Arrow {
 /** Shaded areas: the defensive block, the danger zone, a channel to protect. */
 export type BandKind = 'block' | 'danger' | 'zone'
 
+/**
+ * The outline a drawn area takes.
+ *
+ * A box is the default and is right for most of them — a pitch is a rectangle
+ * and so are the spaces on it. The round box softens a zone that sits inside
+ * play rather than against a line, and the ellipse is for the one thing a
+ * rectangle genuinely misrepresents: a pocket of space, which has no edges and
+ * which coaches draw as a circle on every whiteboard in the world.
+ */
+export type BandShape = 'box' | 'round' | 'ellipse'
+
 export interface Band {
   id: string
   kind: BandKind
@@ -79,11 +90,65 @@ export interface Band {
    * that line to the goal, which is how the videos draw a back four's
    * protected space. Resolved at render time so the band follows the players
    * when they are dragged, instead of going stale.
+   *
+   * Written two ways now. "Our block" still works it out from the deepest line
+   * (`backLine` in ../editor/StudioEditor.tsx), and the Block tool lets a coach
+   * name the players themselves, in the order they want them threaded. The
+   * STORED SHAPE IS IDENTICAL, which is the whole point: a hand-drawn block
+   * follows its players exactly as a derived one does, because there is no such
+   * thing here as a frozen block. A coach who draws a midfield three by hand
+   * and then drags the pivot gets the band they would have drawn.
    */
   throughTokens?: string[]
+  /**
+   * True on a block whose players the COACH picked, one by one.
+   *
+   * The only thing this decides is what "Redraw our block" is allowed to throw
+   * away. That button replaces the derived block for a side, which is right —
+   * it is the same button that made it. It must NOT quietly delete a block a
+   * coach picked player by player, and without a flag there is nothing to tell
+   * the two apart: both are a list of token ids, and deliberately so.
+   *
+   * WHY THIS WAY ROUND. The obvious flag is `auto` on the derived one, and it
+   * is wrong: every block in every document written before this existed is a
+   * derived one and carries no flag at all, so `auto` would read false on all
+   * of them and the Redraw button would stop recognising its own work on every
+   * system already saved. Marking the NEW thing leaves the old ones meaning
+   * exactly what they always meant, which is what a document format has to do.
+   */
+  drawn?: boolean
   /** For 'danger' | 'zone': an explicit rectangle in percent coords. */
   rect?: { x: number; y: number; w: number; h: number }
   label?: string
+  /**
+   * What the coach has changed about how it looks. All optional, and undefined
+   * everywhere means "the house treatment for this kind", which is what every
+   * band written before these existed still gets.
+   *
+   * They are on the BAND and not on the system, because two areas on the same
+   * board are routinely making different points — the space to attack in gold
+   * and the channel to protect in blue is one board, not two settings.
+   *
+   * Typed loosely here (`string`) rather than importing the unions from
+   * ../board/surfaces.ts: the document format must not depend on the drawing
+   * code, or a stored system stops being readable without it. The board
+   * resolves them and falls back to the house value on anything it does not
+   * recognise, which is also what makes an older build safe to open a newer
+   * document in.
+   */
+  tone?: string
+  strength?: string
+  /** Drawn areas only. A block traces its players and has no outline to choose. */
+  shape?: BandShape
+  /**
+   * Solid outline instead of the dashed one.
+   *
+   * Dashed is the default and says "this is a region we are talking about"
+   * rather than "this is a line on the pitch". Solid is for the coach who is
+   * marking out something with a real edge, a zone that ends where the
+   * six-yard box ends.
+   */
+  solid?: boolean
 }
 
 /**

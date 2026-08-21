@@ -56,6 +56,30 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'draw-your-own-block',
+    date: '2026-08-21',
+    kind: 'new',
+    title: 'Draw a block round any players you like',
+    body: 'Our block finds your deepest line and shades the space behind it, and that is still there. Draw a block is the other half: pick the players yourself, in the order they stand, and it threads the same line through them. Use it for a midfield screen, a front two pressing together, or any line the automatic one will not find. It stays tied to those players, so it moves when they do.',
+    where: 'Shaded areas, on the left',
+  },
+  {
+    id: 'shaded-areas-your-way',
+    date: '2026-08-21',
+    kind: 'better',
+    title: 'Shaded areas you can move, recolour and name',
+    body: 'A danger area used to be drawn once and then only deleted. Now click one and it grows handles: drag inside it to move it, take a gold corner to resize it. You can also write a few words into it, pick its colour from the five the boards use, set how heavily it is laid down, and make it a rounded box or an oval instead of a rectangle.',
+    where: 'Click any shaded area, then look right',
+  },
+  {
+    id: 'video-quality',
+    date: '2026-08-21',
+    kind: 'new',
+    title: '720p, and 60 frames a second',
+    body: 'Films came out at one size and one rate. Now you choose: 1080p to project or upload, 720p when you want it now and it is going into a group chat. And 60fps for the systems with long slow movements, where 30 can judder on a phone. The dialog says what each combination costs you in waiting before you press it.',
+    where: 'Video, under the shape',
+  },
+  {
     id: 'frame-by-hand',
     date: '2026-08-19',
     kind: 'new',

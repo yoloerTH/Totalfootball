@@ -216,8 +216,15 @@ export function Token({
  * Ball radius in metres. Not life size — a real ball is 11cm across and would
  * be a speck next to a 4.2m counter. This is the size it reads at, the same
  * proportion the videos composite theirs at.
+ *
+ * Nudged up from 1.05. On a full-pitch view at the size a phone renders a
+ * shared link, the old ball was the smallest thing on the board and the eye
+ * lost it against the markings — which is a problem, because on most phases the
+ * ball is the thing the whole picture is about. This is still under a seventh
+ * of a counter, so it reads as a ball at a player's feet rather than as
+ * something being carried.
  */
-export const BALL_R = 1.05
+export const BALL_R = 1.2
 
 /** The drawn ball's own markings. See the note where they are used. */
 const BALL_INK = '#161618'

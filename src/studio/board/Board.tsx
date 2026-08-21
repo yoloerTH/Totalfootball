@@ -93,6 +93,17 @@ interface Props {
    */
   onArrowPointerDown?: (id: string, e: React.PointerEvent<SVGPathElement>) => void
   onBandPointerDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
+  /**
+   * Passing this puts grips on the SELECTED drawn area: one on each corner to
+   * resize it, and the outline itself to slide it about.
+   *
+   * Only ever the selected one, which is the difference between this and the
+   * camera frame. Every zone on the board carrying eight handles would bury the
+   * pitch under furniture, and the coach has already said which one they mean
+   * by clicking it. Blocks get nothing: a block traces its players, and the way
+   * to move one is to move a defender.
+   */
+  onZonePointerDown?: (id: string, part: FramePart, e: React.PointerEvent<SVGElement>) => void
   /** Passing this makes the ball draggable; without it the ball is inert. */
   onBallPointerDown?: (e: React.PointerEvent<SVGGElement>) => void
   /**
@@ -138,6 +149,7 @@ export function Board({
   onTokenPointerDown,
   onArrowPointerDown,
   onBandPointerDown,
+  onZonePointerDown,
   onBallPointerDown,
   onBackgroundPointerDown,
   onFramePointerDown,
@@ -235,6 +247,7 @@ export function Board({
               close={defendedGoal(through[0]?.side ?? 'us', view)}
               label={b.label}
               active={activeMarkId === b.id}
+              band={b}
               onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
             />
           )
@@ -244,21 +257,34 @@ export function Board({
           // to the bottom-left and a <rect> with a negative width draws nothing.
           const a = pos(b.rect.x, b.rect.y)
           const c = pos(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
+          const box = {
+            x: Math.min(a.x, c.x),
+            y: Math.min(a.y, c.y),
+            w: Math.abs(c.x - a.x),
+            h: Math.abs(c.y - a.y),
+          }
+          const grabbable = Boolean(onZonePointerDown) && activeMarkId === b.id
           return (
-            <Zone
-              key={b.id}
-              idp={`${idp}-${b.id}`}
-              kind={b.kind}
-              rect={{
-                x: Math.min(a.x, c.x),
-                y: Math.min(a.y, c.y),
-                w: Math.abs(c.x - a.x),
-                h: Math.abs(c.y - a.y),
-              }}
-              label={b.label}
-              active={activeMarkId === b.id}
-              onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
-            />
+            <g key={b.id}>
+              <Zone
+                idp={`${idp}-${b.id}`}
+                kind={b.kind}
+                rect={box}
+                label={b.label}
+                active={activeMarkId === b.id}
+                band={b}
+                onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
+              />
+              {grabbable && (
+                <ZoneGrips
+                  rect={box}
+                  grip={grip}
+                  gold={surface.palette.gold}
+                  halo={surface.palette.halo}
+                  onDown={(part, e) => onZonePointerDown!(b.id, part, e)}
+                />
+              )}
+            </g>
           )
         }
         return null
@@ -411,6 +437,67 @@ export function Board({
       </g>
     </svg>
     </SurfaceContext.Provider>
+  )
+}
+
+/**
+ * The four corners and the edge of a selected zone.
+ *
+ * Deliberately the same vocabulary as the camera frame's grips — gold squares
+ * on the corners, a fat invisible band along the outline for the move — because
+ * they do the same job and a coach who has learned one has learned the other.
+ * `FramePart` is reused rather than a second near-identical union being
+ * invented for the same five values.
+ *
+ * The corners are drawn INSIDE the box for the reason the frame's are: a zone
+ * dragged out to the touchline sits flush against the edge of the crop, and a
+ * grip centred on that edge is half clipped and cannot be hit.
+ */
+function ZoneGrips({
+  rect,
+  grip,
+  gold,
+  halo,
+  onDown,
+}: {
+  rect: { x: number; y: number; w: number; h: number }
+  grip: number
+  /** From the surface, so a grip on a floodlit pitch is that surface's gold. */
+  gold: string
+  halo: string
+  onDown: (part: FramePart, e: React.PointerEvent<SVGElement>) => void
+}) {
+  const hit = grip * 1.4
+  const inset = grip * 0.28
+  return (
+    <g>
+      <rect
+        x={rect.x + hit / 2}
+        y={rect.y + hit / 2}
+        width={Math.max(0, rect.w - hit)}
+        height={Math.max(0, rect.h - hit)}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={hit}
+        style={{ cursor: 'move' }}
+        onPointerDown={(e) => onDown('move', e)}
+      />
+      {FRAME_CORNERS.map(({ part, fx, fy, cursor }) => (
+        <rect
+          key={part}
+          x={rect.x + inset + fx * Math.max(0, rect.w - grip - inset * 2)}
+          y={rect.y + inset + fy * Math.max(0, rect.h - grip - inset * 2)}
+          width={grip}
+          height={grip}
+          rx={grip * 0.22}
+          fill={gold}
+          stroke={halo}
+          strokeWidth={grip * 0.14}
+          style={{ cursor }}
+          onPointerDown={(e) => onDown(part, e)}
+        />
+      ))}
+    </g>
   )
 }
 

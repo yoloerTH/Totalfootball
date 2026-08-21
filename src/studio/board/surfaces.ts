@@ -72,6 +72,21 @@ export interface BoardPalette {
   greenDeep: string
   red: string
   redDeep: string
+  /**
+   * The fourth accent, and the only one that is not already a brand value.
+   *
+   * It exists for the shaded areas and nothing else. Gold, green and red are
+   * all SAID something by the house style — gold is the ball and the thing to
+   * watch, green is our team and a run, red is the opposition — so a coach who
+   * wants a second neutral area on the same board has nowhere to put it that
+   * does not read as a claim. Blue is the one accent with no meaning attached,
+   * which is exactly what a "this space, over here" needs.
+   *
+   * Picked per surface rather than shared, for the reason spelled out on
+   * BROADCAST below: a mid blue that reads on paper disappears on grass.
+   */
+  blue: string
+  blueDeep: string
   /** Top-light, screened over everything. */
   light: { color: string; opacity: number }
   /** Edge fall-off, so the board sits in its frame rather than floating. */
@@ -128,6 +143,8 @@ const PAPER: BoardPalette = {
   greenDeep: BOARD.greenDeep,
   red: BOARD.red,
   redDeep: BOARD.redDeep,
+  blue: '#2F7BD6',
+  blueDeep: '#2364B4',
   light: { color: '#FFFFFF', opacity: 0.55 },
   vignette: { color: '#141A16', opacity: 0.18 },
   grain: { opacity: 0.05, blend: 'multiply' },
@@ -161,6 +178,8 @@ const BROADCAST: BoardPalette = {
   greenDeep: '#5BE49B',
   red: '#FF7A6B',
   redDeep: '#F2604F',
+  blue: '#8FCBFF',
+  blueDeep: '#6DB4F5',
   light: { color: '#FFFFFF', opacity: 0.12 },
   vignette: { color: '#03170C', opacity: 0.36 },
   grain: { opacity: 0.07, blend: 'screen' },
@@ -190,6 +209,8 @@ const NIGHT: BoardPalette = {
   greenDeep: '#4FDD93',
   red: '#FF8172',
   redDeep: '#F2685A',
+  blue: '#8ACDFF',
+  blueDeep: '#65B6F2',
   // Held DELIBERATELY low. `light` is screened over the whole board, and screen
   // is not a subtle operator on a dark ground: at the 0.55 paper wants, a
   // floodlit pitch comes out the colour of a wet afternoon. The pool has to be
@@ -222,6 +243,8 @@ const CHALK: BoardPalette = {
   greenDeep: '#4BD68F',
   red: '#FF8172',
   redDeep: '#F2685A',
+  blue: '#84C3F5',
+  blueDeep: '#61A9E6',
   light: { color: '#FFFFFF', opacity: 0.07 },
   vignette: { color: '#000000', opacity: 0.46 },
   grain: { opacity: 0.1, blend: 'screen' },
@@ -316,6 +339,94 @@ export function bandStyle(p: BoardPalette) {
     block: { tone: p.green, fill: 0.22, edge: 0.4, string: 0.7 },
     danger: { tone: p.gold, fill: 0.18, edge: 0.35, string: 0 },
     zone: { tone: p.ink, fill: 0.08, edge: 0.22, string: 0 },
+  }
+}
+
+/**
+ * The colours a coach may repaint a shaded area in.
+ *
+ * FIVE, AND NOT A COLOUR PICKER. The board is the house style and the whole
+ * constraint the studio is built on is that a coach chooses MEANING and we
+ * choose the drawing — the same argument that makes arrows take an intent
+ * rather than a dash pattern. A hex field would let somebody put a purple
+ * trapezium on a broadcast pitch, and the first thing that happens to a board
+ * like that is that it stops looking like it came off the channel.
+ *
+ * Each one resolves through the surface's own palette, so "red" on paper and
+ * "red" on a floodlit pitch are two different hexes and both of them read.
+ * That is why this is a function of the palette and not a table of colours.
+ *
+ * The names are what a coach would say out loud, and the notes say what each
+ * one already means on our boards, so picking one is picking a meaning.
+ */
+export type BandTone = 'gold' | 'red' | 'green' | 'blue' | 'grey'
+
+export const BAND_TONES: { id: BandTone; label: string; note: string }[] = [
+  { id: 'gold', label: 'Gold', note: 'The space to attack. The house colour for the thing to watch.' },
+  { id: 'red', label: 'Red', note: 'Danger, or where they hurt you.' },
+  { id: 'green', label: 'Green', note: 'Ours: the block, the space we are protecting.' },
+  { id: 'blue', label: 'Blue', note: 'Neutral. A channel, a trap, a zone with nothing claimed about it.' },
+  { id: 'grey', label: 'Grey', note: 'Quiet. Shades an area without pulling the eye to it.' },
+]
+
+export function bandTone(p: BoardPalette, tone: BandTone): string {
+  switch (tone) {
+    case 'gold':
+      return p.gold
+    case 'red':
+      return p.red
+    case 'green':
+      return p.green
+    case 'blue':
+      return p.blue
+    case 'grey':
+      return p.ink
+  }
+}
+
+/**
+ * How strongly a shaded area is laid down: a multiplier on the house opacity.
+ *
+ * A multiplier and not an opacity, so the three kinds keep their relationship
+ * to each other — a block at "Strong" is still heavier than a zone at "Strong",
+ * because a block is the more important mark and the house style says so. A
+ * coach setting an absolute alpha would flatten that on the first board they
+ * touched.
+ *
+ * Three steps rather than a slider. The difference between 0.55 and 0.6 is not
+ * visible on a pitch, so a slider offers a precision that does not exist and
+ * costs a decision every time it is looked at.
+ */
+export type BandStrength = 'soft' | 'normal' | 'strong'
+
+export const BAND_STRENGTHS: { id: BandStrength; label: string; mul: number }[] = [
+  { id: 'soft', label: 'Soft', mul: 0.55 },
+  { id: 'normal', label: 'Normal', mul: 1 },
+  { id: 'strong', label: 'Strong', mul: 1.75 },
+]
+
+/**
+ * The style one band actually draws with: the house treatment for its kind,
+ * with whatever the coach has overridden on top.
+ *
+ * ONE FUNCTION, called by the board and by nothing else, so the precedence
+ * between "what kind of area is this" and "what did the coach ask for" is
+ * decided in a single place. Fill is clamped: at 1.75× a block would be
+ * approaching opaque, and a shaded area you cannot see the players through is
+ * not a shaded area, it is a hole in the board.
+ */
+export function resolveBandStyle(
+  p: BoardPalette,
+  kind: 'block' | 'danger' | 'zone',
+  overrides?: { tone?: BandTone; strength?: BandStrength },
+) {
+  const base = bandStyle(p)[kind]
+  const mul = BAND_STRENGTHS.find((s) => s.id === overrides?.strength)?.mul ?? 1
+  return {
+    ...base,
+    tone: overrides?.tone ? bandTone(p, overrides.tone) : base.tone,
+    fill: Math.min(0.46, base.fill * mul),
+    edge: Math.min(0.9, base.edge * (mul > 1 ? 1.25 : 1)),
   }
 }
 

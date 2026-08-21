@@ -15,35 +15,72 @@
  * and it lands the same way. A count of visits measures attendance. A count of
  * finished exports measures whether the thing worked.
  *
- * NEVER ON THE FIRST ONE
+ * FROM THE FIRST WIN
  *
- * The first share and the first film are the moments the studio earns somebody,
- * and putting a form over that is taking the win to ask for a favour. From the
- * second onward they have enough of a view to be worth asking for.
+ * This used to wait for the second, on the argument that the first share is the
+ * moment the studio earns somebody and a form over it is taking the win to ask
+ * for a favour. That argument is still true and it has been overruled
+ * deliberately: at the size this is now, waiting for a second export means
+ * hearing from only the coaches who already came back, which is the one group
+ * whose opinion we can guess. The people worth hearing from are the ones who
+ * made one thing and had a view about it.
  *
- * AND THEN RARELY
+ * AND OFTEN ENOUGH TO BE USEFUL
  *
- * Forty-five days of quiet after any ask, answered or not, and half a year after
- * an answer. A coach builds systems in bursts around a season, so these are
- * deliberately long: the failure mode to avoid is not "we did not collect
- * enough", it is a tool that asks a busy person the same question twice in a
- * fortnight and teaches them to dismiss everything it ever shows them —
- * including the guide and What's New, which are trying to help.
+ * A week of quiet after any ask, answered or not, and a month after an answer.
+ * These were 45 and 180 days. The cost of the change is real and is the thing
+ * to watch: a tool that asks a busy person the same question too often teaches
+ * them to dismiss everything it ever shows them, including the guide and
+ * What's New, which are trying to help. That is why the dialog stayed one
+ * screen with nothing required and a Not now that means it — and why the roll
+ * below exists, so "more often" does not become "every time".
+ *
+ * AND SOMETIMES ON THE WAY IN
+ *
+ * A win is still the best moment to ask, and it is not the only one. A coach
+ * who opened the studio, looked at what they built last week and closed it
+ * again has an opinion that no export-shaped trigger will ever collect —
+ * including, especially, the opinion that they could not face building another
+ * one. `shouldAskOnOpen` is that ask: same quiet periods, plus a dice roll, so
+ * it stays an occasional thing rather than a toll on opening the tool.
  */
 
 import type { GuideState } from './storage'
 
-/** Wins before the first ask. The first one is theirs. */
-const ASK_AFTER_WINS = 2
+/** Wins before the first ask. One finished thing is enough to have a view. */
+const ASK_AFTER_WINS = 1
 
 const DAY = 24 * 60 * 60 * 1000
 /** Quiet after asking, whether or not they answered. */
-const QUIET_AFTER_ASK = 45 * DAY
+const QUIET_AFTER_ASK = 7 * DAY
 /** Quiet after they actually told us something. */
-const QUIET_AFTER_SENT = 180 * DAY
+const QUIET_AFTER_SENT = 30 * DAY
 
-/** What the coach had just finished when they were asked. Stored with the row. */
-export type FeedbackContext = 'share' | 'video'
+/**
+ * The chance an eligible opening is the one that asks.
+ *
+ * A quarter, and the number matters more than it looks. Every gate above is a
+ * threshold, which means that once a coach is past all of them the ask is
+ * DETERMINISTIC — open the studio on day eight and it is there, every time,
+ * which is how a question turns into a toll gate. A roll turns "you are due"
+ * into "sometimes", so two coaches with identical histories do not get an
+ * identical experience and nobody learns to expect it.
+ *
+ * It is only ever rolled after everything else has already passed, so it makes
+ * the ask rarer and can never make it more frequent.
+ */
+const OPEN_ASK_CHANCE = 0.25
+
+/**
+ * What the coach had just finished when they were asked. Stored with the row.
+ *
+ * 'open' is the odd one out and is the reason this is worth reading in the
+ * report: it is the only context where the answer is NOT about a thing that
+ * just worked. A 3 from somebody who has just watched a film render and a 3
+ * from somebody who opened the studio and did nothing are two different facts,
+ * and the second is the one that says something is missing.
+ */
+export type FeedbackContext = 'share' | 'video' | 'open'
 
 /**
  * Should this win be the one that asks?
@@ -59,6 +96,27 @@ export function shouldAsk(guide: GuideState, now = Date.now()): boolean {
   if (guide.feedbackSentAt && now - guide.feedbackSentAt < QUIET_AFTER_SENT) return false
   if (guide.feedbackAskedAt && now - guide.feedbackAskedAt < QUIET_AFTER_ASK) return false
   return true
+}
+
+/**
+ * Should THIS opening of the studio be the one that asks?
+ *
+ * Every gate `shouldAsk` applies, and then a roll. Built on top of it rather
+ * than beside it, so there is one definition of "this coach is due" and the two
+ * triggers cannot drift into disagreeing about the quiet periods — the whole
+ * risk of a second entry point is that it quietly becomes a way around the
+ * limits the first one respects.
+ *
+ * `roll` is injectable so the decision stays pure and testable. The caller
+ * passes nothing.
+ */
+export function shouldAskOnOpen(
+  guide: GuideState,
+  now = Date.now(),
+  roll: number = Math.random(),
+): boolean {
+  if (!shouldAsk(guide, now)) return false
+  return roll < OPEN_ASK_CHANCE
 }
 
 export interface Feedback {

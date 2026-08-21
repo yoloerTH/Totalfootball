@@ -204,6 +204,12 @@ export const TOOL_DOC = {
     when: 'Save it for the one ball that moves the whole opposition. If every pass is a switch, none of them reads as one.',
     drag: 'Drag right across the board, from one flank to the other.',
   },
+  block: {
+    label: 'Block',
+    what: 'Threads a line through the players you pick and shades the space behind them, back to the goal they are defending.',
+    when: 'Use it for any unit that holds a line together: the back four, a midfield screen, the two who stay when the full-backs go. "Our block" works the deepest one out for you; this is for every other one.',
+    drag: 'Click the players in order along the line, then press Enter. Click one again to take it back out.',
+  },
   danger: {
     label: 'Danger area',
     what: 'Shades an area in gold: the space the move is trying to reach.',
@@ -288,6 +294,24 @@ export const HINT = {
     'The same shading for the opposition: their deepest line, and the space in front of the goal they are defending. Use it to show what your team is playing into.',
   blockRedraw:
     'Works the line out again from where the players are standing now. Do it after you have moved your back line, or after you have changed shape.',
+  blockDraw:
+    'Pick the players yourself, in the order they stand along the line, and it shades the space behind them the same way. Use it for a midfield screen, a front two pressing together, or any line the automatic one will not find. It stays tied to those players, so it moves when they do.',
+  blockPicking:
+    'Click each player in the line, then press Enter to draw it. Click a player again to take them back out, or press Escape to forget the whole thing.',
+
+  bandLabel:
+    'A few words written into the area itself: "cutback zone", "trap here", "second ball". Leave it empty and the shading speaks for itself.',
+  bandTone:
+    'What colour it is shaded. Each one already means something on our boards, so this is really a choice about what you are saying: gold is the space to attack, red is danger, green is ours, blue is neutral, grey is quiet.',
+  bandStrength:
+    'How heavily it is laid down. Soft for an area you are only gesturing at, strong for the one thing the phase is about. Every shading stays see-through: the players underneath always read.',
+  bandShape:
+    'A box for a space with edges, a rounded box for one in open play, an oval for a pocket. Coaches draw pockets as circles on a whiteboard, so an oval reads as one instantly.',
+  bandSolid:
+    'A dashed outline says "this region, roughly". A solid one says the edge is real: a zone that stops where the six-yard box stops.',
+  bandMove:
+    'Drag inside it to move it, or take a gold corner to resize it. Only the area you have selected shows its handles.',
+
   marks:
     'Everything you have drawn on this phase. Click one to pick it out on the board, or remove it on its own without clearing the rest.',
   deleteMark: 'Removes this one mark. Everything else stays.',
@@ -341,6 +365,31 @@ export const SHARE = {
   fallback:
     'We could not reach the server, so this is the long version of the link: it carries your whole system inside it. It works exactly the same, but it is a copy: changing your system later will not change what they see.',
   foot: 'Your name and club sit at the foot of every phase, with ours beside them. Fill them in above and it is signed.',
+
+  /**
+   * The sentence that travels with the link.
+   *
+   * A pasted URL on its own is the weakest thing you can put in a group chat:
+   * it says nothing about what it is, so it gets opened last or not at all. One
+   * line in front of it is the difference between "what is this" and "oh, have
+   * a look at this". Written in the COACH's voice rather than ours, because it
+   * is going out under their name and a sentence that reads like an advert is
+   * one they will delete before sending.
+   *
+   * Every send button starts from this and they can edit it in the app they
+   * land in, which is the right place to edit it.
+   */
+  message: (title: string) =>
+    `${title?.trim() || 'A tactical system'}. It plays through phase by phase, and it opens in any browser.`,
+
+  /** The row of send buttons. Verbs, and the name of the thing they open. */
+  send: 'Send it',
+  sendCopy: 'Copy the link',
+  sendCopied: 'Link copied',
+  sendWhatsapp: 'WhatsApp',
+  sendMail: 'Email',
+  sendMore: 'More',
+  sendNote: 'Goes out with one line saying what it is, which you can change before you send it.',
 } as const
 
 /**
@@ -355,6 +404,24 @@ export const VIDEO = {
   title: 'Save it as a video',
   body: `A film of your ${PHASE.many}, playing in order, shot on the pitch itself with your words over it. Use it where a link will not go: a story, a status, a group chat that flattens everything you send it.`,
   shape: 'What it is going on',
+  quality: 'Size',
+  fps: 'Smoothness',
+  /**
+   * What the size and rate cost, said once under both controls.
+   *
+   * `effort` is the render against 1080p30 as 1. It is written as a comparison
+   * rather than as a time because we genuinely do not know how long it will
+   * take — it runs on their machine, and a promise of "about a minute" that
+   * turns into four on an old laptop is worse than no promise. "About twice the
+   * wait" is true on every machine.
+   */
+  size: (w: number, h: number, effort: number) =>
+    `${w} × ${h}. ` +
+    (effort === 1
+      ? 'The house setting: sharp enough to project, quick enough to wait for.'
+      : effort < 1
+        ? `About ${effort === 0.5 ? 'half' : `${effort}×`} the wait of 1080p at 30, and a smaller file.`
+        : `About ${effort}× the wait of 1080p at 30. Worth it for a slow pan on a phone.`),
   /** The one thing in the credit line a coach might not want burnt in. */
   date: 'Show the date',
   making: 'Making the film…',
@@ -449,7 +516,7 @@ export const FEEDBACK = {
    * Under the buttons. Says the two things a coach might reasonably wonder
    * before typing something honest.
    */
-  foot: 'Sent without your name on it, and we will not ask again for a good while.',
+  foot: 'Sent without your name on it. Answer once and we leave you alone for a month.',
 } as const
 
 // ── the small-screen door ────────────────────────────────────────────────────

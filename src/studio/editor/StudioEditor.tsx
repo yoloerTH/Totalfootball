@@ -53,8 +53,12 @@ import {
   PITCH_SURFACES,
   DEFAULT_SURFACE,
   arrowStyle,
-  bandStyle,
+  BAND_STRENGTHS,
+  BAND_TONES,
+  resolveBandStyle,
   resolveSurface,
+  type BandStrength,
+  type BandTone,
   type PitchSurfaceId,
 } from '../board/surfaces'
 import { BALLS, DEFAULT_BALL, resolveBall, type BallId } from '../balls'
@@ -85,6 +89,7 @@ import {
   type ArrowKind,
   type Band,
   type BandKind,
+  type BandShape,
   type Credit,
   type Cue,
   type Shot,
@@ -92,7 +97,7 @@ import {
   type System,
   type Token,
 } from '../schema'
-import { shouldAsk, type FeedbackContext } from '../feedback'
+import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
 import { holdMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
@@ -146,6 +151,34 @@ type Tool = ToolId
 
 const isArrowTool = (t: Tool): t is ArrowKind => (ARROW_TOOL_IDS as readonly string[]).includes(t)
 const isZoneTool = (t: Tool): t is 'danger' | 'zone' => (ZONE_TOOL_IDS as readonly string[]).includes(t)
+
+/**
+ * The one tool that is not a drag.
+ *
+ * Every other tool works by pressing the grass and pulling: an arrow is two
+ * points, a zone is two corners. A block is a LIST OF PLAYERS, and there is no
+ * honest way to express "these four, in this order" as a rectangle — a lasso
+ * would pick up whoever happened to be standing inside it, which is exactly the
+ * mistake the automatic block used to make when it took the four deepest
+ * outfielders regardless of shape.
+ *
+ * So it is clicks, and it has to be told apart from the drag tools everywhere
+ * the board decides what a pointer means. That is what this predicate is for.
+ */
+const isPickTool = (t: Tool): t is 'block' => t === 'block'
+
+/** The most players a hand-drawn block can be threaded through. */
+const BLOCK_MAX = 6
+
+/**
+ * How long after the studio opens the occasional feedback ask may fire.
+ *
+ * Long enough to have done something, short enough to still be at the board.
+ * Forty seconds is roughly "placed a formation and looked at it" — before that
+ * a coach has no opinion of today yet, and much after it they are mid-something
+ * and the ask becomes an interruption rather than a pause.
+ */
+const OPEN_ASK_DELAY_MS = 40_000
 
 /**
  * What is selected. One thing at a time and never two kinds at once, so Delete
@@ -243,6 +276,19 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const [actIndex, setActIndex] = useState(0)
   const [selection, setSelection] = useState<Selection>(null)
   const [tool, setTool] = useState<Tool>('select')
+  /**
+   * The players picked so far for a hand-drawn block, in the order they were
+   * clicked. Empty whenever the Block tool is not armed.
+   *
+   * ORDER IS THE DATA. The band threads a string through these ids in exactly
+   * this sequence, so a coach who clicks left-back → centre-back → centre-back →
+   * right-back gets a line across the pitch, and one who clicks them out of
+   * order gets a zigzag and can see immediately that they did. Sorting them for
+   * the coach would be second-guessing a deliberate act: a midfield screen with
+   * one player dropped between the other two is a real shape and it is drawn by
+   * clicking the deep one second.
+   */
+  const [blockPick, setBlockPick] = useState<string[]>([])
   const [dragging, setDragging] = useState<{ kind: 'token'; id: string } | { kind: 'ball' } | null>(null)
   const [pending, setPending] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null)
   const [playhead, setPlayhead] = useState<number | null>(null)
@@ -303,6 +349,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const guideRef = useRef(guide)
   guideRef.current = guide
 
+  /**
+   * Is the studio in the middle of something?
+   *
+   * Read only by the delayed feedback ask, which decides forty seconds before
+   * it fires and must check again on the way out — a coach who opened the video
+   * dialog inside the wait is not somebody to put a form over. Assigned near the
+   * foot of the component, where every one of these states exists.
+   */
+  const busyRef = useRef(false)
+
   const markGuide = useCallback((patch: Partial<GuideState>) => {
     const cur = guideRef.current
     const changed = (Object.keys(patch) as (keyof GuideState)[]).some((k) => cur[k] !== patch[k])
@@ -345,6 +401,38 @@ export default function StudioEditor({ systemId, initial }: Props) {
     else if (!guideRef.current.seen) setWalkthrough(true)
     else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
   }, [openNews])
+
+  /**
+   * And, occasionally, the question — on the way in rather than after a win.
+   *
+   * NOT PART OF THE CHAIN ABOVE, and not instant. The chain decides what a
+   * coach is shown ON ARRIVAL, and this is deliberately not that: it waits
+   * until they have been in the tool long enough to have a view of today, and
+   * it checks on the way out of the wait that the studio is not busy. Somebody
+   * who arrived, opened the video dialog and started a render must not have a
+   * form put over it.
+   *
+   * The delay is also what keeps it out of the chain's way without needing to
+   * know about it: a walkthrough or a what's-new panel opened on arrival is
+   * long since read or dismissed by the time this fires, and if it is not, the
+   * guard below sees it and this opening simply is not the one.
+   *
+   * `shouldAskOnOpen` rolls a die, so most eligible openings are still quiet.
+   * See ../feedback.ts.
+   */
+  useEffect(() => {
+    if (!shouldAskOnOpen(guideRef.current)) return
+    const t = setTimeout(() => {
+      // Re-read rather than trusting the decision made 40 seconds ago: a coach
+      // can publish a link inside the wait, be asked at the moment that lands,
+      // and this would then ask them a second time.
+      if (!shouldAsk(guideRef.current)) return
+      if (busyRef.current) return
+      markGuide({ feedbackAskedAt: Date.now() })
+      setFeedback('open')
+    }, OPEN_ASK_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [markGuide])
 
   // Every clock in the editor reads this one value — playback below, the
   // length quoted in the video dialog, and the beat the ball is struck on.
@@ -690,6 +778,159 @@ export default function StudioEditor({ systemId, initial }: Props) {
     [bindGesture, view, patchAct, seal],
   )
 
+  /**
+   * Moving and resizing a drawn area.
+   *
+   * The same maths as the camera frame above, in BOARD UNITS for the same
+   * reason: percent-of-crop runs along the pitch, the upright views stand the
+   * pitch on its end, and a resize written in percent moves the corner the
+   * coach did not grab. The round trip through `toUnits` / `unitsToPercent` is
+   * exact, so nothing is lost by working in the space the pointer is actually
+   * in and converting back at the end.
+   *
+   * The band is read out of `act` at PRESS time and held in `start`, so the
+   * gesture is measured against where the box was when it was grabbed rather
+   * than against wherever the last frame left it — which is what stops a
+   * resize from accelerating away as the pointer moves.
+   */
+  const beginZoneDrag = useCallback(
+    (id: string, part: FramePart, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      if (!svg) return
+      const band = act?.bands.find((b) => b.id === id)
+      if (!band?.rect) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const a = toUnits(view, band.rect.x, band.rect.y)
+      const c = toUnits(view, band.rect.x + band.rect.w, band.rect.y + band.rect.h)
+      const start = {
+        x: Math.min(a.x, c.x),
+        y: Math.min(a.y, c.y),
+        w: Math.abs(c.x - a.x),
+        h: Math.abs(c.y - a.y),
+      }
+      const crop = cropRect(view)
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const downU = toUnits(view, down.x, down.y)
+      // The corner that stays put while its opposite is dragged.
+      const anchorPt = {
+        x: part === 'nw' || part === 'sw' ? start.x + start.w : start.x,
+        y: part === 'nw' || part === 'ne' ? start.y + start.h : start.y,
+      }
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const q = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const qu = toUnits(view, q.x, q.y)
+
+          let box: { x: number; y: number; w: number; h: number }
+          if (part === 'move') {
+            box = { ...start, x: start.x + (qu.x - downU.x), y: start.y + (qu.y - downU.y) }
+          } else {
+            // A floor, not a clamp to the grass. A zone is allowed to run off
+            // the edge of the crop — a coach shading the space wide of the
+            // touchline is making a real point — but a box of no width is a
+            // mark that cannot be seen or grabbed again.
+            const min = crop.w * 0.03
+            const x0 = Math.min(anchorPt.x, qu.x)
+            const x1 = Math.max(anchorPt.x, qu.x)
+            const y0 = Math.min(anchorPt.y, qu.y)
+            const y1 = Math.max(anchorPt.y, qu.y)
+            box = { x: x0, y: y0, w: Math.max(min, x1 - x0), h: Math.max(min, y1 - y0) }
+          }
+
+          const p1 = unitsToPercent(view, box.x, box.y)
+          const p2 = unitsToPercent(view, box.x + box.w, box.y + box.h)
+          const rect = rectOf(p1, p2)
+          // One label for the whole gesture, so ../history.ts folds it into a
+          // single undo rather than one per frame of the drag.
+          patchAct(`zone:${id}`, (a2) => ({
+            ...a2,
+            bands: a2.bands.map((b) => (b.id === id ? { ...b, rect } : b)),
+          }))
+        },
+        () => seal(),
+      )
+    },
+    [act, bindGesture, view, patchAct, seal],
+  )
+
+  /**
+   * Picking the players a hand-drawn block runs through.
+   *
+   * A toggle, not an append. The commonest mistake with a click-to-pick control
+   * is clicking the wrong man, and the only recovery anybody looks for is
+   * clicking him again — an undo stack does not occur to somebody halfway
+   * through drawing one mark. Taking him out leaves the rest of the order
+   * intact, which is the behaviour that makes the mistake cost nothing.
+   */
+  const pickForBlock = useCallback((id: string) => {
+    setBlockPick((cur) =>
+      cur.includes(id)
+        ? cur.filter((x) => x !== id)
+        : cur.length >= BLOCK_MAX
+          ? cur
+          : [...cur, id],
+    )
+  }, [])
+
+  /**
+   * Commit the picked line, if there is one worth committing.
+   *
+   * Two players is the floor: a band through one man has no line to thread and
+   * would fill the whole width of the pitch from a single point, which is not
+   * an idea anybody is trying to express. Below the floor this cancels rather
+   * than complaining — the coach armed a tool and changed their mind, which is
+   * not an error.
+   */
+  const commitBlockPick = useCallback(() => {
+    setBlockPick((cur) => {
+      if (cur.length >= 2) {
+        patchAct('block', (a) => ({
+          ...a,
+          bands: [
+            ...a.bands,
+            { id: uid('bd'), kind: 'block' as BandKind, throughTokens: cur, drawn: true },
+          ],
+        }))
+        seal()
+      }
+      return []
+    })
+    setTool('select')
+  }, [patchAct, seal])
+
+  const cancelBlockPick = useCallback(() => {
+    setBlockPick([])
+    setTool('select')
+  }, [])
+
+  // Enter draws it, Escape forgets it. Live only while the tool is armed, so
+  // neither key is taken away from anything else in the studio.
+  useEffect(() => {
+    if (tool !== 'block') return
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        commitBlockPick()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        cancelBlockPick()
+      }
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [tool, commitBlockPick, cancelBlockPick])
+
+  // Leaving the tool by any other route — picking another tool, a phase change,
+  // an undo — must not leave a half-picked line waiting to be committed by an
+  // Enter pressed for some other reason.
+  useEffect(() => {
+    if (tool !== 'block' && blockPick.length) setBlockPick([])
+  }, [tool, blockPick.length])
+
   /*
    * Arrows and shaded areas are the same gesture: press, drag, release. They
    * differ only in what gets committed, so they share one handler rather than
@@ -769,6 +1010,27 @@ export default function StudioEditor({ systemId, initial }: Props) {
       return tweenActs(system.acts[timeline.index], system.acts[timeline.next], timeline.p, system)
     }
     const base = resolveAct(act, system)
+    /*
+     * The line as it is being picked, drawn as a real block rather than as
+     * dots on the chosen players.
+     *
+     * It is the only honest preview: what a coach is deciding is not "are these
+     * the right four men", it is "is this the right SHAPE", and the shape is
+     * the shaded space behind them. Showing it live is what makes clicking a
+     * fifth player and watching the band swing an obviously reversible act.
+     * Under two picks there is no line yet and nothing to show.
+     */
+    if (isPickTool(tool)) {
+      return blockPick.length >= 2
+        ? {
+            ...base,
+            bands: [
+              ...base.bands,
+              { id: 'preview', kind: 'block' as BandKind, throughTokens: blockPick },
+            ],
+          }
+        : base
+    }
     if (!pending) return base
     // Preview the mark being drawn, without committing it to the document.
     if (isArrowTool(tool)) {
@@ -798,7 +1060,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // and leave the same trap set for the next render-affecting field, so this
     // depends on the document. The cost is re-posing 22 counters when a title
     // is typed, which is nothing.
-  }, [timeline, system, act, pending, tool])
+  }, [timeline, system, act, pending, tool, blockPick])
 
   shotRef.current = rendered.shot
 
@@ -852,6 +1114,19 @@ export default function StudioEditor({ systemId, initial }: Props) {
 
   const playing = playhead !== null
   const drawing = tool !== 'select'
+  // Everything that means "not now" for the ask above. Recomputed every render,
+  // which is exactly what a ref read from inside a timeout wants.
+  busyRef.current =
+    playing || drawing || sharing || makingVideo || walkthrough || news || tooSmall || feedback !== null
+  /**
+   * A tool that takes the GRASS, as opposed to one that takes clicks on
+   * players. Everything the board withholds while a mark is being drawn — the
+   * counters, the camera frame, mark selection — is withheld because a drag
+   * across the pitch must not be stolen by whatever is under it. The Block tool
+   * is the opposite case: it needs the counters to be clickable and nothing
+   * else to be, so the two cannot share one flag.
+   */
+  const dragging_tool = drawing && !isPickTool(tool)
 
   // ── team + shape actions ───────────────────────────────────────────────────
   const applyFormation = (side: Side, formationId: string) => {
@@ -1123,15 +1398,37 @@ export default function StudioEditor({ systemId, initial }: Props) {
     if (line.length < 2) return
     patchAct('block', (a) => ({
       ...a,
+      // Only the DERIVED block for this side is replaced. A block the coach
+      // picked player by player survives, because this button did not make it
+      // and has no business deciding it is finished with — see `drawn` in
+      // ../schema.ts. Without that flag this filter took both, so pressing
+      // Redraw silently deleted a hand-drawn midfield line.
       bands: [
-        ...a.bands.filter((b) => !(b.kind === 'block' && bandSide(b, a) === side)),
+        ...a.bands.filter((b) => !(b.kind === 'block' && !b.drawn && bandSide(b, a) === side)),
         { id: uid('bd'), kind: 'block' as BandKind, throughTokens: line.map((t) => t.id) },
       ],
     }))
     seal()
   }
 
-  const blockFor = (side: Side) => act?.bands.find((b) => b.kind === 'block' && bandSide(b, act) === side)
+  const blockFor = (side: Side) =>
+    act?.bands.find((b) => b.kind === 'block' && !b.drawn && bandSide(b, act) === side)
+
+  /**
+   * Change one thing about the selected shaded area.
+   *
+   * `what` names the FIELD as well as the band, so ../history.ts collapses a
+   * run of keystrokes in the label into one undo entry without also swallowing
+   * the colour change that follows it. One label for the whole panel would make
+   * a single Undo take back both, which is never what anybody meant.
+   */
+  const patchBand = (what: string, patch: Partial<Band>) => {
+    if (!selectedMarkId) return
+    patchAct(`band:${selectedMarkId}:${what}`, (a) => ({
+      ...a,
+      bands: a.bands.map((b) => (b.id === selectedMarkId ? { ...b, ...patch } : b)),
+    }))
+  }
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
   const ball = resolveBall(system.matchBall)
   const surface = resolveSurface(system.surface)
@@ -1321,10 +1618,19 @@ export default function StudioEditor({ systemId, initial }: Props) {
         onFramePointerDown={playing || drawing ? undefined : beginFrameDrag}
         activeTokenId={dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null)}
         activeMarkId={selectedMarkId}
+        /* Counters stay live while the Block tool is armed — that tool IS
+           clicking counters — and a click on one picks it for the line instead
+           of starting a drag. Every other drawing tool takes them away. */
         onTokenPointerDown={
-          playing || drawing
+          playing || dragging_tool
             ? undefined
             : (id, e) => {
+                if (isPickTool(tool)) {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  pickForBlock(id)
+                  return
+                }
                 setSelection({ kind: 'token', id })
                 beginDrag({ kind: 'token', id }, e)
               }
@@ -1347,6 +1653,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
                 setSelection({ kind: 'mark', id })
               }
         }
+        /* Handles on the selected area only, and only with the Move tool. */
+        onZonePointerDown={playing || drawing ? undefined : beginZoneDrag}
         onBallPointerDown={
           playing || drawing
             ? undefined
@@ -1357,6 +1665,15 @@ export default function StudioEditor({ systemId, initial }: Props) {
         }
         onBackgroundPointerDown={(e) => {
           if (playing) return
+          if (isPickTool(tool)) {
+            // Pressing the grass finishes the line, the way pressing the grass
+            // finishes a polygon in every drawing tool anybody has used. Under
+            // two players it cancels instead; `commitBlockPick` decides which,
+            // so the rule lives in one place rather than in every caller.
+            e.preventDefault()
+            commitBlockPick()
+            return
+          }
           if (!drawing) {
             setSelection(null)
             // Pressing the grass is a deselect, never the start of a text
@@ -1378,7 +1695,23 @@ export default function StudioEditor({ systemId, initial }: Props) {
    */
   const boardLine = (
     <p className="shrink-0 px-3 text-center text-[11px] leading-snug text-ink-faint">
-      {drawing ? (
+      {isPickTool(tool) ? (
+        // Its own branch above the generic drawing one, because this tool has a
+        // running state and the useful sentence is a count: how many are in the
+        // line so far, and what the next press does.
+        <>
+          <span className="font-bold text-ink">
+            {blockPick.length === 0
+              ? 'Click the first player in the line.'
+              : `${blockPick.length} ${blockPick.length === 1 ? 'player' : 'players'} picked.`}
+          </span>{' '}
+          {blockPick.length >= 2
+            ? 'Press Enter to draw it, keep clicking to add more, or click a player again to take them out.'
+            : blockPick.length === 1
+              ? 'Click the next one along. A block needs at least two.'
+              : HINT.blockPicking}
+        </>
+      ) : drawing ? (
         <>
           <span className="font-bold text-ink">{TOOL_DOC[tool].drag}</span> {TOOL_DOC[tool].when}
         </>
@@ -1386,10 +1719,20 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <>
           Playing all {system.acts.length} {PHASE.many}.
         </>
-      ) : selectedArrow || selectedBand ? (
+      ) : selectedArrow ? (
         <>
-          <span className="font-bold text-ink">{markName(selectedArrow ?? selectedBand!, act)} selected.</span> Bend it
-          or delete it on the right, or press Delete on your keyboard.
+          <span className="font-bold text-ink">{markName(selectedArrow, act)} selected.</span> Bend it or delete it
+          on the right, or press Delete on your keyboard.
+        </>
+      ) : selectedBand ? (
+        // Its own sentence now that a shaded area has controls of its own.
+        // "Bend it" was arrow language borrowed for want of anything better to
+        // say, and it named the one thing a band has never been able to do.
+        <>
+          <span className="font-bold text-ink">{markName(selectedBand, act)} selected.</span>{' '}
+          {selectedBand.kind === 'block'
+            ? 'Recolour it on the right, or drag any of the players it runs through to reshape it.'
+            : 'Drag inside it to move it, take a gold corner to resize it, or change its colour and shape on the right.'}
         </>
       ) : offCrop > 0 ? (
         <>
@@ -1758,7 +2101,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
        */}
       <Panel title="Shaded areas">
         <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
-          The block is worked out from your deepest line and follows it. The other two you drag out yourself.
+          One block is worked out from your deepest line. Draw the rest yourself: pick the players for a block of
+          your own, or drag a box out for an area. Click any of them afterwards to change its colour, its shape or
+          what it says.
         </p>
         <div className="flex flex-wrap gap-1.5">
           <Tip text={HINT.block} title={blockFor('us') ? 'Redraw our block' : 'Our block'}>
@@ -1773,6 +2118,24 @@ export default function StudioEditor({ systemId, initial }: Props) {
               </Button>
             </Tip>
           )}
+          {/*
+           * Draw a block by hand. Sits with the two automatic ones rather than
+           * up in the arrow toolbar, because what a coach is choosing between
+           * here is "work it out for me" and "I will pick them", and those two
+           * belong side by side.
+           */}
+          <Tip text={HINT.blockDraw} title="Draw a block">
+            {/* The label does not change to "Cancel" when it is armed. The
+                active state already says it is on, the panel below carries the
+                real Cancel, and two buttons a centimetre apart both reading
+                Cancel is a worse control than one that keeps its name. */}
+            <Button
+              active={tool === 'block'}
+              onClick={() => (tool === 'block' ? cancelBlockPick() : setTool('block'))}
+            >
+              Draw a block
+            </Button>
+          </Tip>
           {ZONE_TOOL_IDS.map((id) => (
             <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label}>
               <Button active={tool === id} onClick={() => setTool(tool === id ? 'select' : id)}>
@@ -1781,8 +2144,27 @@ export default function StudioEditor({ systemId, initial }: Props) {
             </Tip>
           ))}
         </div>
-        {blockFor('us') && (
-          <p className="mt-2 text-[11px] leading-snug text-ink-faint">{HINT.blockRedraw}</p>
+        {tool === 'block' ? (
+          <div className="mt-2.5 rounded-lg bg-paper p-2.5">
+            <p className="text-[11px] leading-snug text-ink">
+              <span className="font-bold">
+                {blockPick.length === 0
+                  ? 'Nobody picked yet.'
+                  : `${blockPick.length} picked${blockPick.length >= BLOCK_MAX ? ' (the most it takes)' : ''}.`}
+              </span>{' '}
+              {HINT.blockPicking}
+            </p>
+            <div className="mt-2 flex gap-1.5">
+              <Button variant="solid" onClick={commitBlockPick} disabled={blockPick.length < 2}>
+                Draw it
+              </Button>
+              <Button onClick={cancelBlockPick}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          blockFor('us') && (
+            <p className="mt-2 text-[11px] leading-snug text-ink-faint">{HINT.blockRedraw}</p>
+          )
         )}
       </Panel>
 
@@ -1804,7 +2186,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
   // tinted from the board's own palette rather than from paper's: a run arrow
   // listed in #06A659 beside a run arrow drawn in mint is two different things.
   const arrows = arrowStyle(surface.palette)
-  const bands = bandStyle(surface.palette)
+  const bandTone = (b: Band) =>
+    resolveBandStyle(surface.palette, b.kind, {
+      tone: b.tone as BandTone | undefined,
+      strength: b.strength as BandStrength | undefined,
+    }).tone
   const marks: { id: string; name: string; tone: string; kind: 'arrow' | 'band' }[] = [
     ...act.arrows.map((a) => ({
       id: a.id,
@@ -1812,10 +2198,13 @@ export default function StudioEditor({ systemId, initial }: Props) {
       tone: arrows[a.kind].color,
       kind: 'arrow' as const,
     })),
+    // Resolved rather than read straight off `bandStyle`, so a zone repainted
+    // red shows a red dot here. A list whose swatches disagree with the board
+    // is worse than a list with no swatches.
     ...act.bands.map((b) => ({
       id: b.id,
       name: markName(b, act),
-      tone: bands[b.kind].tone,
+      tone: bandTone(b),
       kind: 'band' as const,
     })),
   ]
@@ -1925,17 +2314,113 @@ export default function StudioEditor({ systemId, initial }: Props) {
           </Tip>
         </Panel>
       ) : selectedBand ? (
+        /*
+         * A shaded area, and everything about it a coach may change.
+         *
+         * The order is the order of the questions: what does it SAY (the
+         * words), what does it MEAN (the colour), how loudly (the strength),
+         * and only then what shape it is. Shape and outline are last and are
+         * only offered on a drawn area — a block traces the players it runs
+         * through and has no outline to choose, and offering the control
+         * greyed out would be four dead buttons under the one thing on this
+         * panel that is actually different about a block.
+         */
         <Panel title={`Selected ${markName(selectedBand, act).toLowerCase()}`}>
           <p className="mb-3 text-[11px] leading-relaxed text-ink-faint">
             {selectedBand.kind === 'block'
               ? 'Tied to the players it runs through. Drag any of them and it reshapes.'
-              : TOOL_DOC[selectedBand.kind].what}
+              : HINT.bandMove}
           </p>
-          <Tip text={HINT.deleteMark} title="Delete" side="left">
-            <Button variant="danger" onClick={deleteSelection}>
-              Delete this area
-            </Button>
+
+          <Tip text={HINT.bandLabel} title="What it says" side="left" block>
+            <Field label="Label">
+              <TextInput
+                value={selectedBand.label ?? ''}
+                onChange={(v) => patchBand('label', { label: v || undefined })}
+                placeholder="Cutback zone"
+                maxLength={28}
+              />
+            </Field>
           </Tip>
+
+          <Tip text={HINT.bandTone} title="Colour" side="left" block>
+            <Field label="Colour">
+              <Select
+                value={(selectedBand.tone ?? 'house') as string}
+                onChange={(v) => {
+                  patchBand('tone', { tone: v === 'house' ? undefined : v })
+                  seal()
+                }}
+                options={[
+                  // "As it comes" and not a sixth colour: it means "whatever
+                  // this KIND of area is meant to be", which is a different
+                  // answer for a block and a danger area, and it is the value
+                  // every band written before this control existed carries.
+                  { value: 'house', label: 'As it comes' },
+                  ...BAND_TONES.map((t) => ({ value: t.id, label: t.label })),
+                ]}
+              />
+            </Field>
+          </Tip>
+          <p className="-mt-1 mb-2 text-[11px] leading-snug text-ink-faint">
+            {BAND_TONES.find((t) => t.id === selectedBand.tone)?.note ??
+              'The house colour for this kind of area.'}
+          </p>
+
+          <Tip text={HINT.bandStrength} title="How heavy" side="left" block>
+            <Field label="Strength">
+              <Segmented
+                label="Strength"
+                value={(selectedBand.strength ?? 'normal') as string}
+                onChange={(v) => {
+                  patchBand('strength', { strength: v === 'normal' ? undefined : v })
+                  seal()
+                }}
+                options={BAND_STRENGTHS.map((b) => ({ value: b.id, label: b.label }))}
+              />
+            </Field>
+          </Tip>
+
+          {selectedBand.kind !== 'block' && (
+            <>
+              <Tip text={HINT.bandShape} title="Shape" side="left" block>
+                <Field label="Shape">
+                  <Segmented
+                    label="Shape"
+                    value={selectedBand.shape ?? 'box'}
+                    onChange={(v) => {
+                      patchBand('shape', { shape: v === 'box' ? undefined : (v as BandShape) })
+                      seal()
+                    }}
+                    options={[
+                      { value: 'box', label: 'Box' },
+                      { value: 'round', label: 'Rounded' },
+                      { value: 'ellipse', label: 'Oval' },
+                    ]}
+                  />
+                </Field>
+              </Tip>
+
+              <Tip text={HINT.bandSolid} title="Its edge" side="left" block>
+                <Toggle
+                  checked={Boolean(selectedBand.solid)}
+                  onChange={(v) => {
+                    patchBand('solid', { solid: v || undefined })
+                    seal()
+                  }}
+                  label="Solid edge"
+                />
+              </Tip>
+            </>
+          )}
+
+          <div className="mt-3">
+            <Tip text={HINT.deleteMark} title="Delete" side="left">
+              <Button variant="danger" onClick={deleteSelection}>
+                Delete this area
+              </Button>
+            </Tip>
+          </div>
         </Panel>
       ) : (
         <Panel title="Nothing selected">
@@ -2163,8 +2648,21 @@ function rectOf(a: { x: number; y: number }, b: { x: number; y: number }) {
 
 /** What to call a mark in a list or a panel title. */
 function markName(mark: Arrow | Band, act: Act): string {
+  // A label the coach typed wins over anything we would have called it. It is
+  // the name they chose for the thing, it is already drawn on the board, and a
+  // panel that calls it something else is a panel about a different mark. This
+  // also does the work of telling three hand-drawn blocks apart, which "Our
+  // block" three times over cannot.
+  if ('kind' in mark && mark.label?.trim()) return mark.label.trim()
+
   if ('throughTokens' in mark && mark.throughTokens?.length) {
-    return bandSide(mark, act) === 'us' ? 'Our block' : 'Their block'
+    const ours = bandSide(mark, act) === 'us'
+    // The derived one is "the" block for its side. A hand-picked line is one of
+    // possibly several, so it is named by its size instead of claiming to be
+    // the side's block.
+    if (!mark.drawn) return ours ? 'Our block' : 'Their block'
+    const n = mark.throughTokens.length
+    return `${ours ? 'Our' : 'Their'} block of ${n}`
   }
   if (mark.kind === 'block') return 'Block'
   return TOOL_DOC[mark.kind].label

@@ -65,6 +65,36 @@ function table(rows, cols) {
 
 console.log(`\nTOTAL FOOTBALL  ·  last ${DAYS} days\n${'='.repeat(48)}`)
 
+/*
+ * HOW FAR BACK THE RAW ROWS ACTUALLY GO.
+ *
+ * Every section below reads public.site_events, which now only holds the last
+ * few days — everything older is folded into one row per day and the rows are
+ * deleted (supabase/009_site_events_rollup.sql). Ask this script for 30 days
+ * after a fold and the queries still run, still return rows, and are now
+ * describing four days while the heading says thirty.
+ *
+ * So the horizon is read first and said plainly, and the whole history is
+ * printed from the rollup underneath it. A tool that quietly narrows its own
+ * window is worse than one that has no window at all.
+ */
+const [horizon] = await sql(`
+  select
+    min(created_at at time zone 'Europe/Athens')::date as oldest,
+    round(extract(epoch from (now() - min(created_at))) / 86400)::int as days
+  from public.site_events`)
+
+const RAW_DAYS = Number(horizon?.days ?? 0)
+const NARROWED = horizon?.oldest && RAW_DAYS + 1 < DAYS
+
+if (NARROWED) {
+  console.log(`
+  NOTE  Detailed events only go back to ${horizon.oldest} (${RAW_DAYS} days).
+        Everything older was folded into public.site_events_daily, so the
+        sections below cover ${RAW_DAYS} days, not ${DAYS}. Whole history is at
+        the foot of this report, and in that table.`)
+}
+
 const [overview] = await sql(`
   select
     count(*) filter (where type = 'pageview')            as pageviews,
@@ -240,6 +270,36 @@ if (!feedback.length) {
 if (fbAll && Number(fbAll.n) > 0) {
   console.log(`  all time: ${fbAll.n} answer${Number(fbAll.n) === 1 ? '' : 's'} · ${fbAll.avg_rating ?? '-'}/5 · would mention ${fbAll.avg_rec ?? '-'}/10`)
 }
+
+/*
+ * The whole history, from the rollup.
+ *
+ * Reads public.site_events_history, which unions the folded days with the raw
+ * tail aggregated the same way — so this is the one section that means the same
+ * thing before and after a fold, and the one to read for a trend. Per day,
+ * newest first, because what a month looked like is a shape rather than a
+ * total.
+ */
+const history = await sql(`
+  select to_char(day, 'DD Mon YY') as day, pageviews, visits, clicks,
+         avg_duration_ms, raw
+  from public.site_events_history
+  where day >= (now() at time zone 'Europe/Athens')::date - ${DAYS}
+  order by day desc`)
+
+console.log(`\nBY DAY  ·  folded history + raw tail`)
+console.log(
+  table(history, [
+    { label: 'DAY', get: (r) => r.day },
+    { label: 'VISITS', get: (r) => r.visits ?? 0 },
+    { label: 'VIEWS', get: (r) => r.pageviews ?? 0 },
+    { label: 'CLICKS', get: (r) => r.clicks ?? 0 },
+    { label: 'AVG TIME', get: (r) => ms(r.avg_duration_ms) },
+    // Which half of the union a row came from. A raw day is still complete and
+    // still being written to; a folded one will never change again.
+    { label: '', get: (r) => (r.raw ? 'raw' : '') },
+  ])
+)
 
 console.log('\nSUBSCRIBERS BY SOURCE')
 console.log(

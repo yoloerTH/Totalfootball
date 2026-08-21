@@ -23,6 +23,49 @@ import { STUDIO_EVENTS, track } from '../track'
 import { Button, Field, TextInput } from './ui'
 import { SHARE } from './guide'
 
+/**
+ * One of the send buttons that is really a link.
+ *
+ * An <a> and not a <button> with a `location.assign`, and the difference is not
+ * pedantry: `wa.me` and `mailto:` hand off to another application, and a
+ * browser will only allow that from a real navigation started by a real click.
+ * Scripted navigations to an external scheme are blocked in enough places that
+ * the button would appear to do nothing on somebody's machine and work fine on
+ * ours.
+ *
+ * Styled to match `Button`'s quiet variant rather than importing it, because
+ * Button renders a <button> and the whole point here is the element.
+ */
+function SendLink({
+  href,
+  label,
+  disabled,
+  onSend,
+  children,
+}: {
+  href: string
+  label: string
+  disabled?: boolean
+  onSend: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <a
+      href={disabled ? undefined : href}
+      target="_blank"
+      rel="noreferrer"
+      aria-disabled={disabled}
+      onClick={() => !disabled && onSend()}
+      className={`inline-flex items-center gap-1.5 rounded-md border border-ink-hair px-3 py-2 text-xs font-bold text-ink-soft no-underline transition-colors ${
+        disabled ? 'pointer-events-none opacity-40' : 'hover:bg-paper hover:text-ink'
+      }`}
+    >
+      {children}
+      {label}
+    </a>
+  )
+}
+
 interface Props {
   system: System
   onCredit: (patch: Partial<Credit>) => void
@@ -107,16 +150,50 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
     return () => window.removeEventListener('keydown', key)
   }, [onClose])
 
+  /**
+   * What goes out with the link.
+   *
+   * The message and the URL as two lines rather than one string with the URL
+   * buried in it: every chat app in the world previews the last URL it finds,
+   * and a link on its own line is the one that gets a card with the board on
+   * it. See SHARE.message for why there is a sentence at all.
+   */
+  const message = SHARE.message(system.title)
+  const body = `${message}\n\n${url}`
+
   const copy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
+      track(STUDIO_EVENTS.shareSent, 'copy')
     } catch {
       // Insecure origin, or a browser that refuses without a gesture it
       // recognises. The field below is selectable, which is the fallback.
       setCopied(false)
     }
   }, [url])
+
+  /**
+   * The system share sheet, where there is one.
+   *
+   * Offered rather than assumed: `navigator.share` exists on every phone and on
+   * roughly no desktop, so this button appears for the coach standing on a
+   * touchline and not for the one at a laptop, where it would open nothing. It
+   * is also the only route that reaches Telegram, Signal, AirDrop and whatever
+   * a club is actually using, without us maintaining a list of them.
+   */
+  const canShareSheet =
+    typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  const shareSheet = useCallback(async () => {
+    try {
+      await navigator.share({ title: system.title || 'A tactical system', text: message, url })
+      track(STUDIO_EVENTS.shareSent, 'sheet')
+    } catch {
+      // Cancelled, or refused because the gesture was not recognised. Either
+      // way the coach is looking at the same dialog with the link still in it.
+    }
+  }, [system.title, message, url])
 
   return (
     <div
@@ -175,15 +252,81 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
           </p>
         </div>
 
+        {/*
+         * SEND IT, not "copy it".
+         *
+         * The old dialog ended at a clipboard button, which quietly made the
+         * coach do the last and most important step somewhere else: switch app,
+         * find the group, paste a bare URL, think of something to say about it.
+         * Every one of those is a place to give up, and a link that never gets
+         * sent is a system nobody sees and a coach who never finds out the tool
+         * works. These are the two places these links actually go, plus the
+         * phone's own share sheet for everywhere else.
+         *
+         * Copy stays, and stays first among equals: it is the one that works
+         * when the answer is "a place none of these buttons know about".
+         */}
+        <div className="mt-4">
+          <p className="text-micro uppercase text-ink-faint">{SHARE.send}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button
+              variant="solid"
+              onClick={copy}
+              disabled={status === 'publishing'}
+              className="!px-4 !py-2.5 !text-sm"
+            >
+              {copied ? SHARE.sendCopied : SHARE.sendCopy}
+            </Button>
+
+            <SendLink
+              href={`https://wa.me/?text=${encodeURIComponent(body)}`}
+              disabled={status === 'publishing'}
+              onSend={() => track(STUDIO_EVENTS.shareSent, 'whatsapp')}
+              label={SHARE.sendWhatsapp}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="currentColor">
+                <path d="M12.04 2C6.6 2 2.2 6.4 2.2 11.84c0 1.74.46 3.44 1.32 4.94L2 22l5.34-1.4a9.8 9.8 0 0 0 4.7 1.2h.01c5.43 0 9.84-4.4 9.84-9.84 0-2.63-1.03-5.1-2.89-6.96A9.78 9.78 0 0 0 12.04 2Zm0 1.8a8 8 0 0 1 5.69 2.35 7.98 7.98 0 0 1 2.36 5.69c0 4.45-3.62 8.05-8.05 8.05a8.1 8.1 0 0 1-4.1-1.12l-.3-.17-3.05.8.81-2.97-.19-.31a7.95 7.95 0 0 1-1.22-4.28c0-4.44 3.61-8.04 8.05-8.04Zm-2.5 4.1c-.2 0-.51.07-.78.36-.27.3-1.03 1-1.03 2.44s1.06 2.83 1.2 3.02c.15.2 2.06 3.15 5 4.3 2.44.96 2.94.77 3.47.72.53-.05 1.7-.7 1.94-1.37.24-.68.24-1.25.17-1.37-.07-.12-.27-.2-.56-.34-.3-.15-1.74-.86-2.01-.96-.27-.1-.47-.15-.66.15-.2.29-.76.95-.93 1.15-.17.2-.34.22-.63.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.29-.02-.45.13-.6.13-.13.3-.34.44-.51.15-.17.2-.3.3-.5.1-.19.05-.36-.02-.5-.08-.15-.66-1.6-.9-2.18-.24-.57-.48-.5-.66-.5h-.45Z" />
+              </svg>
+            </SendLink>
+
+            <SendLink
+              href={`mailto:?subject=${encodeURIComponent(system.title || 'A tactical system')}&body=${encodeURIComponent(body)}`}
+              disabled={status === 'publishing'}
+              onSend={() => track(STUDIO_EVENTS.shareSent, 'mail')}
+              label={SHARE.sendMail}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+                <rect
+                  x="2.5"
+                  y="4.5"
+                  width="19"
+                  height="15"
+                  rx="2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M3 6.5 12 13l9-6.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </SendLink>
+
+            {canShareSheet && (
+              <Button onClick={shareSheet} disabled={status === 'publishing'}>
+                {SHARE.sendMore}
+              </Button>
+            )}
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">{SHARE.sendNote}</p>
+        </div>
+
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Button
-            variant="solid"
-            onClick={copy}
-            disabled={status === 'publishing'}
-            className="!px-4 !py-2.5 !text-sm"
-          >
-            {copied ? 'Link copied' : 'Copy the link'}
-          </Button>
           <a
             href={url || '#'}
             target="_blank"

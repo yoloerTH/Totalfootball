@@ -35,6 +35,8 @@
  *
  * Flags:
  *   --shape vertical|landscape   default vertical (the page posts in 9:16)
+ *   --quality 1080|720           default 1080 (pixels on the short edge)
+ *   --fps 30|60                  default 30, the house rate
  *   --out <dir>                  default out/
  *   --date                       stamp the shared-on date into the credit line
  *   --skip-build                 reuse the existing dist/ — the authoring loop
@@ -56,6 +58,8 @@ const RENDER_PATH = '/studio/render/'
 function parseArgs(argv) {
   const opts = {
     shape: 'vertical',
+    quality: '1080',
+    fps: 30,
     out: 'out',
     date: false,
     origin: null,
@@ -66,6 +70,8 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--shape') opts.shape = argv[++i]
+    else if (a === '--quality') opts.quality = String(argv[++i]).replace(/p$/, '')
+    else if (a === '--fps') opts.fps = Number(argv[++i])
     else if (a === '--out') opts.out = argv[++i]
     else if (a === '--origin') opts.origin = argv[++i]
     else if (a === '--date') opts.date = true
@@ -77,6 +83,16 @@ function parseArgs(argv) {
   if (!inputs.length) throw new Error('Nothing to render. Pass one or more .json files, or a directory.')
   if (opts.shape !== 'vertical' && opts.shape !== 'landscape') {
     throw new Error(`--shape must be vertical or landscape, not "${opts.shape}"`)
+  }
+  // Checked here rather than left to resolveQuality/resolveFps in the browser.
+  // Those fall back silently, which is right for a UI and wrong for a batch
+  // job: a typo in --fps would render forty files at the wrong rate and say
+  // nothing until somebody watched one.
+  if (opts.quality !== '1080' && opts.quality !== '720') {
+    throw new Error(`--quality must be 1080 or 720, not "${opts.quality}"`)
+  }
+  if (opts.fps !== 30 && opts.fps !== 60) {
+    throw new Error(`--fps must be 30 or 60, not "${opts.fps}"`)
   }
   return { opts, inputs }
 }
@@ -218,13 +234,16 @@ async function main() {
         continue
       }
 
-      console.log(`\n${system.title ?? name} — ${system.acts?.length ?? 0} phases, ${opts.shape}`)
+      console.log(
+        `\n${system.title ?? name} — ${system.acts?.length ?? 0} phases, ` +
+          `${opts.shape} ${opts.quality}p${opts.fps}`,
+      )
 
       // Kicked off rather than awaited, so the progress below is live. The page
       // holds the only reference to the promise's result until it settles.
       const done = page.evaluate(
         ([sys, o]) => window.__tfRender(sys, o),
-        [system, { shape: opts.shape, date: opts.date }],
+        [system, { shape: opts.shape, quality: opts.quality, fps: opts.fps, date: opts.date }],
       )
 
       let finished = false

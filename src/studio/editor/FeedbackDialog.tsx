@@ -31,6 +31,29 @@ import { useCallback, useEffect, useState } from 'react'
 import { FEEDBACK } from './guide'
 import { Button, TextArea } from './ui'
 import { sendFeedback, type FeedbackContext } from '../feedback'
+import { Mark } from '../viewer/Mark'
+
+/**
+ * A numbered section head.
+ *
+ * The three questions were three lines of small bold grey, which is how a form
+ * looks and not how anything else in this product looks. Everywhere else on the
+ * site a section opens with micro caps and a rule; the numbers are doing a
+ * second job on top of that, which is to say out loud that there are exactly
+ * three of these and where you are in them. A dialog that shows its own length
+ * is one people finish.
+ */
+function Ask({ n, label, children }: { n: number; label: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-ink-hair pt-4">
+      <p className="flex items-baseline gap-2 text-micro uppercase text-ink-faint">
+        <span className="font-black text-gold-deep">{String(n).padStart(2, '0')}</span>
+        <span>{label}</span>
+      </p>
+      <div className="mt-2.5">{children}</div>
+    </section>
+  )
+}
 
 const STAR = 'M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z'
 
@@ -124,8 +147,19 @@ function Recommend({ value, onChange }: { value: number | null; onChange: (v: nu
             role="radio"
             aria-checked={value === n}
             onClick={() => onChange(n)}
-            className={`h-8 w-8 rounded-md text-[12px] font-bold tabular-nums transition-colors ${
-              value === n ? 'bg-ink text-paper' : 'bg-paper text-ink-soft hover:bg-ink-hair hover:text-ink'
+            /*
+             * The chosen number in GOLD rather than in ink.
+             *
+             * Every other selected control in the studio is ink-on-paper,
+             * because they are all settings and a board full of gold would mean
+             * nothing. This is not a setting, it is the one answer we asked for,
+             * and it is the only place in the tool where the brand's own colour
+             * is used to say "you have told us something".
+             */
+            className={`h-8 w-8 rounded-md text-[12px] font-bold tabular-nums transition-all ${
+              value === n
+                ? 'bg-gold text-ink shadow-paper'
+                : 'bg-paper text-ink-soft hover:bg-ink-hair hover:text-ink'
             }`}
           >
             {n}
@@ -179,43 +213,74 @@ export function FeedbackDialog({ context, onClose }: Props) {
       aria-label={FEEDBACK.title}
       onPointerDown={(e) => e.target === e.currentTarget && !sent && onClose(false)}
     >
-      <div className="w-full max-w-md rounded-2xl border border-ink-hair bg-surface p-6 shadow-lift">
-        {sent ? (
-          <p className="py-6 text-center text-[15px] font-bold text-ink">{FEEDBACK.thanks}</p>
-        ) : (
-          <>
-            <h2 className="text-xl font-black tracking-display text-ink">{FEEDBACK.title}</h2>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{FEEDBACK.body}</p>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-lift">
+        {/*
+         * THE BAR AT THE TOP is the whole reason this now looks like ours.
+         *
+         * The dialog used to open on a bold sentence, which is what a form
+         * looks like anywhere. The gradient is the site's own — the same one
+         * behind every section rule on the marketing pages — and it does one
+         * useful thing beyond decoration: it says, before a word is read, that
+         * this is the tool talking and not a survey widget bolted onto it. That
+         * is exactly the doubt that stops somebody answering honestly.
+         */}
+        <div className="h-1 w-full bg-tf-gradient" />
 
-            <div className="mt-5">
-              <p className="mb-2 text-[11px] font-bold text-ink-soft">{FEEDBACK.rating}</p>
-              <StarRating value={rating} onChange={setRating} />
+        <div className="p-6">
+          {sent ? (
+            // The thanks. Given room rather than squeezed into the space the
+            // form left behind: it is on screen for 1.4 seconds and it is the
+            // last thing they see of this, so it gets the mark and the rule and
+            // reads as a sign-off instead of as a toast.
+            <div className="flex flex-col items-center py-8 text-center">
+              <Mark size={38} />
+              <div className="mt-4 h-[3px] w-8 rounded-full bg-gold" />
+              <p className="mt-4 text-lg font-black tracking-display text-ink">{FEEDBACK.thanks}</p>
             </div>
+          ) : (
+            <>
+              <header className="flex items-start gap-3.5">
+                <div className="shrink-0 pt-0.5">
+                  <Mark size={30} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-micro uppercase text-ink-faint">The studio</p>
+                  <h2 className="mt-1 text-xl font-black leading-tight tracking-display text-ink">
+                    {FEEDBACK.title}
+                  </h2>
+                </div>
+              </header>
+              <p className="mt-2.5 text-[12px] leading-relaxed text-ink-soft">{FEEDBACK.body}</p>
 
-            <div className="mt-5">
-              <p className="mb-2 text-[11px] font-bold text-ink-soft">{FEEDBACK.recommend}</p>
-              <Recommend value={recommend} onChange={setRecommend} />
-            </div>
+              <div className="mt-5 space-y-4">
+                <Ask n={1} label={FEEDBACK.rating}>
+                  <StarRating value={rating} onChange={setRating} />
+                </Ask>
 
-            <div className="mt-5">
-              <p className="mb-2 text-[11px] font-bold text-ink-soft">{FEEDBACK.note}</p>
-              <TextArea value={note} onChange={setNote} placeholder={FEEDBACK.notePlaceholder} rows={3} />
-            </div>
+                <Ask n={2} label={FEEDBACK.recommend}>
+                  <Recommend value={recommend} onChange={setRecommend} />
+                </Ask>
 
-            <div className="mt-5 flex items-center gap-2">
-              <Button variant="solid" onClick={send} disabled={!answered} className="!px-4 !py-2.5 !text-sm">
-                {FEEDBACK.send}
-              </Button>
-              <Button onClick={() => onClose(false)} className="ml-auto">
-                {FEEDBACK.later}
-              </Button>
-            </div>
+                <Ask n={3} label={FEEDBACK.note}>
+                  <TextArea value={note} onChange={setNote} placeholder={FEEDBACK.notePlaceholder} rows={3} />
+                </Ask>
+              </div>
 
-            <p className="mt-4 border-t border-ink-hair pt-3 text-[11px] leading-relaxed text-ink-faint">
-              {FEEDBACK.foot}
-            </p>
-          </>
-        )}
+              <div className="mt-5 flex items-center gap-2">
+                <Button variant="solid" onClick={send} disabled={!answered} className="!px-4 !py-2.5 !text-sm">
+                  {FEEDBACK.send}
+                </Button>
+                <Button onClick={() => onClose(false)} className="ml-auto">
+                  {FEEDBACK.later}
+                </Button>
+              </div>
+
+              <p className="mt-4 border-t border-ink-hair pt-3 text-[11px] leading-relaxed text-ink-faint">
+                {FEEDBACK.foot}
+              </p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

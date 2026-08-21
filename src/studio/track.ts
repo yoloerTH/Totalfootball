@@ -45,6 +45,24 @@ export const STUDIO_EVENTS = {
   videoSaved: 'studio:video-saved',
   /** The print stylesheet was used, which is how the PDF export happens. */
   printed: 'studio:printed',
+  /**
+   * Somebody who arrived on a shared link pressed a build-your-own button, with
+   * which one they pressed.
+   *
+   * The most important number on this list and the only one about a person who
+   * is not a coach of ours yet. Every other event here is a user doing
+   * something; this is the loop closing — one coach's system reaching a second
+   * coach and that coach reaching for the tool. A share link that is opened
+   * hundreds of times and converts nobody is a different problem from one that
+   * is never opened, and without this the two look identical.
+   */
+  viewerCta: 'studio:viewer-cta',
+  /**
+   * A link was sent from the share dialog, by which route: WhatsApp, mail, the
+   * system share sheet, or the clipboard. Counted at the press, because that is
+   * genuinely all we can see — what happens in WhatsApp afterwards is theirs.
+   */
+  shareSent: 'studio:share-sent',
   /** Somebody pressed a sign-in button. The attempt, not the outcome: the
       outcome is a redirect to Google and back, on a different page load. */
   signIn: 'studio:sign-in',

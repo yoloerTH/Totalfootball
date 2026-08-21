@@ -14,8 +14,34 @@
  */
 
 import { U } from './pitch'
-import { arrowStyle, bandStyle, useSurface } from './surfaces'
-import type { ArrowKind, BandKind } from '../schema'
+import { arrowStyle, resolveBandStyle, useSurface, type BandStrength, type BandTone } from './surfaces'
+import type { ArrowKind, BandKind, BandShape } from '../schema'
+
+/**
+ * What a coach has changed about one band's appearance, as the board sees it.
+ *
+ * The document stores these as plain strings (see `Band` in ../schema.ts), and
+ * they are narrowed HERE rather than there — an unrecognised value has to land
+ * somewhere, and the only sane place for it to land is the drawing code, which
+ * can shrug and use the house treatment. A document written by a newer build
+ * therefore opens in an older one and simply looks like it always did.
+ */
+export interface BandLook {
+  tone?: string
+  strength?: string
+  shape?: BandShape
+  solid?: boolean
+}
+
+const TONES = ['gold', 'red', 'green', 'blue', 'grey']
+const STRENGTHS = ['soft', 'normal', 'strong']
+
+function look(l: BandLook | undefined) {
+  return {
+    tone: l && TONES.includes(l.tone ?? '') ? (l.tone as BandTone) : undefined,
+    strength: l && STRENGTHS.includes(l.strength ?? '') ? (l.strength as BandStrength) : undefined,
+  }
+}
 
 const u = (m: number) => m * U
 
@@ -206,6 +232,8 @@ interface BlockBandProps {
   close: { axis: 'x' | 'y'; at: number }
   label?: string
   active?: boolean
+  /** The coach's overrides, if they have set any. */
+  band?: BandLook
   onPointerDown?: (e: React.PointerEvent<SVGPathElement>) => void
 }
 
@@ -215,10 +243,13 @@ interface BlockBandProps {
  * This is the single most recognisable visual in the library and the reason
  * `defending-in-a-back-four` reads at a glance.
  */
-export function BlockBand({ idp, kind, pts, close, label, active, onPointerDown }: BlockBandProps) {
+export function BlockBand({ idp, kind, pts, close, label, active, band, onPointerDown }: BlockBandProps) {
   if (pts.length < 2) return null
   const p = useSurface()
-  const s = bandStyle(p)[kind]
+  const s = resolveBandStyle(p, kind, look(band))
+  // Keyed by the band's OWN id upstream, so two blocks in different colours on
+  // the same board do not collide on one gradient and both come out the first
+  // one's colour.
   const gid = `${idp}-band-${kind}`
   const first = pts[0]
   const last = pts[pts.length - 1]
@@ -306,14 +337,42 @@ interface ZoneProps {
   rect: { x: number; y: number; w: number; h: number }
   label?: string
   active?: boolean
-  onPointerDown?: (e: React.PointerEvent<SVGRectElement>) => void
+  band?: BandLook
+  onPointerDown?: (e: React.PointerEvent<SVGElement>) => void
 }
 
-/** A plain shaded rectangle: the danger zone, a channel, a trap. */
-export function Zone({ idp, kind, rect, label, active, onPointerDown }: ZoneProps) {
+/**
+ * A plain shaded area: the danger zone, a channel, a trap.
+ *
+ * Three outlines off one rectangle. The stored geometry is a box whatever the
+ * shape is, and that is deliberate rather than lazy — it means changing an
+ * ellipse to a box is a change of appearance and not a redraw, the resize grips
+ * in the editor are the same four corners for all three, and nothing about the
+ * document has to know which one is showing.
+ */
+export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: ZoneProps) {
   const p = useSurface()
-  const s = bandStyle(p)[kind]
+  const s = resolveBandStyle(p, kind, look(band))
   const gid = `${idp}-zone-${kind}`
+  const shape: BandShape = band?.shape ?? 'box'
+
+  // A round box's corner radius is a fraction of its SHORT side, so a long thin
+  // channel comes out with the same visible softness as a square pocket rather
+  // than turning into a lozenge.
+  const rx =
+    shape === 'round' ? Math.min(rect.w, rect.h) * 0.22 : shape === 'box' ? u(0.6) : 0
+
+  const common = {
+    fill: `url(#${gid})`,
+    stroke: active ? p.goldDeep : s.tone,
+    strokeOpacity: active ? 0.9 : s.edge,
+    strokeWidth: active ? u(0.5) : u(0.26),
+    strokeDasharray: band?.solid ? undefined : `${u(1.4)} ${u(0.9)}`,
+    pointerEvents: (onPointerDown ? 'fill' : undefined) as 'fill' | undefined,
+    onPointerDown,
+    style: onPointerDown ? { cursor: 'pointer' } : undefined,
+  }
+
   return (
     <g pointerEvents="none">
       <defs>
@@ -322,25 +381,26 @@ export function Zone({ idp, kind, rect, label, active, onPointerDown }: ZoneProp
           <stop offset="100%" stopColor={s.tone} stopOpacity={s.fill * 0.45} />
         </linearGradient>
       </defs>
-      <rect
-        x={rect.x}
-        y={rect.y}
-        width={rect.w}
-        height={rect.h}
-        rx={u(0.6)}
-        fill={`url(#${gid})`}
-        stroke={active ? p.goldDeep : s.tone}
-        strokeOpacity={active ? 0.9 : s.edge}
-        strokeWidth={active ? u(0.5) : u(0.26)}
-        strokeDasharray={`${u(1.4)} ${u(0.9)}`}
-        pointerEvents={onPointerDown ? 'fill' : undefined}
-        onPointerDown={onPointerDown}
-        style={onPointerDown ? { cursor: 'pointer' } : undefined}
-      />
+
+      {shape === 'ellipse' ? (
+        <ellipse
+          cx={rect.x + rect.w / 2}
+          cy={rect.y + rect.h / 2}
+          rx={rect.w / 2}
+          ry={rect.h / 2}
+          {...common}
+        />
+      ) : (
+        <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rx} {...common} />
+      )}
+
       {label && (
+        // Inside the top edge on a box, and pushed down on an ellipse — the
+        // corner of an ellipse's bounding box is empty grass, so a label set at
+        // the box's top sits outside the shape it is naming.
         <text
           x={rect.x + rect.w / 2}
-          y={rect.y + u(2.4)}
+          y={rect.y + (shape === 'ellipse' ? rect.h * 0.5 + u(0.6) : u(2.4))}
           textAnchor="middle"
           fontFamily="Inter Variable, Inter, system-ui, sans-serif"
           fontWeight={800}

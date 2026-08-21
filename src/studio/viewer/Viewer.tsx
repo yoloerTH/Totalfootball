@@ -32,6 +32,7 @@ import { DEFAULT_HOLD_MS, holdMs } from '../pace'
 import { MOVE_MS, resolveAct, tweenActs } from '../tween'
 import { fetchShared, idFromPath, systemFromHash } from '../share'
 import type { System } from '../schema'
+import { BuildCta } from './BuildCta'
 import { CreditBar, formatDate } from './CreditBar'
 import { Mark } from './Mark'
 import { STUDIO_EVENTS, track } from '../track'
@@ -208,6 +209,11 @@ export default function Viewer() {
       ? tweenActs(system.acts[move.from], system.acts[move.to], p, system)
       : resolveAct(act, system)
 
+  // Settled on the last phase: at the end, and not still travelling towards it.
+  // A single-phase system counts as finished the moment it has loaded — there is
+  // nothing left for it to do.
+  const atEnd = index >= count - 1 && !move
+
   return (
     <>
       {/* ── on screen ── */}
@@ -288,6 +294,17 @@ export default function Viewer() {
               </button>
             )}
           </div>
+
+          {/*
+           * The invitation, once the system has finished saying its piece.
+           *
+           * Gated on being ON the last phase and NOT mid-playback, which are two
+           * conditions rather than one on purpose: arriving at the end of an
+           * autoplay run and stopping there should show it, and scrubbing
+           * through the last phase on the way somewhere should not. See the
+           * header of ./BuildCta.tsx for why it waits at all.
+           */}
+          {atEnd && !playing && <BuildCta phases={count} />}
         </main>
 
         <footer className="bg-surface">
@@ -374,7 +391,7 @@ function PrintSheet({ system }: { system: System }) {
           {a.notes && <p className="tf-slide-notes">{a.notes}</p>}
 
           <div className="tf-slide-credit">
-            <CreditBar credit={credit} compact />
+            <CreditBar credit={credit} compact cta={false} />
           </div>
         </section>
       ))}

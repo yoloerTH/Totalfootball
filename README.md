@@ -251,6 +251,26 @@ node scripts/analytics-report.mjs      # the dashboard, on demand, last 30 days
 which is granted to `service_role` only — see `supabase/006_reporting.sql`,
 which is where that function is finally written down.
 
+**The log folds itself down.** `site_events` keeps roughly the last four days
+as individual rows and nothing older. Every day before that is collapsed into
+ONE row of `public.site_events_daily` — totals, plus the day's top paths,
+referrers, countries, devices and click labels as jsonb maps — and the rows it
+was made of are deleted. The daily report runs it as its last act, after every
+figure it prints has already been read, and says at the foot of the message how
+much it folded. To do it by hand, or for the first time:
+
+```bash
+node scripts/compact-events.mjs --dry     # what it would do, changing nothing
+node scripts/compact-events.mjs           # fold everything older than 4 days
+```
+
+The function refuses a window under three days, because the report reads back
+96 hours and folding into that would quietly change the numbers it has already
+sent. `public.site_events_history` reads the folded days and the raw tail as one
+table, which is what to query for anything spanning more than a few days —
+`analytics-report.mjs` says so out loud when the window you asked for is longer
+than the raw rows go back. See `supabase/009_site_events_rollup.sql`.
+
 **Three kinds of row.** `pageview` and `duration` are automatic.
 `click` is opt-in and carries a label:
 
