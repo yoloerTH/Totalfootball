@@ -108,6 +108,14 @@ as $$
   ) summed
 $$;
 
+-- A pure helper over two jsonb values with no data access of its own, so this
+-- is tidiness rather than a hole being closed. It is here because the default
+-- grant on a new function is EXECUTE to PUBLIC, and a project whose whole
+-- posture is "anon holds the key that is in the browser bundle" should not have
+-- functions it did not decide to expose.
+revoke all on function public.jsonb_add_counts(jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.jsonb_add_counts(jsonb, jsonb) to service_role;
+
 -- ── the compaction ──────────────────────────────────────────────────────────
 --
 -- ONE STATEMENT, and that is the only interesting thing about it. The DELETE is
