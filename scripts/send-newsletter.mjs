@@ -1,41 +1,47 @@
 /**
- * Send an HTML newsletter to every active subscriber.
+ * Build a newsletter edition and hand it to Zoho Campaigns.
  *
  *   node scripts/send-newsletter.mjs content/newsletters/2026-08-16.html
- *        preview only: writes dist-preview/newsletter.html, prints the plain
- *        text part and the recipient count. Sends nothing. Safe to re-run.
- *
- *   node scripts/send-newsletter.mjs content/newsletters/2026-08-16.html --send
- *        actually sends, to everyone with unsubscribed_at is null.
+ *        Builds and lints. Writes the web copy to public/newsletters/ and a
+ *        preview to dist-preview/. Touches nothing remote. Safe to re-run.
  *
  *   node scripts/send-newsletter.mjs content/newsletters/2026-08-16.html --test you@example.com
- *        sends exactly one copy to the given address, real send, real
- *        per-recipient unsubscribe link, list untouched. For checking a
- *        design or subject line lands looking right before the real send.
+ *        One real copy to one address through ZeptoMail, with a working
+ *        per-recipient unsubscribe link. The list is not touched. For
+ *        checking that a design and a subject line land right in a real inbox.
  *
- * The content file is the INNER html only — the <h2>/<p>/<a> body that goes
- * inside scripts/lib/email.mjs's wrapEmail() shell, not a full document. That
- * split exists so the wordmark, unsubscribe footer and postal address (legally
- * required, see supabase/007 + netlify/functions/unsubscribe.mts) can't be
- * dropped by whoever writes next week's content.
+ *   node scripts/send-newsletter.mjs content/newsletters/2026-08-16.html --campaign
+ *        Creates the campaign in Zoho Campaigns as a DRAFT, pointed at the
+ *        deployed web copy. It does NOT send. You press send in Campaigns.
  *
- * Its subject and preheader are read from a comment block at the top of that
- * same file (see frontMatter below) rather than passed on the command line.
- * A subject is part of the edition, not part of the invocation: kept in the
- * file it is version-controlled, reviewable in the diff, and cannot end up
- * describing last week's content because somebody forgot to change the shell
- * variable.
+ * ── WHAT CHANGED, AND WHY THERE IS NO --send ANY MORE ───────────────────────
  *
- * Uses the SERVICE ROLE key to read subscribers, same as
- * scripts/analytics-report.mjs and netlify/functions/daily-report.mts — anon
- * has no SELECT on this table (supabase/001).
+ * This script used to read the subscriber list and blast it down Zoho Mail
+ * SMTP, one message per recipient. That is gone. Zoho Mail is a MAILBOX, and
+ * bulk sending through a mailbox is the thing that gets a domain's reputation
+ * marked down — there is no per-campaign reputation, no bounce processing, no
+ * complaint feedback loop, and a few hundred a day ceiling that the list will
+ * cross. Newsletters now go through Campaigns, which is built for it.
+ *
+ * The consequence to understand: the unsubscribe link in a CAMPAIGN is not
+ * ours. It cannot be — our link is an HMAC of the recipient's address (see
+ * scripts/lib/email.mjs) and Campaigns, which does the merging, has no way to
+ * compute one. So the campaign copy uses Campaigns' own `$[LI:UNSUBSCRIBE]$`
+ * merge tag, and scripts/sync-campaigns.mjs pulls the resulting opt-outs back
+ * into email_suppressions so both halves of the system honour them. The
+ * --test path still uses our real signed link, because that one goes through
+ * ZeptoMail where we do the merging ourselves.
+ *
+ * The content file is unchanged: INNER html only, with a `key: value` comment
+ * block at the top for subject/preheader/edition/hero.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   SITE,
   FROM,
+  REPLY_TO,
   unsubscribeUrl,
   wrapEmail,
   htmlToText,
@@ -43,16 +49,23 @@ import {
   transportName,
   lintEmailHtml,
 } from './lib/email.mjs'
+import { createCampaign, campaignsConfigured, LIST_KEY } from './lib/campaigns.mjs'
+import { audience } from './lib/audience.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 
+/** Campaigns refuses to send a campaign whose content has no unsubscribe. */
+const CAMPAIGNS_UNSUBSCRIBE_TAG = '$[LI:UNSUBSCRIBE]$'
+
 const [, , contentPath, ...rest] = process.argv
-const SEND = rest.includes('--send')
+const CAMPAIGN = rest.includes('--campaign')
 const testIdx = rest.indexOf('--test')
 const TEST_EMAIL = testIdx >= 0 ? rest[testIdx + 1] : null
 
 if (!contentPath) {
-  console.error('usage: node scripts/send-newsletter.mjs <content.html> [--send | --test <email>]')
+  console.error(
+    'usage: node scripts/send-newsletter.mjs <content.html> [--test <email> | --campaign]',
+  )
   process.exit(1)
 }
 if (testIdx >= 0 && !TEST_EMAIL) {
@@ -92,6 +105,8 @@ const { meta, body: bodyHtml } = frontMatter(raw)
 const subject = process.env.SUBJECT || meta.subject
 const preheader = meta.preheader || ''
 const edition = meta.edition || ''
+const series = meta.series || 'Tactical Dispatch'
+const slug = basename(contentPath).replace(/\.html?$/i, '')
 
 // A relative `hero:` is resolved against the live origin, so the content file
 // names an asset in public/ and never has to hardcode a domain.
@@ -110,53 +125,31 @@ if (!subject) {
   process.exit(1)
 }
 
-function supabaseCreds() {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY }
-  }
-  const env = readFileSync(join(ROOT, '.env'), 'utf8')
-  const url = env.match(/^SUPABASE_URL=(.*)$/m)?.[1]?.trim()
-  const key = env.match(/^SUPABASE_SERVICE_ROLE_KEY=(.*)$/m)?.[1]?.trim()
-  if (!url || !key) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not found')
-  return { url, key }
-}
-
-async function activeSubscribers() {
-  const { url, key } = supabaseCreds()
-  const res = await fetch(
-    `${url}/rest/v1/subscribers?select=email&unsubscribed_at=is.null&order=created_at.asc`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}` } },
-  )
-  if (!res.ok) throw new Error(`supabase ${res.status}: ${await res.text()}`)
-  return res.json()
-}
-
-/** Everything one recipient needs. The unsubscribe link differs per address. */
+/** Everything one recipient needs, for the ZeptoMail --test path only. */
 const message = (to, subjectLine) => {
   const unsub = unsubscribeUrl(to)
   return {
     to,
     subject: subjectLine,
-    html: wrapEmail({ preheader, bodyHtml, unsubscribe: unsub, edition, hero }),
+    html: wrapEmail({ preheader, bodyHtml, unsubscribe: unsub, edition, series, hero }),
     text: htmlToText(bodyHtml, { unsubscribe: unsub }),
     unsubscribeUrl: unsub,
   }
 }
 
-// A test send goes to one hand-typed address and never touches the list, so
-// it does not need the service role key to be present or working.
-const rows = TEST_EMAIL ? [] : await activeSubscribers()
+/* ── Report ──────────────────────────────────────────────────────────────── */
 
-console.log(`\nTOTAL FOOTBALL — newsletter\n${'='.repeat(48)}`)
+console.log(`\nTOTAL FOOTBALL — newsletter\n${'='.repeat(52)}`)
 console.log(`Content    ${contentPath}`)
 console.log(`Edition    ${edition || '(none)'}`)
+console.log(`Series     ${series}`)
 console.log(`Subject    ${subject}`)
 console.log(`Preheader  ${preheader || '(none — the client will scrape the body)'}`)
 console.log(`Hero       ${hero ? hero.src : '(none)'}`)
 console.log(`From       ${FROM}`)
 console.log(`Links use  ${SITE}`)
-console.log(`Transport  ${transportName() ?? 'NONE CONFIGURED'}`)
-if (!TEST_EMAIL) console.log(`Recipients ${rows.length} (unsubscribed_at is null)`)
+console.log(`Test via   ${transportName() ?? 'NO TRANSPORT CONFIGURED'}`)
+console.log(`Broadcast  Zoho Campaigns ${campaignsConfigured() ? `(list ${LIST_KEY.slice(0, 8)}…)` : '(NOT CONFIGURED)'}`)
 
 const warnings = lintEmailHtml(bodyHtml)
 if (warnings.length) {
@@ -164,8 +157,30 @@ if (warnings.length) {
   for (const w of warnings) console.log(`  ! ${w}`)
 }
 
-// Render once against a placeholder link so a human can eyeball the layout —
-// the real per-recipient link is swapped in per-email at send time, below.
+/* ── Build both copies ───────────────────────────────────────────────────── */
+
+// The campaign copy. Its unsubscribe href is Campaigns' merge tag, which
+// Campaigns replaces per recipient when it sends.
+const campaignHtml = wrapEmail({
+  preheader,
+  bodyHtml,
+  unsubscribe: CAMPAIGNS_UNSUBSCRIBE_TAG,
+  edition,
+  series,
+  hero,
+})
+
+// Written into public/ so it deploys with the site. This is what Campaigns
+// fetches — it does not accept HTML in the request body — and it doubles as
+// the permanent web archive of the edition.
+const webDir = join(ROOT, 'public', 'newsletters')
+mkdirSync(webDir, { recursive: true })
+const webPath = join(webDir, `${slug}.html`)
+writeFileSync(webPath, campaignHtml)
+const contentUrl = `${SITE}/newsletters/${slug}.html`
+
+// The human preview, with a dead placeholder link so nobody clicks it and
+// opts a real address out while checking a layout.
 const previewDir = join(ROOT, 'dist-preview')
 mkdirSync(previewDir, { recursive: true })
 const previewPath = join(previewDir, 'newsletter.html')
@@ -176,43 +191,104 @@ writeFileSync(
     bodyHtml,
     unsubscribe: '#preview-only-real-links-are-per-recipient',
     edition,
+    series,
     hero,
   }),
 )
 const textPath = join(previewDir, 'newsletter.txt')
 writeFileSync(textPath, htmlToText(bodyHtml, { unsubscribe: `${SITE}/api/unsubscribe?…` }))
-console.log(`Preview    file://${previewPath}`)
+
+console.log(`\nPreview    file://${previewPath}`)
 console.log(`Plain text file://${textPath}`)
+console.log(`Web copy   ${webPath}`)
+console.log(`           → ${contentUrl}`)
+
+/* ── Test send ───────────────────────────────────────────────────────────── */
 
 if (TEST_EMAIL) {
+  if (!transportName()) {
+    console.error('\nNo mail transport. Set ZEPTOMAIL_TOKEN in .env.')
+    process.exit(1)
+  }
   console.log(`\nTest send → ${TEST_EMAIL} (real send, list untouched)…`)
   await sendBatch([message(TEST_EMAIL, `[TEST] ${subject}`)])
   console.log(`Done. Sent to ${TEST_EMAIL}.`)
   process.exit(0)
 }
 
-if (!SEND) {
-  console.log(`\nDry run. Open the preview above, then re-run with --send to deliver.`)
+/* ── Campaign ────────────────────────────────────────────────────────────── */
+
+if (!CAMPAIGN) {
+  // Reported, never swallowed. A build step that prints "0 sendable" because
+  // the query failed looks identical to one that prints it because the list
+  // is empty, and those need very different responses.
+  try {
+    const { sendable, suppressed, invalid } = await audience()
+    console.log(
+      `\nAudience   ${sendable.length} sendable, ${suppressed.length} suppressed` +
+        (invalid.length ? `, ${invalid.length} malformed` : ''),
+    )
+  } catch (err) {
+    console.log(`\nAudience   could not be read — ${err.message}`)
+  }
+  console.log(`\nBuilt, not sent. Next:`)
+  console.log(`  1. open the preview above and read it`)
+  console.log(`  2. --test <you@…> for a real inbox check`)
+  console.log(`  3. commit and deploy, so ${contentUrl} is live`)
+  console.log(`  4. node scripts/sync-campaigns.mjs --run`)
+  console.log(`  5. re-run this with --campaign to create the draft\n`)
   process.exit(0)
 }
 
-if (!rows.length) {
-  console.log('\nNo active subscribers. Nothing sent.')
-  process.exit(0)
+if (!campaignsConfigured()) {
+  console.error(
+    '\nZoho Campaigns is not configured. Needed in .env (see docs/EMAIL.md):\n' +
+      '  ZOHO_CLIENT_ID\n  ZOHO_CLIENT_SECRET\n  ZOHO_REFRESH_TOKEN\n  ZOHO_CAMPAIGNS_LISTKEY\n',
+  )
+  process.exit(1)
 }
 
-console.log(`\nSending to ${rows.length}…`)
-
-// Resend's batch endpoint takes up to 100 per call; the Zoho path walks the
-// same array one message at a time over a pooled connection. Chunked either
-// way so neither transport is ever handed an unbounded list.
-const CHUNK = 100
-let sent = 0
-for (let i = 0; i < rows.length; i += CHUNK) {
-  const chunk = rows.slice(i, i + CHUNK)
-  await sendBatch(chunk.map(({ email }) => message(email, subject)))
-  sent += chunk.length
-  console.log(`  sent ${sent}/${rows.length}`)
+/**
+ * Campaigns fetches content_url itself and, if the URL 404s, creates the
+ * campaign with EMPTY CONTENT rather than reporting a failure. That is a
+ * silent way to send a blank newsletter to the whole list, so the URL is
+ * checked here first and a missing one is fatal.
+ */
+console.log(`\nChecking ${contentUrl} is live…`)
+const live = await fetch(contentUrl, { redirect: 'follow' }).catch(() => null)
+if (!live?.ok) {
+  console.error(
+    `\n  ${contentUrl}\n  is not reachable (${live ? live.status : 'network error'}).\n\n` +
+      `  Campaigns fetches this URL for the campaign body; if it 404s the campaign\n` +
+      `  is created empty. Commit public/newsletters/${slug}.html, deploy, then re-run.\n`,
+  )
+  process.exit(1)
 }
 
-console.log(`\nDone. ${sent} sent.`)
+const fetched = await live.text()
+if (!fetched.includes(CAMPAIGNS_UNSUBSCRIBE_TAG)) {
+  console.error(
+    `\n  The deployed copy at ${contentUrl} does not contain ${CAMPAIGNS_UNSUBSCRIBE_TAG}.\n` +
+      `  It is probably an older deploy. Push the current public/newsletters/${slug}.html first.\n`,
+  )
+  process.exit(1)
+}
+
+const campaignName = `${series}${edition ? ` — ${edition}` : ''} (${slug})`
+console.log(`Creating draft campaign "${campaignName}"…`)
+
+const { key, body } = await createCampaign({
+  name: campaignName,
+  subject,
+  fromEmail: FROM.match(/<([^>]+)>/)?.[1] ?? FROM,
+  fromName: FROM.match(/^\s*"?([^"<]*?)"?\s*</)?.[1]?.trim() ?? '',
+  contentUrl,
+})
+
+console.log(`\n${'='.repeat(52)}`)
+console.log(`Draft created${key ? `, key ${key}` : ''}.`)
+console.log(`Reply-to   ${REPLY_TO}`)
+console.log(`\nIt has NOT been sent. Open Zoho Campaigns, check the preview and the`)
+console.log(`recipient count, then send it there.`)
+if (!key) console.log(`\n(raw response: ${JSON.stringify(body)})`)
+console.log()

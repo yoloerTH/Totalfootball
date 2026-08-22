@@ -1,5 +1,13 @@
 /**
- * One-click unsubscribe. The only writer of `subscribers.unsubscribed_at`.
+ * One-click unsubscribe. The site's own opt-out endpoint, and the writer of
+ * `email_suppressions` — the table every sender checks, across both ZeptoMail
+ * (product mail) and Zoho Campaigns (newsletters).
+ *
+ * An opt-out recorded here reaches Campaigns on the next run of
+ * scripts/sync-campaigns.mjs, which pushes suppressions up and pulls
+ * Campaigns' own unsubscribes and bounces back down. Until that runs, this
+ * side is correct and Campaigns is stale — so the sync is a precondition of a
+ * send, not an afterthought.
  *
  * Reached two ways, both of which must work without a login:
  *   · a visitor clicking the link at the foot of an email
@@ -59,6 +67,28 @@ const page = (status: number, heading: string, message: string) =>
     { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
   )
 
+/**
+ * Record the opt-out.
+ *
+ * TWO WRITES, AND THE FIRST ONE IS THE ONE THAT COUNTS.
+ *
+ * This used to be a single PATCH of `subscribers.unsubscribed_at`, and it was
+ * quietly broken for a whole class of person. A Studio account holder has no
+ * row in `subscribers` — they are in `auth.users` — so the PATCH matched zero
+ * rows, PostgREST returned 204, this function reported success, and the page
+ * told them they were unsubscribed. They were not. The next send read them
+ * straight out of `auth.users` and mailed them again.
+ *
+ * So the authoritative write is now the upsert into `email_suppressions`
+ * (supabase/010), which is keyed by ADDRESS and therefore works for somebody
+ * we hold no subscriber row for at all. `email_audience.suppressed` reads it,
+ * and every sender reads that.
+ *
+ * The PATCH is kept as a second, best-effort write so the legacy column stays
+ * truthful for anything still reading it directly, but its result is NOT what
+ * this function reports: a Studio-only address will always match zero rows
+ * there, and that is not a failure.
+ */
 async function unsubscribe(email: string): Promise<boolean> {
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -67,26 +97,45 @@ async function unsubscribe(email: string): Promise<boolean> {
     return false
   }
 
-  const res = await fetch(
-    `${url}/rest/v1/subscribers?email=eq.${encodeURIComponent(email)}`,
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    'Content-Type': 'application/json',
+  }
+
+  // Idempotent by design: clicking an old link twice, or Gmail's One-Click
+  // POST arriving alongside a human click, must not be an error.
+  const suppression = await fetch(
+    `${url}/rest/v1/email_suppressions?on_conflict=email`,
     {
-      method: 'PATCH',
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      // Idempotent: already-unsubscribed rows are simply overwritten with the
-      // same intent, so clicking an old link twice is not an error.
-      body: JSON.stringify({ unsubscribed_at: new Date().toISOString() }),
+      method: 'POST',
+      headers: { ...headers, Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify([{ email, reason: 'unsubscribe', source: 'site' }]),
     },
   )
 
-  if (!res.ok) {
-    console.error('unsubscribe: supabase responded', res.status, await res.text())
+  if (!suppression.ok) {
+    console.error('unsubscribe: suppression write failed', suppression.status, await suppression.text())
     return false
   }
+
+  // Best effort, and deliberately not awaited into the return value.
+  try {
+    const legacy = await fetch(
+      `${url}/rest/v1/subscribers?email=eq.${encodeURIComponent(email)}`,
+      {
+        method: 'PATCH',
+        headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify({ unsubscribed_at: new Date().toISOString() }),
+      },
+    )
+    if (!legacy.ok) {
+      console.error('unsubscribe: legacy column not updated', legacy.status, await legacy.text())
+    }
+  } catch (err) {
+    console.error('unsubscribe: legacy column not updated —', err)
+  }
+
   return true
 }
 

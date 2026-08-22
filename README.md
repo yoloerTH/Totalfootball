@@ -238,6 +238,40 @@ table, which would mean granting anon the ability to read subscriber addresses.
 Instead the unique constraint raises 409 and the function treats it as success.
 Same result for the visitor, least privilege for the role.
 
+## Sending email
+
+Two Zoho products, split by job. **Full setup, including every DNS record:
+[`docs/EMAIL.md`](docs/EMAIL.md).**
+
+| | product | carries |
+|---|---|---|
+| Product mail | ZeptoMail | the welcome, and anything triggered by one person's action |
+| Broadcast | Zoho Campaigns | newsletters |
+
+Zoho Mail SMTP is **no longer a bulk sender** — it is a mailbox, with no
+per-campaign reputation, no bounce processing and no feedback loop. It stays
+configured only as a fallback for product mail.
+
+`public.email_audience` (`supabase/010`) is the single definition of who gets
+mailed, folding `subscribers` and confirmed `auth.users` into one row per
+inbox. Every sender reads it through `scripts/lib/audience.mjs`. Never rebuild
+that union by hand in a script.
+
+`public.email_suppressions` is the opt-out list, keyed by **address** rather
+than by membership of a list — which is what lets it suppress a Studio account
+holder, who has no `subscribers` row at all. Before it existed, unsubscribing
+such a person patched zero rows, returned 204, told them they were
+unsubscribed, and mailed them again on the next send.
+
+```bash
+npm run email:audience                              # who would be mailed, and who is suppressed
+npm run email:sync                                  # reconcile Supabase ↔ Campaigns, both directions
+npm run email:newsletter content/newsletters/X.html # build + lint; add --campaign to draft it
+```
+
+No script in this repo sends a broadcast. `--campaign` creates a **draft**; a
+human presses send in Campaigns.
+
 ## What gets measured
 
 Two readers of the same table, `public.site_events`:

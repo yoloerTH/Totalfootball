@@ -7,7 +7,11 @@
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "email:audience": "node scripts/sync-campaigns.mjs",
+    "email:sync": "node scripts/sync-campaigns.mjs --run",
+    "email:welcome": "node scripts/send-welcome.mjs",
+    "email:newsletter": "node scripts/send-newsletter.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",

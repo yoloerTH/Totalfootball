@@ -16,7 +16,7 @@
  *
  * Also sends the welcome automation on a genuinely new signup (see
  * sendWelcome below), which needs a mail transport and the signing secret:
- *   ZOHO_SMTP_USER / ZOHO_SMTP_PASS   or   RESEND_API_KEY
+ *   ZEPTOMAIL_TOKEN                   or   ZOHO_SMTP_USER / ZOHO_SMTP_PASS
  *   UNSUBSCRIBE_SECRET     same value as netlify/functions/unsubscribe.mts
  *   EMAIL_FROM
  *   EMAIL_REPLY_TO
@@ -44,13 +44,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
  * person who wrote it, so a copy living on its own drifts until the first
  * email a subscriber gets looks like a different company from the second.
  * Sharing the module also means this function inherits the transport choice
- * (Zoho SMTP or Resend), the plain-text part and the RFC 8058 unsubscribe
+ * (ZeptoMail or Zoho SMTP), the plain-text part and the RFC 8058 unsubscribe
  * headers without restating any of them.
  *
  * Env — any of it missing just skips the welcome, and the signup still
  * succeeds:
  *   UNSUBSCRIBE_SECRET                     same value as unsubscribe.mts
- *   ZOHO_SMTP_USER / ZOHO_SMTP_PASS        or RESEND_API_KEY
+ *   ZEPTOMAIL_TOKEN                        or ZOHO_SMTP_USER / ZOHO_SMTP_PASS
  *   EMAIL_FROM / EMAIL_REPLY_TO
  */
 async function sendWelcome(email: string, source: string, name: string | null) {

@@ -134,14 +134,15 @@ export function unsubscribeUrl(email) {
 const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 
 /** Ink at opacity, pre-flattened against the surface it sits on (Word cannot do rgba). */
-const INK = '#161618'
-const INK_SOFT = '#5E5E60' // ~ink/.62 on white
-const INK_FAINT = '#8A8A8C' // ~ink/.45 on the #EFEFEC ground
-const HAIRLINE = '#E2E2DE' // ~ink/.10 on the ground
-const HAIRLINE_ON_WHITE = '#E6E6E4'
-const GOLD_DEEP = '#C9902B'
-const PAPER = '#EFEFEC'
-const SURFACE = '#FFFFFF'
+const INK = '#F5F9F3'
+const INK_SOFT = '#B9D0C0' // broadcast ink at paragraph opacity, flattened
+const INK_FAINT = '#8FB39A' // broadcast ink at footer opacity, flattened
+const HAIRLINE_ON_WHITE = '#4D8C62'
+const PAPER = '#15512D' // broadcast run-off green
+const SURFACE = '#20683C' // broadcast turf panel
+const PITCH_LINE = '#F5F9F3'
+const GOLD = '#F2C55E'
+const ON_INK = '#14472A'
 
 /**
  * Wraps a body of HTML (already-styled <p>/<h2>/etc, written per-email) in the
@@ -159,7 +160,9 @@ export function wrapEmail({
   preheader = '',
   bodyHtml,
   unsubscribe,
+  reason = 'You are receiving this because you subscribed at totalfootball.naurra.ai.',
   edition = '',
+  series = 'Tactical Dispatch',
   hero = null,
   width = 580,
 }) {
@@ -184,33 +187,32 @@ export function wrapEmail({
 </style>
 <![endif]-->
 </head>
-<body style="margin:0;padding:0;width:100%;background-color:${PAPER};-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;width:100%;background-color:${PAPER};background-image:repeating-linear-gradient(90deg,${PAPER} 0 108px,#104324 108px 216px);-webkit-font-smoothing:antialiased;">
 
 <!-- Preheader. The trailing entities stop Gmail padding the preview line
      with whatever text happens to come next in the body. -->
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(preheader)}</div>
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${'&#8199;&#65279;&#847; '.repeat(30)}</div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${PAPER};">
-<tr><td align="center" style="padding:28px 16px 40px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${PAPER};background-image:repeating-linear-gradient(90deg,${PAPER} 0 108px,#104324 108px 216px);">
+<tr><td align="center" style="padding:32px 16px 44px;">
 
 <!--[if mso]><table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:${width}px;margin:0 auto;">
 
-${masthead(edition)}
+${masthead(edition, series)}
 
-<tr><td style="background-color:${SURFACE};border:1px solid #D8DDD5;border-top:4px solid ${INK};">
+<tr><td style="background-color:${SURFACE};border-top:6px solid ${PITCH_LINE};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-${fieldStrip()}
 ${hero ? heroRow(hero, width) : ''}
-    <tr><td style="padding:${hero ? '34px' : '40px'} 40px 42px;
+    <tr><td style="padding:${hero ? '38px' : '44px'} 40px 46px;
                    font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};">
 ${bodyHtml}
     </td></tr>
   </table>
 </td></tr>
 
-${footer(unsubscribe)}
+${footer(unsubscribe, reason)}
 
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
@@ -233,7 +235,7 @@ ${footer(unsubscribe)}
  * blocked — the default in Outlook and for any first-time sender — still
  * shows the brand as live text rather than an empty box.
  */
-const masthead = (edition) => `<tr><td style="padding:0 2px 14px;">
+const masthead = (edition, series) => `<tr><td style="padding:0 2px 18px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td align="left" valign="middle">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -247,40 +249,8 @@ const masthead = (edition) => `<tr><td style="padding:0 2px 14px;">
         </td>
       </tr></table>
     </td>
-    ${
-      edition
-        ? `<td align="right" valign="middle" style="font-family:${SANS};font-size:11px;line-height:1;
-             font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${INK_FAINT};">${escapeHtml(edition)}</td>`
-        : ''
-    }
-  </tr></table>
-</td></tr>`
-
-/**
- * A field-side marker which gives every email the same publication identity as
- * the website's paper-and-pitch stage. This is intentionally table-only: no
- * background images, SVG or CSS pseudo-elements that would disappear in an
- * inbox. The five tiny marks read as players across a touchline, but remain a
- * clean graphic bar when a client rounds off the cells.
- */
-const fieldStrip = () => `<tr><td style="background-color:#173E2D;padding:11px 22px 10px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td valign="middle" style="font-family:${SANS};font-size:10px;line-height:1;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#F1F3EC;">
-      The tactics notebook
-    </td>
-    <td align="right" valign="middle">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right"><tr>
-        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
-        <td width="7" height="7" style="width:7px;height:7px;background-color:#A9E4C5;border-radius:50%;font-size:0;line-height:0;">&nbsp;</td>
-      </tr></table>
-    </td>
+    <td align="right" valign="middle" style="font-family:${SANS};font-size:10px;line-height:1.2;
+         font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:${INK_FAINT};">${escapeHtml(series)}${edition ? `<br><span style="color:${GOLD};">${escapeHtml(edition)}</span>` : ''}</td>
   </tr></table>
 </td></tr>`
 
@@ -304,13 +274,13 @@ const heroRow = (hero, width) => `<tr><td style="font-size:0;line-height:0;">
       </a>
     </td></tr>`
 
-const footer = (unsubscribe) => `<tr><td style="padding:22px 4px 0;">
+const footer = (unsubscribe, reason) => `<tr><td style="padding:22px 4px 0;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td style="border-top:1px solid #D8DDD5;padding-top:20px;
+    <td style="border-top:1px solid ${HAIRLINE_ON_WHITE};padding-top:20px;
                font-family:${SANS};font-size:12px;line-height:1.7;font-weight:400;
                color:${INK_FAINT};text-align:center;">
       NAURRA AI LTD &middot; 10 Kyriakou Matsi, Liliana Court, 4th Floor, Nicosia 1082, Cyprus<br>
-      You are receiving this because you subscribed at totalfootball.naurra.ai.<br>
+      ${escapeHtml(reason)}<br>
       <a href="${unsubscribe}" style="color:${INK_FAINT};text-decoration:underline;">Unsubscribe</a>
       &nbsp;&middot;&nbsp;
       <a href="${SITE}/privacy/" style="color:${INK_FAINT};text-decoration:underline;">Privacy</a>
@@ -330,26 +300,65 @@ const footer = (unsubscribe) => `<tr><td style="padding:22px 4px 0;">
  * company from the second.
  */
 
-const P = `margin:0 0 18px;font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};`
-const KICKER = `margin:0 0 10px;font-family:${SANS};font-size:11px;line-height:1;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${GOLD_DEEP};`
-const H1 = `margin:0 0 18px;font-family:${SANS};font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-.02em;color:${INK};`
+const P = `margin:0 0 19px;font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};`
+const KICKER = `margin:0 0 12px;font-family:${SANS};font-size:11px;line-height:1;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7CF2B0;`
+const H1 = `margin:0 0 18px;font-family:${SANS};font-size:31px;line-height:1.12;font-weight:800;letter-spacing:-.025em;color:${INK};`
 
 /** A dark button. Padding on the <td>, because Outlook drops it off an <a>. */
 const cta = (href, label) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;"><tr>
     <td align="center" bgcolor="${INK}" style="background-color:${INK};">
       <a href="${href}" style="display:block;padding:15px 28px;font-family:${SANS};font-size:15px;
-         line-height:1;font-weight:700;color:#F4F4F2;text-decoration:none;">${label}</a>
+         line-height:1;font-weight:700;color:${ON_INK};text-decoration:none;">${label}</a>
     </td>
   </tr></table>`
 
-/** A labelled row in the "what happens now" list. */
-const row = (label, text, last = false) =>
-  `<tr><td style="padding:14px 0;${last ? '' : `border-bottom:1px solid ${HAIRLINE_ON_WHITE};`}">
-    <div style="font-family:${SANS};font-size:11px;line-height:1;font-weight:700;letter-spacing:.1em;
-                text-transform:uppercase;color:${GOLD_DEEP};padding-bottom:7px;">${label}</div>
-    <div style="font-family:${SANS};font-size:15px;line-height:1.6;font-weight:400;color:${INK};">${text}</div>
-  </td></tr>`
+/** A numbered, left-aligned rule: the email equivalent of a board annotation. */
+const rule = (number, title, text, last = false) =>
+  `<tr><td width="38" valign="top" style="width:38px;padding:15px 0;${last ? '' : `border-bottom:1px solid ${HAIRLINE_ON_WHITE};`}
+          font-family:${SANS};font-size:12px;line-height:1;font-weight:800;letter-spacing:.05em;color:#7CF2B0;">${number}</td>
+    <td valign="top" style="padding:13px 0 15px;${last ? '' : `border-bottom:1px solid ${HAIRLINE_ON_WHITE};`}">
+      <div style="margin:0 0 4px;font-family:${SANS};font-size:16px;line-height:1.3;font-weight:800;color:${INK};">${title}</div>
+      <div style="font-family:${SANS};font-size:15px;line-height:1.55;font-weight:400;color:${INK_SOFT};">${text}</div>
+    </td></tr>`
+
+const ruledList = (rows) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:25px 0 6px;border-top:2px solid ${PITCH_LINE};">${rows}</table>`
+
+/** A compact set of doors into the site, written as links rather than marketing cards. */
+const linkRow = (number, title, text, href, last = false) =>
+  '<tr>' +
+  '<td width="38" valign="top" style="width:38px;padding:15px 0;' +
+  (last ? '' : 'border-bottom:1px solid ' + HAIRLINE_ON_WHITE + ';') +
+  'font-family:' + SANS + ';font-size:12px;line-height:1;font-weight:800;letter-spacing:.05em;color:#7CF2B0;">' +
+  number +
+  '</td>' +
+  '<td valign="top" style="padding:13px 0 15px;' +
+  (last ? '' : 'border-bottom:1px solid ' + HAIRLINE_ON_WHITE + ';') +
+  '">' +
+  '<a href="' + href + '" style="font-family:' + SANS + ';font-size:16px;line-height:1.3;font-weight:800;color:' +
+  INK +
+  ';text-decoration:underline;text-underline-offset:3px;">' +
+  title +
+  ' &nbsp;&rarr;</a>' +
+  '<div style="margin-top:4px;font-family:' +
+  SANS +
+  ';font-size:15px;line-height:1.55;font-weight:400;color:' +
+  INK_SOFT +
+  ';">' +
+  text +
+  '</div></td></tr>'
+
+const linkList = (rows, label = 'Start here') =>
+  '<p style="' +
+  KICKER +
+  '">' +
+  label +
+  '</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:19px 0 6px;border-top:2px solid ' +
+  PITCH_LINE +
+  ';">' +
+  rows +
+  '</table>'
 
 /**
  * The message sent the moment somebody joins. `source` decides which of the
@@ -370,57 +379,73 @@ const row = (label, text, last = false) =>
  * @param {string} [opts.source]      the form the signup came from
  * @param {string | null} [opts.name] collected by the course form only
  * @param {string} [opts.unsubscribe] defaults to this address's signed link
+ * @param {string} [opts.reason]      plain-language reason shown in the footer
  * @returns {{ to: string, subject: string, html: string, text: string, unsubscribeUrl: string }}
  */
-export function welcomeEmail({ email, source = '', name = null, unsubscribe }) {
+export function welcomeEmail({
+  email,
+  source = '',
+  name = null,
+  unsubscribe,
+  reason = 'You are receiving this because you subscribed at totalfootball.naurra.ai.',
+}) {
   const isCourse = source === 'course-early-access' || source === 'course-waitlist'
   const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi,'
   const unsub = unsubscribe || unsubscribeUrl(email)
 
   const bodyHtml = isCourse
-    ? `<p style="${KICKER}">Early access confirmed</p>
-<h1 style="${H1}">Your place is held at &euro;39.</h1>
+    ? `<p style="${KICKER}">Course / early access</p>
+<h1 style="${H1}">Your price is held.<br>The work starts here.</h1>
 <p style="${P}">${greeting}</p>
 <p style="${P}">
-  You are on the early-access list for the course, and the price is locked. When it opens you hear
-  before it is public, and &euro;39/month is what you pay for as long as you stay subscribed &mdash;
-  it does not move when the public price does.
+  You are on the early-access list. When the course opens, the team will write to you before it is public.
+  Your place stays at <strong style="font-weight:700;">&euro;39/month</strong> for as long as you remain subscribed.
 </p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 6px;border-top:2px solid ${INK};">
-${row('What you get', 'Two skills — AI motion graphics, and the agentic automation that produces it without anybody opening a file. Then the three systems that turn either one into money.')}
-${row('What happens next', 'Nothing you need to do. You get the opening date by email before anyone else, at the price above.')}
-${row('In the meantime', 'The breakdowns keep coming. Same board, same method, every one of them free.', true)}
-</table>
-${cta(`${SITE}/library/`, 'Start with the library &nbsp;&rarr;')}
+${ruledList(
+  rule('01', 'Make the picture move.', 'Build the kind of football motion graphics Total Football is made from.') +
+    rule('02', 'Build the system behind it.', 'Use agents and automations to turn the repeatable work into a workflow.') +
+    rule('03', 'Turn the skill into an offer.', 'Package the work for an audience, clients, or products of your own.', true),
+)}
+${linkList(
+  linkRow('01', 'Read the library', 'See the kind of tactical systems the board is built to explain.', SITE + '/library/') +
+    linkRow('02', 'Open the Studio', 'Build your own pitch, phases, and shareable presentation.', SITE + '/studio/') +
+    linkRow('03', 'See the method', 'Understand why every frame is drawn and what stays outside a camera view.', SITE + '/about/') +
+    linkRow('04', 'Read the course outline', 'The full path from motion graphics to automation and the systems around it.', SITE + '/course/', true),
+  'While the course is being built',
+)}
+${cta(SITE + '/course/', 'See the course &nbsp;&rarr;')}
 <p style="${P}margin:30px 0 0;font-size:15px;color:${INK_SOFT};">
-  Reply to this if you have a question about the course. A real person reads it.<br>&mdash; Thanos
+  Questions are welcome. The Total Football team reads every reply.
 </p>`
-    : `<p style="${KICKER}">You're on the list</p>
-<h1 style="${H1}">Welcome to Total Football.</h1>
+    : `<p style="${KICKER}">Welcome to Total Football</p>
+<h1 style="${H1}">See the whole<br>shape.</h1>
 <p style="${P}">${greeting}</p>
 <p style="${P}">
-  One tactical idea at a time, drawn on the board and explained in the order a coach would actually
-  teach it. It lands when there is something worth sending, not on a schedule for its own sake.
+  Total Football is a board for seeing what the camera leaves out: the shape, the trigger, and the
+  decision that changes the phase. Every system is drawn from scratch, so the whole pitch stays in view.
 </p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 6px;border-top:2px solid ${INK};">
-${row('What arrives', 'A breakdown of one system — what it is for, the phases it moves through, and the moment it is decided.')}
-${row('How often', 'When there is one worth sending. No filler, and never twice in a day.')}
-${row('Start here', `Eleven breakdowns are already on the site, phase by phase, free to read.`, true)}
-</table>
-${cta(`${SITE}/library/`, 'Read the library &nbsp;&rarr;')}
+${linkList(
+  linkRow('01', 'Read the library', 'Tactical systems, broken down phase by phase.', SITE + '/library/') +
+    linkRow('02', 'Build in the Studio', 'Set a pitch, move the players, and share the board you made.', SITE + '/studio/') +
+    linkRow('03', 'See the method', 'Why it is drawn rather than filmed, and what that makes visible.', SITE + '/about/') +
+    linkRow('04', 'Follow the intelligence', 'A separate daily model for the match and the market.', SITE + '/intelligence/', true),
+)}
+${cta(SITE + '/library/', 'Start with the library &nbsp;&rarr;')}
 <p style="${P}margin:30px 0 0;font-size:15px;color:${INK_SOFT};">
-  Reply any time. A real person reads it.<br>&mdash; Thanos
+  The board is the product. The library is where you start.
 </p>`
 
   return {
     to: email,
-    subject: isCourse ? 'Your early-access place is held' : 'Welcome to Total Football',
+    subject: isCourse ? 'Your early-access place is held' : 'Welcome to Total Football — see the whole shape',
     html: wrapEmail({
       preheader: isCourse
-        ? 'Locked at €39/month for life. Here is what happens next.'
-        : 'One idea at a time, drawn on the board. Here is where to start.',
+        ? 'Your €39/month founding rate is held. Here is where Total Football begins.'
+        : 'A drawn board, a library of systems, and a studio to build your own.',
       bodyHtml,
       unsubscribe: unsub,
+      reason,
+      series: isCourse ? 'Course / Early Access' : 'Welcome to the Board',
     }),
     text: htmlToText(bodyHtml, { unsubscribe: unsub }),
     unsubscribeUrl: unsub,
@@ -551,29 +576,67 @@ function decodeEntities(s) {
 
 /* ── Transport ─────────────────────────────────────────────────────────
  *
+ * THIS MODULE SENDS PRODUCT MAIL ONLY — the welcome, and anything else that
+ * goes to one person because of something they just did. Newsletters do NOT
+ * come through here any more; they are broadcast by Zoho Campaigns, which
+ * owns its own sending infrastructure, its own throttling and its own
+ * open/click reporting. See scripts/lib/campaigns.mjs and docs/EMAIL.md.
+ *
+ * That division is not a preference, it is ZeptoMail's terms of service:
+ * ZeptoMail is a transactional-only relay and bulk newsletters through it are
+ * grounds for the account being closed. Keeping the two apart is also what
+ * keeps a newsletter complaint from poisoning the reputation of the pipe that
+ * carries password resets.
+ *
  * Two ways out, picked by which credential is present:
  *
- *   ZOHO — SMTP through the mailbox the domain already sends from. naurra.ai
- *   publishes `v=spf1 include:zohomail.eu` and a `zmail._domainkey` DKIM
- *   record, so mail leaving this way is SPF- and DKIM-aligned and passes
- *   DMARC on day one with no DNS work at all. The ceiling is Zoho's own
- *   sending limit (order of hundreds a day), which is above the current list
- *   and below where a newsletter eventually goes.
+ *   ZEPTOMAIL — Zoho's transactional HTTP API. Batches up to 500 recipients
+ *   per call, reports bounces, and is the intended destination for everything
+ *   in this file. Needs its own DKIM record (`zeptomail._domainkey`) and a
+ *   verified sender before it will accept anything.
  *
- *   RESEND — the HTTP API. Built for bulk, reports opens and bounces, and
- *   batches up to 100 recipients per call. Needs its own DKIM records on a
- *   sending subdomain before it will send anything.
+ *   ZOHO SMTP — the mailbox the domain already sends from, kept as a
+ *   fallback so a ZeptoMail outage or an unconfigured laptop does not mean no
+ *   mail at all. naurra.ai already publishes `v=spf1 include:zohomail.eu` and
+ *   a `zmail._domainkey` DKIM record, so this path is SPF- and DKIM-aligned
+ *   with no DNS work. Its ceiling is Zoho Mail's own limit, on the order of
+ *   hundreds a day, and it is rate-limited by hand below.
  *
- * Resend wins when both are set, because if somebody has gone to the trouble
- * of verifying a domain there, that is the one they meant to use. Neither set
- * is a hard error rather than a silent no-op: a send that quietly does
- * nothing is the worst possible outcome for a script whose entire job is to
- * have sent something.
+ * ZeptoMail wins when both are set. Neither set is a hard error rather than a
+ * silent no-op: a send that quietly does nothing is the worst possible
+ * outcome for a script whose entire job is to have sent something.
  */
 export function transportName() {
-  if (envVar('RESEND_API_KEY')) return 'resend'
+  if (envVar('ZEPTOMAIL_TOKEN')) return 'zeptomail'
   if (envVar('ZOHO_SMTP_PASS')) return 'zoho'
   return null
+}
+
+/**
+ * ZeptoMail's regional API hosts. The account decides which one answers: a
+ * token minted in the EU data centre is rejected by the .com host with a
+ * misleading 401, which reads as a bad key and sends you looking in the wrong
+ * place for an hour.
+ *
+ * naurra.ai is an EU-data-centre Zoho account throughout — the mailbox is on
+ * smtp.zoho.eu, SPF includes zohomail.eu, and domain verification came back
+ * as zmverify.zoho.eu — so `eu` is the default here rather than `com`.
+ */
+const ZEPTO_HOSTS = {
+  eu: 'https://api.zeptomail.eu',
+  com: 'https://api.zeptomail.com',
+  in: 'https://api.zeptomail.in',
+  au: 'https://api.zeptomail.com.au',
+  ca: 'https://api.zeptomail.ca',
+  jp: 'https://api.zeptomail.jp',
+  sa: 'https://api.zeptomail.sa',
+}
+
+function zeptoBase() {
+  const explicit = envVar('ZEPTOMAIL_API_URL')
+  if (explicit) return explicit.replace(/\/$/, '')
+  const region = (envVar('ZEPTOMAIL_REGION') || 'eu').toLowerCase()
+  return ZEPTO_HOSTS[region] || ZEPTO_HOSTS.eu
 }
 
 /**
@@ -590,10 +653,10 @@ export async function sendBatch(items) {
   const via = transportName()
   if (!via) {
     throw new Error(
-      'No mail transport configured. Set ZOHO_SMTP_PASS (Zoho app password) or RESEND_API_KEY in .env.',
+      'No mail transport configured. Set ZEPTOMAIL_TOKEN (preferred) or ZOHO_SMTP_PASS in .env.',
     )
   }
-  return via === 'resend' ? sendViaResend(items) : sendViaZoho(items)
+  return via === 'zeptomail' ? sendViaZeptoMail(items) : sendViaZoho(items)
 }
 
 const listHeaders = (unsubscribeUrl) => ({
@@ -601,26 +664,98 @@ const listHeaders = (unsubscribeUrl) => ({
   'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
 })
 
-async function sendViaResend(items) {
-  const key = envVar('RESEND_API_KEY')
-  const res = await fetch('https://api.resend.com/emails/batch', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      items.map(({ to, subject, html, text, unsubscribeUrl }) => ({
-        from: FROM,
-        reply_to: REPLY_TO,
-        to,
-        subject,
-        html,
-        text,
-        headers: listHeaders(unsubscribeUrl),
-      })),
-    ),
-  })
-  const body = await res.json().catch(() => null)
-  if (!res.ok) throw new Error(`resend ${res.status}: ${JSON.stringify(body)}`)
-  return body
+/**
+ * ZeptoMail, one HTTP call per recipient.
+ *
+ * NOT the /v1.1/email/batch endpoint, though it exists and takes 500
+ * addresses, and the reason is worth stating because "just use batch, it is
+ * faster" is the obvious review comment:
+ *
+ * A batch call carries ONE `mime_headers` object for the whole batch, and
+ * every message here has to carry its own `List-Unsubscribe` — the URL is
+ * HMAC-signed per address (see unsubscribeUrl above). Batching would mean
+ * every recipient getting the first recipient's unsubscribe link, so clicking
+ * it would opt out a stranger and leave the clicker still subscribed. The
+ * body has the same problem: the footer link is per-address too, and
+ * `merge_info` cannot reach into a header.
+ *
+ * This module sends product mail, where a "batch" is usually one message, so
+ * the cost of being correct here is nil. Bulk goes through Campaigns.
+ *
+ * Sent with a small concurrency window rather than a flat loop, so a
+ * re-welcome run of a few hundred is not a few hundred serial round trips,
+ * and rejections are collected instead of aborting on the first one — a
+ * single bad address must not stop the other 79 from being sent.
+ */
+async function sendViaZeptoMail(items) {
+  const token = envVar('ZEPTOMAIL_TOKEN')
+  const url = `${zeptoBase()}/v1.1/email`
+  const from = { address: addressOf(FROM), name: nameOf(FROM) }
+
+  const CONCURRENCY = 5
+  const results = new Array(items.length)
+  const failures = []
+  let cursor = 0
+
+  async function worker() {
+    while (cursor < items.length) {
+      const i = cursor++
+      const { to, subject, html, text, unsubscribeUrl } = items[i]
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            // The literal prefix is part of the credential format, not a
+            // scheme name we chose — ZeptoMail rejects `Bearer`.
+            Authorization: `Zoho-enczapikey ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            from,
+            to: [{ email_address: { address: to } }],
+            reply_to: [{ address: REPLY_TO, name: nameOf(FROM) }],
+            subject,
+            htmlbody: html,
+            textbody: text,
+            // Product mail is not marketed at anybody, so there is nothing to
+            // learn from tracking a pixel in it, and an open tracker is one
+            // more reason for a filter to distrust a password reset.
+            track_opens: false,
+            track_clicks: false,
+            mime_headers: listHeaders(unsubscribeUrl),
+          }),
+        })
+        const body = await res.json().catch(() => null)
+        if (!res.ok) {
+          failures.push({ to, status: res.status, body })
+          continue
+        }
+        results[i] = { id: body?.request_id ?? body?.data?.[0]?.message_id ?? null, to }
+      } catch (err) {
+        failures.push({ to, status: 0, body: String(err) })
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, items.length) }, () => worker()),
+  )
+
+  if (failures.length) {
+    const detail = failures
+      .slice(0, 10)
+      .map((f) => `  ${f.to} → ${f.status} ${JSON.stringify(f.body)}`)
+      .join('\n')
+    const more = failures.length > 10 ? `\n  …and ${failures.length - 10} more` : ''
+    // Thrown only after everything sendable has been sent, so the caller's
+    // count of successes is real and the failures are named, not summarised.
+    throw new Error(
+      `zeptomail: ${failures.length}/${items.length} rejected, ${items.length - failures.length} delivered:\n${detail}${more}`,
+    )
+  }
+
+  return { data: results.filter(Boolean) }
 }
 
 /**
@@ -675,4 +810,14 @@ async function sendViaZoho(items) {
 /** "Total Football <x@y.z>" -> "x@y.z"; a bare address passes through. */
 function addressOf(from) {
   return from.match(/<([^>]+)>/)?.[1] ?? from.trim()
+}
+
+/**
+ * "Total Football <x@y.z>" -> "Total Football"; a bare address yields ''.
+ * ZeptoMail wants the display name as its own field rather than folded into
+ * the address the way an SMTP From: header takes it.
+ */
+function nameOf(from) {
+  const m = from.match(/^\s*"?([^"<]*?)"?\s*</)
+  return m?.[1]?.trim() ?? ''
 }
