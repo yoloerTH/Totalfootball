@@ -14,33 +14,21 @@
  */
 
 import { U } from './pitch'
-import { arrowStyle, resolveBandStyle, useSurface, type BandStrength, type BandTone } from './surfaces'
+import { resolveBandStyle, arrowStyle, useSurface, type BandOverrides } from './surfaces'
 import type { ArrowKind, BandKind, BandShape } from '../schema'
 
 /**
  * What a coach has changed about one band's appearance, as the board sees it.
  *
- * The document stores these as plain strings (see `Band` in ../schema.ts), and
- * they are narrowed HERE rather than there — an unrecognised value has to land
- * somewhere, and the only sane place for it to land is the drawing code, which
- * can shrug and use the house treatment. A document written by a newer build
- * therefore opens in an older one and simply looks like it always did.
+ * The document stores these as plain strings (see `Band` in ../schema.ts) and
+ * they are narrowed in `resolveBandStyle` rather than here — an unrecognised
+ * value has to land somewhere, and the only sane place for it to land is the
+ * one function that decides what a band draws with. A document written by a
+ * newer build therefore opens in an older one and simply looks like it always
+ * did.
  */
-export interface BandLook {
-  tone?: string
-  strength?: string
+export interface BandLook extends BandOverrides {
   shape?: BandShape
-  solid?: boolean
-}
-
-const TONES = ['gold', 'red', 'green', 'blue', 'grey']
-const STRENGTHS = ['soft', 'normal', 'strong']
-
-function look(l: BandLook | undefined) {
-  return {
-    tone: l && TONES.includes(l.tone ?? '') ? (l.tone as BandTone) : undefined,
-    strength: l && STRENGTHS.includes(l.strength ?? '') ? (l.strength as BandStrength) : undefined,
-  }
 }
 
 const u = (m: number) => m * U
@@ -219,17 +207,22 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
   )
 }
 
+/**
+ * How a block's shading is closed off.
+ *
+ * 'goal' takes the goal line those players defend, as an AXIS and a position
+ * rather than a bare x: upright views stand the pitch on its end and the goal
+ * line becomes horizontal. 'shape' closes the shading round the players
+ * themselves and needs no goal at all.
+ */
+export type BandClose = { axis: 'x' | 'y'; at: number } | 'shape'
+
 interface BlockBandProps {
   idp: string
   kind: BandKind
   /** The player line, in order along the defensive line, in SVG units. */
   pts: Pt[]
-  /**
-   * The goal line being protected: which axis it runs along and where, in SVG
-   * units. From `defendedGoal()` — an axis rather than a bare x because upright
-   * views stand the pitch on its end and the goal line becomes horizontal.
-   */
-  close: { axis: 'x' | 'y'; at: number }
+  close: BandClose
   label?: string
   active?: boolean
   /** The coach's overrides, if they have set any. */
@@ -238,51 +231,175 @@ interface BlockBandProps {
 }
 
 /**
- * The defensive block: fills from the back line to the goal, with a thick
- * "string" threaded through the players to say they are one connected unit.
+ * The convex hull of a handful of points, by monotone chain.
+ *
+ * WHY A HULL AND NOT THE CLICK ORDER. The order a coach picked the players in
+ * is the data everywhere else — it is what the string threads through, and a
+ * zigzag is a real shape somebody meant. It is the wrong thing to close a
+ * REGION with: three players picked left, right, middle close into a bow tie
+ * that crosses itself and fills nothing. The hull is the shape a coach draws
+ * round a unit on a whiteboard, and the string on top still shows the order.
+ *
+ * Returns fewer than three points when they are collinear, which the caller
+ * handles as a capsule.
+ */
+function hullOf(pts: Pt[]): Pt[] {
+  const p = [...pts].sort((a, b) => a.x - b.x || a.y - b.y)
+  if (p.length < 3) return p
+  const cross = (o: Pt, a: Pt, b: Pt) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+  const half = (src: Pt[]): Pt[] => {
+    const out: Pt[] = []
+    for (const q of src) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], q) <= 0) out.pop()
+      out.push(q)
+    }
+    out.pop()
+    return out
+  }
+  const poly = [...half(p), ...half([...p].reverse())]
+  return poly.length >= 3 ? poly : p.slice(0, 2)
+}
+
+/** Unit vector from a to b, or null when they are the same point. */
+function unit(a: Pt, b: Pt): Pt | null {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const l = Math.hypot(dx, dy)
+  return l < 1e-6 ? null : { x: dx / l, y: dy / l }
+}
+
+/**
+ * The outline of a block closed round its own players: the hull, grown by
+ * `pad` in every direction.
+ *
+ * This is the Minkowski sum of the hull with a disc — every edge moves out
+ * `pad` parallel to itself, and the corners are joined by arcs of radius `pad`
+ * centred on the players. It is worth being precise about why, because the
+ * obvious version is wrong in a way that is easy to ship:
+ *
+ * PUSHING EACH VERTEX ALONG ITS BISECTOR SPIKES. The distance a corner has to
+ * travel to keep its two edges `pad` clear is `pad / cos(half the angle)`, and
+ * that runs away as a corner sharpens. A front three is very nearly a straight
+ * line, which is a corner of almost 180 degrees at the middle man and two of
+ * almost nothing at the ends — and the shape fires two spars off the top and
+ * bottom of the pitch. Arcs cannot do that: nothing is ever more than `pad`
+ * from a player, by construction.
+ *
+ * It also collapses correctly. Two players, or any number of them standing in a
+ * line, leave a hull of two points whose two "edges" are the segment there and
+ * the segment back — and the same loop draws a capsule, which is exactly what a
+ * coach rings a centre-back pair with. No special case, no second code path.
+ *
+ * The hull comes out clockwise in screen space (y grows downward), so the
+ * outward normal of the edge a→b is (dy, -dx) and every corner arc sweeps the
+ * same way, which is what the constant sweep flag below is resting on.
+ */
+function dilatedHull(pts: Pt[], pad: number): string {
+  const h = hullOf(pts)
+  const centre = h[0] ?? pts[0] ?? { x: 0, y: 0 }
+  // Everybody on the same spot. Two arcs, because an SVG arc cannot close a
+  // full circle on itself — the endpoints would be identical and it draws
+  // nothing at all.
+  if (h.length < 2) {
+    return `M ${centre.x - pad} ${centre.y} A ${pad} ${pad} 0 0 1 ${centre.x + pad} ${centre.y} A ${pad} ${pad} 0 0 1 ${centre.x - pad} ${centre.y} Z`
+  }
+
+  // The edges to walk. Two points make a there-and-back pair, which is what
+  // turns the same loop into a capsule.
+  const edges: [Pt, Pt][] =
+    h.length === 2
+      ? [
+          [h[0], h[1]],
+          [h[1], h[0]],
+        ]
+      : h.map((v, i) => [v, h[(i + 1) % h.length]] as [Pt, Pt])
+
+  const offset = (a: Pt, b: Pt, q: Pt): Pt => {
+    const d = unit(a, b) ?? { x: 1, y: 0 }
+    return { x: q.x + d.y * pad, y: q.y - d.x * pad }
+  }
+
+  const parts: string[] = []
+  edges.forEach(([a, b], i) => {
+    const from = offset(a, b, a)
+    const to = offset(a, b, b)
+    parts.push(`${i === 0 ? 'M' : 'L'} ${from.x} ${from.y} L ${to.x} ${to.y}`)
+    // Round the corner at `b`, onto the start of the next edge.
+    const [na, nb] = edges[(i + 1) % edges.length]
+    const next = offset(na, nb, na)
+    parts.push(`A ${pad} ${pad} 0 0 1 ${next.x} ${next.y}`)
+  })
+  return `${parts.join(' ')} Z`
+}
+
+/**
+ * The defensive block: a thick "string" threaded through the players to say
+ * they are one connected unit, and a shaded area behind them.
+ *
+ * The shading closes ONE OF TWO WAYS, and which one is the difference between
+ * this reading as a block and reading as a flood. Back to the goal is what a
+ * block is and what every published video draws. Round the players themselves
+ * is for every other unit a coach picks — a midfield screen, a front three
+ * pressing — where the space that matters is the one they occupy, and where
+ * closing to the goal shades the whole pitch back to your own keeper.
+ *
  * This is the single most recognisable visual in the library and the reason
  * `defending-in-a-back-four` reads at a glance.
  */
 export function BlockBand({ idp, kind, pts, close, label, active, band, onPointerDown }: BlockBandProps) {
-  if (pts.length < 2) return null
+  // Read before any early return. `useSurface` is `useContext`, which does not
+  // take a slot in the hook list, so the old early-return-first order happened
+  // to work — but it is one added `useMemo` away from a crash, and a component
+  // that must be edited carefully is a component that will be edited wrongly.
   const p = useSurface()
-  const s = resolveBandStyle(p, kind, look(band))
+  const s = resolveBandStyle(p, kind, band)
+  if (pts.length < 2) return null
+
   // Keyed by the band's OWN id upstream, so two blocks in different colours on
   // the same board do not collide on one gradient and both come out the first
   // one's colour.
   const gid = `${idp}-band-${kind}`
   const first = pts[0]
   const last = pts[pts.length - 1]
-  const line = pts.map((p) => `${p.x} ${p.y}`).join(' L ')
-  const across = close.axis === 'x'
+  const line = pts.map((q) => `${q.x} ${q.y}`).join(' L ')
+  const shape = close === 'shape'
+  const across = shape ? false : close.axis === 'x'
 
-  // Close the polygon onto the goal line, running back from whichever end of
-  // the player line we finished on.
-  const fill = across
-    ? `M ${line} L ${close.at} ${last.y} L ${close.at} ${first.y} Z`
-    : `M ${line} L ${last.x} ${close.at} L ${first.x} ${close.at} Z`
+  const fill = shape
+    ? dilatedHull(pts, u(s.pad))
+    : across
+      ? `M ${line} L ${close.at} ${last.y} L ${close.at} ${first.y} Z`
+      : `M ${line} L ${last.x} ${close.at} L ${first.x} ${close.at} Z`
 
-  // Point the gradient at the goal, whichever side of the line it is on.
-  const toEnd = across ? close.at > first.x : close.at > first.y
-  const grad = across
-    ? { x1: toEnd ? '0' : '1', y1: '0', x2: toEnd ? '1' : '0', y2: '0' }
-    : { x1: '0', y1: toEnd ? '0' : '1', x2: '0', y2: toEnd ? '1' : '0' }
+  // Point the gradient at the goal, whichever side of the line it is on. A
+  // closed shape has no goal to point at and takes the areas' top-to-bottom.
+  const toEnd = shape ? true : across ? close.at > first.x : close.at > first.y
+  const grad = shape
+    ? { x1: '0', y1: '0', x2: '0', y2: '1' }
+    : across
+      ? { x1: toEnd ? '0' : '1', y1: '0', x2: toEnd ? '1' : '0', y2: '0' }
+      : { x1: '0', y1: toEnd ? '0' : '1', x2: '0', y2: toEnd ? '1' : '0' }
 
   // Label: centred across the band, and always OUTSIDE it on the side away
-  // from the goal, so it never sits on top of the shading or a counter.
-  const midAcross = across
-    ? { x: (Math.min(...pts.map((p) => p.x)) + close.at) / 2, y: Math.min(...pts.map((p) => p.y)) - u(2.2) }
-    : {
-        x: (Math.min(...pts.map((p) => p.x)) + Math.max(...pts.map((p) => p.x))) / 2,
-        y: toEnd ? Math.min(...pts.map((p) => p.y)) - u(2.2) : Math.max(...pts.map((p) => p.y)) + u(3.4),
-      }
+  // from the goal, so it never sits on top of the shading or a counter. A
+  // closed shape is cleared by its own padding instead.
+  const xs = pts.map((q) => q.x)
+  const ys = pts.map((q) => q.y)
+  const midAcross = shape
+    ? { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...ys) - u(s.pad) - u(1.4) }
+    : across
+      ? { x: (Math.min(...xs) + close.at) / 2, y: Math.min(...ys) - u(2.2) }
+      : {
+          x: (Math.min(...xs) + Math.max(...xs)) / 2,
+          y: toEnd ? Math.min(...ys) - u(2.2) : Math.max(...ys) + u(3.4),
+        }
 
   return (
     <g pointerEvents="none">
       <defs>
         <linearGradient id={gid} x1={grad.x1} y1={grad.y1} x2={grad.x2} y2={grad.y2}>
           <stop offset="0%" stopColor={s.tone} stopOpacity={s.fill} />
-          <stop offset="100%" stopColor={s.tone} stopOpacity={s.fill * 0.27} />
+          <stop offset="100%" stopColor={s.tone} stopOpacity={s.fill * (shape ? 0.45 : 0.27)} />
         </linearGradient>
       </defs>
       <path
@@ -291,6 +408,15 @@ export function BlockBand({ idp, kind, pts, close, label, active, band, onPointe
         stroke={active ? p.goldDeep : s.tone}
         strokeOpacity={active ? 0.9 : s.edge}
         strokeWidth={active ? u(0.5) : u(0.26)}
+        strokeDasharray={s.dashed && !active ? `${u(1.4)} ${u(0.9)}` : undefined}
+        strokeLinejoin="round"
+        /*
+         * `fill` and not `all`: with the shading turned off the fill is a
+         * transparent gradient, and a transparent fill still takes a pointer
+         * under `pointerEvents="fill"`. That is what keeps an outline-only area
+         * clickable over its whole face rather than only on the 26cm of line
+         * round it, which nobody can hit.
+         */
         pointerEvents={onPointerDown ? 'fill' : undefined}
         onPointerDown={onPointerDown}
         style={onPointerDown ? { cursor: 'pointer' } : undefined}
@@ -301,7 +427,7 @@ export function BlockBand({ idp, kind, pts, close, label, active, band, onPointe
           fill="none"
           stroke={s.tone}
           strokeOpacity={s.string}
-          strokeWidth={u(1.15)}
+          strokeWidth={u(s.stringWidth)}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -352,7 +478,7 @@ interface ZoneProps {
  */
 export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: ZoneProps) {
   const p = useSurface()
-  const s = resolveBandStyle(p, kind, look(band))
+  const s = resolveBandStyle(p, kind, band)
   const gid = `${idp}-zone-${kind}`
   const shape: BandShape = band?.shape ?? 'box'
 
@@ -367,7 +493,7 @@ export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: Zo
     stroke: active ? p.goldDeep : s.tone,
     strokeOpacity: active ? 0.9 : s.edge,
     strokeWidth: active ? u(0.5) : u(0.26),
-    strokeDasharray: band?.solid ? undefined : `${u(1.4)} ${u(0.9)}`,
+    strokeDasharray: s.dashed && !active ? `${u(1.4)} ${u(0.9)}` : undefined,
     pointerEvents: (onPointerDown ? 'fill' : undefined) as 'fill' | undefined,
     onPointerDown,
     style: onPointerDown ? { cursor: 'pointer' } : undefined,

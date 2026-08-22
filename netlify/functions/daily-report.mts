@@ -272,12 +272,6 @@ export default async () => {
      limit 25`
   )
 
-  const [feedbackAll] = await sql(
-    'feedback totals',
-    `select count(*) as n, round(avg(rating), 1) as avg_rating, round(avg(recommend), 1) as avg_rec
-     from public.studio_feedback`
-  )
-
   /**
    * Housekeeping: fold every day of traffic older than the raw window into one
    * row and delete the rows it was made of. See supabase/009_site_events_rollup.sql.

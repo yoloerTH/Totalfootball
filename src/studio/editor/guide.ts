@@ -206,7 +206,7 @@ export const TOOL_DOC = {
   },
   block: {
     label: 'Block',
-    what: 'Threads a line through the players you pick and shades the space behind them, back to the goal they are defending.',
+    what: 'Threads a line through the players you pick and shades their space: back to the goal they are defending, or closed around the players themselves.',
     when: 'Use it for any unit that holds a line together: the back four, a midfield screen, the two who stay when the full-backs go. "Our block" works the deepest one out for you; this is for every other one.',
     drag: 'Click the players in order along the line, then press Enter. Click one again to take it back out.',
   },
@@ -295,20 +295,33 @@ export const HINT = {
   blockRedraw:
     'Works the line out again from where the players are standing now. Do it after you have moved your back line, or after you have changed shape.',
   blockDraw:
-    'Pick the players yourself, in the order they stand along the line, and it shades the space behind them the same way. Use it for a midfield screen, a front two pressing together, or any line the automatic one will not find. It stays tied to those players, so it moves when they do.',
+    'Pick the players yourself, in the order they stand along the line, and it shades their space. Use it for a midfield screen, a front two pressing together, or any line the automatic one will not find. It stays tied to those players, so it moves when they do.',
   blockPicking:
-    'Click each player in the line, then press Enter to draw it. Click a player again to take them back out, or press Escape to forget the whole thing.',
+    'Click each player in the line, then press Enter to draw it. Click a player again to take them back out, press the grass to finish, or press Escape to forget the whole thing.',
+  /**
+   * The control that answers "why did it shade half the pitch". Written as the
+   * two football situations rather than as two geometries, because a coach
+   * picking a front three is not thinking about polygons.
+   */
+  blockClose:
+    'What gets shaded. To the goal fills everything between the players and the goal behind them, which is what a block is: a back four, a low block, anyone holding a line in front of their own net. Around them closes the shading round the players themselves, which is what you want for a midfield screen or a front three pressing. Those are not protecting the goal, and shading back to it swallows your own team.',
 
   bandLabel:
     'A few words written into the area itself: "cutback zone", "trap here", "second ball". Leave it empty and the shading speaks for itself.',
   bandTone:
-    'What colour it is shaded. Each one already means something on our boards, so this is really a choice about what you are saying: gold is the space to attack, red is danger, green is ours, blue is neutral, grey is quiet.',
+    'What colour it is shaded. The first five already mean something on our boards, so picking one is really picking what you are saying: gold is the space to attack, red is danger, green is ours, blue is neutral, grey is quiet. Violet, orange, teal and pink claim nothing. They are there for the board that needs a fourth and a fifth area told apart.',
   bandStrength:
     'How heavily it is laid down. Soft for an area you are only gesturing at, strong for the one thing the phase is about. Every shading stays see-through: the players underneath always read.',
   bandShape:
     'A box for a space with edges, a rounded box for one in open play, an oval for a pocket. Coaches draw pockets as circles on a whiteboard, so an oval reads as one instantly.',
-  bandSolid:
-    'A dashed outline says "this region, roughly". A solid one says the edge is real: a zone that stops where the six-yard box stops.',
+  bandEdge:
+    'The line round it. Dashed says "this region, roughly". Solid says the edge is real: a zone that stops where the six-yard box stops. None takes the line away and leaves the shading to say it, which reads better over a busy part of the pitch.',
+  bandFill:
+    'Shaded fills the area in. Outline leaves the grass showing and draws only the line round it, for when the area sits on top of players you still need to see. You can still click anywhere inside it to pick it up.',
+  bandString:
+    'The thick line threaded through the players a block runs through. It is what says they are one unit rather than several men who happen to be near each other. Turn it off when the space is the point and the line is in the way.',
+  bandCorner:
+    'How tightly the shading wraps the players. Tight hugs them, loose reads as a ring drawn round the group. Only applies to a block that shades around its players.',
   bandMove:
     'Drag inside it to move it, or take a gold corner to resize it. Only the area you have selected shows its handles.',
 

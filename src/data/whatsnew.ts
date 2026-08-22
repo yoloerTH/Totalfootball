@@ -56,6 +56,22 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'block-shades-around-them',
+    date: '2026-08-22',
+    kind: 'fixed',
+    title: 'A block can close around its players',
+    body: 'A block you draw yourself used to shade everything between those players and your own goal, which is right for a back four and wrong for everyone else. Pick a front three pressing and it flooded the pitch back to your keeper. It now closes around the players themselves when they are not the deepest line, and Shades lets you say which you meant, on the board, before you draw it.',
+    where: 'Draw a block, then Shades',
+  },
+  {
+    id: 'areas-nine-colours',
+    date: '2026-08-22',
+    kind: 'better',
+    title: 'Nine colours, and control of the line',
+    body: 'Violet, orange, teal and pink join the five, so four areas on one board can be told apart without reusing red on something that is not danger. Every shaded area can also be solid, dashed or drawn with no outline at all, filled in or left as an outline over the grass, and a block can set how thick the line through its players runs, or turn it off.',
+    where: 'Click any shaded area',
+  },
+  {
     id: 'draw-your-own-block',
     date: '2026-08-21',
     kind: 'new',

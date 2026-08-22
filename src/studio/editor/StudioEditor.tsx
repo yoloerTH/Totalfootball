@@ -35,7 +35,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Board, clampToBoard, clientToPercent, type FramePart } from '../board/Board'
+import { Board, clampToBoard, clientToPercent, type BoardMode, type FramePart } from '../board/Board'
 import {
   PITCH_VIEWS,
   PITCH_VIEW_LIST,
@@ -53,7 +53,11 @@ import {
   PITCH_SURFACES,
   DEFAULT_SURFACE,
   arrowStyle,
+  BAND_CORNERS,
+  BAND_EDGES,
+  BAND_FILLS,
   BAND_STRENGTHS,
+  BAND_STRINGS,
   BAND_TONES,
   resolveBandStyle,
   resolveSurface,
@@ -186,6 +190,18 @@ const OPEN_ASK_DELAY_MS = 40_000
  */
 type Selection = { kind: 'token'; id: string } | { kind: 'mark'; id: string } | null
 
+/**
+ * The outline a band is currently drawn with, resolved exactly the way
+ * `resolveBandStyle` resolves it — including the older `solid: true`, so a
+ * board saved before the three-way control existed opens with its own answer
+ * selected rather than with the house default lit up under a solid edge.
+ */
+function bandEdgeOf(b: Band): string {
+  if (BAND_EDGES.some((e) => e.id === b.edge)) return b.edge!
+  if (b.solid) return 'solid'
+  return b.kind === 'block' ? 'solid' : 'dashed'
+}
+
 /** Which side a band belongs to, read back off the players it runs through. */
 function bandSide(band: Band, act: Act): Side {
   return act.tokens.find((t) => t.id === band.throughTokens?.[0])?.side ?? 'us'
@@ -205,6 +221,40 @@ function withEdits(placed: Token[], previous: Token[]): Token[] {
     const p = prev.get(t.id)
     return p ? { ...t, label: p.label, name: p.name, cue: p.cue, dim: p.dim } : t
   })
+}
+
+/**
+ * Which way a hand-picked block should be closed off, before the coach says.
+ *
+ * The question a block answers is "what is this unit protecting". When the unit
+ * is the deepest thing on the pitch, the answer is the goal behind them, and
+ * shading back to it is the drawing every video uses. When somebody of theirs
+ * is standing BEHIND the picked line — a front three pressing, a midfield
+ * screen — the goal is not what they are protecting, and shading to it swallows
+ * their own team-mates and half the pitch with them. That was the whole
+ * complaint (user, 2026-08-21) and this is the rule that answers it:
+ *
+ *   is there a team-mate deeper than everyone I picked? → close the shape
+ *   nobody behind them but the keeper?                  → close to the goal
+ *
+ * A suggestion and not a decision: the coach has the control in front of them
+ * while they are picking, and whatever they set is what gets stored.
+ */
+function suggestClose(picked: Token[], tokens: Token[], view: PitchView): 'goal' | 'shape' {
+  if (!picked.length) return 'goal'
+  const side = picked[0].side
+  const depth = (t: Token) => {
+    const m = toMetres(view, t.x, t.y).x
+    return side === 'us' ? m : 105 - m
+  }
+  const front = Math.min(...picked.map(depth))
+  const ids = new Set(picked.map((t) => t.id))
+  // The keeper never counts. He is behind every line his team ever holds, and
+  // counting him would mean no block is ever closed to the goal again.
+  const behind = tokens.some(
+    (t) => t.side === side && !ids.has(t.id) && !t.id.endsWith('-GK') && depth(t) < front - 1,
+  )
+  return behind ? 'shape' : 'goal'
 }
 
 /**
@@ -289,6 +339,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * clicking the deep one second.
    */
   const [blockPick, setBlockPick] = useState<string[]>([])
+  /**
+   * How the line being picked will be closed off.
+   *
+   * 'auto' is the default and is not a third way of drawing it — it means "keep
+   * asking `suggestClose` as I click", so the answer follows the shape while it
+   * is being built and a coach who picks a back four and then adds the two
+   * midfielders in front of them sees it change from the goal to a closed shape
+   * the moment that is the right drawing. Touching the control pins it.
+   */
+  const [blockClose, setBlockClose] = useState<'auto' | 'goal' | 'shape'>('auto')
   const [dragging, setDragging] = useState<{ kind: 'token'; id: string } | { kind: 'ball' } | null>(null)
   const [pending, setPending] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null)
   const [playhead, setPlayhead] = useState<number | null>(null)
@@ -858,6 +918,22 @@ export default function StudioEditor({ systemId, initial }: Props) {
   )
 
   /**
+   * What the line being picked would be closed with if nobody said otherwise,
+   * recomputed on every click. See `suggestClose`.
+   */
+  const closeSuggestion = useMemo(
+    () =>
+      suggestClose(
+        blockPick.map((id) => act?.tokens.find((t) => t.id === id)).filter((t): t is Token => Boolean(t)),
+        act?.tokens ?? [],
+        view,
+      ),
+    [blockPick, act, view],
+  )
+  /** What the preview draws and what the commit stores. */
+  const effectiveClose = blockClose === 'auto' ? closeSuggestion : blockClose
+
+  /**
    * Picking the players a hand-drawn block runs through.
    *
    * A toggle, not an append. The commonest mistake with a click-to-pick control
@@ -884,26 +960,42 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * an idea anybody is trying to express. Below the floor this cancels rather
    * than complaining — the coach armed a tool and changed their mind, which is
    * not an error.
+   *
+   * READS `blockPick` DIRECTLY, and does not write the document from inside a
+   * state updater. It used to do both at once — `setBlockPick(cur => { patch;
+   * return [] })` — which is a document write during React's render phase. It
+   * happened to work; it is also exactly the shape that appends the band twice
+   * the day anything re-invokes the updater, and a duplicate band is invisible
+   * on the board and takes two deletes to remove.
    */
   const commitBlockPick = useCallback(() => {
-    setBlockPick((cur) => {
-      if (cur.length >= 2) {
-        patchAct('block', (a) => ({
-          ...a,
-          bands: [
-            ...a.bands,
-            { id: uid('bd'), kind: 'block' as BandKind, throughTokens: cur, drawn: true },
-          ],
-        }))
-        seal()
-      }
-      return []
-    })
+    if (blockPick.length >= 2) {
+      const close = blockClose === 'auto' ? closeSuggestion : blockClose
+      patchAct('block', (a) => ({
+        ...a,
+        bands: [
+          ...a.bands,
+          {
+            id: uid('bd'),
+            kind: 'block' as BandKind,
+            throughTokens: blockPick,
+            drawn: true,
+            // Absent means the goal — see `close` on Band in ../schema.ts. Only
+            // the choice that differs from the house one is written down.
+            ...(close === 'shape' ? { close: 'shape' as const } : null),
+          },
+        ],
+      }))
+      seal()
+    }
+    setBlockPick([])
+    setBlockClose('auto')
     setTool('select')
-  }, [patchAct, seal])
+  }, [blockPick, blockClose, closeSuggestion, patchAct, seal])
 
   const cancelBlockPick = useCallback(() => {
     setBlockPick([])
+    setBlockClose('auto')
     setTool('select')
   }, [])
 
@@ -928,8 +1020,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
   // an undo — must not leave a half-picked line waiting to be committed by an
   // Enter pressed for some other reason.
   useEffect(() => {
-    if (tool !== 'block' && blockPick.length) setBlockPick([])
-  }, [tool, blockPick.length])
+    if (tool === 'block') return
+    if (blockPick.length) setBlockPick([])
+    if (blockClose !== 'auto') setBlockClose('auto')
+  }, [tool, blockPick.length, blockClose])
 
   /*
    * Arrows and shaded areas are the same gesture: press, drag, release. They
@@ -1026,7 +1120,12 @@ export default function StudioEditor({ systemId, initial }: Props) {
             ...base,
             bands: [
               ...base.bands,
-              { id: 'preview', kind: 'block' as BandKind, throughTokens: blockPick },
+              {
+                id: 'preview',
+                kind: 'block' as BandKind,
+                throughTokens: blockPick,
+                close: effectiveClose,
+              },
             ],
           }
         : base
@@ -1060,7 +1159,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // and leave the same trap set for the next render-affecting field, so this
     // depends on the document. The cost is re-posing 22 counters when a title
     // is typed, which is nothing.
-  }, [timeline, system, act, pending, tool, blockPick])
+  }, [timeline, system, act, pending, tool, blockPick, effectiveClose])
 
   shotRef.current = rendered.shot
 
@@ -1127,6 +1226,21 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * else to be, so the two cannot share one flag.
    */
   const dragging_tool = drawing && !isPickTool(tool)
+
+  /**
+   * What the pointer is for, as the board understands it — see `BoardMode` in
+   * ../board/Board.tsx. Playing counts as Move: nothing on the board can be
+   * touched during playback, and a crosshair over a film is a lie.
+   */
+  const boardMode: BoardMode = playing
+    ? 'move'
+    : dragging || pending
+      ? 'dragging'
+      : isPickTool(tool)
+        ? 'pick'
+        : drawing
+          ? 'draw'
+          : 'move'
 
   // ── team + shape actions ───────────────────────────────────────────────────
   const applyFormation = (side: Side, formationId: string) => {
@@ -1609,6 +1723,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
         system={system}
         act={rendered}
         idp="studio"
+        mode={boardMode}
         /* Wide while posing with the shot outlined on top; the real push-in
            happens on Play. See `showFrame` in ../board/Board.tsx. */
         showFrame={!playing}
@@ -1731,7 +1846,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <>
           <span className="font-bold text-ink">{markName(selectedBand, act)} selected.</span>{' '}
           {selectedBand.kind === 'block'
-            ? 'Recolour it on the right, or drag any of the players it runs through to reshape it.'
+            ? 'Choose what it shades on the right, the goal behind them or the space around them, or drag any of the players it runs through to reshape it.'
             : 'Drag inside it to move it, take a gold corner to resize it, or change its colour and shape on the right.'}
         </>
       ) : offCrop > 0 ? (
@@ -2154,6 +2269,30 @@ export default function StudioEditor({ systemId, initial }: Props) {
               </span>{' '}
               {HINT.blockPicking}
             </p>
+            {/*
+             * Offered HERE, while the line is being picked, and not only in the
+             * inspector afterwards. The board is already drawing the answer —
+             * see the preview band — so this is a control a coach can watch
+             * rather than one they have to imagine, and the choice it makes is
+             * the difference between a block and a flood across the pitch.
+             */}
+            {blockPick.length >= 2 && (
+              <div className="mt-2.5">
+                <Tip text={HINT.blockClose} title="What it shades" side="left" block>
+                  <Field label="Shades">
+                    <Segmented
+                      label="What it shades"
+                      value={effectiveClose}
+                      onChange={(v) => setBlockClose(v as 'goal' | 'shape')}
+                      options={[
+                        { value: 'goal', label: 'To the goal' },
+                        { value: 'shape', label: 'Around them' },
+                      ]}
+                    />
+                  </Field>
+                </Tip>
+              </div>
+            )}
             <div className="mt-2 flex gap-1.5">
               <Button variant="solid" onClick={commitBlockPick} disabled={blockPick.length < 2}>
                 Draw it
@@ -2381,37 +2520,124 @@ export default function StudioEditor({ systemId, initial }: Props) {
             </Field>
           </Tip>
 
-          {selectedBand.kind !== 'block' && (
+          {/*
+           * A block's own question, and the one the tool was getting wrong: is
+           * this unit protecting the goal behind it, or is it a shape on the
+           * pitch? Everything below this is the same for every shaded area.
+           */}
+          {selectedBand.kind === 'block' && (
             <>
-              <Tip text={HINT.bandShape} title="Shape" side="left" block>
-                <Field label="Shape">
+              <Tip text={HINT.blockClose} title="What it shades" side="left" block>
+                <Field label="Shades">
                   <Segmented
-                    label="Shape"
-                    value={selectedBand.shape ?? 'box'}
+                    label="What it shades"
+                    value={selectedBand.close === 'shape' ? 'shape' : 'goal'}
                     onChange={(v) => {
-                      patchBand('shape', { shape: v === 'box' ? undefined : (v as BandShape) })
+                      patchBand('close', { close: v === 'shape' ? 'shape' : undefined })
                       seal()
                     }}
                     options={[
-                      { value: 'box', label: 'Box' },
-                      { value: 'round', label: 'Rounded' },
-                      { value: 'ellipse', label: 'Oval' },
+                      { value: 'goal', label: 'To the goal' },
+                      { value: 'shape', label: 'Around them' },
                     ]}
                   />
                 </Field>
               </Tip>
 
-              <Tip text={HINT.bandSolid} title="Its edge" side="left" block>
-                <Toggle
-                  checked={Boolean(selectedBand.solid)}
+              {selectedBand.close === 'shape' && (
+                <Tip text={HINT.bandCorner} title="Corners" side="left" block>
+                  <Field label="Corners">
+                    <Segmented
+                      label="Corners"
+                      value={
+                        BAND_CORNERS.some((c) => c.id === selectedBand.corner)
+                          ? selectedBand.corner!
+                          : 'soft'
+                      }
+                      onChange={(v) => {
+                        patchBand('corner', { corner: v === 'soft' ? undefined : v })
+                        seal()
+                      }}
+                      options={BAND_CORNERS.map((c) => ({ value: c.id, label: c.label }))}
+                    />
+                  </Field>
+                </Tip>
+              )}
+            </>
+          )}
+
+          {selectedBand.kind !== 'block' && (
+            <Tip text={HINT.bandShape} title="Shape" side="left" block>
+              <Field label="Shape">
+                <Segmented
+                  label="Shape"
+                  value={selectedBand.shape ?? 'box'}
                   onChange={(v) => {
-                    patchBand('solid', { solid: v || undefined })
+                    patchBand('shape', { shape: v === 'box' ? undefined : (v as BandShape) })
                     seal()
                   }}
-                  label="Solid edge"
+                  options={[
+                    { value: 'box', label: 'Box' },
+                    { value: 'round', label: 'Rounded' },
+                    { value: 'ellipse', label: 'Oval' },
+                  ]}
                 />
-              </Tip>
-            </>
+              </Field>
+            </Tip>
+          )}
+
+          {/*
+           * The outline, three ways rather than the old solid/dashed switch.
+           * `solid` is cleared as this is written: the two fields disagreeing
+           * about a band is a bug waiting for whoever reads the document next,
+           * and the board resolving `edge` first would hide it from us here.
+           */}
+          <Tip text={HINT.bandEdge} title="Its outline" side="left" block>
+            <Field label="Outline">
+              <Segmented
+                label="Its outline"
+                value={bandEdgeOf(selectedBand)}
+                onChange={(v) => {
+                  patchBand('edge', { edge: v, solid: undefined })
+                  seal()
+                }}
+                options={BAND_EDGES.map((e) => ({ value: e.id, label: e.label }))}
+              />
+            </Field>
+          </Tip>
+
+          <Tip text={HINT.bandFill} title="Inside it" side="left" block>
+            <Field label="Inside">
+              <Segmented
+                label="Inside it"
+                value={selectedBand.fill === 'none' ? 'none' : 'shade'}
+                onChange={(v) => {
+                  patchBand('fill', { fill: v === 'none' ? 'none' : undefined })
+                  seal()
+                }}
+                options={BAND_FILLS.map((f) => ({ value: f.id, label: f.label }))}
+              />
+            </Field>
+          </Tip>
+
+          {selectedBand.kind === 'block' && (
+            <Tip text={HINT.bandString} title="The line through them" side="left" block>
+              <Field label="Line through the players">
+                <Segmented
+                  label="The line through them"
+                  value={
+                    BAND_STRINGS.some((t) => t.id === selectedBand.string)
+                      ? selectedBand.string!
+                      : 'normal'
+                  }
+                  onChange={(v) => {
+                    patchBand('string', { string: v === 'normal' ? undefined : v })
+                    seal()
+                  }}
+                  options={BAND_STRINGS.map((t) => ({ value: t.id, label: t.label }))}
+                />
+              </Field>
+            </Tip>
           )}
 
           <div className="mt-3">

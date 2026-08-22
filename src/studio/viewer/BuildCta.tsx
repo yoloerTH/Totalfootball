@@ -22,10 +22,18 @@
  * link on a projector must be able to go back to phase one without dismissing
  * anything.
  *
- * THE COPY. It says what they get and what it costs, because both are the
- * objection. "Free" and "no account" are not marketing here, they are the two
- * true facts that stop somebody bouncing — the studio genuinely opens on a
- * blank board with nothing to sign.
+ * THE COPY, AND THE ONE THING IT MUST NOT SAY. It says what they get and what
+ * it costs, because both are the objection. Free is true and is the fact that
+ * stops somebody bouncing.
+ *
+ * "Nothing to sign up for" is NOT true and used to be printed here. The studio
+ * went behind an account on 2026-08-13 (see ../editor/StudioMount.tsx) and this
+ * card was written before that; a stranger pressed a button promising no
+ * sign-up and landed on a sign-in page, which is the worst possible first
+ * thirty seconds of a product — not because the wall is wrong, but because we
+ * told them it was not there. What is said instead is the true version of the
+ * same reassurance: it is free, it is one press with Google, and the page they
+ * land on says what the account keeps for them.
  */
 
 import { STUDIO_EVENTS, track } from '../track'
@@ -58,7 +66,8 @@ export function BuildCta({ phases }: { phases: number }) {
         </h2>
         <p className="mx-auto mt-2 max-w-prose text-[13px] leading-relaxed text-ink-soft">
           Drag your players into shape, draw the runs, add a second phase, and the studio turns it into a film
-          and a link like this one. It is free, it opens on a blank board, and there is nothing to sign up for.
+          and a link like this one. It is free, it runs in the browser you are already holding, and you are in
+          with one press of Google.
         </p>
 
         <div className="mt-4 flex flex-col items-center justify-center gap-2.5 sm:flex-row">

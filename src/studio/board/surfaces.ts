@@ -87,6 +87,26 @@ export interface BoardPalette {
    */
   blue: string
   blueDeep: string
+  /**
+   * The four extra area colours.
+   *
+   * They exist for the same reason `blue` does and are held to the same test:
+   * a shaded area has to read on all four grounds, so each one is picked per
+   * surface rather than shared. They carry no house meaning — gold, green and
+   * red are already spoken for, and a coach shading three neutral spaces on one
+   * board needs three colours that are not making a claim.
+   *
+   * WHY THESE FOUR. They are the ones that stay apart from each other AND from
+   * the three that mean something, on grass and on paper: violet and teal sit
+   * where nothing else does, pink survives a green pitch better than any other
+   * warm colour, and orange is the one coaches ask for by name. There is no
+   * second yellow and no second green, because neither would be tellable from
+   * the ball or from a run at the size a board is actually looked at.
+   */
+  violet: string
+  orange: string
+  teal: string
+  pink: string
   /** Top-light, screened over everything. */
   light: { color: string; opacity: number }
   /** Edge fall-off, so the board sits in its frame rather than floating. */
@@ -145,6 +165,10 @@ const PAPER: BoardPalette = {
   redDeep: BOARD.redDeep,
   blue: '#2F7BD6',
   blueDeep: '#2364B4',
+  violet: '#7A4FD1',
+  orange: '#E07A1F',
+  teal: '#12938C',
+  pink: '#D63C86',
   light: { color: '#FFFFFF', opacity: 0.55 },
   vignette: { color: '#141A16', opacity: 0.18 },
   grain: { opacity: 0.05, blend: 'multiply' },
@@ -180,6 +204,10 @@ const BROADCAST: BoardPalette = {
   redDeep: '#F2604F',
   blue: '#8FCBFF',
   blueDeep: '#6DB4F5',
+  violet: '#C0A6FF',
+  orange: '#FFA765',
+  teal: '#66E3D6',
+  pink: '#FF9AC8',
   light: { color: '#FFFFFF', opacity: 0.12 },
   vignette: { color: '#03170C', opacity: 0.36 },
   grain: { opacity: 0.07, blend: 'screen' },
@@ -211,6 +239,10 @@ const NIGHT: BoardPalette = {
   redDeep: '#F2685A',
   blue: '#8ACDFF',
   blueDeep: '#65B6F2',
+  violet: '#C2A8FF',
+  orange: '#FFAB6E',
+  teal: '#6BE8DA',
+  pink: '#FF9ECB',
   // Held DELIBERATELY low. `light` is screened over the whole board, and screen
   // is not a subtle operator on a dark ground: at the 0.55 paper wants, a
   // floodlit pitch comes out the colour of a wet afternoon. The pool has to be
@@ -245,6 +277,10 @@ const CHALK: BoardPalette = {
   redDeep: '#F2685A',
   blue: '#84C3F5',
   blueDeep: '#61A9E6',
+  violet: '#B9A2F2',
+  orange: '#F5A469',
+  teal: '#6BDFD1',
+  pink: '#F79AC4',
   light: { color: '#FFFFFF', opacity: 0.07 },
   vignette: { color: '#000000', opacity: 0.46 },
   grain: { opacity: 0.1, blend: 'screen' },
@@ -345,21 +381,30 @@ export function bandStyle(p: BoardPalette) {
 /**
  * The colours a coach may repaint a shaded area in.
  *
- * FIVE, AND NOT A COLOUR PICKER. The board is the house style and the whole
+ * A LIST, AND NOT A COLOUR PICKER. The board is the house style and the whole
  * constraint the studio is built on is that a coach chooses MEANING and we
  * choose the drawing — the same argument that makes arrows take an intent
  * rather than a dash pattern. A hex field would let somebody put a purple
  * trapezium on a broadcast pitch, and the first thing that happens to a board
  * like that is that it stops looking like it came off the channel.
  *
+ * The list went from five to nine (user, 2026-08-21) and the constraint did
+ * not move: every one of them is still picked BY US, per surface, and tested
+ * against the four grounds. What changed is that five was not enough colours to
+ * say four different things on one board — a coach shading a trap, a channel
+ * and two pockets ran out at three and started reusing red, which reads as
+ * danger whether they meant it or not.
+ *
  * Each one resolves through the surface's own palette, so "red" on paper and
  * "red" on a floodlit pitch are two different hexes and both of them read.
  * That is why this is a function of the palette and not a table of colours.
  *
  * The names are what a coach would say out loud, and the notes say what each
- * one already means on our boards, so picking one is picking a meaning.
+ * one already means on our boards, so picking one is picking a meaning. The
+ * first five carry meaning; the last four deliberately do not, and their notes
+ * say so rather than inventing one.
  */
-export type BandTone = 'gold' | 'red' | 'green' | 'blue' | 'grey'
+export type BandTone = 'gold' | 'red' | 'green' | 'blue' | 'grey' | 'violet' | 'orange' | 'teal' | 'pink'
 
 export const BAND_TONES: { id: BandTone; label: string; note: string }[] = [
   { id: 'gold', label: 'Gold', note: 'The space to attack. The house colour for the thing to watch.' },
@@ -367,6 +412,10 @@ export const BAND_TONES: { id: BandTone; label: string; note: string }[] = [
   { id: 'green', label: 'Green', note: 'Ours: the block, the space we are protecting.' },
   { id: 'blue', label: 'Blue', note: 'Neutral. A channel, a trap, a zone with nothing claimed about it.' },
   { id: 'grey', label: 'Grey', note: 'Quiet. Shades an area without pulling the eye to it.' },
+  { id: 'violet', label: 'Violet', note: 'A second neutral, for when blue is already saying something else.' },
+  { id: 'orange', label: 'Orange', note: 'Warm without being danger. Good for a second space to attack.' },
+  { id: 'teal', label: 'Teal', note: 'Cool and quiet. Reads clearly on grass, where grey goes muddy.' },
+  { id: 'pink', label: 'Pink', note: 'The one nothing else on a pitch looks like. For the area that must not be missed.' },
 ]
 
 export function bandTone(p: BoardPalette, tone: BandTone): string {
@@ -381,6 +430,14 @@ export function bandTone(p: BoardPalette, tone: BandTone): string {
       return p.blue
     case 'grey':
       return p.ink
+    case 'violet':
+      return p.violet
+    case 'orange':
+      return p.orange
+    case 'teal':
+      return p.teal
+    case 'pink':
+      return p.pink
   }
 }
 
@@ -406,27 +463,140 @@ export const BAND_STRENGTHS: { id: BandStrength; label: string; mul: number }[] 
 ]
 
 /**
+ * The outline round a shaded area.
+ *
+ * Dashed says "this region, roughly"; solid says the edge is real; none takes
+ * the line away entirely and leaves the shading to do the work, which is what a
+ * soft area behind a busy part of the pitch wants.
+ *
+ * `solid?: boolean` in ../schema.ts is the older, narrower version of this
+ * control and is still read — see `resolveBandStyle`. Nothing writes it any
+ * more, and no stored document changes meaning.
+ */
+export type BandEdge = 'solid' | 'dashed' | 'none'
+
+export const BAND_EDGES: { id: BandEdge; label: string }[] = [
+  { id: 'solid', label: 'Solid' },
+  { id: 'dashed', label: 'Dashed' },
+  { id: 'none', label: 'None' },
+]
+
+/** Shaded, or an outline round the space with the grass left showing through. */
+export type BandFill = 'shade' | 'none'
+
+export const BAND_FILLS: { id: BandFill; label: string }[] = [
+  { id: 'shade', label: 'Shaded' },
+  { id: 'none', label: 'Outline' },
+]
+
+/**
+ * The line threaded through the players a block runs through.
+ *
+ * It is what says "these men are one unit" rather than "this area happens to
+ * have players in it", so it is on by default on a block and has never existed
+ * on an area drawn as a box. Off is for the coach who wants the space and not
+ * the string.
+ */
+export type BandString = 'off' | 'thin' | 'normal' | 'thick'
+
+export const BAND_STRINGS: { id: BandString; label: string; width: number }[] = [
+  { id: 'off', label: 'Off', width: 0 },
+  { id: 'thin', label: 'Thin', width: 0.62 },
+  { id: 'normal', label: 'Mid', width: 1.15 },
+  { id: 'thick', label: 'Thick', width: 1.8 },
+]
+
+/**
+ * How far a closed block sits off its players.
+ *
+ * One number, because the shape is a hull grown by exactly this much in every
+ * direction (see `dilatedHull` in ./Overlays.tsx) — so the padding IS the
+ * corner radius, and a coach moving one is moving both, which is the
+ * relationship they would have to keep by hand otherwise.
+ *
+ * In metres from the centre of a counter, so the floor is `TOKEN_R` (2.1m)
+ * plus enough to clear the ring: anything under about 2.5 cuts through the
+ * players it is supposed to be holding together.
+ */
+export type BandCorner = 'tight' | 'soft' | 'loose'
+
+export const BAND_CORNERS: { id: BandCorner; label: string; pad: number }[] = [
+  { id: 'tight', label: 'Tight', pad: 2.9 },
+  { id: 'soft', label: 'Soft', pad: 3.7 },
+  { id: 'loose', label: 'Loose', pad: 4.9 },
+]
+
+/** What the coach has overridden, as stored — loose strings, narrowed here. */
+export interface BandOverrides {
+  tone?: string
+  strength?: string
+  edge?: string
+  fill?: string
+  string?: string
+  corner?: string
+  /** The older boolean form of `edge`. Read, never written. */
+  solid?: boolean
+}
+
+const pick = <T extends { id: string }>(table: T[], id: string | undefined): T | undefined =>
+  table.find((t) => t.id === id)
+
+/**
  * The style one band actually draws with: the house treatment for its kind,
  * with whatever the coach has overridden on top.
  *
  * ONE FUNCTION, called by the board and by nothing else, so the precedence
  * between "what kind of area is this" and "what did the coach ask for" is
- * decided in a single place. Fill is clamped: at 1.75× a block would be
- * approaching opaque, and a shaded area you cannot see the players through is
- * not a shaded area, it is a hole in the board.
+ * decided in a single place. Every override is resolved through a table, so a
+ * value we do not recognise — a document written by a newer build — falls back
+ * to the house treatment instead of drawing nothing.
+ *
+ * Fill is clamped: at 1.75x a block would be approaching opaque, and a shaded
+ * area you cannot see the players through is not a shaded area, it is a hole in
+ * the board.
  */
 export function resolveBandStyle(
   p: BoardPalette,
   kind: 'block' | 'danger' | 'zone',
-  overrides?: { tone?: BandTone; strength?: BandStrength },
+  overrides?: BandOverrides,
 ) {
   const base = bandStyle(p)[kind]
-  const mul = BAND_STRENGTHS.find((s) => s.id === overrides?.strength)?.mul ?? 1
+  const mul = pick(BAND_STRENGTHS, overrides?.strength)?.mul ?? 1
+  const toneId = pick(BAND_TONES, overrides?.tone)?.id
+  // A block's outline is solid by default and an area's is dashed, which is the
+  // difference between a line of players and a region of grass. `solid: true`
+  // is the old control and still means what it meant.
+  const houseEdge: BandEdge = kind === 'block' ? 'solid' : 'dashed'
+  const edge = pick(BAND_EDGES, overrides?.edge)?.id ?? (overrides?.solid ? 'solid' : houseEdge)
+  const fill = pick(BAND_FILLS, overrides?.fill)?.id ?? 'shade'
+  // Only a block has ever had a string; an area drawn as a box has no line of
+  // players to thread. `base.string` carries that (0.7 on a block, 0 on the
+  // rest), so an override on an area is ignored rather than inventing one.
+  const stringId = pick(BAND_STRINGS, overrides?.string)?.id
+  const corner = pick(BAND_CORNERS, overrides?.corner) ?? BAND_CORNERS[1]
+
+  const ink = Math.min(0.9, base.edge * (mul > 1 ? 1.25 : 1))
+  /*
+   * A mark that is neither shaded nor outlined is not a mark, it is a hole in
+   * the document: invisible on the board, unhittable with a pointer, and
+   * findable only in the list of marks. Outline wins in that case, because the
+   * coach who turned the shading off is the one who wanted the edge.
+   */
+  const blank = fill === 'none' && edge === 'none'
+
   return {
-    ...base,
-    tone: overrides?.tone ? bandTone(p, overrides.tone) : base.tone,
-    fill: Math.min(0.46, base.fill * mul),
-    edge: Math.min(0.9, base.edge * (mul > 1 ? 1.25 : 1)),
+    tone: toneId ? bandTone(p, toneId) : base.tone,
+    /** 0 when the coach asked for an outline: the gradient is still built, at zero. */
+    fill: fill === 'none' ? 0 : Math.min(0.46, base.fill * mul),
+    /** Stroke opacity. 0 means no outline at all. */
+    edge: edge === 'none' && !blank ? 0 : ink,
+    dashed: blank ? houseEdge === 'dashed' : edge === 'dashed',
+    /** Stroke opacity of the string through the players. */
+    string: base.string > 0 && stringId === 'off' ? 0 : base.string,
+    /** Its width in metres. Left at the house width unless the coach moved it. */
+    stringWidth: pick(BAND_STRINGS, stringId)?.width ?? 1.15,
+    /** How far a closed block sits off its players, in metres. */
+    pad: corner.pad,
   }
 }
 

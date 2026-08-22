@@ -52,7 +52,14 @@ function SendLink({
   return (
     <a
       href={disabled ? undefined : href}
-      target="_blank"
+      /*
+       * Not on `mailto:`. A new tab is right for wa.me, which is a web page —
+       * on a mail link the browser opens a tab, hands the URL to the mail
+       * client and leaves an empty tab sitting there, which reads as the button
+       * having half worked. A mail link navigates in place and the page it was
+       * on never actually goes anywhere.
+       */
+      target={href.startsWith('mailto:') ? undefined : '_blank'}
       rel="noreferrer"
       aria-disabled={disabled}
       onClick={() => !disabled && onSend()}

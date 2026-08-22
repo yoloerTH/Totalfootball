@@ -124,8 +124,44 @@ interface Props {
    */
   onFramePointerDown?: (part: FramePart, e: React.PointerEvent<SVGElement>) => void
   onBackgroundPointerDown?: (e: React.PointerEvent<SVGSVGElement>) => void
+  /**
+   * What the pointer is FOR right now. Decides the cursor, and nothing else.
+   *
+   * It has to be told rather than inferred. The board can see that counters are
+   * draggable, because it was handed a handler for them — it cannot see that
+   * the same handler means "pick this player for a line" today, and a coach
+   * armed with the Block tool was being shown a grab hand over every player and
+   * an arrow over grass they were about to draw on. The cursor is the only
+   * thing on the screen that says what a press will do before it is pressed,
+   * and getting it wrong is worse than having none.
+   */
+  mode?: BoardMode
   className?: string
   svgRef?: React.Ref<SVGSVGElement>
+}
+
+/**
+ * 'move'     — the Move tool: counters are grabbable, marks are pickable.
+ * 'dragging' — mid-drag, anywhere on the board.
+ * 'draw'     — an arrow or an area tool is armed: press the grass and pull.
+ * 'pick'     — the Block tool is armed: click players, one at a time.
+ */
+export type BoardMode = 'move' | 'dragging' | 'draw' | 'pick'
+
+/**
+ * The cursor for the board itself, and for a counter on it.
+ *
+ * `undefined` on a counter means it inherits the board's, which is what a
+ * drawing tool wants: an arrow dragged across a player is one gesture, and a
+ * cursor that changed halfway over it would say otherwise.
+ */
+const CURSOR: Record<BoardMode, { board: string; token: string | undefined }> = {
+  move: { board: 'default', token: 'grab' },
+  dragging: { board: 'grabbing', token: 'grabbing' },
+  draw: { board: 'crosshair', token: undefined },
+  // Not `pointer` on the grass: pressing it there ENDS the line rather than
+  // adding to it, and a hand promising something to click is the wrong promise.
+  pick: { board: 'default', token: 'pointer' },
 }
 
 /** Which part of the camera frame a pointer went down on. */
@@ -154,6 +190,7 @@ export function Board({
   onBackgroundPointerDown,
   onFramePointerDown,
   ballHref,
+  mode = 'move',
   className,
   svgRef,
   view: viewOverride,
@@ -174,6 +211,7 @@ export function Board({
   // it from context, so there is no component that can be left drawing in
   // paper's ink on a night pitch — see ./surfaces.ts.
   const surface = resolveSurface(system.surface)
+  const cursor = CURSOR[mode]
 
   const styleFor = (side: 'us' | 'them'): TeamStyle =>
     side === 'us' ? system.teams.us : (system.teams.them ?? system.teams.us)
@@ -194,6 +232,10 @@ export function Board({
         width: '100%',
         height: '100%',
         touchAction: 'none',
+        // Only where the board is interactive at all: the shared viewer, the
+        // print sheet and the exporter render a picture, and a picture does not
+        // get a crosshair.
+        cursor: onBackgroundPointerDown || onTokenPointerDown ? cursor.board : undefined,
         // A board is a picture, not prose. Without this, dragging a counter
         // also drags a text selection, which Chrome then paints in blue across
         // the pitch until the next click; on a touchscreen the same press
@@ -237,14 +279,17 @@ export function Board({
             .map((id) => act.tokens.find((t) => t.id === id))
             .filter((t): t is (typeof act.tokens)[number] => Boolean(t))
           const pts: Pt[] = through.map((t) => pos(t.x, t.y))
-          // The band closes to the goal ITS OWN players defend.
+          // Back to the goal ITS OWN players defend, or closed round the
+          // players themselves. See `close` on Band in ../schema.ts: absent
+          // means the goal, which is what every block drawn before the choice
+          // existed was given.
           return (
             <BlockBand
               key={b.id}
               idp={`${idp}-${b.id}`}
               kind={b.kind}
               pts={pts}
-              close={defendedGoal(through[0]?.side ?? 'us', view)}
+              close={b.close === 'shape' ? 'shape' : defendedGoal(through[0]?.side ?? 'us', view)}
               label={b.label}
               active={activeMarkId === b.id}
               band={b}
@@ -315,7 +360,7 @@ export function Board({
               key={t.id}
               opacity={t.opacity}
               onPointerDown={onTokenPointerDown ? (e) => onTokenPointerDown(t.id, e) : undefined}
-              style={{ cursor: onTokenPointerDown ? 'grab' : undefined }}
+              style={{ cursor: onTokenPointerDown ? cursor.token : undefined }}
             >
               <Token
                 idp={idp}
@@ -339,7 +384,7 @@ export function Board({
             opacity={act.ball.opacity}
             pointerEvents={onBallPointerDown ? undefined : 'none'}
             onPointerDown={onBallPointerDown}
-            style={{ cursor: onBallPointerDown ? 'grab' : undefined }}
+            style={{ cursor: onBallPointerDown ? cursor.token : undefined }}
           >
             <Ball
               idp={idp}

@@ -117,6 +117,21 @@ export interface Band {
    * exactly what they always meant, which is what a document format has to do.
    */
   drawn?: boolean
+  /**
+   * For 'block': how the shading is closed off.
+   *
+   * 'goal' fills from the player line back to the goal those players defend,
+   * which is what a block IS and what every published video draws. 'shape'
+   * closes the shading round the picked players themselves, the way a coach
+   * rings a unit on a whiteboard.
+   *
+   * A block through a back four wants 'goal'. A block through a front three
+   * pressing wants 'shape' — under 'goal' it shades the entire pitch back to
+   * your own keeper, which is the bug this field exists to fix (user,
+   * 2026-08-21). Absent means 'goal', so every block written before this reads
+   * exactly as it was drawn.
+   */
+  close?: 'goal' | 'shape'
   /** For 'danger' | 'zone': an explicit rectangle in percent coords. */
   rect?: { x: number; y: number; w: number; h: number }
   label?: string
@@ -143,12 +158,35 @@ export interface Band {
   /**
    * Solid outline instead of the dashed one.
    *
-   * Dashed is the default and says "this is a region we are talking about"
-   * rather than "this is a line on the pitch". Solid is for the coach who is
-   * marking out something with a real edge, a zone that ends where the
-   * six-yard box ends.
+   * SUPERSEDED BY `edge`, and kept because documents carry it. Nothing writes
+   * it any more; `resolveBandStyle` in ../board/surfaces.ts still reads it when
+   * `edge` is absent, so a board saved before the three-way control existed
+   * opens with the outline it was given.
    */
   solid?: boolean
+  /**
+   * The outline: 'solid' | 'dashed' | 'none'.
+   *
+   * Dashed says "this region, roughly", solid says the edge is real, none
+   * leaves the shading to speak for itself. A block's house default is solid
+   * and an area's is dashed — the difference between a line of players and a
+   * patch of grass.
+   */
+  edge?: string
+  /** 'shade' (the default) or 'none', which leaves an outline round the space. */
+  fill?: string
+  /**
+   * The line threaded through a block's players: 'off' | 'thin' | 'normal' |
+   * 'thick'. Meaningless on an area drawn as a box, which has no line of
+   * players, and ignored there rather than invented.
+   */
+  string?: string
+  /**
+   * How a closed block sits round its players: 'tight' | 'soft' | 'loose'.
+   * Padding and corner radius together — see BAND_CORNERS. Only read when
+   * `close` is 'shape'.
+   */
+  corner?: string
 }
 
 /**

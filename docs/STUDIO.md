@@ -538,9 +538,26 @@ view; fit by width and the final third looks like tiddlywinks.
 
 **We attack right, they attack left, on every view** — including
 `defending-half`, which means the half containing *our* goal, not a change of
-direction. A block band closes to the goal **its own players** defend
-(`defendedGoalX(side)`), never to a goal derived from the view — that bug shaded
-the entire pitch from our back four to the opposition's goal.
+direction. A block band that closes to a goal closes to the one **its own
+players** defend (`defendedGoal(side)`), never to a goal derived from the view —
+that bug shaded the entire pitch from our back four to the opposition's goal.
+
+**A block closes one of two ways, and the default is not always the goal.**
+`Band.close` is `'goal'` (absent, and what every block written before it means)
+or `'shape'`, which closes the shading round the picked players themselves —
+the Minkowski sum of their convex hull with a disc, in `dilatedHull()`. Shading
+to the goal is only right when the picked line is the deepest thing that side
+has: pick a front three under the old always-to-the-goal rule and it flooded the
+pitch back to your own keeper. `suggestClose()` answers it by asking whether any
+team-mate (never the keeper) stands behind the line, and the coach can override
+it while they are still picking.
+
+**Do not offset a polygon by pushing its vertices along their bisectors.** The
+distance is `pad / cos(half the corner angle)` and it runs away as a corner
+sharpens — three players nearly in a line send two spars off the edge of the
+pitch. Offset the edges in parallel and join them with arcs: nothing is ever
+more than `pad` from a player, and the two-point case falls out as a capsule
+with no special path.
 
 **Sizes are in metres and must be converted at draw time.** `strokeDasharray` is
 in user units, so a dash stored as `"1.6 1.1"` means 16cm of ink and renders
@@ -669,9 +686,16 @@ font is already loaded and the ball is a normal `<img>` the browser fetches.
   second window to read, it lands away from the thing it is about, and coaches
   dismiss it without reading exactly like everyone else. The button becomes the
   question. It is also undoable, which is what lets it be a button at all.
-- **Zones are drawn by dragging; the block is computed.** Sitting them in one
-  panel is what finally made "Add block" legible — one is worked out from your
-  players, two are drawn where you say.
+- **Zones are drawn by dragging; a block is a list of players.** Sitting them in
+  one panel is what finally made "Add block" legible — one is worked out from
+  your players, one you pick player by player, two are drawn where you say.
+- **The cursor is the only thing that says what a press will do before it is
+  pressed.** `Board` takes a `BoardMode` and nothing infers it: the board can
+  see that counters have a handler, it cannot see that today the handler picks a
+  player for a line rather than picking him up. Crosshair on the grass while a
+  drawing tool is armed, a pointer over counters while the Block tool is, grab
+  and grabbing for the Move tool, and nothing at all in the viewer or the export
+  — a picture does not get a crosshair.
 - **Caption and description are two fields, not one long one.** They are read at
   different distances: the caption while a room is looking at the board, the
   description off the printed page or by the assistant who was not there. One
