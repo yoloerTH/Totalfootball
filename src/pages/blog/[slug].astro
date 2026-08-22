@@ -16,7 +16,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import Prose from '../../components/blog/Prose.astro'
 import PostCard from '../../components/blog/PostCard.astro'
 import NewsletterForm from '../../components/NewsletterForm.astro'
-import { POSTS, TOPICS, readMinutes, relatedPosts, wordCount, type Post } from '../../data/posts'
+import { POSTS, TOPICS, heroFor, readMinutes, relatedPosts, wordCount, type Post } from '../../data/posts'
 import { systemBySlug } from '../../data/systems'
 import { abs, SITE, SITE_URL } from '../../lib/site'
 
@@ -34,6 +34,17 @@ const path = `/blog/${post.slug}/`
 const related = relatedPosts(post)
 const systems = post.systems.map((slug) => systemBySlug(slug)).filter(Boolean)
 
+/**
+ * The board this post leads with, shared by the OG card and the Article schema.
+ *
+ * Before this existed every post shared /og-default.png, which meant five
+ * different articles from a diagram channel all shared one generic card. The
+ * hero is derived (see `heroFor`), so it cannot point at a diagram the post
+ * stopped using.
+ */
+const hero = heroFor(post)
+const heroPhase = systemBySlug(hero.slug)?.phases.find((p) => p.n === hero.n)
+
 const date = new Date(post.published).toLocaleDateString('en-GB', {
   day: 'numeric',
   month: 'long',
@@ -48,6 +59,16 @@ const article = {
   datePublished: post.published,
   dateModified: post.updated,
   wordCount: wordCount(post),
+  // Google's Article guidance asks for an image and the library template has
+  // always sent one. A post without it was the only Article on the site making
+  // a claim it could not illustrate.
+  image: {
+    '@type': 'ImageObject',
+    url: `${SITE_URL}${hero.path}`,
+    caption: heroPhase?.alt,
+    width: 720,
+    height: 1104,
+  },
   mainEntityOfPage: { '@type': 'WebPage', '@id': abs(path) },
   author: { '@type': 'Organization', name: SITE.name, url: SITE_URL },
   publisher: {
@@ -68,6 +89,10 @@ const article = {
   title={post.title}
   description={post.description}
   path={path}
+  image={hero.path}
+  imageAlt={heroPhase?.alt}
+  imageWidth={720}
+  imageHeight={1104}
   type="article"
   publishedTime={post.published}
   modifiedTime={post.updated}

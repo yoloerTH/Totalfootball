@@ -11,6 +11,17 @@
  *  · page-specific structured data passed in, never inlined in pages
  */
 import '@fontsource-variable/inter'
+/**
+ * The latin subset, imported as a URL so Vite emits it and hashes it. docs/SPEC.md
+ * §7 promised a preloaded font and the stylesheet import alone does not give one:
+ * the browser has to parse the CSS before it discovers the file, which puts the
+ * font one full round trip behind the text that needs it.
+ *
+ * Latin only, deliberately. The other six subsets in the family are gated behind
+ * `unicode-range` and are never fetched by an English page, so preloading them
+ * would be pure waste on the critical path.
+ */
+import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url'
 import '../styles/global.css'
 import { SITE, SITE_URL, ENTITY, abs, sameAs } from '../lib/site'
 import Header from '../components/Header.astro'
@@ -26,6 +37,16 @@ interface Props {
   path?: string
   image?: string
   imageAlt?: string
+  /**
+   * Intrinsic size of `image`. Defaults to the 1200×630 of /og-default.png.
+   *
+   * These are not decoration: a scraper that cannot fetch the image trusts them
+   * to reserve the card, and they were previously hardcoded at 1200×630 while
+   * the library template was already sending 720×1104 portrait boards. Any page
+   * that overrides `image` must override these with it.
+   */
+  imageWidth?: number
+  imageHeight?: number
   type?: 'website' | 'article'
   publishedTime?: string
   modifiedTime?: string
@@ -52,6 +73,8 @@ const {
   path = '/',
   image = '/og-default.png',
   imageAlt = 'Total Football: football tactics as diagrams',
+  imageWidth = 1200,
+  imageHeight = 630,
   type = 'website',
   publishedTime,
   modifiedTime,
@@ -163,6 +186,7 @@ const siteSchema = {
     */}
     <meta name="theme-color" content="#F4F4F2" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
 
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
@@ -192,8 +216,9 @@ const siteSchema = {
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:alt" content={imageAlt} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content={ogImage.endsWith('.png') ? 'image/png' : 'image/jpeg'} />
+    <meta property="og:image:width" content={String(imageWidth)} />
+    <meta property="og:image:height" content={String(imageHeight)} />
     <meta property="og:site_name" content={SITE.name} />
     <meta property="og:locale" content={SITE.ogLocale} />
     {publishedTime && <meta property="article:published_time" content={publishedTime} />}

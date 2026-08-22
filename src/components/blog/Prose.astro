@@ -13,6 +13,7 @@
  */
 import { inline, type Block } from '../../data/posts'
 import { systemBySlug } from '../../data/systems'
+import PhaseImage from '../library/PhaseImage.astro'
 
 interface Props {
   body: Block[]
@@ -87,6 +88,39 @@ const slugify = (s: string) =>
             <p class="micro mb-3">For the record</p>
             <p class="text-[14.5px] leading-relaxed text-ink-soft" set:html={inline(block.text)} />
           </aside>
+        )
+      }
+
+      // The board itself, in the flow.
+      //
+      // Alt text is the phase's OWN authored alt and the caption defaults to
+      // the phase's own caption — neither is re-written here. That is what
+      // keeps a post's illustrations honest for free: a figure cannot describe
+      // a diagram differently from the library page that owns it.
+      //
+      // Width is capped here rather than in PhaseImage, which releases its
+      // max-width at `md` for the library's own wider slot. A 720×1104 portrait
+      // board at full column width would be a page of its own.
+      if (block.t === 'figure') {
+        const src = systemBySlug(block.system)
+        const phase = src?.phases.find((p) => p.n === block.phase)
+        if (!src || !phase) return null
+        const href = `/library/${src.slug}/#phase-${phase.n}`
+        return (
+          <figure class="mt-12 max-w-prose" data-reveal="rise">
+            <a href={href} class="mx-auto block max-w-[340px] sm:max-w-[380px]">
+              <PhaseImage slug={src.slug} n={phase.n} alt={phase.alt} />
+            </a>
+            <figcaption class="mt-4 text-[13.5px] leading-relaxed text-ink-faint">
+              {block.caption ?? phase.caption}{' '}
+              <a
+                href={href}
+                class="whitespace-nowrap underline decoration-ink-hair underline-offset-4 transition-colors hover:text-ink hover:decoration-ink"
+              >
+                {src.title}, phase {phase.n}
+              </a>
+            </figcaption>
+          </figure>
         )
       }
 

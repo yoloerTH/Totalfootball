@@ -85,6 +85,16 @@ export type Block =
   | { t: 'note'; text: string }
   /** A card into the library, in the flow. */
   | { t: 'system'; slug: string; label: string }
+  /**
+   * A board, in the flow. The whole reason this site can write prose at all: a
+   * post that makes a claim about shape should show the shape.
+   *
+   * `caption` is optional and defaults to the phase's OWN caption from
+   * systems.ts, which is already authored and already true. Override it only
+   * when the post is pointing at the board for a different reason than the
+   * library page was — never to restate the same line in new words.
+   */
+  | { t: 'figure'; system: string; phase: number; caption?: string }
 
 export interface Post {
   slug: string
@@ -137,6 +147,7 @@ export const POSTS: Post[] = [
         t: 'p',
         text: 'Which is why depth and compactness get confused too. Sitting deeper does not make you compact; it just moves the same gap closer to your own goal. Spain against France is the version of this worth copying, because holding the banks close enough that nothing receives between them is the second of the three things that stopped a team built entirely on running into space.',
       },
+      { t: 'figure', system: 'how-spain-caged-france', phase: 3 },
       {
         t: 'system',
         slug: 'how-spain-caged-france',
@@ -213,6 +224,7 @@ export const POSTS: Post[] = [
         t: 'p',
         text: 'The important part is that the free man is created rather than found. Nothing about it depends on the pressers making a mistake. They can do their job perfectly and there is still a spare player, because there are three of them and two of you.',
       },
+      { t: 'figure', system: 'salida-lavolpiana', phase: 3 },
       { t: 'system', slug: 'salida-lavolpiana', label: 'The drop, and the man it frees' },
       { t: 'h2', text: 'Solution two: use the goalkeeper' },
       {
@@ -287,6 +299,7 @@ export const POSTS: Post[] = [
         t: 'p',
         text: 'This is why a back four can be taught as a unit and not as four jobs learned separately. There is one system with four seats in it, and every defender will sit in all of them within a phase or two.',
       },
+      { t: 'figure', system: 'defending-in-a-back-four', phase: 2 },
       {
         t: 'system',
         slug: 'defending-in-a-back-four',
@@ -360,6 +373,7 @@ export const POSTS: Post[] = [
         t: 'p',
         text: 'Each of those buys you a second in which the player on the ball cannot punish you for arriving. That second is the whole product. If none of them has happened, the run is not a press, it is running.',
       },
+      { t: 'figure', system: 'when-to-press', phase: 3 },
       { t: 'system', slug: 'when-to-press', label: 'The four triggers, on the board' },
       { t: 'h2', text: 'Then compare two clocks' },
       {
@@ -443,6 +457,7 @@ export const POSTS: Post[] = [
         t: 'p',
         text: 'The best watch-through rate on the channel is 65%, on the underlap, and the underlap is the smallest system we have ever drawn: one full-back running inside his winger instead of around him. It is not big. It is a decision that forces another decision, and that is apparently the shape of thing people finish watching.',
       },
+      { t: 'figure', system: 'the-underlap', phase: 4 },
       { t: 'system', slug: 'the-underlap', label: 'The 65% one' },
       { t: 'h2', text: 'What changed downstream' },
       {
@@ -502,7 +517,9 @@ export const relatedPosts = (post: Post, count = 3) =>
 /** Words of body prose, for the reading estimate. */
 export const wordCount = (post: Post) =>
   post.body.reduce((n, block) => {
-    if (block.t === 'system') return n
+    // Cards and boards are furniture, not prose: counting them would inflate
+    // the reading estimate with words nobody reads as a sentence.
+    if (block.t === 'system' || block.t === 'figure') return n
     const text = block.t === 'list' ? block.items.join(' ') : block.text
     return n + text.split(/\s+/).length
   }, 0)
@@ -526,4 +543,21 @@ export function inline(text: string): string {
       '<a href="$2" class="font-medium text-ink underline decoration-ink-hair underline-offset-4 transition-colors hover:decoration-ink">$1</a>'
     )
     .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-ink">$1</strong>')
+}
+
+/**
+ * The board a post leads with, for the OG card and the Article schema.
+ *
+ * DERIVED, never authored: the post's first figure, or failing that phase 1 of
+ * the first system it threads through. A hand-set hero would be one more field
+ * that can point at a diagram the post no longer uses. Every post threads at
+ * least three systems (rule 1), so this always resolves.
+ */
+export const heroFor = (post: Post) => {
+  const fig = post.body.find((b) => b.t === 'figure') as
+    | Extract<Block, { t: 'figure' }>
+    | undefined
+  const slug = fig?.system ?? post.systems[0]
+  const n = fig?.phase ?? 1
+  return { slug, n, path: `/library/${slug}/phase-${String(n).padStart(2, '0')}.png` }
 }
