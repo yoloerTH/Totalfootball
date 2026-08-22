@@ -105,19 +105,35 @@ dig +short naurra.ai TXT | grep spf1
 
 ### 2.2 · DKIM — one selector per product
 
-Both values are **generated in the respective console** and are unique to the account, so
-they are not reproduced here. Copy each from its UI.
+Values are **generated in the respective console** and unique to the account, so the keys
+are not reproduced here — only which host holds what.
 
-| host | from | note |
+| host | from | status |
 |---|---|---|
-| `zmail._domainkey.naurra.ai` | Zoho Mail | **already live**, leave alone |
-| `<selector>._domainkey.naurra.ai` | ZeptoMail → Domains → the domain | ZeptoMail offers to auto-generate the selector; take the 2048-bit option |
-| `<selector>._domainkey.naurra.ai` | Campaigns → Settings → Domain Authentication | |
+| `zmail._domainkey.naurra.ai` | Zoho Mail | live since before this work — **leave alone** |
+| `22225042._domainkey.naurra.ai` | ZeptoMail | **live 2026-08-23**, 1024-bit RSA |
+| `bounce-zem.naurra.ai` (CNAME → `cluster89.zeptomail.eu`) | ZeptoMail bounce tracking | **live 2026-08-23** |
+| `<selector>._domainkey.naurra.ai` | Campaigns → Settings → Domain Authentication | not yet added |
 
-Each is a `TXT` record whose value begins `v=DKIM1; k=rsa; p=…`.
+Note ZeptoMail's value begins `k=rsa; p=…` with **no `v=DKIM1;` prefix**. That is what its
+console issues and it is valid — the `v=` tag is optional when it is the first tag. Publish
+exactly what the console shows; do not "helpfully" prepend `v=DKIM1;`.
 
-ZeptoMail also issues a **CNAME** alongside its DKIM record for domain verification —
-add whatever it shows on the Domains screen; it is account-specific.
+**Validate a DKIM key before publishing it.** A mangled paste does not error anywhere: the
+record publishes, resolves, and verifies at the DNS level, and then every signature fails
+at the receiver — indistinguishable from propagation lag, and diagnosed hours later. Parse
+the `p=` value as a real key first:
+
+```js
+createPublicKey({ key: `-----BEGIN PUBLIC KEY-----\n${p}\n-----END PUBLIC KEY-----\n`, format: 'pem' })
+```
+
+Check it reports `rsa` and a modulus of at least 1024 bits.
+
+> ZeptoMail issued a **1024-bit** key here. Accepted everywhere and above Google's floor,
+> but 2048 is the modern default. "Add DKIM key" on the Domains screen can add a stronger
+> one later without disturbing this one — DKIM supports multiple selectors precisely so a
+> key can be rotated with no gap.
 
 ### 2.3 · DMARC — DONE (2026-08-22)
 
