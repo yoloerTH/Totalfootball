@@ -284,3 +284,35 @@ queries the list, that distinction is the thing they will ask about.
 | newsletter arrives blank | `content_url` 404'd at fetch time — deploy first |
 | `dkim=pass` but `dmarc=fail` | signed by `zcsend.net`, not `naurra.ai`; domain authentication in Campaigns is incomplete |
 | someone unsubscribes and still gets mail | `sync-campaigns.mjs --run` has not been run since |
+| "Refusing to send N messages over the Zoho Mail SMTP fallback" | working as intended — set `ZEPTOMAIL_TOKEN` (§3) |
+
+### The SMTP fallback has a hard cap, and why
+
+On **2026-08-22 Zoho blocked outgoing mail on `athanasios@naurra.ai`** for
+exceeding the allowed rate. The notice said, in Zoho's own words: *"If you're
+sending transactional/notification emails like welcome emails, OTP emails,
+account notification emails etc, please use ZeptoMail."*
+
+A mailbox is not a sender. Exceeding its rate does not bounce one message — it
+suspends outgoing mail on the whole account, taking normal correspondence down
+with it. So `sendBatch()` refuses more than **20 messages per process run** over
+the SMTP path, counted cumulatively because callers chunk their sends.
+
+ZeptoMail is not capped by this; it is a bulk relay and that is its job. The cap
+is a symptom-blocker, and the fix is always to configure the token.
+
+### The sender is an alias
+
+`totalfootball@naurra.ai` is an alias; the real mailbox is
+`athanasios@naurra.ai`. That is the correct arrangement and nothing needs to
+change:
+
+- `EMAIL_FROM` is the **alias** — what recipients see.
+- `ZOHO_SMTP_USER` is the **real mailbox** — it owns the app password, and it is
+  the envelope sender.
+- **ZeptoMail** authenticates the *domain*, not the mailbox, so once `naurra.ai`
+  is verified any address on it can be a From — the alias needs no mailbox of
+  its own.
+- **Campaigns** verifies the From address by emailing it. That mail is delivered
+  to the alias, which lands in the `athanasios@` inbox, so the confirmation link
+  arrives normally.

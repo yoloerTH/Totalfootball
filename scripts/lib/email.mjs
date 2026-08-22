@@ -649,6 +649,28 @@ function zeptoBase() {
  * rather than merely spam-foldered. The mailto: form is listed alongside the
  * URL because a few clients only honour that one.
  */
+/**
+ * How many messages the SMTP FALLBACK may send in one process before it
+ * refuses. ZeptoMail is not subject to this — it is a bulk relay and that is
+ * its job.
+ *
+ * This exists because it already happened. On 2026-08-22 Zoho blocked
+ * outgoing mail on athanasios@naurra.ai for exceeding the allowed rate, and
+ * the block notice itself said: "If you're sending transactional/notification
+ * emails like welcome emails... please use ZeptoMail." A mailbox is not a
+ * sender, and the failure mode is not a clean rejection of message 251 — it
+ * is the whole account being suspended, which takes normal correspondence
+ * down with it.
+ *
+ * 20 is chosen to be comfortably below any plausible per-hour ceiling while
+ * still allowing a handful of real test sends. Raise it only by setting the
+ * transport to ZeptoMail, which is the actual fix.
+ */
+const SMTP_FALLBACK_CAP = Number(envVar('ZOHO_SMTP_MAX_PER_RUN') || 20)
+
+/** Cumulative for the life of the process, because callers chunk their sends. */
+let smtpSentThisRun = 0
+
 export async function sendBatch(items) {
   const via = transportName()
   if (!via) {
@@ -656,7 +678,25 @@ export async function sendBatch(items) {
       'No mail transport configured. Set ZEPTOMAIL_TOKEN (preferred) or ZOHO_SMTP_PASS in .env.',
     )
   }
-  return via === 'zeptomail' ? sendViaZeptoMail(items) : sendViaZoho(items)
+
+  if (via === 'zeptomail') return sendViaZeptoMail(items)
+
+  // Counted across calls, not per call: send-welcome-all chunks by 50, so a
+  // per-call check would wave through an unbounded total.
+  if (smtpSentThisRun + items.length > SMTP_FALLBACK_CAP) {
+    throw new Error(
+      `Refusing to send ${items.length} message(s) over the Zoho Mail SMTP fallback ` +
+        `(${smtpSentThisRun} already sent this run, cap ${SMTP_FALLBACK_CAP}).\n\n` +
+        `  Zoho Mail is a MAILBOX, not a sender. Exceeding its rate does not bounce\n` +
+        `  one message — it suspends outgoing mail on the whole account, which is\n` +
+        `  what happened on 2026-08-22.\n\n` +
+        `  Set ZEPTOMAIL_TOKEN in .env and re-run. See docs/EMAIL.md §3.`,
+    )
+  }
+
+  const result = await sendViaZoho(items)
+  smtpSentThisRun += items.length
+  return result
 }
 
 const listHeaders = (unsubscribeUrl) => ({
