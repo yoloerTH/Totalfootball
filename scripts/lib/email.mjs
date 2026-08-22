@@ -640,6 +640,28 @@ function zeptoBase() {
 }
 
 /**
+ * The send token, with the scheme prefix stripped if it came along for the
+ * ride.
+ *
+ * ZeptoMail's console displays the credential as `Zoho-enczapikey xxxxx` and
+ * its copy button hands you that whole string, prefix included. The
+ * Authorization header this code builds adds the prefix itself, so pasting
+ * what the console gives you produces
+ * `Zoho-enczapikey Zoho-enczapikey xxxxx` and a 401 — which reads as a bad
+ * token and sends you to regenerate a perfectly good one.
+ *
+ * Accepting both forms costs one regex and removes an entire category of
+ * wasted evening. Surrounding quotes go too, since .env files attract them.
+ */
+function zeptoToken() {
+  return envVar('ZEPTOMAIL_TOKEN')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/^Zoho-enczapikey\s+/i, '')
+    .trim()
+}
+
+/**
  * Send a batch. Each item is { to, subject, html, text, unsubscribeUrl } and
  * needs its own body, because the unsubscribe link is per-recipient.
  *
@@ -728,7 +750,7 @@ const listHeaders = (unsubscribeUrl) => ({
  * single bad address must not stop the other 79 from being sent.
  */
 async function sendViaZeptoMail(items) {
-  const token = envVar('ZEPTOMAIL_TOKEN')
+  const token = zeptoToken()
   const url = `${zeptoBase()}/v1.1/email`
   const from = { address: addressOf(FROM), name: nameOf(FROM) }
 
