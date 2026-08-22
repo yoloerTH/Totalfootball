@@ -100,6 +100,11 @@ const id = `nl-${Math.random().toString(36).slice(2, 8)}`
         // counts people who pressed it; this counts people who got on the
         // list, which is the number the daily report is actually about.
         window.tfTrack?.(`signup:${data.get('source') ?? 'unknown'}`)
+        // Announced so a surface that WRAPS this form can respond to a
+        // confirmed insert — the popup uses it to stop offering. Deliberately
+        // fired here and not on submit: a submit is an attempt, and a popup
+        // that congratulates an attempt will congratulate a network error.
+        form.dispatchEvent(new CustomEvent('tf:subscribed', { bubbles: true }))
         form.reset()
       } catch {
         say('That did not go through. Try again in a moment.', false)

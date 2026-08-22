@@ -365,7 +365,8 @@ schema, slide viewer, structured data, media pipeline, six exported diagrams.
 machinery). Real numbers, sourced from `src/data/channel.ts`.
 
 **Phase E — intelligence, course waitlist, privacy/terms, Supabase capture.
-✅ 2026-08-09.** Newsletter popup still outstanding.
+✅ 2026-08-09.** The popup landed 2026-08-22 as `JoinPopup.astro`: three offers
+paged one at a time, all four §9 rules implemented as written.
 
 **Phase C — the other 11 systems.** Blocked on the review gate.
 

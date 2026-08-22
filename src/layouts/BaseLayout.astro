@@ -17,6 +17,7 @@ import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import Analytics from '../components/Analytics.astro'
 import NaurraCredit from '../components/NaurraCredit.astro'
+import JoinPopup from '../components/JoinPopup.astro'
 
 interface Props {
   title?: string
@@ -268,6 +269,10 @@ const siteSchema = {
     {!bare && <Footer />}
     {/* Corner badge; the matching permanent credit sits in the footer. */}
     {!bare && <NaurraCredit />}
+
+    {/* Bottom-LEFT, opposite the credit badge. Arms itself on scroll depth or
+        exit intent; see the component for the SPEC §9 rules it implements. */}
+    {!bare && <JoinPopup />}
 
     <Analytics />
 

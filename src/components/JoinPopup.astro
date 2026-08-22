@@ -1,0 +1,580 @@
+---
+/**
+ * The three ways in, docked bottom-left. One at a time.
+ *
+ * This is the popup SPEC §9 reserved and never built, and its rules there are
+ * non-negotiable, so they are implemented literally rather than approximately:
+ *
+ *  · NEVER on first paint. It arms on 50% scroll depth or on exit intent, and
+ *    nothing else. No timer, because a timer fires at people who are reading.
+ *  · Frequency-capped in localStorage. Seen and ignored is a 7-day rest;
+ *    actively dismissed is 30 days; joined is forever.
+ *  · On mobile it must not cover the content. That is a RANKING issue (Google's
+ *    intrusive-interstitial penalty), not a taste one, so on a phone it opens
+ *    as a one-line pill and only becomes the card when it is tapped. On desktop
+ *    there is no such rule and no such cost, so it opens as the card.
+ *
+ * WHY A CAROUSEL AND NOT THREE ROWS
+ *
+ * Three offers listed together is a menu, and a menu asks the reader to
+ * compare before it asks them to do anything. One at a time is an offer: a
+ * ball, a line, a button. It is also the shape the studio's own walkthrough
+ * uses (src/studio/editor/Walkthrough.tsx) — paper stage on top, step counter,
+ * dots that page it — so the two paged panels on this property feel like one
+ * hand drew them.
+ *
+ * THE BALL IS THE PAGER. It is the same photographed match ball the videos
+ * composite onto the board (src/studio/balls.ts), one per slide, and it ROLLS:
+ * the slide it belongs to slides sideways and the ball turns with it, so the
+ * movement reads as a ball crossing the panel rather than as a div sliding.
+ * Rotation is `(index - current) × 150deg`, set in script, which is why paging
+ * backwards rolls it back the way it came.
+ *
+ * It is a `complementary` region, deliberately NOT a dialog: it opens by
+ * itself, and the studio's rule applies here too (docs/STUDIO.md) — a thing
+ * that opens by itself must not trap focus or blank what you were reading.
+ *
+ * The footer handover is copied from NaurraCredit: this tucks itself away when
+ * the footer arrives, so it never sits on top of the footer's own newsletter
+ * form, which is and remains the primary surface.
+ */
+import NewsletterForm from './NewsletterForm.astro'
+
+/**
+ * Pages where a third offer is noise rather than an offer. `/course/` already
+ * IS the early-access pitch, and the two studio entry points are the moment
+ * someone is signing in — interrupting either one is pure friction.
+ * (Bare pages — the editor, the render surfaces — never mount this at all;
+ * BaseLayout only renders it with the rest of the chrome.)
+ */
+const MUTED = ['/course/', '/studio/portal/', '/studio/login/']
+const here = Astro.url.pathname
+const muted = MUTED.some((p) => here === p || here.startsWith(p))
+
+/**
+ * Balls are assigned, not picked at random: the house default for the house
+ * newsletter, the current ball for the tool people use today, and the 1970
+ * Telstar for the thing that has not opened yet. Thumbs come from
+ * scripts/ball-thumbs.mjs — 8 KB each rather than the studio's 110 KB original,
+ * because this is decoration in front of someone who has not asked for it.
+ */
+const SLIDES = [
+  {
+    key: 'newsletter',
+    ball: 'trionda',
+    ballName: 'Trionda match ball',
+    tag: 'The notebook',
+    title: 'One system,',
+    accent: 'every week.',
+    body: 'The diagram, the principle, and the detail most people miss.',
+  },
+  {
+    key: 'studio',
+    ball: 'al-rihla',
+    ballName: 'Al Rihla match ball',
+    tag: 'The Studio · free',
+    title: 'Draw your own',
+    accent: 'on the board.',
+    body: 'The same board the videos are drawn on, handed over. Pose it, and the movement comes back as film.',
+    href: '/studio/portal/',
+    cta: 'Open the Studio',
+    note: 'Free. Nothing to install.',
+  },
+  {
+    key: 'course',
+    ball: 'telstar',
+    ballName: 'Telstar match ball',
+    tag: 'The course · early access',
+    title: 'Get in',
+    accent: 'before it opens.',
+    body: 'Make the videos, build the agents, sell both. Lock €39/month for life.',
+    href: '/course/#early-access',
+    cta: 'Claim my place',
+    note: 'No payment now and no card details.',
+  },
+]
+---
+
+{
+  !muted && (
+    <aside
+      id="tf-join"
+      class="tf-join-dock fixed z-40 print:hidden"
+      role="complementary"
+      aria-label="Ways to join Total Football"
+      hidden
+    >
+      {/*
+        The phone's first state. A single line, roughly the height of a tab bar,
+        which is the "reasonable amount of screen" side of Google's line. It is
+        also the only thing keyboard users meet first, so it is a real button
+        that says what it opens.
+      */}
+      <button
+        type="button"
+        class="tf-join-teaser group flex items-center gap-2.5 rounded-full border border-ink-hair bg-surface/90 py-1.5 pl-2 pr-4 shadow-paper backdrop-blur-md sm:hidden"
+        aria-expanded="false"
+        aria-controls="tf-join-card"
+      >
+        <span class="tf-join-teaser-ball grid h-7 w-7 shrink-0 place-items-center rounded-full bg-paper">
+          <img
+            src="/studio/balls/thumb/trionda.webp"
+            alt=""
+            width="22"
+            height="22"
+            decoding="async"
+            class="h-[22px] w-[22px]"
+          />
+        </span>
+        <span class="text-[13px] font-semibold text-ink">Three ways in</span>
+      </button>
+
+      <div
+        id="tf-join-card"
+        class="tf-join-card w-[min(21.5rem,calc(100vw-2rem))] overflow-hidden rounded-[20px] border border-ink-hair bg-surface/95 shadow-lift backdrop-blur-xl"
+      >
+        <button
+          type="button"
+          class="tf-join-close absolute right-2.5 top-2.5 z-10 grid h-8 w-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-surface hover:text-ink"
+          aria-label="Close"
+        >
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+            class="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="m5.5 5.5 9 9m0-9-9 9" />
+          </svg>
+        </button>
+
+        {/*
+          One track, three slides, `stretch`ed to the tallest. Constant height
+          is the point: a panel that grows and shrinks as it pages makes the
+          button move under the thumb that is reaching for it.
+        */}
+        <div class="tf-join-track flex" data-i="0">
+          {SLIDES.map((slide, n) => (
+            <section
+              class="tf-join-slide flex w-full shrink-0 flex-col"
+              aria-hidden={n === 0 ? 'false' : 'true'}
+              aria-label={slide.tag}
+            >
+              {/* The paper stage, same as the walkthrough's illustration band. */}
+              <div class="tf-join-stage relative grid h-[92px] place-items-center overflow-hidden">
+                <img
+                  class="tf-join-ball drift"
+                  src={`/studio/balls/thumb/${slide.ball}.webp`}
+                  alt={slide.ballName}
+                  width="58"
+                  height="58"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <div class="flex flex-1 flex-col px-5 pb-5 pt-4">
+                <p class="micro mb-2.5">{slide.tag}</p>
+                <h2 class="text-[17px] font-black leading-tight tracking-display text-ink">
+                  {slide.title} <span class="grad-text">{slide.accent}</span>
+                </h2>
+                <p class="mt-2 text-[12.5px] leading-relaxed text-ink-soft">{slide.body}</p>
+
+                <div class="mt-auto pt-4">
+                  {slide.href ? (
+                    <>
+                      <a
+                        href={slide.href}
+                        class="btn-primary w-full !px-5 !py-2.5 text-[13px]"
+                        data-track={`popup:${slide.key}`}
+                      >
+                        {slide.cta}
+                      </a>
+                      <p class="mt-3 text-[11px] leading-relaxed text-ink-faint">{slide.note}</p>
+                    </>
+                  ) : (
+                    <NewsletterForm source="popup" compact cta="Join" />
+                  )}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <div class="flex items-center gap-3 border-t border-ink-hair px-5 py-3">
+          <div class="flex flex-1 items-center gap-1.5">
+            {SLIDES.map((slide, n) => (
+              <button
+                type="button"
+                class="tf-join-dot h-1.5 rounded-full transition-all"
+                data-to={n}
+                aria-label={`${n + 1} of ${SLIDES.length}: ${slide.tag}`}
+              />
+            ))}
+          </div>
+          {[
+            { dir: -1, label: 'Previous', path: 'm12 5-5 5 5 5' },
+            { dir: 1, label: 'Next', path: 'm8 5 5 5-5 5' },
+          ].map((nav) => (
+            <button
+              type="button"
+              class="tf-join-nav grid h-8 w-8 place-items-center rounded-full border border-ink-hair text-ink-soft transition-colors hover:border-ink/25 hover:text-ink disabled:opacity-30"
+              data-dir={nav.dir}
+              aria-label={nav.label}
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.9"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d={nav.path} />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+<style>
+  /*
+   * Bottom-LEFT, and the Naurra badge is bottom-right, so the two corners are
+   * spoken for and neither ever sits on the other. Positioned in CSS rather
+   * than with utilities for the same reason the badge is: `env(safe-area-inset)`
+   * keeps it clear of the iPhone home indicator.
+   */
+  .tf-join-dock {
+    left: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 640px) {
+    .tf-join-dock {
+      left: 1.25rem;
+      bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  .tf-join-card {
+    position: relative;
+  }
+
+  /* The house curve, and the house rule: arrive from below, never snap in. */
+  .tf-join-dock[data-state='in'] .tf-join-teaser,
+  .tf-join-dock[data-state='in'] .tf-join-card {
+    animation: tf-join-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes tf-join-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /*
+   * Phone: pill first, card only on tap. Desktop (>=640px): the card, always,
+   * and the pill does not exist. `[data-open]` is set by script on tap and is
+   * meaningless above the breakpoint.
+   */
+  .tf-join-card {
+    display: none;
+  }
+  .tf-join-dock[data-open] .tf-join-card {
+    display: block;
+  }
+  .tf-join-dock[data-open] .tf-join-teaser {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .tf-join-card {
+      display: block;
+    }
+  }
+
+  .tf-join-teaser {
+    transition: border-color 0.35s ease, box-shadow 0.35s ease, translate 0.35s
+      cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tf-join-teaser:hover {
+    translate: 0 -1px;
+    border-color: rgb(230 178 58 / 0.45);
+  }
+  /* The pill's ball keeps rolling on hover, which is the whole promise of the
+     panel behind it in one gesture. */
+  .tf-join-teaser-ball img {
+    transition: rotate 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tf-join-teaser:hover .tf-join-teaser-ball img {
+    rotate: 150deg;
+  }
+
+  /*
+   * The band the ball sits on. The page's own stage pattern would seam at every
+   * slide edge as the track moves, so this is a soft brand wash instead: gold
+   * into green, barely there, with the ball's contact shadow under it.
+   */
+  .tf-join-stage {
+    background:
+      radial-gradient(120% 90% at 50% 118%, rgb(8 193 106 / 0.13) 0%, transparent 62%),
+      radial-gradient(90% 80% at 50% -10%, rgb(230 178 58 / 0.14) 0%, transparent 66%),
+      rgb(var(--tf-paper));
+  }
+  /* The contact shadow. It has to sit BELOW the ball rather than under the
+     middle of it, so the ball is lifted off centre by the margin below and the
+     ellipse takes the space that opens up. */
+  .tf-join-stage::after {
+    content: '';
+    position: absolute;
+    bottom: 13px;
+    left: 50%;
+    width: 46px;
+    height: 8px;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: rgb(var(--tf-ink) / 0.2);
+    filter: blur(4.5px);
+  }
+  .tf-join-ball {
+    position: relative;
+    margin-bottom: 14px;
+    /* Rotation is script's (it depends on which slide you are on); the drift is
+       CSS's. Two different properties on purpose, so neither overwrites the
+       other the way two transforms would. */
+    transition: rotate 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tf-join-track {
+    transition: translate 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    touch-action: pan-y;
+  }
+  /* A slide that has paged away must not be tabbable, or the keyboard walks
+     into three buttons nobody can see. */
+  .tf-join-slide[aria-hidden='true'] {
+    visibility: hidden;
+  }
+
+  .tf-join-dot {
+    width: 6px;
+    background: rgb(var(--tf-ink) / 0.14);
+  }
+  .tf-join-dot:hover {
+    background: rgb(var(--tf-ink) / 0.32);
+  }
+  .tf-join-dot[aria-current='true'] {
+    width: 20px;
+    background: rgb(var(--tf-ink));
+  }
+
+  /* Handover to the footer, exactly as the Naurra badge does it. */
+  .tf-join-dock {
+    transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), translate 0.45s
+      cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .tf-join-dock.is-tucked {
+    opacity: 0;
+    translate: 0 14px;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tf-join-dock[data-state='in'] .tf-join-teaser,
+    .tf-join-dock[data-state='in'] .tf-join-card {
+      animation: none;
+    }
+    .tf-join-track,
+    .tf-join-ball {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Arming, capping, paging. Everything here is progressive: with no JS the
+   * aside stays `hidden` and the page is exactly what it was, which is also
+   * what a crawler sees. Nothing in this popup is content.
+   */
+  const dock = document.getElementById('tf-join')
+  if (dock) {
+    const KEY = 'tf_join_popup'
+    const DAY = 86_400_000
+    // Seen and ignored rests a week; actively closed rests a month; joined is
+    // done. A popup that reappears the day after someone shut it is the reason
+    // people hate popups.
+    const REST = { shown: 7 * DAY, dismissed: 30 * DAY, joined: Infinity }
+
+    type State = keyof typeof REST
+
+    const read = (): { state: State; at: number } | null => {
+      try {
+        const raw = localStorage.getItem(KEY)
+        return raw ? JSON.parse(raw) : null
+      } catch {
+        return null
+      }
+    }
+    const write = (state: State) => {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ v: 1, state, at: Date.now() }))
+      } catch {}
+    }
+
+    const resting = () => {
+      const saved = read()
+      if (!saved || !(saved.state in REST)) return false
+      return Date.now() - saved.at < REST[saved.state]
+    }
+
+    let armed = false
+    // Read once, up here, because close() below reaches for it too.
+    const badge = document.querySelector('.naurra-float')
+
+    const show = () => {
+      if (armed || resting()) return
+      armed = true
+      dock.hidden = false
+      // A frame later, so the entrance animation has a painted element to run
+      // on rather than starting mid-flight.
+      requestAnimationFrame(() => dock.setAttribute('data-state', 'in'))
+      write('shown')
+      window.tfTrack?.('popup:shown')
+      teardown()
+    }
+
+    const close = (reason: State) => {
+      dock.hidden = true
+      badge?.classList.remove('is-tucked')
+      write(reason)
+      if (reason === 'dismissed') window.tfTrack?.('popup:dismissed')
+    }
+
+    // ── Triggers: 50% scroll depth, or exit intent. Never a timer. ──────────
+    const onScroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      // A page too short to scroll has no halfway point; exit intent still
+      // covers it on desktop, and on a phone it simply never fires. That is the
+      // correct outcome, not a gap to patch with a timeout.
+      if (max > 200 && window.scrollY / max >= 0.5) show()
+    }
+    const onExit = (event: MouseEvent) => {
+      if (event.clientY <= 0) show()
+    }
+
+    function teardown() {
+      window.removeEventListener('scroll', onScroll)
+      document.removeEventListener('mouseout', onExit)
+    }
+
+    if (!resting()) {
+      window.addEventListener('scroll', onScroll, { passive: true })
+      if (window.matchMedia('(pointer: fine)').matches) {
+        document.addEventListener('mouseout', onExit)
+      }
+    }
+
+    // ── The carousel ───────────────────────────────────────────────────────
+    const track = dock.querySelector<HTMLElement>('.tf-join-track')!
+    const slides = [...dock.querySelectorAll<HTMLElement>('.tf-join-slide')]
+    const balls = [...dock.querySelectorAll<HTMLElement>('.tf-join-ball')]
+    const dots = [...dock.querySelectorAll<HTMLElement>('.tf-join-dot')]
+    const navs = [...dock.querySelectorAll<HTMLButtonElement>('.tf-join-nav')]
+    let i = 0
+
+    const go = (n: number, tell = true) => {
+      i = Math.max(0, Math.min(slides.length - 1, n))
+      track.style.translate = `${i * -100}% 0`
+      // 150deg per slide, signed by direction, so the ball rolls the way the
+      // track moves and unrolls when you page back.
+      balls.forEach((ball, k) => (ball.style.rotate = `${(k - i) * 150}deg`))
+      slides.forEach((slide, k) => slide.setAttribute('aria-hidden', String(k !== i)))
+      dots.forEach((dot, k) => dot.setAttribute('aria-current', String(k === i)))
+      navs.forEach((nav) => (nav.disabled = Number(nav.dataset.dir) < 0 ? i === 0 : i === slides.length - 1))
+      if (tell) window.tfTrack?.(`popup:slide:${i + 1}`)
+    }
+    go(0, false)
+
+    dots.forEach((dot) => dot.addEventListener('click', () => go(Number(dot.dataset.to))))
+    navs.forEach((nav) => nav.addEventListener('click', () => go(i + Number(nav.dataset.dir))))
+
+    // Swipe, because on a phone a card with dots on it is a thing you swipe.
+    // Pointer events rather than touch, so a trackpad drag works the same way.
+    let startX: number | null = null
+    track.addEventListener('pointerdown', (e) => {
+      // Never from inside the email field or a button: a drag there is a
+      // selection or a press, not a page turn.
+      if ((e.target as HTMLElement).closest('input, button, a')) return
+      startX = e.clientX
+    })
+    track.addEventListener('pointerup', (e) => {
+      if (startX === null) return
+      const dx = e.clientX - startX
+      startX = null
+      if (Math.abs(dx) > 40) go(i + (dx < 0 ? 1 : -1))
+    })
+
+    // Arrows page it, but only while the panel actually has focus — they belong
+    // to the page the rest of the time.
+    dock.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') go(i + 1)
+      if (event.key === 'ArrowLeft') go(i - 1)
+    })
+
+    // ── Open, close, join ──────────────────────────────────────────────────
+    const teaser = dock.querySelector<HTMLButtonElement>('.tf-join-teaser')
+    teaser?.addEventListener('click', () => {
+      dock.setAttribute('data-open', '')
+      teaser.setAttribute('aria-expanded', 'true')
+      // The card is wider than the pill and reaches across into the credit
+      // badge's corner, so the badge stands down for as long as it is open.
+      // Same handover it already performs for the footer.
+      badge?.classList.add('is-tucked')
+      window.tfTrack?.('popup:expanded')
+    })
+
+    dock
+      .querySelector<HTMLButtonElement>('.tf-join-close')
+      ?.addEventListener('click', () => close('dismissed'))
+
+    // Escape closes, but only the popup, and only when focus is inside it or
+    // nowhere in particular. It must never eat an Escape meant for the theme
+    // menu or a studio dialog.
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || dock.hidden) return
+      const active = document.activeElement
+      if (active && active !== document.body && !dock.contains(active)) return
+      close('dismissed')
+    })
+
+    // Joined. NewsletterForm fires this on a confirmed insert, not on submit,
+    // so this is a real subscriber and the popup owes them nothing further.
+    dock.addEventListener('tf:subscribed', () => {
+      write('joined')
+      window.setTimeout(() => {
+        dock.classList.add('is-tucked')
+        window.setTimeout(() => (dock.hidden = true), 500)
+      }, 2600)
+    })
+
+    // Footer handover, same as NaurraCredit: the footer's own newsletter form
+    // is the primary surface and this must never be sitting on top of it.
+    const footer = document.querySelector('footer')
+    if (footer && 'IntersectionObserver' in window) {
+      new IntersectionObserver(
+        ([entry]) => dock.classList.toggle('is-tucked', entry.isIntersecting),
+        { rootMargin: '0px 0px -40px 0px' }
+      ).observe(footer)
+    }
+  }
+</script>

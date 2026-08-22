@@ -336,9 +336,18 @@ npm run build && grep -ro '—' dist --include='*.html' --include='*.txt' --incl
 - Placeholders marked `TODO(thanos)`: contact address and controller in
   `src/pages/privacy.astro`, governing entity in `src/pages/terms.astro`.
 
+### The join popup
+
+`src/components/JoinPopup.astro`, mounted by `BaseLayout` with the rest of the
+chrome, so every `bare` page (the editor, the render surfaces) is excluded for
+free. Three offers — notebook, Studio, course — as a paged panel with a rolling
+match ball, one offer at a time. It implements SPEC §9 literally: never on first
+paint, armed on 50% scroll depth or exit intent, capped in `localStorage`
+(ignored 7 days / dismissed 30 / joined forever), and on a phone it opens as a
+pill rather than a card so it is never a mobile interstitial. The component
+header explains each of those; read it before loosening any of them.
+
 ## Not yet done
 
-- Newsletter popup. The footer and inline forms are live; see SPEC §9 for the
-  rules, the important one being that it must never be a mobile interstitial.
 - 7 remaining launch systems (SPEC §12), plus a set-piece system to populate the
   fifth theme.
