@@ -11,7 +11,8 @@
     "email:audience": "node scripts/sync-campaigns.mjs",
     "email:sync": "node scripts/sync-campaigns.mjs --run",
     "email:welcome": "node scripts/send-welcome.mjs",
-    "email:newsletter": "node scripts/send-newsletter.mjs"
+    "email:newsletter": "node scripts/send-newsletter.mjs",
+    "email:setup": "node scripts/setup-zeptomail.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",

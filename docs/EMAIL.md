@@ -156,22 +156,60 @@ and DMARC alignment will fail.
 
 ---
 
-## 3 · ZeptoMail setup
+## 3 · ZeptoMail setup — scripted
 
-1. `zeptomail.zoho.eu` → add `naurra.ai` under **Domains**, add the DKIM and CNAME
-   records it shows, wait for verified.
-2. **Mail Agents** → create one, call it `totalfootball`. One agent per product line
-   keeps the bounce stats and the revocable token separate.
-3. Agent → **Setup Info** → copy the **Send Mail Token**.
-4. Verify `totalfootball@naurra.ai` as a sender on that agent.
-5. Put the token in `.env` and in the Netlify UI:
+Neither ZeptoMail nor Campaigns ships a CLI, but both have full REST APIs, and
+ZeptoMail's covers more than sending: domains, mail agents, and **minting the Send
+Mail Token itself**. So this is one script, not a click-through.
+
+`scripts/setup-zeptomail.mjs` adds the domain, reads back the DKIM and CNAME, **writes
+them into Netlify DNS** (the zone is on Netlify — see §2), waits for the authoritative
+nameserver, creates the `totalfootball` agent, and mints the token.
+
+### The one manual step
+
+Every call needs `Authorization: Zoho-oauthtoken …`, and minting the first refresh token
+requires a human at a browser consent screen. **No API can issue the credential that
+authorises API access** — that is what it is for. One browser visit bootstraps everything;
+nothing after it is manual.
+
+1. `api-console.zoho.eu` → **Self Client** → Create. Copy the Client ID and Secret into
+   `.env` as `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET`.
+2. **Generate Code** tab:
+
+   ```
+   scope:    ZeptoMail.Domains.ALL,ZeptoMail.MailAgents.ALL
+   duration: 10 minutes
+   ```
+
+3. ```sh
+   node scripts/setup-zeptomail.mjs --code <the code>
+   ```
+
+The code is single-use and expires in minutes; the refresh token it returns does not.
+
+> **Both scopes must be on the same code.** ZeptoMail issues scope-limited tokens, and one
+> granted only `MailAgents` is refused by the domains endpoints with a `401` that looks
+> exactly like a bad token.
+
+The script prints the two lines to add to `.env` and the Netlify UI:
 
 ```
-ZEPTOMAIL_TOKEN=<the send mail token>
+ZEPTOMAIL_TOKEN=<minted>
 ZEPTOMAIL_REGION=eu
 ```
 
-Store the **raw** token. The code adds the `Zoho-enczapikey ` prefix the API requires.
+Store the **raw** token — the sending code adds the `Zoho-enczapikey ` prefix itself. Note
+that this is a *different* credential from the OAuth one: sending uses the send token,
+management uses OAuth.
+
+Re-running the script is free; it reports state and changes only what is wrong.
+`--dns-only` re-reconciles the DNS records without touching agents or tokens.
+
+### No mailbox needed for the alias
+
+ZeptoMail authenticates the **domain**, not the mailbox, so once `naurra.ai` is verified,
+`totalfootball@naurra.ai` works as a From address with no mailbox of its own.
 
 > **Region matters.** naurra.ai is an EU Zoho account throughout — mailbox on
 > `smtp.zoho.eu`, SPF `include:zohomail.eu`, verification via `zmverify.zoho.eu`. A token
