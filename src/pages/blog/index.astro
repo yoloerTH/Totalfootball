@@ -1,0 +1,132 @@
+---
+/**
+ * The writing hub.
+ *
+ * Its job is the same as the library hub's: reach every post in one hop, and
+ * let a person find the one they want without a search box. Grouped by topic
+ * rather than paginated, because five posts do not need pages and a dated list
+ * with no grouping is the format docs/SPEC.md §0 warned about.
+ *
+ * There are no /blog/topic/ hub pages. See the note at the head of
+ * src/data/posts.ts: two topics over five posts would be two thin pages
+ * competing with the library's theme hubs.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import PostCard from '../../components/blog/PostCard.astro'
+import NewsletterForm from '../../components/NewsletterForm.astro'
+import { POSTS, TOPICS, postsByTopic, postsNewestFirst } from '../../data/posts'
+import { abs } from '../../lib/site'
+
+const newest = postsNewestFirst()
+const populated = TOPICS.filter((t) => postsByTopic(t.slug).length > 0)
+
+const collection = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Total Football: the writing',
+  description:
+    'The ideas that run underneath more than one system, and how these videos are actually made.',
+  url: abs('/blog/'),
+  hasPart: POSTS.map((p) => ({
+    '@type': 'Article',
+    headline: p.title,
+    description: p.description,
+    datePublished: p.published,
+    url: abs(`/blog/${p.slug}/`),
+  })),
+}
+---
+
+<BaseLayout
+  title="The writing: principles, method and the numbers behind them"
+  description="Cross-system football writing from the Total Football board. Compact against narrow, the extra man, the four pressing triggers, and what 88 shorts taught us."
+  path="/blog/"
+  structuredData={[collection]}
+>
+  {/* ── Head ────────────────────────────────────────────────────────── */}
+  <section class="stage border-b border-ink-hair">
+    <div class="shell py-16 md:py-24">
+      <p class="micro mb-7" data-reveal="fade">The writing</p>
+      <h1 class="max-w-[18ch] text-display font-black" data-reveal="clip" data-reveal-delay="80">
+        The ideas <span class="grad-text">between the systems.</span>
+      </h1>
+      <p
+        class="mt-8 max-w-prose text-lg leading-relaxed text-ink-soft"
+        data-reveal="rise"
+        data-reveal-delay="160"
+      >
+        The library explains one system at a time, which is what a diagram is good at. These are the
+        things that only show up when you put three of them next to each other: the vocabulary
+        people use interchangeably and should not, the sums that decide a build-up, and what the
+        numbers said when we finally checked them.
+      </p>
+      <p class="mt-6 max-w-prose text-[15px] leading-relaxed text-ink-faint" data-reveal="fade" data-reveal-delay="220">
+        Every tactical claim here is one the boards already show. Nothing is taught in an article
+        that is not drawn somewhere in <a href="/library/" class="font-medium text-ink underline decoration-ink-hair underline-offset-4 hover:decoration-ink">the library</a>.
+      </p>
+    </div>
+  </section>
+
+  {/* ── Latest ──────────────────────────────────────────────────────── */}
+  <section class="border-b border-ink-hair">
+    <div class="shell py-16 md:py-20">
+      <div class="mb-9 flex flex-wrap items-end justify-between gap-6">
+        <h2 class="text-section font-black" data-reveal="clip">Latest</h2>
+        <nav aria-label="Topics" class="flex flex-wrap gap-2">
+          {
+            populated.map((topic) => (
+              <a
+                href={`#${topic.slug}`}
+                class="rounded-full border border-ink-hair px-4 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+              >
+                {topic.title}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        {newest.slice(0, 3).map((post, i) => <PostCard post={post} featured={i === 0} />)}
+      </div>
+    </div>
+  </section>
+
+  {/* ── By topic ────────────────────────────────────────────────────── */}
+  {
+    populated.map((topic) => (
+      <section id={topic.slug} class="scroll-mt-20 border-b border-ink-hair">
+        <div class="shell py-16 md:py-20">
+          <div class="mb-9 max-w-prose">
+            <p class="micro mb-4">{topic.title}</p>
+            <p class="text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+              {topic.blurb}
+            </p>
+          </div>
+          <div class="grid gap-5 sm:grid-cols-2">
+            {postsByTopic(topic.slug).map((post) => (
+              <PostCard post={post} />
+            ))}
+          </div>
+        </div>
+      </section>
+    ))
+  }
+
+  {/* ── Newsletter ──────────────────────────────────────────────────── */}
+  <section>
+    <div class="shell py-16 md:py-20">
+      <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
+        <div>
+          <p class="micro mb-3">The notebook</p>
+          <h2 class="text-section font-black" data-reveal="clip">Get the next one by email.</h2>
+          <p class="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+            One system, explained, every week, and the writing when there is any. Unsubscribe in one
+            click.
+          </p>
+        </div>
+        <NewsletterForm source="blog-index" />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

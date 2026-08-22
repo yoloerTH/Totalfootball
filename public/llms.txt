@@ -24,6 +24,11 @@ library, plus the board the videos are made on.
 - /library/ lists every system, grouped by theme
 - /library/theme/{defending,build-up,pressing,attacking,set-pieces}/ are the theme hubs
 - /library/{system}/ is one system, answered and then broken into phases
+- /blog/ is cross-system writing: ideas that run underneath more than one system
+  (compact against narrow, the extra man in build-up, the four pressing
+  triggers) plus how the videos are made. Every tactical claim in a post is one
+  the library's diagrams already show, and each post names the systems it was
+  written from
 - /studio/ is a free browser tool for building the same kind of board yourself
 - /intelligence/ covers Total Stats, a football probability model published free on
   Telegram, with a graded public ledger

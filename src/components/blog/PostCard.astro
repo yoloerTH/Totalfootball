@@ -1,0 +1,55 @@
+---
+/**
+ * A post in a grid. Deliberately a near-twin of library/SystemCard.astro: the
+ * two card types sit on the same site and a reader should not have to learn a
+ * second visual language to tell what one is. The differences are the ones that
+ * carry information — a date instead of a play count, a reading time instead of
+ * a phase count.
+ */
+import { readMinutes, TOPICS, type Post } from '../../data/posts'
+
+interface Props {
+  post: Post
+  featured?: boolean
+}
+
+const { post, featured = false } = Astro.props
+const topic = TOPICS.find((t) => t.slug === post.topic)
+const date = new Date(post.published).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+---
+
+<a
+  href={`/blog/${post.slug}/`}
+  class:list={[
+    'group relative flex flex-col overflow-hidden rounded-2xl border border-ink-hair bg-surface/50 transition-all duration-300 hover:-translate-y-1 hover:border-ink/15 hover:shadow-lift',
+    featured && 'sm:col-span-2',
+  ]}
+>
+  <div class:list={['flex flex-1 flex-col p-7', featured && 'md:p-9']}>
+    <div class="mb-5 flex items-center justify-between gap-4">
+      <span class="micro">{topic?.title}</span>
+      <time datetime={post.published} class="text-[11px] font-semibold tabular-nums text-ink-faint">
+        {date}
+      </time>
+    </div>
+
+    <h3 class:list={['font-black leading-[1.05]', featured ? 'text-title' : 'text-2xl']}>
+      {post.title}
+    </h3>
+
+    <p class="mt-4 max-w-prose flex-1 text-[15px] leading-relaxed text-ink-soft">{post.dek}</p>
+
+    <div class="mt-7 flex items-center gap-3">
+      <span class="text-[13px] font-semibold text-ink">{readMinutes(post)} min read</span>
+      <span class="h-px flex-1 bg-ink-hair"></span>
+      <span
+        class="text-[13px] font-semibold text-ink transition-transform duration-300 group-hover:translate-x-1"
+        aria-hidden="true">→</span
+      >
+    </div>
+  </div>
+</a>

@@ -1,0 +1,115 @@
+---
+/**
+ * A post's body, rendered from blocks.
+ *
+ * The typography lives here and only here, which is the reason posts are
+ * authored as blocks rather than as markdown: there is one place that decides
+ * what an h2 looks like, and adding a new kind of thing to a post means adding
+ * a block type and deciding how it reads, rather than discovering later that
+ * three posts styled the same idea three ways.
+ *
+ * Measure is capped at `prose` (68ch) for text and released for the system
+ * cards, so a card is visibly a different kind of object from a paragraph.
+ */
+import { inline, type Block } from '../../data/posts'
+import { systemBySlug } from '../../data/systems'
+
+interface Props {
+  body: Block[]
+}
+
+const { body } = Astro.props
+
+/** Stable heading ids, so a section can be linked to from anywhere. */
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+---
+
+{/* Slightly wider than the 68ch text measure, so a system card reads as a
+    different kind of object without stretching to the full shell and leaving
+    the paragraphs looking like a column that lost its page. */}
+<div class="tf-prose max-w-[50rem]">
+  {
+    body.map((block) => {
+      if (block.t === 'h2') {
+        return (
+          <h2
+            id={slugify(block.text)}
+            class="mt-14 max-w-prose scroll-mt-24 text-section font-black first:mt-0"
+            data-reveal="clip"
+          >
+            {block.text}
+          </h2>
+        )
+      }
+
+      if (block.t === 'p') {
+        return (
+          <p
+            class="mt-6 max-w-prose text-[17px] leading-[1.75] text-ink/85"
+            set:html={inline(block.text)}
+          />
+        )
+      }
+
+      if (block.t === 'list') {
+        return (
+          <ul class="mt-7 max-w-prose space-y-3.5">
+            {block.items.map((item) => (
+              <li class="flex gap-3.5 text-[16px] leading-[1.7] text-ink/85">
+                {/* A hairline dash rather than a bullet: the same mark the
+                    board uses for a passing line, at type scale. */}
+                <span class="mt-[0.85em] h-px w-4 shrink-0 bg-ink-faint" aria-hidden="true" />
+                <span set:html={inline(item)} />
+              </li>
+            ))}
+          </ul>
+        )
+      }
+
+      if (block.t === 'pull') {
+        return (
+          <blockquote class="mt-12 max-w-prose border-l-2 border-gold pl-6" data-reveal="rise">
+            <p class="text-[22px] font-black leading-[1.3] tracking-display text-ink" set:html={inline(block.text)} />
+          </blockquote>
+        )
+      }
+
+      if (block.t === 'note') {
+        return (
+          <aside
+            class="mt-12 max-w-prose rounded-2xl border border-ink-hair bg-paper-deep/50 px-6 py-5"
+            data-reveal="fade"
+          >
+            <p class="micro mb-3">For the record</p>
+            <p class="text-[14.5px] leading-relaxed text-ink-soft" set:html={inline(block.text)} />
+          </aside>
+        )
+      }
+
+      // A route into the library, dropped in at the moment the system is named.
+      // This is what makes a post a door rather than a page about a door.
+      const system = systemBySlug(block.slug)
+      if (!system) return null
+      return (
+        <a
+          href={`/library/${system.slug}/`}
+          class="group mt-10 flex items-center gap-5 rounded-2xl border border-ink-hair bg-surface/50 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/15 hover:shadow-paper sm:p-6"
+          data-reveal="rise"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="micro">On the board</span>
+            <span class="mt-2.5 block text-lg font-black leading-tight">{system.title}</span>
+            <span class="mt-1.5 block text-[14px] leading-snug text-ink-soft">{block.label}</span>
+          </span>
+          <span class="shrink-0 text-[13px] font-semibold text-ink-faint transition-all duration-300 group-hover:translate-x-1 group-hover:text-ink">
+            {system.phases.length} phases →
+          </span>
+        </a>
+      )
+    })
+  }
+</div>

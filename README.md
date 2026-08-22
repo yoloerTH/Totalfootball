@@ -347,6 +347,21 @@ paint, armed on 50% scroll depth or exit intent, capped in `localStorage`
 pill rather than a card so it is never a mobile interstitial. The component
 header explains each of those; read it before loosening any of them.
 
+### The writing (`/blog/`)
+
+Added 2026-08-22, reversing SPEC §0's "do not build this as a blog" — see the
+amendment there and the header comment in `src/data/posts.ts`, which carries the
+four rules the format is constrained to. Posts are authored as typed blocks in
+`src/data/posts.ts` (same convention as `systems.ts`, not a markdown pipeline),
+rendered by `components/blog/Prose.astro`, which owns every typographic decision
+in one place. Each post drops real library cards into its flow at the moment it
+names a system, and lists the systems it was written from at the foot. The five
+launch posts are **not backdated**; they all carry the day they were written.
+
+`rss.xml` now carries systems and posts in one feed, sorted together. A separate
+blog feed would silently cost anyone who subscribed at launch half of what we
+publish, and `<link rel="alternate">` can only point at one of them.
+
 ## Not yet done
 
 - 7 remaining launch systems (SPEC §12), plus a set-piece system to populate the

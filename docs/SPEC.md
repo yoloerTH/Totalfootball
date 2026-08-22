@@ -13,6 +13,17 @@ paid for the two lessons that shape this build:
 
 1. **46 blog pages produced 16 clicks in 90 days.** Prose volume is not the lever.
    Do not build this as a blog.
+
+   > **Amended 2026-08-22.** The owner reversed this with the evidence in front
+   > of him, and `/blog/` now exists. The lesson was not repealed, so the format
+   > is constrained to the one shape that is not a prose-volume play: a post
+   > must thread through **at least three library systems**, it may **not**
+   > target a system page's query (competing with our own page for
+   > *how does a back four defend* costs us both), and every tactical claim in
+   > it must already be true on the boards. There are no `/blog/topic/` hubs,
+   > because two thin hubs would compete with `/library/theme/` for the same
+   > ground. The rules are enforced by the header comment in
+   > `src/data/posts.ts`; read it before adding a post.
 2. **"The domain has no authority. This is a links-and-entity problem."** Ranking is
    gated on entity strength, not on page count.
 
@@ -74,6 +85,8 @@ font CDN, no third-party JS before first paint.
 
 ```
 /                        landing
+/blog/                   the writing — cross-system posts (added 2026-08-22, §0)
+/blog/[slug]/            one post
 /library/                hub — filterable grid of systems
 /library/[theme]/        theme hubs: defending, build-up, pressing, attacking, set-pieces
 /library/[slug]/         ONE SYSTEM — the slide deck + full description   ← the SEO engine

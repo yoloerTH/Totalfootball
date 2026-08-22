@@ -567,14 +567,33 @@ const SLIDES = [
       }, 2600)
     })
 
-    // Footer handover, same as NaurraCredit: the footer's own newsletter form
-    // is the primary surface and this must never be sitting on top of it.
-    const footer = document.querySelector('footer')
-    if (footer && 'IntersectionObserver' in window) {
-      new IntersectionObserver(
-        ([entry]) => dock.classList.toggle('is-tucked', entry.isIntersecting),
+    /*
+     * Standing down.
+     *
+     * NaurraCredit hands over to the footer, and this started as a copy of
+     * that. It is wider on purpose: the popup stands down for the footer AND
+     * for any newsletter form already on screen. Those forms are the primary
+     * surface (docs/SPEC.md §9) and a floating card offering the same thing on
+     * top of one is the popup arguing with the page. Blog posts and the library
+     * template both carry one mid-page, so the footer alone was not enough.
+     */
+    if ('IntersectionObserver' in window) {
+      const yielding = new Set<Element>()
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) yielding.add(entry.target)
+            else yielding.delete(entry.target)
+          })
+          dock.classList.toggle('is-tucked', yielding.size > 0)
+        },
         { rootMargin: '0px 0px -40px 0px' }
-      ).observe(footer)
+      )
+      const footer = document.querySelector('footer')
+      if (footer) io.observe(footer)
+      document
+        .querySelectorAll('form.tf-newsletter, form.tf-early')
+        .forEach((form) => !dock.contains(form) && io.observe(form))
     }
   }
 </script>

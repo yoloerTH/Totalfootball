@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { POSTS } from '../data/posts'
 import { SYSTEMS, THEMES, systemsByTheme } from '../data/systems'
 import { abs } from '../lib/site'
 
@@ -22,6 +23,7 @@ const TODAY = new Date().toISOString().slice(0, 10)
 const staticPages: Entry[] = [
   { loc: abs('/'), lastmod: TODAY, changefreq: 'weekly', priority: '1.0' },
   { loc: abs('/library/'), lastmod: TODAY, changefreq: 'weekly', priority: '0.9' },
+  { loc: abs('/blog/'), lastmod: TODAY, changefreq: 'weekly', priority: '0.8' },
   // The Studio's landing page, and the ONLY /studio/ URL that belongs here. The
   // editor, portal, settings, sign-in and viewer are all noindex — the rule at
   // the top of this file is that a sitemap never advertises a noindex URL.
@@ -48,8 +50,20 @@ const systemPages: Entry[] = SYSTEMS.map((s) => ({
   priority: '0.9',
 }))
 
+/**
+ * Posts carry their own `updated`, same as systems. A blog that reports today
+ * as every post's lastmod is telling a crawler that five articles changed this
+ * morning, which is false and is the kind of thing that gets a sitemap ignored.
+ */
+const postPages: Entry[] = POSTS.map((post) => ({
+  loc: abs(`/blog/${post.slug}/`),
+  lastmod: post.updated,
+  changefreq: 'monthly',
+  priority: '0.7',
+}))
+
 export const GET: APIRoute = () => {
-  const entries = [...staticPages, ...themePages, ...systemPages]
+  const entries = [...staticPages, ...themePages, ...systemPages, ...postPages]
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

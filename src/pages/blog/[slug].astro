@@ -1,0 +1,177 @@
+---
+/**
+ * One post.
+ *
+ * Structure is the same argument as the library template: the thing a reader
+ * came for goes above everything else. Title, standfirst, then prose. The
+ * systems the post threads through are linked twice on purpose — as cards in
+ * the flow where each one is named, and as a list at the foot for anyone who
+ * scrolled past them.
+ *
+ * Schema is `Article` + `BreadcrumbList` (BaseLayout builds the second from
+ * `breadcrumbs`). Not `NewsArticle`, which claims a newsroom this is not, and
+ * not `FAQPage`, which docs/SPEC.md §7 restricts to /faq/ alone.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Prose from '../../components/blog/Prose.astro'
+import PostCard from '../../components/blog/PostCard.astro'
+import NewsletterForm from '../../components/NewsletterForm.astro'
+import { POSTS, TOPICS, readMinutes, relatedPosts, wordCount, type Post } from '../../data/posts'
+import { systemBySlug } from '../../data/systems'
+import { abs, SITE, SITE_URL } from '../../lib/site'
+
+export function getStaticPaths() {
+  return POSTS.map((post) => ({ params: { slug: post.slug }, props: { post } }))
+}
+
+interface Props {
+  post: Post
+}
+
+const { post } = Astro.props
+const topic = TOPICS.find((t) => t.slug === post.topic)!
+const path = `/blog/${post.slug}/`
+const related = relatedPosts(post)
+const systems = post.systems.map((slug) => systemBySlug(slug)).filter(Boolean)
+
+const date = new Date(post.published).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
+const article = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: post.title,
+  description: post.description,
+  datePublished: post.published,
+  dateModified: post.updated,
+  wordCount: wordCount(post),
+  mainEntityOfPage: { '@type': 'WebPage', '@id': abs(path) },
+  author: { '@type': 'Organization', name: SITE.name, url: SITE_URL },
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.name,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png` },
+  },
+  articleSection: topic.title,
+  // The systems this post is about, named as the things they are. This is the
+  // one place the post/library relationship is stated to a machine rather than
+  // only drawn as links.
+  about: systems.map((s) => ({ '@type': 'Thing', name: s!.title, url: abs(`/library/${s!.slug}/`) })),
+  isPartOf: { '@type': 'Blog', name: `${SITE.name}: the writing`, url: abs('/blog/') },
+}
+---
+
+<BaseLayout
+  title={post.title}
+  description={post.description}
+  path={path}
+  type="article"
+  publishedTime={post.published}
+  modifiedTime={post.updated}
+  structuredData={[article]}
+  breadcrumbs={[{ name: 'The writing', path: '/blog/' }]}
+>
+  <article>
+    {/* ── Head ─────────────────────────────────────────────────────── */}
+    <header class="stage border-b border-ink-hair">
+      <div class="shell py-14 md:py-20">
+        <nav aria-label="Breadcrumb" class="mb-8">
+          <ol class="flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+            <li><a href="/" class="transition-colors hover:text-ink">Home</a></li>
+            <li aria-hidden="true">/</li>
+            <li><a href="/blog/" class="transition-colors hover:text-ink">The writing</a></li>
+            <li aria-hidden="true">/</li>
+            <li class="text-ink-soft">{topic.title}</li>
+          </ol>
+        </nav>
+
+        <h1 class="max-w-[20ch] text-title font-black" data-reveal="clip">{post.title}</h1>
+
+        <p
+          class="mt-7 max-w-prose text-xl leading-[1.6] text-ink/85"
+          data-reveal="rise"
+          data-reveal-delay="120"
+        >
+          {post.dek}
+        </p>
+
+        <div
+          class="mt-9 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink-hair pt-7 text-[13px] text-ink-faint"
+        >
+          <span class="micro">{topic.title}</span>
+          <time datetime={post.published}>{date}</time>
+          <span>{readMinutes(post)} min read</span>
+        </div>
+      </div>
+    </header>
+
+    {/* ── Body ─────────────────────────────────────────────────────── */}
+    <div class="shell py-14 md:py-20">
+      <Prose body={post.body} />
+    </div>
+
+    {/* ── The systems behind it ────────────────────────────────────── */}
+    <section class="border-t border-ink-hair bg-paper-deep/40">
+      <div class="shell py-16 md:py-20">
+        <p class="micro mb-4">Drawn from</p>
+        <h2 class="max-w-prose text-section font-black" data-reveal="clip">
+          Every claim above is on one of these boards.
+        </h2>
+        <p class="mt-4 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+          Nothing in this post teaches something the diagrams do not show. That is a rule, not a
+          coincidence: the article is written from the systems, never the other way round.
+        </p>
+
+        <ul class="mt-10 grid gap-4 sm:grid-cols-3">
+          {
+            systems.map((system) => (
+              <li>
+                <a
+                  href={`/library/${system!.slug}/`}
+                  class="group flex h-full flex-col rounded-2xl border border-ink-hair bg-surface/60 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-ink/15 hover:shadow-paper"
+                >
+                  <span class="text-lg font-black leading-tight">{system!.title}</span>
+                  <span class="mt-3 flex-1 text-[14px] leading-relaxed text-ink-soft">
+                    {system!.question}
+                  </span>
+                  <span class="mt-5 text-[13px] font-semibold text-ink transition-transform duration-300 group-hover:translate-x-1">
+                    {system!.phases.length} phases →
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    {/* ── Newsletter ───────────────────────────────────────────────── */}
+    <section class="border-t border-ink-hair">
+      <div class="shell py-16 md:py-20">
+        <div class="grid gap-8 md:grid-cols-[1.1fr_1fr] md:items-end">
+          <div>
+            <p class="micro mb-3">The notebook</p>
+            <h2 class="text-section font-black">One system, explained, every week.</h2>
+            <p class="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
+              The diagram, the principle, and the detail most people miss. Unsubscribe in one click.
+            </p>
+          </div>
+          <NewsletterForm source={`blog:${post.slug}`} />
+        </div>
+      </div>
+    </section>
+
+    {/* ── Read next ────────────────────────────────────────────────── */}
+    <section class="border-t border-ink-hair">
+      <div class="shell py-16 md:py-20">
+        <h2 class="mb-9 text-section font-black" data-reveal="clip">Read next</h2>
+        <div class="grid gap-5 sm:grid-cols-3">
+          {related.map((next) => <PostCard post={next} />)}
+        </div>
+      </div>
+    </section>
+  </article>
+</BaseLayout>
