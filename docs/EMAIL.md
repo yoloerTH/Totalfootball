@@ -58,22 +58,35 @@ Opt-outs arrive from three places and all three land in that one table:
 
 All records on **`naurra.ai`**. What is already live, and what has to be added.
 
-### 2.1 · SPF — one record, edited, never a second one
+> **The zone is on Netlify DNS** (`dns{1..4}.p04.nsone.net`, zone id
+> `697cfaec404c6518f82020f9`). There is no `netlify dns` command; use
+> `netlify api getDnsRecords` / `createDnsRecord` / `deleteDnsRecord`. The API has
+> **no update** — changing a record means delete then create.
+
+### 2.1 · SPF — DONE (2026-08-22)
 
 A domain may publish **exactly one** SPF record. Two `v=spf1` TXT records is a permanent
-failure, not a merge.
+failure, not a merge — which is why the swap was done delete-then-create on a single
+connection (1.0s gap) rather than as two CLI calls. A brief window with *no* SPF yields a
+`none` result that nothing rejects on; a brief window with *two* yields `PermError`, which
+hard-fails everywhere.
 
-Currently live:
+Was:
 
 ```
 naurra.ai.  TXT  "v=spf1 include:zohomail.eu ~all"
 ```
 
-Replace with:
+Now live:
 
 ```
 naurra.ai.  TXT  "v=spf1 include:zohomail.eu include:zeptomail.net include:zcsend.net ~all"
 ```
+
+Verified against `dns1.p04.nsone.net` and against 1.1.1.1 / 8.8.8.8: exactly one record.
+Both new includes are published sending infrastructures, **not** account-specific, so they
+are safe to authorise before those products are configured — it means mail passes the
+moment they are.
 
 - `zohomail.eu` — the mailbox, already there, keeps normal mail working
 - `zeptomail.net` — ZeptoMail
@@ -106,21 +119,27 @@ Each is a `TXT` record whose value begins `v=DKIM1; k=rsa; p=…`.
 ZeptoMail also issues a **CNAME** alongside its DKIM record for domain verification —
 add whatever it shows on the Domains screen; it is account-specific.
 
-### 2.3 · DMARC — this does not exist yet and should
+### 2.3 · DMARC — DONE (2026-08-22)
 
-`_dmarc.naurra.ai` currently returns nothing, which means no policy, no reporting, and
-no visibility into who else is sending as the domain.
-
-Start in monitor mode. It changes nothing about delivery and turns on reports:
+`_dmarc.naurra.ai` returned nothing before this: no policy, no reporting, no visibility
+into who else was sending as the domain. Now live:
 
 ```
-_dmarc.naurra.ai.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@naurra.ai; fo=1; adkim=r; aspf=r"
+_dmarc.naurra.ai.  TXT  "v=DMARC1; p=none; rua=mailto:athanasios@naurra.ai; ruf=mailto:athanasios@naurra.ai; fo=1; adkim=r; aspf=r; pct=100"
 ```
 
-Leave it at `p=none` for **at least two weeks** and read the aggregate reports first. Only
-once ZeptoMail and Campaigns both show as passing should it move to `p=quarantine`, then
-`p=none` → `p=quarantine` → `p=reject` in that order. Jumping straight to `p=reject`
-before the new senders are aligned silently bins your own newsletter.
+- `p=none` — **monitor only.** Changes nothing about delivery; it turns reporting on.
+- `rua`/`ruf` point at a mailbox on **the same domain as the policy**, so no external
+  destination-verification record is needed at the receiving end. Pointing them at a
+  different domain would silently produce no reports until that domain published a
+  `naurra.ai._report._dmarc` record authorising it.
+- `adkim=r` / `aspf=r` — relaxed alignment, which is what lets a subdomain
+  (`totalfootball.naurra.ai`) and the alias sender align against the organisational domain.
+
+**Do not tighten this yet.** Leave `p=none` for at least two weeks and read the aggregate
+reports first. Only once ZeptoMail *and* Campaigns both show as passing should it move
+`p=none` → `p=quarantine` → `p=reject`, in that order. Going straight to `p=reject` before
+the new senders are DKIM-aligned silently bins your own newsletter.
 
 ### 2.4 · Verify before trusting
 
