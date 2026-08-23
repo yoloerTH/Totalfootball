@@ -410,10 +410,11 @@ const SLIDES = [
   if (dock) {
     const KEY = 'tf_join_popup'
     const DAY = 86_400_000
-    // Seen and ignored rests a week; actively closed rests a month; joined is
-    // done. A popup that reappears the day after someone shut it is the reason
-    // people hate popups.
-    const REST = { shown: 7 * DAY, dismissed: 30 * DAY, joined: Infinity }
+    const HOUR = 3_600_000
+    // Seen and ignored: 8 hours (so engaged readers see it a few times a week
+    // without it feeling stalker-ish). Actively closed: 2 days — they said no,
+    // respect it, but not forever. Joined: done.
+    const REST = { shown: 8 * HOUR, dismissed: 2 * DAY, joined: Infinity }
 
     type State = keyof typeof REST
 
@@ -460,21 +461,30 @@ const SLIDES = [
       if (reason === 'dismissed') window.tfTrack?.('popup:dismissed')
     }
 
-    // ── Triggers: 50% scroll depth, or exit intent. Never a timer. ──────────
+    // ── Triggers: 18% scroll depth, exit intent, or 18s time-on-page. ───────
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight
-      // A page too short to scroll has no halfway point; exit intent still
-      // covers it on desktop, and on a phone it simply never fires. That is the
-      // correct outcome, not a gap to patch with a timeout.
-      if (max > 200 && window.scrollY / max >= 0.5) show()
+      // Lowered from 50% → 18%: surfaces the popup much earlier for engaged
+      // readers, while still requiring real intent (not a misclick landing).
+      // Short pages that can't reach 18% are still covered by exit intent and
+      // the time-on-page timer below.
+      if (max > 200 && window.scrollY / max >= 0.18) show()
     }
     const onExit = (event: MouseEvent) => {
       if (event.clientY <= 0) show()
     }
+    // Time-on-page: 18s of reading without scrolling far enough is a strong
+    // signal of engagement on long-form or image-heavy pages. Cleared by
+    // teardown so it never fires after the popup already showed.
+    let pageTimer: ReturnType<typeof setTimeout> | null = null
 
     function teardown() {
       window.removeEventListener('scroll', onScroll)
       document.removeEventListener('mouseout', onExit)
+      if (pageTimer !== null) {
+        clearTimeout(pageTimer)
+        pageTimer = null
+      }
     }
 
     if (!resting()) {
@@ -482,6 +492,9 @@ const SLIDES = [
       if (window.matchMedia('(pointer: fine)').matches) {
         document.addEventListener('mouseout', onExit)
       }
+      // 18 000 ms — long enough that the reader has made a real choice to stay,
+      // short enough that they are still in the first screen of content.
+      pageTimer = setTimeout(show, 18_000)
     }
 
     // ── The carousel ───────────────────────────────────────────────────────
