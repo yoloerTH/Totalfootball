@@ -453,6 +453,97 @@ ${cta(SITE + '/library/', 'Start with the library &nbsp;&rarr;')}
 }
 
 /**
+ * The message sent the moment a Studio account is confirmed.
+ *
+ * Deliberately separate from welcomeEmail(): the audience is different (a
+ * coach who already knows about the Studio, not a first-time subscriber), the
+ * tone is different (confirmation and orientation, not discovery), and the
+ * call to action is different (the portal, not the library). Sharing the
+ * function would force whichever copy was first to pretend to be both.
+ *
+ * Fired by netlify/functions/studio-welcome.mts via a Supabase Database
+ * Webhook, never by the client.
+ *
+ * @param {object} opts
+ * @param {string} opts.email
+ * @param {string | null} [opts.name]        from raw_user_meta_data on the auth row
+ * @param {string} [opts.unsubscribe]        defaults to this address's signed link
+ * @param {string} [opts.reason]             plain-language reason in the footer
+ * @returns {{ to: string, subject: string, html: string, text: string, unsubscribeUrl: string }}
+ */
+export function studioWelcomeEmail({
+  email,
+  name = null,
+  unsubscribe,
+  reason = 'You are receiving this because you created a Total Football Studio account.',
+}) {
+  const greeting = name ? `Hi ${escapeHtml(name)},` : 'Hi,'
+  const unsub = unsubscribe || unsubscribeUrl(email)
+
+  const bodyHtml =
+    `<p style="${KICKER}">Total Football Studio</p>` +
+    `<h1 style="${H1}">Your account<br>is live.</h1>` +
+    `<p style="${P}">${greeting}</p>` +
+    `<p style="${P}">` +
+    `You are in. Your systems are saved to the cloud, and the Studio is waiting on any machine you coach from.` +
+    `</p>` +
+    ruledList(
+      rule(
+        '01',
+        'Every session saved.',
+        'Build a system, close the tab. It is there the next time you open the Studio, on any device.',
+      ) +
+        rule(
+          '02',
+          'Share any board.',
+          'One link puts the full system on any screen \u2014 no login, no app, no friction for whoever you share it with.',
+        ) +
+        rule(
+          '03',
+          'The board, wherever you coach.',
+          'Your portal lives at totalfootball.naurra.ai/studio/portal/ \u2014 bookmark it on every machine.',
+          true,
+        ),
+    ) +
+    linkList(
+      linkRow('01', 'Open the Studio portal', 'All your saved systems, in one place.', SITE + '/studio/portal/') +
+        linkRow(
+          '02',
+          'Read the library',
+          'The kind of tactical systems the board is built to explain.',
+          SITE + '/library/',
+        ) +
+        linkRow(
+          '03',
+          'See the method',
+          'Why it is drawn rather than filmed, and what that makes visible.',
+          SITE + '/about/',
+          true,
+        ),
+      'Start here',
+    ) +
+    cta(SITE + '/studio/portal/', 'Open the Studio\u00a0\u00a0\u2192') +
+    `<p style="${P}margin:30px 0 0;font-size:14px;color:${INK_SOFT};">` +
+    `You will also receive the Tactical Dispatch \u2014 our breakdown of football systems, ` +
+    `sent when there is something worth saying. Unsubscribe at any time using the link below.` +
+    `</p>`
+
+  return {
+    to: email,
+    subject: 'Your Total Football Studio is ready',
+    html: wrapEmail({
+      preheader: 'Save your systems, build from any device, share the board.',
+      bodyHtml,
+      unsubscribe: unsub,
+      reason,
+      series: 'Studio Account',
+    }),
+    text: htmlToText(bodyHtml, { unsubscribe: unsub }),
+    unsubscribeUrl: unsub,
+  }
+}
+
+/**
  * The content files are hand-written HTML, which means the Outlook rules in
  * this file's header are only as good as whoever remembers them at 11pm on a
  * Saturday. These are the three that fail SILENTLY — the mail looks perfect in
