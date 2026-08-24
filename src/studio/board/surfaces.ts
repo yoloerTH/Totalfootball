@@ -481,12 +481,23 @@ export const BAND_EDGES: { id: BandEdge; label: string }[] = [
   { id: 'none', label: 'None' },
 ]
 
-/** Shaded, or an outline round the space with the grass left showing through. */
-export type BandFill = 'shade' | 'none'
+/**
+ * How the inside of a shaded area is rendered.
+ *
+ * 'shade'  — the default: a gradient fill and (for a block) the string through
+ *            the players.
+ * 'none'   — no fill; the border outline speaks for itself.
+ * 'line'   — no fill and no border polygon at all. Only the string threaded
+ *            through the players is drawn. Meaningful only on a block (which
+ *            has a string); on an area drawn as a box it would leave nothing
+ *            visible at all, so the UI gates it to block bands.
+ */
+export type BandFill = 'shade' | 'none' | 'line'
 
 export const BAND_FILLS: { id: BandFill; label: string }[] = [
   { id: 'shade', label: 'Shaded' },
   { id: 'none', label: 'Outline' },
+  { id: 'line', label: 'Line only' },
 ]
 
 /**
@@ -576,11 +587,29 @@ export function resolveBandStyle(
   const corner = pick(BAND_CORNERS, overrides?.corner) ?? BAND_CORNERS[1]
 
   const ink = Math.min(0.9, base.edge * (mul > 1 ? 1.25 : 1))
+
+  // 'line' mode: no polygon at all — the string through the players is the
+  // entire mark. No blank guard applies because the mark IS visible.
+  if (fill === 'line') {
+    return {
+      tone: toneId ? bandTone(p, toneId) : base.tone,
+      fill: 0,
+      edge: 0,
+      dashed: false,
+      string: base.string > 0 && stringId === 'off' ? 0 : base.string,
+      stringWidth: pick(BAND_STRINGS, stringId)?.width ?? 1.15,
+      pad: corner.pad,
+    }
+  }
+
   /*
    * A mark that is neither shaded nor outlined is not a mark, it is a hole in
    * the document: invisible on the board, unhittable with a pointer, and
    * findable only in the list of marks. Outline wins in that case, because the
    * coach who turned the shading off is the one who wanted the edge.
+   *
+   * This guard does NOT fire for 'line' (handled above): a line-only block is
+   * visible via its string and must never have an outline forced onto it.
    */
   const blank = fill === 'none' && edge === 'none'
 

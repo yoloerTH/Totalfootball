@@ -579,6 +579,29 @@ const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
   'attacking-box': [3, 88],
 }
 
+/** The x-band our shape occupies on a view — the full solo band, or the half it shares with an opposition. */
+export function usBand(view: PitchViewId, solo: boolean): [number, number] {
+  return solo ? (SOLO_BANDS[view] ?? SOLO_BANDS.full) : (BANDS[view] ?? BANDS.full).us
+}
+
+/**
+ * Slide a token's x from one band to another, keeping its position within the
+ * band proportional.
+ *
+ * This is how a hand-built system survives the opposition toggle: rather than
+ * throwing every token back to its formation default (which is what
+ * re-running `place` does, and which a coach who has spent ten minutes
+ * dragging a system into shape experiences as it being destroyed), each
+ * token's x is remapped by the same ratio, so the shape it was in — however
+ * far from the template — is preserved, just narrower or wider.
+ */
+export function rescaleX(x: number, from: [number, number], to: [number, number]): number {
+  const [f0, f1] = from
+  const [t0, t1] = to
+  const ratio = f1 === f0 ? 0 : (x - f0) / (f1 - f0)
+  return Math.round((t0 + ratio * (t1 - t0)) * 10) / 10
+}
+
 /**
  * How many players of each side a view can actually hold.
  *

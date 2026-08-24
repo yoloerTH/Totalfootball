@@ -80,6 +80,8 @@ import {
   formationsByFamily,
   place,
   relabel,
+  rescaleX,
+  usBand,
   type LabelMode,
 } from '../formations'
 import {
@@ -1125,6 +1127,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
                 kind: 'block' as BandKind,
                 throughTokens: blockPick,
                 close: effectiveClose,
+                opacity: 1,
               },
             ],
           }
@@ -1144,7 +1147,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
     if (isZoneTool(tool)) {
       return {
         ...base,
-        bands: [...base.bands, { id: 'preview', kind: tool, rect: rectOf(pending.from, pending.to) }],
+        bands: [
+          ...base.bands,
+          { id: 'preview', kind: tool, rect: rectOf(pending.from, pending.to), opacity: 1 },
+        ],
       }
     }
     return base
@@ -1309,18 +1315,21 @@ export default function StudioEditor({ systemId, initial }: Props) {
 
   const toggleOpposition = (on: boolean) => {
     edit('opposition', (s) => {
-      const us = FORMATION_BY_ID.get(usFormation)
       const them = FORMATION_BY_ID.get(themFormation)
+      const from = usBand(s.pitch, !on)
+      const to = usBand(s.pitch, on)
       return {
         ...s,
         teams: { ...s.teams, them: on ? (s.teams.them ?? DEFAULT_THEM) : null },
-        // Our shape is re-placed either way: it holds most of the board when
-        // alone and half of it when there is an opposition to face, so the
-        // width has to be handed over as the toggle flips.
         acts: s.acts.map((a) => ({
           ...a,
           tokens: [
-            ...(us ? withEdits(place(us, 'us', s.pitch, labels, !on), a.tokens) : []),
+            // Our shape keeps every hand-made edit — it only slides and
+            // rescales to make (or give back) room for the opposition. It is
+            // never regenerated from the formation template here, which is
+            // what used to flatten a coach's custom system back to the
+            // default shape every time this toggle was touched.
+            ...a.tokens.filter((t) => t.side === 'us').map((t) => ({ ...t, x: rescaleX(t.x, from, to) })),
             ...(on && them ? withEdits(place(them, 'them', s.pitch, labels), a.tokens) : []),
           ],
         })),
@@ -2591,31 +2600,54 @@ export default function StudioEditor({ systemId, initial }: Props) {
            * `solid` is cleared as this is written: the two fields disagreeing
            * about a band is a bug waiting for whoever reads the document next,
            * and the board resolving `edge` first would hide it from us here.
+           *
+           * Hidden when 'line only' is active — there is no polygon to outline.
            */}
-          <Tip text={HINT.bandEdge} title="Its outline" side="left" block>
-            <Field label="Outline">
-              <Segmented
-                label="Its outline"
-                value={bandEdgeOf(selectedBand)}
-                onChange={(v) => {
-                  patchBand('edge', { edge: v, solid: undefined })
-                  seal()
-                }}
-                options={BAND_EDGES.map((e) => ({ value: e.id, label: e.label }))}
-              />
-            </Field>
-          </Tip>
+          {selectedBand.fill !== 'line' && (
+            <Tip text={HINT.bandEdge} title="Its outline" side="left" block>
+              <Field label="Outline">
+                <Segmented
+                  label="Its outline"
+                  value={bandEdgeOf(selectedBand)}
+                  onChange={(v) => {
+                    patchBand('edge', { edge: v, solid: undefined })
+                    seal()
+                  }}
+                  options={BAND_EDGES.map((e) => ({ value: e.id, label: e.label }))}
+                />
+              </Field>
+            </Tip>
+          )}
 
           <Tip text={HINT.bandFill} title="Inside it" side="left" block>
             <Field label="Inside">
               <Segmented
                 label="Inside it"
-                value={selectedBand.fill === 'none' ? 'none' : 'shade'}
+                value={
+                  selectedBand.fill === 'none'
+                    ? 'none'
+                    : selectedBand.fill === 'line'
+                      ? 'line'
+                      : 'shade'
+                }
                 onChange={(v) => {
-                  patchBand('fill', { fill: v === 'none' ? 'none' : undefined })
+                  // When switching TO 'line only', ensure the string is not
+                  // 'off' — an invisible line-only block is a confusing mark.
+                  if (v === 'line' && selectedBand.string === 'off') {
+                    patchBand('fill+string', { fill: 'line', string: undefined })
+                  } else {
+                    patchBand('fill', { fill: v === 'shade' ? undefined : v })
+                  }
                   seal()
                 }}
-                options={BAND_FILLS.map((f) => ({ value: f.id, label: f.label }))}
+                options={
+                  // 'Line only' is meaningful only for blocks (which have a
+                  // string). On a zone it would make the mark invisible, so
+                  // we hide it there rather than let a coach set it by accident.
+                  selectedBand.kind === 'block'
+                    ? BAND_FILLS.map((f) => ({ value: f.id, label: f.label }))
+                    : BAND_FILLS.filter((f) => f.id !== 'line').map((f) => ({ value: f.id, label: f.label }))
+                }
               />
             </Field>
           </Tip>

@@ -47,7 +47,7 @@ import type { Pt } from './Overlays'
 import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
 import type { System, TeamStyle } from '../schema'
-import type { RenderAct } from '../tween'
+import type { RenderAct, RenderBand } from '../tween'
 
 interface Props {
   system: System
@@ -273,7 +273,7 @@ export function Board({
         </g>
 
       {/* bands first: they are the ground the idea sits on */}
-      {act.bands.map((b) => {
+      {(act.bands as RenderBand[]).map((b) => {
         if (b.kind === 'block' && b.throughTokens?.length) {
           const through = b.throughTokens
             .map((id) => act.tokens.find((t) => t.id === id))
@@ -284,17 +284,18 @@ export function Board({
           // means the goal, which is what every block drawn before the choice
           // existed was given.
           return (
-            <BlockBand
-              key={b.id}
-              idp={`${idp}-${b.id}`}
-              kind={b.kind}
-              pts={pts}
-              close={b.close === 'shape' ? 'shape' : defendedGoal(through[0]?.side ?? 'us', view)}
-              label={b.label}
-              active={activeMarkId === b.id}
-              band={b}
-              onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
-            />
+            <g key={b.id} opacity={b.opacity}>
+              <BlockBand
+                idp={`${idp}-${b.id}`}
+                kind={b.kind}
+                pts={pts}
+                close={b.close === 'shape' ? 'shape' : defendedGoal(through[0]?.side ?? 'us', view)}
+                label={b.label}
+                active={activeMarkId === b.id}
+                band={b}
+                onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
+              />
+            </g>
           )
         }
         if (b.rect) {
@@ -310,7 +311,7 @@ export function Board({
           }
           const grabbable = Boolean(onZonePointerDown) && activeMarkId === b.id
           return (
-            <g key={b.id}>
+            <g key={b.id} opacity={b.opacity}>
               <Zone
                 idp={`${idp}-${b.id}`}
                 kind={b.kind}

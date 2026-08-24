@@ -28,11 +28,24 @@ export interface RenderArrow extends Arrow {
   opacity: number
 }
 
+/**
+ * A band that carries an opacity for the transition system.
+ *
+ * Bands that appear or disappear between acts animate in and out instead of
+ * popping — the same choreography tokens and arrows use. A band present in
+ * both acts stays at opacity 1 and simply follows its players as they move,
+ * which is already the whole animation. Only PRESENCE is handled here; shape
+ * is derived at render time from the live token positions.
+ */
+export interface RenderBand extends Band {
+  opacity: number
+}
+
 export interface RenderAct {
   tokens: RenderToken[]
   ball: { x: number; y: number; opacity: number } | null
   arrows: RenderArrow[]
-  bands: Band[]
+  bands: RenderBand[]
   /**
    * Where the camera is pointed for this pose, or null for the whole view.
    *
@@ -113,7 +126,7 @@ export function resolveAct(act: Act, system?: System): RenderAct {
     tokens: act.tokens.map((t) => ({ ...t, opacity: 1, scale: 1 })),
     ball: act.ball ? { ...act.ball, opacity: 1 } : null,
     arrows: act.arrows.map((a) => ({ ...a, opacity: 1 })),
-    bands: act.bands,
+    bands: act.bands.map((b) => ({ ...b, opacity: 1 })),
     shot: shotOf(system, act),
   }
 }
@@ -132,6 +145,10 @@ export function resolveAct(act: Act, system?: System): RenderAct {
  *  · Arrows are never held across a beat: the old set is gone by 35% and the
  *    new set does not start until 55%. An arrow that lingered into a shape it
  *    no longer describes is the fastest way to make a board look wrong.
+ *  · Bands follow the same fade windows as tokens: a new block draws in late,
+ *    a removed block fades out early. A block present in both acts stays at
+ *    full opacity and simply follows its players as they move — that is already
+ *    the whole animation, and no extra work is needed here for it.
  *  · Cues switch at the midpoint, once the players are roughly in place.
  *  · The CAMERA moves across the whole beat on the same curve as the players,
  *    so a push-in lands with the shape rather than chasing it.
@@ -185,10 +202,28 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
     ...to.arrows.map((a) => ({ ...a, opacity: span(p, 0.55, 0.9) })),
   ].filter((a) => a.opacity > 0.01)
 
-  // Bands are resolved from live token positions at render time, so a band
-  // present in both acts follows the players through the move with no work
-  // here. Only presence needs deciding, and the midpoint is the honest answer.
-  const bands = p < 0.5 ? from.bands : to.bands
+  // Bands animate like tokens: new ones draw in late, removed ones fade out
+  // early. A band present in both acts (matched by id) stays at opacity 1 —
+  // it follows its players through the move with no additional work here.
+  const fromBandIds = new Set(from.bands.map((b) => b.id))
+  const toBandIds = new Set(to.bands.map((b) => b.id))
+
+  const bands: RenderBand[] = [
+    // Departing: fade out in the first 40% of the beat.
+    ...from.bands
+      .filter((b) => !toBandIds.has(b.id))
+      .map((b) => ({ ...b, opacity: 1 - span(p, 0, 0.4) }))
+      .filter((b) => b.opacity > 0.01),
+    // Persistent: full opacity, shape follows live token positions.
+    ...to.bands
+      .filter((b) => fromBandIds.has(b.id))
+      .map((b) => ({ ...b, opacity: 1 })),
+    // Arriving: fade in late, same window as incoming players.
+    ...to.bands
+      .filter((b) => !fromBandIds.has(b.id))
+      .map((b) => ({ ...b, opacity: span(p, 0.55, 0.9) }))
+      .filter((b) => b.opacity > 0.01),
+  ]
 
   // The camera travels on the same curve as the players, so the push-in and
   // the move arrive together instead of the frame chasing the ball.

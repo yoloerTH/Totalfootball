@@ -317,7 +317,7 @@ export const HINT = {
   bandEdge:
     'The line round it. Dashed says "this region, roughly". Solid says the edge is real: a zone that stops where the six-yard box stops. None takes the line away and leaves the shading to say it, which reads better over a busy part of the pitch.',
   bandFill:
-    'Shaded fills the area in. Outline leaves the grass showing and draws only the line round it, for when the area sits on top of players you still need to see. You can still click anywhere inside it to pick it up.',
+    'Shaded fills the area in. Outline leaves the grass showing and draws only the border round it. Line only removes the border and the shading entirely, leaving just the line threaded through the players — best when the line itself is the point. You can still click anywhere inside to pick it up.',
   bandString:
     'The thick line threaded through the players a block runs through. It is what says they are one unit rather than several men who happen to be near each other. Turn it off when the space is the point and the line is in the way.',
   bandCorner:

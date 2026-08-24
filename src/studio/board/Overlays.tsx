@@ -421,17 +421,39 @@ export function BlockBand({ idp, kind, pts, close, label, active, band, onPointe
         onPointerDown={onPointerDown}
         style={onPointerDown ? { cursor: 'pointer' } : undefined}
       />
-      {s.string > 0 && (
-        <path
-          d={`M ${line}`}
-          fill="none"
-          stroke={s.tone}
-          strokeOpacity={s.string}
-          strokeWidth={u(s.stringWidth)}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
+      {s.string > 0 && (() => {
+        // Approximate the total polyline length from consecutive point distances.
+        // This is safe: we know all the coords, and `getTotalLength()` is not
+        // available on a serialised SVG string (video export). The approximation
+        // is exact for a straight string and very close for any real block.
+        let pathLen = 0
+        for (let i = 1; i < pts.length; i++) {
+          const dx = pts[i].x - pts[i - 1].x
+          const dy = pts[i].y - pts[i - 1].y
+          pathLen += Math.hypot(dx, dy)
+        }
+        // Animate: dashoffset starts at the full path length (invisible) and
+        // travels to 0 (fully drawn). The animation is tied to the key of the
+        // string path so it replays whenever the points change meaningfully.
+        // `animationFillMode: 'forwards'` leaves it fully drawn after it lands.
+        return (
+          <path
+            d={`M ${line}`}
+            fill="none"
+            stroke={s.tone}
+            strokeOpacity={s.string}
+            strokeWidth={u(s.stringWidth)}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={pathLen}
+            strokeDashoffset={0}
+            style={{
+              animation: `tf-band-draw 0.4s cubic-bezier(0.16,1,0.3,1) forwards`,
+              ['--tf-band-len' as string]: pathLen,
+            }}
+          />
+        )
+      })()}
       {label && (
         // Anchored to the band's own bounding box, not to pts[0] — the first
         // defender is rarely the highest one, and anchoring to him drops the
