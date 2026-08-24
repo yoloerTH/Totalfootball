@@ -588,18 +588,48 @@ export function usBand(view: PitchViewId, solo: boolean): [number, number] {
  * Slide a token's x from one band to another, keeping its position within the
  * band proportional.
  *
- * This is how a hand-built system survives the opposition toggle: rather than
- * throwing every token back to its formation default (which is what
- * re-running `place` does, and which a coach who has spent ten minutes
- * dragging a system into shape experiences as it being destroyed), each
- * token's x is remapped by the same ratio, so the shape it was in — however
- * far from the template — is preserved, just narrower or wider.
+ * This is the ONE operation behind the "Keep my shape" switch, and it is only
+ * ever run when the coach throws that switch themselves. A shape that has been
+ * folded into its own half is spread back across the board — and folded back
+ * if the switch goes off again — without any token being regenerated from its
+ * formation default, so ten minutes of dragging survives the round trip. The
+ * relationships inside the shape are all ratios, so they all come back.
+ *
+ * It is deliberately NOT wired into the opposition toggle. Doing that squeezed
+ * every system the moment an opposition appeared, which is the same complaint
+ * as re-placing them, with extra steps.
  */
 export function rescaleX(x: number, from: [number, number], to: [number, number]): number {
   const [f0, f1] = from
   const [t0, t1] = to
   const ratio = f1 === f0 ? 0 : (x - f0) / (f1 - f0)
   return Math.round((t0 + ratio * (t1 - t0)) * 10) / 10
+}
+
+/**
+ * The band an opposition takes when our shape is keeping the whole board.
+ *
+ * Splitting the pitch down the middle is a kickoff, not a system. Once our
+ * shape is spread across the board there is no half left to give away, so the
+ * opposition is fitted into the MIRROR of the ground we actually cover: their
+ * keeper stands in the goal our front line is attacking, their back line in
+ * front of it, and the two shapes interleave through the middle the way they
+ * do in a match.
+ *
+ * Mirroring the real extent rather than a fixed band means the answer suits
+ * whatever was built — a high line living in the front third is faced by a low
+ * block in the same depth of pitch, not by a full team stretched over it.
+ *
+ * `null` when there is nothing meaningful to mirror (fewer than two counters,
+ * or a huddle inside a tenth of the crop); the caller then falls back to the
+ * view's ordinary half-band.
+ */
+export function mirrorBand(xs: number[]): [number, number] | null {
+  if (xs.length < 2) return null
+  const lo = Math.min(...xs)
+  const hi = Math.max(...xs)
+  if (hi - lo < 10) return null
+  return [Math.max(0, 100 - hi), Math.min(100, 100 - lo)]
 }
 
 /**
@@ -711,10 +741,19 @@ export function place(
   labels: LabelMode = 'position',
   /** True when this shape is alone on the board — it then gets the wider band. */
   solo = false,
+  /**
+   * An explicit x-band to lay the shape into, overriding both of the above.
+   *
+   * Used by "Keep my shape" to drop the opposition into the mirror of the
+   * ground our own tokens cover (see `mirrorBand`), which is a band no table
+   * of view defaults could know.
+   */
+  bandOverride?: [number, number],
 ): Token[] {
   const band = BANDS[view] ?? BANDS.full
   const [x0, x1] =
-    solo && side === 'us' ? (SOLO_BANDS[view] ?? SOLO_BANDS.full) : side === 'us' ? band.us : band.them
+    bandOverride ??
+    (solo && side === 'us' ? (SOLO_BANDS[view] ?? SOLO_BANDS.full) : side === 'us' ? band.us : band.them)
   const facesRight = side === 'us'
 
   const slots = castFor(formation, side, view)

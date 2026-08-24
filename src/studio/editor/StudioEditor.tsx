@@ -78,6 +78,7 @@ import {
   FORMATION_BY_ID,
   castFor,
   formationsByFamily,
+  mirrorBand,
   place,
   relabel,
   rescaleX,
@@ -223,6 +224,16 @@ function withEdits(placed: Token[], previous: Token[]): Token[] {
     const p = prev.get(t.id)
     return p ? { ...t, label: p.label, name: p.name, cue: p.cue, dim: p.dim } : t
   })
+}
+
+/**
+ * The band to lay the opposition into while "Keep my shape" is on.
+ *
+ * `undefined` — not null — because that is what `place` wants for "use the
+ * view's own default", and there are shapes with nothing worth mirroring.
+ */
+function oppositionBand(tokens: Token[]): [number, number] | undefined {
+  return mirrorBand(tokens.filter((t) => t.side === 'us').map((t) => t.x)) ?? undefined
 }
 
 /**
@@ -1252,8 +1263,18 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const applyFormation = (side: Side, formationId: string) => {
     const f = FORMATION_BY_ID.get(formationId)
     if (!f) return
-    const placed = place(f, side, system.pitch, labels, side === 'us' && !system.teams.them)
-    patchAct('formation', (a) => ({ ...a, tokens: [...a.tokens.filter((t) => t.side !== side), ...placed] }))
+    const keep = Boolean(system.keepShape)
+    // With "Keep my shape" on our shape takes the whole board whether or not
+    // there is an opposition, and a NEW opposition shape is fitted to the
+    // mirror of what is already on the pitch rather than to its own half.
+    const wide = side === 'us' && (keep || !system.teams.them)
+    patchAct('formation', (a) => ({
+      ...a,
+      tokens: [
+        ...a.tokens.filter((t) => t.side !== side),
+        ...place(f, side, system.pitch, labels, wide, keep && side === 'them' ? oppositionBand(a.tokens) : undefined),
+      ],
+    }))
     seal()
     if (side === 'us') setUsFormation(formationId)
     else setThemFormation(formationId)
@@ -1302,37 +1323,111 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const replaceShapes = () => {
     const us = FORMATION_BY_ID.get(usFormation)
     const them = FORMATION_BY_ID.get(themFormation)
-    const solo = !system.teams.them
-    patchAct('replace', (a) => ({
-      ...a,
-      tokens: [
-        ...(us ? withEdits(place(us, 'us', system.pitch, labels, solo), a.tokens) : []),
-        ...(system.teams.them && them ? withEdits(place(them, 'them', system.pitch, labels), a.tokens) : []),
-      ],
-    }))
+    const keep = Boolean(system.keepShape)
+    const solo = keep || !system.teams.them
+    patchAct('replace', (a) => {
+      const ours = us ? withEdits(place(us, 'us', system.pitch, labels, solo), a.tokens) : []
+      return {
+        ...a,
+        tokens: [
+          ...ours,
+          ...(system.teams.them && them
+            ? withEdits(
+                place(them, 'them', system.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
+                a.tokens,
+              )
+            : []),
+        ],
+      }
+    })
     seal()
   }
 
+  /**
+   * Put the opposition on the board, or take them off.
+   *
+   * Which of two things this does is the document's own setting:
+   *
+   *  · Default — each side gets a half. Our shape is re-placed into the
+   *    narrower band as the opposition arrives and back out across the board
+   *    when they leave. Every system saved before "Keep my shape" existed was
+   *    built and signed off under exactly this, so it stays the default and it
+   *    stays byte-for-byte what it was.
+   *  · Keep my shape — our tokens are not touched, at all, in either
+   *    direction. The opposition is laid into the mirror of the ground we
+   *    already cover.
+   */
   const toggleOpposition = (on: boolean) => {
     edit('opposition', (s) => {
+      const us = FORMATION_BY_ID.get(usFormation)
+      const them = FORMATION_BY_ID.get(themFormation)
+      const keep = Boolean(s.keepShape)
+      return {
+        ...s,
+        teams: { ...s.teams, them: on ? (s.teams.them ?? DEFAULT_THEM) : null },
+        acts: s.acts.map((a) => {
+          const ours = keep
+            ? a.tokens.filter((t) => t.side === 'us')
+            : us
+              ? withEdits(place(us, 'us', s.pitch, labels, !on), a.tokens)
+              : []
+          return {
+            ...a,
+            tokens: [
+              ...ours,
+              ...(on && them
+                ? withEdits(
+                    place(them, 'them', s.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
+                    a.tokens,
+                  )
+                : []),
+            ],
+          }
+        }),
+      }
+    })
+    seal()
+  }
+
+  /**
+   * Switch how the two shapes share the board.
+   *
+   * Both directions are reversible and neither one regenerates our shape from
+   * its formation template — the whole point of the switch is that a system
+   * the coach built by hand survives it. Our tokens are only ever RESCALED
+   * between the two bands, so every relationship inside the shape is a ratio
+   * that comes back intact when the switch goes the other way.
+   *
+   * Nothing moves at all when there is no opposition on the board: with the
+   * pitch to itself our shape already has the wide band under either setting,
+   * and the flag simply records what should happen when an opposition arrives.
+   */
+  const toggleKeepShape = (on: boolean) => {
+    edit('keepShape', (s) => {
+      if (!s.teams.them) return { ...s, keepShape: on }
       const them = FORMATION_BY_ID.get(themFormation)
       const from = usBand(s.pitch, !on)
       const to = usBand(s.pitch, on)
       return {
         ...s,
-        teams: { ...s.teams, them: on ? (s.teams.them ?? DEFAULT_THEM) : null },
-        acts: s.acts.map((a) => ({
-          ...a,
-          tokens: [
-            // Our shape keeps every hand-made edit — it only slides and
-            // rescales to make (or give back) room for the opposition. It is
-            // never regenerated from the formation template here, which is
-            // what used to flatten a coach's custom system back to the
-            // default shape every time this toggle was touched.
-            ...a.tokens.filter((t) => t.side === 'us').map((t) => ({ ...t, x: rescaleX(t.x, from, to) })),
-            ...(on && them ? withEdits(place(them, 'them', s.pitch, labels), a.tokens) : []),
-          ],
-        })),
+        keepShape: on,
+        acts: s.acts.map((a) => {
+          const ours = a.tokens
+            .filter((t) => t.side === 'us')
+            .map((t) => ({ ...t, x: rescaleX(t.x, from, to) }))
+          return {
+            ...a,
+            tokens: [
+              ...ours,
+              ...(them
+                ? withEdits(
+                    place(them, 'them', s.pitch, labels, false, on ? oppositionBand(ours) : undefined),
+                    a.tokens,
+                  )
+                : a.tokens.filter((t) => t.side === 'them')),
+            ],
+          }
+        }),
       }
     })
     seal()
@@ -2032,6 +2127,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <Tip text={HINT.opposition} title="Show opposition" block>
           <Toggle checked={Boolean(system.teams.them)} onChange={toggleOpposition} label="Show opposition" />
         </Tip>
+        <div className="mt-2">
+          <Tip text={HINT.keepShape} title="Keep my shape" block>
+            <Toggle checked={Boolean(system.keepShape)} onChange={toggleKeepShape} label="Keep my shape" />
+          </Tip>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          {system.keepShape
+            ? 'Your shape holds the whole pitch. The opposition comes on around it.'
+            : 'Each team lines up in its own half when the opposition is on.'}
+        </p>
         {system.teams.them && (
           <div className="mt-3">
             <Tip text={HINT.formationThem} title="Their shape" block>

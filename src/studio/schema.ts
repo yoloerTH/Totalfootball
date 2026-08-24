@@ -326,6 +326,26 @@ export interface System {
    * outside the range this build will render.
    */
   hold?: number
+  /**
+   * How the two shapes share the board once an opposition is on it.
+   *
+   * Undefined or false — the default, and what every system saved before this
+   * field existed was built under — gives each side its own half: our shape is
+   * re-placed into the narrower band as the opposition arrives, and back out
+   * across the board when they leave.
+   *
+   * True keeps our players exactly where the coach put them. The opposition is
+   * fitted into the mirror of the ground we cover instead (see `mirrorBand` in
+   * ./formations.ts), so a system built on the whole pitch is still on the
+   * whole pitch after the toggle, and the spacing that was worked out at 74
+   * percent of the board is not silently re-read at 48.
+   *
+   * It is a stored property of the document rather than a coach's setting for
+   * the same reason the surface and the camera are: the arrangement is part of
+   * what the system IS, and the share link, the print and the video all have
+   * to open on the picture that was signed off.
+   */
+  keepShape?: boolean
   teams: {
     us: TeamStyle
     /** null = no opposition on the board. */

@@ -275,6 +275,8 @@ export const HINT = {
   colourUs: 'Your kit colour. The counter labels switch between white and black on their own so they stay readable.',
   colourThem: 'Their kit colour. Pick something well clear of yours.',
   opposition: 'Puts eleven opposition players on the board. Turn it off and your own shape spreads out to use the whole pitch.',
+  keepShape:
+    'On, your players never move when the opposition comes on or goes off. They keep the whole pitch and the opposition is laid out facing them, so the spacing you worked out is the spacing you keep. Off, the two teams take a half each, which is how the studio has always started.',
 
   labels: 'What is printed on the counters: the position they play, or their shirt number.',
 
