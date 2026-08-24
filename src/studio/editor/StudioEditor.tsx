@@ -524,6 +524,15 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const act = system.acts[Math.min(actIndex, system.acts.length - 1)]
   const stacked = useMediaQuery('(max-width: 1023px)')
 
+  // Whether there is an opposition is asked of a PHASE, not of the document —
+  // `teams.them` only carries their kit. Both of these read straight off the
+  // acts so the panel can never claim something the board is not showing.
+  const themHere = Boolean(act?.tokens.some((t) => t.side === 'them'))
+  const themOnPhases = useMemo(
+    () => system.acts.flatMap((a, i) => (a.tokens.some((t) => t.side === 'them') ? [i] : [])),
+    [system.acts],
+  )
+
   // Autosave. Debounced so a drag writes once when it settles rather than on
   // every pointermove, which would serialise the whole document 60 times a
   // second for no benefit.
@@ -1264,17 +1273,20 @@ export default function StudioEditor({ systemId, initial }: Props) {
     const f = FORMATION_BY_ID.get(formationId)
     if (!f) return
     const keep = Boolean(system.keepShape)
-    // With "Keep my shape" on our shape takes the whole board whether or not
-    // there is an opposition, and a NEW opposition shape is fitted to the
-    // mirror of what is already on the pitch rather than to its own half.
-    const wide = side === 'us' && (keep || !system.teams.them)
-    patchAct('formation', (a) => ({
-      ...a,
-      tokens: [
-        ...a.tokens.filter((t) => t.side !== side),
-        ...place(f, side, system.pitch, labels, wide, keep && side === 'them' ? oppositionBand(a.tokens) : undefined),
-      ],
-    }))
+    patchAct('formation', (a) => {
+      // Whether our shape gets the wide band is asked of THIS phase, because
+      // an opposition is something a phase has or does not have. With "Keep my
+      // shape" on the answer is always wide, and a new opposition shape is
+      // fitted to the mirror of what is already on the pitch.
+      const wide = side === 'us' && (keep || !a.tokens.some((t) => t.side === 'them'))
+      return {
+        ...a,
+        tokens: [
+          ...a.tokens.filter((t) => t.side !== side),
+          ...place(f, side, system.pitch, labels, wide, keep && side === 'them' ? oppositionBand(a.tokens) : undefined),
+        ],
+      }
+    })
     seal()
     if (side === 'us') setUsFormation(formationId)
     else setThemFormation(formationId)
@@ -1324,14 +1336,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
     const us = FORMATION_BY_ID.get(usFormation)
     const them = FORMATION_BY_ID.get(themFormation)
     const keep = Boolean(system.keepShape)
-    const solo = keep || !system.teams.them
     patchAct('replace', (a) => {
-      const ours = us ? withEdits(place(us, 'us', system.pitch, labels, solo), a.tokens) : []
+      // This phase only, and it does not conjure an opposition onto a phase
+      // that has none — it re-places the shapes that are standing here.
+      const hasThem = a.tokens.some((t) => t.side === 'them')
+      const ours = us ? withEdits(place(us, 'us', system.pitch, labels, keep || !hasThem), a.tokens) : []
       return {
         ...a,
         tokens: [
           ...ours,
-          ...(system.teams.them && them
+          ...(hasThem && them
             ? withEdits(
                 place(them, 'them', system.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
                 a.tokens,
@@ -1344,15 +1358,21 @@ export default function StudioEditor({ systemId, initial }: Props) {
   }
 
   /**
-   * Put the opposition on the board, or take them off.
+   * Put the opposition on THIS phase, or take them off it.
    *
-   * Which of two things this does is the document's own setting:
+   * Per phase, and that is the point of it. An opposition is not a property of
+   * the system, it is something a particular moment of the system has: a coach
+   * lays six phases out building a shape and then wants the eleven reds on the
+   * seventh, where the point is made. Stamping them onto every phase — which
+   * is what this used to do — means opening the six earlier ones again to take
+   * them off, and the fade in and out of a phase where they arrive is not
+   * available at all.
    *
-   *  · Default — each side gets a half. Our shape is re-placed into the
-   *    narrower band as the opposition arrives and back out across the board
-   *    when they leave. Every system saved before "Keep my shape" existed was
-   *    built and signed off under exactly this, so it stays the default and it
-   *    stays byte-for-byte what it was.
+   * The band our own shape gets is settled the same two ways as before:
+   *
+   *  · Default — each side gets a half. Our shape on this phase is re-placed
+   *    into the narrower band as the opposition arrives and back out across
+   *    the board when they leave.
    *  · Keep my shape — our tokens are not touched, at all, in either
    *    direction. The opposition is laid into the mirror of the ground we
    *    already cover.
@@ -1362,28 +1382,41 @@ export default function StudioEditor({ systemId, initial }: Props) {
       const us = FORMATION_BY_ID.get(usFormation)
       const them = FORMATION_BY_ID.get(themFormation)
       const keep = Boolean(s.keepShape)
+      const here = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, i) => {
+        if (i !== here) return a
+        const ours = keep
+          ? a.tokens.filter((t) => t.side === 'us')
+          : us
+            ? withEdits(place(us, 'us', s.pitch, labels, !on), a.tokens)
+            : []
+        return {
+          ...a,
+          tokens: [
+            ...ours,
+            ...(on && them
+              ? withEdits(
+                  place(them, 'them', s.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
+                  a.tokens,
+                )
+              : []),
+          ],
+        }
+      })
+      /*
+       * `teams.them` is the opposition's KIT — one colour and one name for
+       * whoever we are playing, which cannot sensibly differ between two poses
+       * of the same move. So it is not per phase: it comes into being with the
+       * first phase that puts an opposition on and goes away with the last one
+       * that takes them off, which is exactly when the colour well is worth
+       * showing. Deriving it from the acts rather than from the toggle also
+       * means it can never drift out of step with what is on the board.
+       */
+      const anywhere = acts.some((a) => a.tokens.some((t) => t.side === 'them'))
       return {
         ...s,
-        teams: { ...s.teams, them: on ? (s.teams.them ?? DEFAULT_THEM) : null },
-        acts: s.acts.map((a) => {
-          const ours = keep
-            ? a.tokens.filter((t) => t.side === 'us')
-            : us
-              ? withEdits(place(us, 'us', s.pitch, labels, !on), a.tokens)
-              : []
-          return {
-            ...a,
-            tokens: [
-              ...ours,
-              ...(on && them
-                ? withEdits(
-                    place(them, 'them', s.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
-                    a.tokens,
-                  )
-                : []),
-            ],
-          }
-        }),
+        teams: { ...s.teams, them: anywhere ? (s.teams.them ?? DEFAULT_THEM) : null },
+        acts,
       }
     })
     seal()
@@ -1398,9 +1431,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * between the two bands, so every relationship inside the shape is a ratio
    * that comes back intact when the switch goes the other way.
    *
-   * Nothing moves at all when there is no opposition on the board: with the
-   * pitch to itself our shape already has the wide band under either setting,
-   * and the flag simply records what should happen when an opposition arrives.
+   * Unlike the opposition toggle this is a document-wide switch and has to be:
+   * it decides how much of the board our shape occupies, and our shape has to
+   * occupy the same board on every phase or the players slide sideways between
+   * two poses that were meant to be still.
+   *
+   * A phase with no opposition on it is left completely alone. Under either
+   * setting our shape already has the wide band to itself there, so there is
+   * nothing to rescale and nobody to place against.
    */
   const toggleKeepShape = (on: boolean) => {
     edit('keepShape', (s) => {
@@ -1412,6 +1450,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
         ...s,
         keepShape: on,
         acts: s.acts.map((a) => {
+          const theirs = a.tokens.filter((t) => t.side === 'them')
+          if (!theirs.length) return a
           const ours = a.tokens
             .filter((t) => t.side === 'us')
             .map((t) => ({ ...t, x: rescaleX(t.x, from, to) }))
@@ -1424,7 +1464,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
                     place(them, 'them', s.pitch, labels, false, on ? oppositionBand(ours) : undefined),
                     a.tokens,
                   )
-                : a.tokens.filter((t) => t.side === 'them')),
+                : theirs),
             ],
           }
         }),
@@ -2125,9 +2165,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
 
       <Panel title="Opposition">
         <Tip text={HINT.opposition} title="Show opposition" block>
-          <Toggle checked={Boolean(system.teams.them)} onChange={toggleOpposition} label="Show opposition" />
+          <Toggle checked={themHere} onChange={toggleOpposition} label={`Show opposition on ${PHASE.one} ${actIndex + 1}`} />
         </Tip>
-        <div className="mt-2">
+        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          {themOnPhases.length === 0
+            ? `No opposition on any ${PHASE.one} yet.`
+            : themOnPhases.length === system.acts.length
+              ? `On every ${PHASE.one}.`
+              : `On ${themOnPhases.length === 1 ? PHASE.one : PHASE.many} ${themOnPhases.map((n) => n + 1).join(', ')}.`}
+        </p>
+        <div className="mt-3">
           <Tip text={HINT.keepShape} title="Keep my shape" block>
             <Toggle checked={Boolean(system.keepShape)} onChange={toggleKeepShape} label="Keep my shape" />
           </Tip>
@@ -3103,6 +3150,14 @@ export function newSystem(): System {
     pitch: 'full',
     matchBall: DEFAULT_BALL,
     surface: DEFAULT_SURFACE,
+    // "Keep my shape" is ON for anything built from today, and OFF — by being
+    // absent — on every document written before it existed. A coach lays out a
+    // system across the whole pitch and then puts an opposition on ONE phase
+    // of it; folding the shape into its own half for that one phase and back
+    // out for the next would slide the whole team sideways mid-move. Systems
+    // already saved keep the arrangement they were signed off with, and the
+    // switch is right there in the Opposition panel either way.
+    keepShape: true,
     teams: { us: DEFAULT_US, them: null },
     acts: [
       {

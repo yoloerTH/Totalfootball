@@ -274,7 +274,8 @@ export const HINT = {
     'Puts everybody back on their formation position, on this phase only. Your names, cues and fades are kept.',
   colourUs: 'Your kit colour. The counter labels switch between white and black on their own so they stay readable.',
   colourThem: 'Their kit colour. Pick something well clear of yours.',
-  opposition: 'Puts eleven opposition players on the board. Turn it off and your own shape spreads out to use the whole pitch.',
+  opposition:
+    'Puts eleven opposition players on THIS phase, and only this one. Build your shape across as many phases as you like, then bring them on for the phase where the point is made — they fade in and out as the move plays.',
   keepShape:
     'On, your players never move when the opposition comes on or goes off. They keep the whole pitch and the opposition is laid out facing them, so the spacing you worked out is the spacing you keep. Off, the two teams take a half each, which is how the studio has always started.',
 
