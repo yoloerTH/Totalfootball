@@ -32,6 +32,26 @@ export const STUDIO_EVENTS = {
    * feature, and which of the five they pick says what to author next.
    */
   templateOpened: 'studio:template-opened',
+  /**
+   * Somebody went off to watch the film an official system was rendered from,
+   * with which system and which platform.
+   *
+   * The claim those two cards make is "this board IS the video", and it is the
+   * only claim on the page a coach can go and check for themselves. This counts
+   * how often they do. A high number is not a leak — it is the proof landing,
+   * and it says the pairing is worth doing for the next video too.
+   */
+  officialWatched: 'studio:official-watched',
+  /**
+   * The link to one of ours was copied off a portal card, with which one.
+   *
+   * Distinct from `shareSent`, which counts a coach sending their OWN system.
+   * This is a coach passing on a system of ours, and it is the cheapest
+   * distribution the studio has: it costs us nothing, it arrives recommended by
+   * someone the receiver knows, and it lands on a viewer with a build-your-own
+   * door already on it. Worth knowing which of the seven travels.
+   */
+  templateShared: 'studio:template-shared',
   /** A short link was written. The moment the tool did its job. */
   sharePublished: 'studio:share-published',
   /**

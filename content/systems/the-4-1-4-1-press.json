@@ -1,0 +1,3269 @@
+{
+  "v": 1,
+  "acts": [
+    {
+      "id": "act-ti98bg",
+      "ball": null,
+      "bands": [],
+      "title": "The Unbreakable 4-1-4-1 Pressing System",
+      "arrows": [],
+      "tokens": [],
+      "caption": ""
+    },
+    {
+      "id": "act-sr82r1",
+      "ball": null,
+      "bands": [],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-0183rh",
+      "ball": null,
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-wqqjxl",
+      "ball": null,
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-ugm7ro",
+      "ball": null,
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "The 4-1-4-1 Press",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        }
+      ],
+      "caption": "ONE ANCHOR HOLDS"
+    },
+    {
+      "id": "act-mf6fhi",
+      "ball": null,
+      "shot": {
+        "h": 109.42461911369773,
+        "w": 111.96709333147322,
+        "x": 53.12640380859375,
+        "y": 45.860245087567506
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        },
+        {
+          "id": "bd-pwyck4",
+          "kind": "zone",
+          "rect": {
+            "h": 20.082038430606612,
+            "w": 42.50657145182291,
+            "x": 19.428102039155508,
+            "y": 15.668985703412222
+          }
+        },
+        {
+          "id": "bd-130dbo",
+          "kind": "zone",
+          "rect": {
+            "h": 19.547657686121326,
+            "w": 42.29006376720609,
+            "x": 19.185680571056547,
+            "y": 67.78960284064797
+          }
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        }
+      ],
+      "caption": "THE FOUR JUMP TOGETHER"
+    },
+    {
+      "id": "act-g7rf44",
+      "ball": {
+        "x": 90.65496680850073,
+        "y": 49.73151711856618
+      },
+      "shot": {
+        "h": 66.76673889160158,
+        "w": 75.09558105468749,
+        "x": 65.3093523297991,
+        "y": 50.54233999813304
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 17.9,
+          "y": 11,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 13.7,
+          "y": 36,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 13.7,
+          "y": 64,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 17.9,
+          "y": 89,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 28.6,
+          "y": 50,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 44.2,
+          "y": 10,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 41.3,
+          "y": 36,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 41.3,
+          "y": 64,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 44.2,
+          "y": 90,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 64.1,
+          "y": 50,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 68.71663266136532,
+          "y": 50.21297679227942,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 46.5,
+          "y": 91,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 43,
+          "y": 50,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 46.5,
+          "y": 9,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-mo3n9v",
+      "ball": {
+        "x": 90.65496680850073,
+        "y": 49.73151711856618
+      },
+      "shot": {
+        "h": 65.95871420467603,
+        "w": 72.96728515624999,
+        "x": 66.37350027901785,
+        "y": 50.13832765467026
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 27.391241164434522,
+          "y": 8.991750829360065,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 19.520891462053573,
+          "y": 33.46504211425781,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 18.634800502232142,
+          "y": 64.59362254423255,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 26.461681547619047,
+          "y": 87.20431159524357,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 37.842965262276785,
+          "y": 49.492726045496326,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 54.02754429408483,
+          "y": 13.466904584099264,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 49.73333449590774,
+          "y": 35.519970164579505,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 50.279200962611604,
+          "y": 65.4571533203125,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 54.429629371279766,
+          "y": 85.23973352768841,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 73.30759902227493,
+          "y": 49.50563318589154,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 68.71663266136532,
+          "y": 50.21297679227942,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 46.5,
+          "y": 91,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 43,
+          "y": 50,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 46.5,
+          "y": 9,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-s6coaa",
+      "ball": {
+        "x": 82.42014999616714,
+        "y": 66.59175199620864
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        },
+        {
+          "id": "bd-nb3a2n",
+          "kind": "danger",
+          "rect": {
+            "h": 25.770532944623163,
+            "w": 16.586665017264238,
+            "x": 67.68592180524553,
+            "y": 26.987879136029413
+          }
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 35.358558291480655,
+          "y": 9.48999517104205,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 25.604846772693453,
+          "y": 32.76156257180607,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 25.9066162109375,
+          "y": 64.62847541360294,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 35.98634847005208,
+          "y": 88.65515316233915,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 46.90034412202381,
+          "y": 50.543419333065266,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 62.12359619140625,
+          "y": 9.655216441434973,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 54.251575288318456,
+          "y": 35.0230183320887,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 55.148536318824405,
+          "y": 65.63140869140625,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 63.766212100074405,
+          "y": 85.84898107192096,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 74.57738749186197,
+          "y": 56.56622493968291,
+          "id": "us-ST",
+          "cue": "PRESS",
+          "name": "Curved Run",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 46.5,
+          "y": 91,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 43,
+          "y": 50,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 46.5,
+          "y": 9,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-kbu3zr",
+      "ball": {
+        "x": 77.25405847458613,
+        "y": 89.41154928768383
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-5yigi4",
+          "to": {
+            "x": 74.65132213774181,
+            "y": 88.56773825252758
+          },
+          "from": {
+            "x": 64.95769973028274,
+            "y": 85.18380557789523
+          },
+          "kind": "run"
+        },
+        {
+          "id": "ar-cd0zdf",
+          "to": {
+            "x": 53.05878557477679,
+            "y": 89.7418571920956
+          },
+          "from": {
+            "x": 46.412740071614586,
+            "y": 85.73759191176471
+          },
+          "kind": "run"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "cue": "COVER",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 70.38014729817709,
+          "y": 19.44711124195772,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 70.12685866582962,
+          "y": 87.86261165843291,
+          "id": "us-RM",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 76.37548828125,
+          "y": 64.22187356387867,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "cue": "DROP",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-y2lvir",
+      "ball": {
+        "x": 77.25405847458613,
+        "y": 89.41154928768383
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        },
+        {
+          "id": "bd-9xhhyz",
+          "kind": "zone",
+          "rect": {
+            "h": 16.283255184397973,
+            "w": 27.400348481677852,
+            "x": 68.09636724562871,
+            "y": 77.31430951286765
+          },
+          "tone": "red",
+          "label": "Lane Closed"
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-5yigi4",
+          "to": {
+            "x": 74.65132213774181,
+            "y": 88.56773825252758
+          },
+          "from": {
+            "x": 64.95769973028274,
+            "y": 85.18380557789523
+          },
+          "kind": "run"
+        },
+        {
+          "id": "ar-cd0zdf",
+          "to": {
+            "x": 53.05878557477679,
+            "y": 89.7418571920956
+          },
+          "from": {
+            "x": 46.412740071614586,
+            "y": 85.73759191176471
+          },
+          "kind": "run"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "cue": "COVER",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 70.38014729817709,
+          "y": 19.44711124195772,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 70.12685866582962,
+          "y": 87.86261165843291,
+          "id": "us-RM",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 76.37548828125,
+          "y": 64.22187356387867,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "cue": "DROP",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-12441f",
+      "ball": {
+        "x": 83.00530601683117,
+        "y": 71.29538143382354
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 70.38014729817709,
+          "y": 19.44711124195772,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 78.30733925955636,
+          "y": 63.724921731387866,
+          "id": "us-ST",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-mzchju",
+      "ball": {
+        "x": 83.0897356669108,
+        "y": 33.88325410730699
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        },
+        {
+          "id": "bd-ngfkb4",
+          "kind": "zone",
+          "rect": {
+            "h": 15.671424865722658,
+            "w": 18.02364167712983,
+            "x": 74.59243411109561,
+            "y": 9.036930308622471
+          },
+          "tone": "red",
+          "label": "Lane Closed"
+        }
+      ],
+      "title": "",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 74.21291896275112,
+          "y": 15.489564783432904,
+          "id": "us-LM",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 79.68747148059663,
+          "y": 42.08619510426241,
+          "id": "us-ST",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-j616ik",
+      "ball": {
+        "x": 80.36876024518695,
+        "y": 18.03499558392693
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-xvkvey",
+          "to": {
+            "x": 80.0469244094122,
+            "y": 20.923771577722885
+          },
+          "from": {
+            "x": 81.56665811084565,
+            "y": 26.459947473862595
+          },
+          "kind": "pass"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 79.34724498930431,
+          "y": 16.801003848805145,
+          "id": "us-LM",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 79.68747148059663,
+          "y": 42.08619510426241,
+          "id": "us-ST",
+          "cue": "PRESS",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.35076721225467,
+          "y": 30.39426466997932,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": "BALL WON"
+    },
+    {
+      "id": "act-17c4fl",
+      "ball": {
+        "x": 80.36876024518695,
+        "y": 18.03499558392693
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-63qf5d",
+          "to": {
+            "x": 87.3371324085054,
+            "y": 35.2992472929113
+          },
+          "bend": -1,
+          "from": {
+            "x": 80.48662730625698,
+            "y": 18.746216717888327
+          },
+          "kind": "pass"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 79.34724498930431,
+          "y": 16.801003848805145,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 82.35829064675741,
+          "y": 43.553821339326745,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.1,
+          "y": 50,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 82.5948608716329,
+          "y": 68.33947574391085,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 82.84564199901763,
+          "y": 28.67752075195313,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 70.16113135928201,
+          "y": 48.815056295955884,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": "BALL WON"
+    },
+    {
+      "id": "act-kzp5qq",
+      "ball": {
+        "x": 87.67317926316035,
+        "y": 37.616209142348346
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-63qf5d",
+          "to": {
+            "x": 87.3371324085054,
+            "y": 35.2992472929113
+          },
+          "bend": -1,
+          "from": {
+            "x": 80.48662730625698,
+            "y": 18.746216717888327
+          },
+          "kind": "pass"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 79.34724498930431,
+          "y": 16.801003848805145,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 85.75721123105004,
+          "y": 38.45134510713465,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.08002072288876,
+          "y": 46.00373212028952,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 86.11749994187127,
+          "y": 52.39053165211397,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 83.75597763061523,
+          "y": 32.28784448960248,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 79.27451833089194,
+          "y": 45.15051897834329,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-6ofq48",
+      "ball": {
+        "x": 87.67317926316035,
+        "y": 37.616209142348346
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-wl714z",
+          "to": {
+            "x": 100.39112781343005,
+            "y": 46.735606474034924
+          },
+          "bend": -0.6,
+          "from": {
+            "x": 87.6121557326544,
+            "y": 37.74270450367647
+          },
+          "kind": "pass",
+          "label": "SHOOT"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 79.34724498930431,
+          "y": 16.801003848805145,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 85.75721123105004,
+          "y": 38.45134510713465,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.08002072288876,
+          "y": 46.00373212028952,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 86.11749994187127,
+          "y": 52.39053165211397,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 83.75597763061523,
+          "y": 32.28784448960248,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 79.27451833089194,
+          "y": 45.15051897834329,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-9vohkg",
+      "ball": {
+        "x": 100.67952619280133,
+        "y": 47.002796846277576
+      },
+      "bands": [
+        {
+          "id": "bd-j27x62",
+          "edge": "none",
+          "kind": "block",
+          "close": "shape",
+          "strength": "soft",
+          "throughTokens": [
+            "us-LB",
+            "us-LCB",
+            "us-RCB",
+            "us-RB"
+          ]
+        },
+        {
+          "id": "bd-1hirk7",
+          "edge": "none",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-LM",
+            "us-LCM",
+            "us-RCM",
+            "us-RM"
+          ]
+        },
+        {
+          "id": "bd-gtnfy5",
+          "fill": "line",
+          "kind": "block",
+          "close": "shape",
+          "drawn": true,
+          "throughTokens": [
+            "us-CDM",
+            "us-ST"
+          ]
+        }
+      ],
+      "title": "",
+      "arrows": [
+        {
+          "id": "ar-wl714z",
+          "to": {
+            "x": 100.39112781343005,
+            "y": 46.735606474034924
+          },
+          "bend": -0.6,
+          "from": {
+            "x": 87.6121557326544,
+            "y": 37.74270450367647
+          },
+          "kind": "pass",
+          "label": "SHOOT"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 5.1,
+          "y": 50,
+          "id": "us-GK",
+          "side": "us",
+          "label": "GK"
+        },
+        {
+          "x": 46.535039992559526,
+          "y": 8.80716884837431,
+          "id": "us-LB",
+          "side": "us",
+          "label": "LB"
+        },
+        {
+          "x": 41.91815766834077,
+          "y": 47.325493307674634,
+          "id": "us-LCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 39.71044921875001,
+          "y": 70.61900419347427,
+          "id": "us-RCB",
+          "side": "us",
+          "label": "CB"
+        },
+        {
+          "x": 46.805047898065474,
+          "y": 93.76149794634651,
+          "id": "us-RB",
+          "side": "us",
+          "label": "RB"
+        },
+        {
+          "x": 53.88125465029761,
+          "y": 51.991684857536754,
+          "id": "us-CDM",
+          "side": "us",
+          "label": "DM"
+        },
+        {
+          "x": 79.34724498930431,
+          "y": 16.801003848805145,
+          "id": "us-LM",
+          "side": "us",
+          "label": "LM"
+        },
+        {
+          "x": 61.93049403599331,
+          "y": 39.41426894244026,
+          "id": "us-LCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 62.651072184244796,
+          "y": 70.32986809225643,
+          "id": "us-RCM",
+          "side": "us",
+          "label": "CM"
+        },
+        {
+          "x": 71.51451401483445,
+          "y": 86.77318797392005,
+          "id": "us-RM",
+          "side": "us",
+          "label": "RM"
+        },
+        {
+          "x": 85.75721123105004,
+          "y": 38.45134510713465,
+          "id": "us-ST",
+          "side": "us",
+          "label": "ST"
+        },
+        {
+          "x": 93.08002072288876,
+          "y": 46.00373212028952,
+          "id": "them-GK",
+          "side": "them",
+          "label": "GK"
+        },
+        {
+          "x": 77.42626153855096,
+          "y": 91.65622486787683,
+          "id": "them-LB",
+          "side": "them",
+          "label": "LB"
+        },
+        {
+          "x": 86.11749994187127,
+          "y": 52.39053165211397,
+          "id": "them-LCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 83.75597763061523,
+          "y": 32.28784448960248,
+          "id": "them-RCB",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 77.81580825079055,
+          "y": 9.295086580164293,
+          "id": "them-RB",
+          "side": "them",
+          "label": "RB"
+        },
+        {
+          "x": 79.27451833089194,
+          "y": 45.15051897834329,
+          "id": "them-CDM",
+          "side": "them",
+          "label": "DM"
+        },
+        {
+          "x": 60.782752627418155,
+          "y": 68.97196152630974,
+          "id": "them-LCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 60.214314778645836,
+          "y": 27.603584738338693,
+          "id": "them-RCM",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 54.42628696986608,
+          "y": 94.34751622817096,
+          "id": "them-LW",
+          "side": "them",
+          "label": "LW"
+        },
+        {
+          "x": 47.320821126302086,
+          "y": 50.469845042509185,
+          "id": "them-ST",
+          "side": "them",
+          "label": "ST"
+        },
+        {
+          "x": 50.59351457868303,
+          "y": 12.806023990406711,
+          "id": "them-RW",
+          "side": "them",
+          "label": "RW"
+        }
+      ],
+      "caption": "GOAL"
+    }
+  ],
+  "hold": 400,
+  "pitch": "full-vertical",
+  "teams": {
+    "us": {
+      "base": "#ffffff",
+      "deep": "#c7c7c7",
+      "name": "Our team",
+      "text": "#161618"
+    },
+    "them": {
+      "base": "#E2473B",
+      "deep": "#B5392F",
+      "name": "Opposition",
+      "text": "#FFFFFF"
+    }
+  },
+  "title": "The 4-1-4-1 Press",
+  "camera": "off",
+  "surface": "chalk",
+  "keepShape": true,
+  "matchBall": "trionda"
+}

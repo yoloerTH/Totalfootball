@@ -40,15 +40,41 @@
  * `shareId`. The second one is not cosmetic — a document carrying our share id
  * would let a coach's edits publish over the link we sent, from the Share
  * button, without anybody doing anything wrong.
+ *
+ * ── THE OFFICIAL ONES ───────────────────────────────────────────────────────
+ *
+ * The five below were authored as files, for the promo films. The ones marked
+ * `official` were not: they are the systems that went out as videos on the
+ * Total Football channels, built in the studio on the account where the films
+ * get made, and brought down here by `scripts/pull-system.mjs`.
+ *
+ * That is the only difference that matters to a coach, and it is worth a badge
+ * because it is the strongest thing this page can say: the board you are about
+ * to open is not a demo of the board, it is the actual document the video was
+ * rendered from. `watch` is where they can go and check that claim.
+ *
+ * They are UPRIGHT (`pitch: 'full-vertical'`), because they were made for a
+ * phone screen. That is not a detail the portal can ignore — see the note on
+ * the two grids in Portal.tsx. A board must be given a container of its own
+ * `aspect(view)` or it renders through the letterbox (Board.tsx), so an upright
+ * system cannot share a row with a landscape one.
  */
 
 import type { System } from './schema'
 
 import beatingTheTwoManPress from '../../content/systems/beating-the-two-man-press.json'
+import escapingPressingTrap from '../../content/systems/escaping-pressing-trap.json'
 import overloadToIsolate from '../../content/systems/overload-to-isolate.json'
 import theFalseNine from '../../content/systems/the-false-nine.json'
+import thePress4141 from '../../content/systems/the-4-1-4-1-press.json'
 import theThirdManRun from '../../content/systems/the-third-man-run.json'
 import whyTheLineStepsUp from '../../content/systems/why-the-line-steps-up.json'
+
+/** Where a published system can be watched. Both, when it went out on both. */
+export interface Watch {
+  instagram?: string
+  facebook?: string
+}
 
 export interface Template {
   /** Permanent. It goes in a URL (`/studio/new/?t=<id>`), so it outlives titles. */
@@ -62,6 +88,16 @@ export interface Template {
    * next ten minutes.
    */
   teaches: string
+  /**
+   * This one went out as a Total Football video.
+   *
+   * Drives the badge and which of the two grids it lands in. Absent rather than
+   * `false` on the other five, so the honest reading of the list is "these two
+   * are published films", not "these five have been demoted".
+   */
+  official?: boolean
+  /** Set only on official ones, and only for the platforms it actually went out on. */
+  watch?: Watch
   system: System
 }
 
@@ -77,6 +113,28 @@ export interface Template {
 const doc = (json: unknown): System => json as System
 
 export const TEMPLATES: Template[] = [
+  {
+    id: 'press-4141',
+    teaches:
+      'One anchor holds, the four in front of him jump together, and the lane shuts. Eighteen phases of a trap being set and sprung.',
+    official: true,
+    watch: {
+      instagram: 'https://www.instagram.com/reel/Dca_9RZNOr0/',
+      facebook: 'https://www.facebook.com/reel/933841605791735',
+    },
+    system: doc(thePress4141),
+  },
+  {
+    id: 'escaping-the-trap',
+    teaches:
+      'Pinned on the touchline with no pass on. Where the empty space actually is, and what has to happen before you can reach it.',
+    official: true,
+    watch: {
+      instagram: 'https://www.instagram.com/reel/DcdWo4mN4yE/',
+      facebook: 'https://www.facebook.com/reel/2025942812141766',
+    },
+    system: doc(escapingPressingTrap),
+  },
   {
     id: 'false-nine',
     teaches: 'What a striker dropping off actually asks of a centre-half, and why following him is the wrong answer.',

@@ -172,3 +172,49 @@ export function idFromPath(pathname: string): string | null {
   const m = pathname.replace(/\/+$/, '').match(/^\/s\/([^/]+)$/)
   return m && ID_SHAPE.test(m[1]) ? m[1] : null
 }
+
+// ── the link to one of ours ──────────────────────────────────────────────────
+
+/**
+ * `/o/press-4141`. A system of OURS, sent to anybody, no account needed.
+ *
+ * WHY THIS IS NOT A `/s/` LINK. It could have been: publish each official
+ * system through /api/share, keep the seven-character id, done. That was the
+ * first plan and it has one fault that never goes away — it makes a SECOND COPY
+ * of a document that already lives in content/systems/. Improve a phase in the
+ * repo and the card on the portal updates while the link you posted under the
+ * video still shows the old one, silently, until somebody notices. There is no
+ * mechanism that makes those two converge; there is only remembering.
+ *
+ * Reading the document out of the registry instead means the link cannot rot.
+ * It shows exactly what the card shows and exactly what the repo holds, because
+ * it IS what the repo holds. It also writes no rows: a system of ours going
+ * public is a deploy, not a database record.
+ *
+ * The id is the template id, so the link is legible — `/o/press-4141` says what
+ * it opens, which a random seven characters never can. That is the right trade
+ * here and the wrong one for a coach's own share, where an opaque id is the
+ * point: theirs is unguessable BECAUSE it is random, and ours has nothing to
+ * hide because we published it on purpose.
+ */
+const TEMPLATE_SHAPE = /^[a-z0-9][a-z0-9-]{0,63}$/
+
+export function templateUrl(id: string, origin: string): string {
+  return `${origin.replace(/\/$/, '')}/o/${id}`
+}
+
+/**
+ * Which of ours a viewer URL is asking for, by either spelling.
+ *
+ * `/o/press-4141` is the real one, served by a rewrite in netlify.toml.
+ * `?t=press-4141` is the same request in a form that survives without the
+ * rewrite — which matters more than it sounds, because the rewrite does not
+ * exist under plain `astro dev`, exactly as netlify.toml already warns for
+ * `/s/*`. Without the second spelling this feature would be untestable on the
+ * machine it is written on.
+ */
+export function templateIdFromUrl(pathname: string, search: string): string | null {
+  const m = pathname.replace(/\/+$/, '').match(/^\/o\/([^/]+)$/)
+  const id = m ? m[1] : new URLSearchParams(search).get('t')
+  return id && TEMPLATE_SHAPE.test(id) ? id : null
+}

@@ -8,6 +8,8 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "systems:list": "node scripts/pull-system.mjs --list",
+    "systems:pull": "node scripts/pull-system.mjs",
     "email:audience": "node scripts/sync-campaigns.mjs",
     "email:sync": "node scripts/sync-campaigns.mjs --run",
     "email:welcome": "node scripts/send-welcome.mjs",

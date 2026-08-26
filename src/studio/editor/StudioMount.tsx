@@ -27,13 +27,22 @@
  * localStorage, so make a new one" while the session is still being restored
  * would hand a coach a blank board and then autosave it OVER the system they
  * asked for. The one thing this file must never do.
+ *
+ * ── WHY ../templates IS IMPORTED LAZILY ──────────────────────────────────────
+ *
+ * That module carries the seven template DOCUMENTS, not just their names, and
+ * the two official ones are 35KB and 27KB of JSON on their own. Imported at the
+ * top it becomes part of the editor's first load, so every coach opening a board
+ * they have been working on all week pays to parse seven systems they did not
+ * ask for. Case (0) is the only one that needs any of it, and it is the rarest
+ * of the four, so it fetches the module when it turns out to be the case that
+ * happened. The portal imports it eagerly — there, it IS the page.
  */
 
 import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, loadSystem, newSystemId } from '../storage'
 import { loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
-import { fromTemplate, templateById } from '../templates'
 import { useSession } from '../account/session'
 import type { System } from '../schema'
 
@@ -67,50 +76,64 @@ export default function StudioMount() {
     let live = true
     const params = new URLSearchParams(window.location.search)
     const requested = params.get('s')
+    const wanted = params.get('t')
 
-    /*
-     * "Open one of ours."
+    /**
+     * Which document, and under which id.
      *
-     * Always a NEW id, never `lastOpened()`, and it must be decided before the
-     * id is: resuming the last system here would be the worst outcome available
-     * — a coach presses "Start from this one" and lands on the thing they were
-     * already editing, with no sign anything went wrong.
-     *
-     * The copy is the coach's from this moment on. `fromTemplate` takes our
-     * credit line and our share id off it, so pressing Share publishes THEIR
-     * link rather than republishing ours.
+     * `copied` is "this is a fresh copy of one of ours", which the URL rewrite
+     * below needs and cannot infer: a copy has a `?s=` of its own to be given,
+     * even when the coach arrived with one in the address bar.
      */
-    const template = templateById(params.get('t'))
-    const id = template ? newSystemId() : (requested ?? lastOpened() ?? newSystemId())
-
-    const open = async () => {
-      if (template) {
-        const profile = await loadProfile()
-        const copy = fromTemplate(template)
-        if (!profile) return copy
-        /*
-         * The coach's name, but NOT the coach's colours.
-         *
-         * `withProfile` repaints the home kit, which is right for a blank board
-         * — its own comment says it only fills what is empty — and wrong here:
-         * these five were coloured deliberately, and a worked example that no
-         * longer looks like the film it came from teaches less. Blanking the
-         * colour is how you ask that function for the credit half, rather than
-         * writing a second copy of it here that can drift.
-         */
-        return withProfile(copy, { ...profile, teamColour: '' })
+    const open = async (): Promise<{ id: string; initial: System; copied: boolean }> => {
+      /*
+       * "Open one of ours."
+       *
+       * Always a NEW id, never `lastOpened()`: resuming the last system here
+       * would be the worst outcome available — a coach presses "Start from this
+       * one" and lands on the thing they were already editing, with no sign
+       * anything went wrong.
+       *
+       * The copy is the coach's from this moment on. `fromTemplate` takes our
+       * credit line and our share id off it, so pressing Share publishes THEIR
+       * link rather than republishing ours.
+       */
+      if (wanted) {
+        const { fromTemplate, templateById } = await import('../templates')
+        const template = templateById(wanted)
+        // An unknown `?t=` falls through to the ordinary path rather than
+        // failing. The id has gone stale; the coach still wants a board.
+        if (template) {
+          const copy = fromTemplate(template)
+          const profile = await loadProfile()
+          /*
+           * The coach's name, but NOT the coach's colours.
+           *
+           * `withProfile` repaints the home kit, which is right for a blank
+           * board — its own comment says it only fills what is empty — and
+           * wrong here: these were coloured deliberately, and a worked example
+           * that no longer looks like the film it came from teaches less.
+           * Blanking the colour is how you ask that function for the credit
+           * half, rather than writing a second copy of it here that can drift.
+           */
+          const initial = profile ? withProfile(copy, { ...profile, teamColour: '' }) : copy
+          return { id: newSystemId(), initial, copied: true }
+        }
       }
+
+      const id = requested ?? lastOpened() ?? newSystemId()
       const local = loadSystem(id)
-      if (local) return local
+      if (local) return { id, initial: local, copied: false }
       const remote = await loadCloudSystem(id)
-      if (remote) return remote
+      if (remote) return { id, initial: remote, copied: false }
       // A brand new board for a coach we already know something about opens in
       // their colours and already signed. See `withProfile`.
       const profile = await loadProfile()
-      return profile ? withProfile(newSystem(), profile) : newSystem()
+      const blank = newSystem()
+      return { id, initial: profile ? withProfile(blank, profile) : blank, copied: false }
     }
 
-    void open().then((initial) => {
+    void open().then(({ id, initial, copied }) => {
       if (!live) return
       setState({ id, initial })
       // Keep the URL pointing at the system being edited, so a reload or a
@@ -119,7 +142,7 @@ export default function StudioMount() {
       // `t` is dropped at the same time, and that is the important half: left
       // in place, a reload would hand the coach a SECOND copy of the template
       // and abandon the one they had started editing.
-      if (!requested || template) {
+      if (!requested || copied) {
         const url = new URL(window.location.href)
         url.searchParams.set('s', id)
         url.searchParams.delete('t')

@@ -29,6 +29,18 @@
   to = "/studio/watch/"
   status = 200
 
+# One of OURS: /o/press-4141 serves the same viewer, which reads the template id
+# off its own path and takes the document straight out of the bundle — no
+# /api/share, no row, nothing to fetch. See src/studio/share.ts for why an
+# official system is addressed by a legible slug rather than published as a
+# `/s/` share. Same 200-rewrite reasoning as above, and the same caveat: this
+# does not exist under plain `astro dev`, so the viewer also accepts
+# `/studio/watch/?t=press-4141`.
+[[redirects]]
+  from = "/o/*"
+  to = "/studio/watch/"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

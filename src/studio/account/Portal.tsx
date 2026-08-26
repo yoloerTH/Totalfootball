@@ -31,9 +31,11 @@ import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
 import type { System } from '../schema'
 import { listSystems, newSystemId, saveSystem, deleteSystem as deleteLocal } from '../storage'
+import { templateUrl } from '../share'
 import { STUDIO_EVENTS, track } from '../track'
 import { TEMPLATES, type Template } from '../templates'
 import { resolveAct } from '../tween'
+import { Mark } from '../viewer/Mark'
 import { useSession, signOut } from './session'
 import {
   claimLocalSystems,
@@ -289,24 +291,62 @@ function DownToOurs() {
  *
  * Under the shelf rather than mixed into it, and that is the whole layout
  * decision. These are not the coach's systems, and putting them in the same
- * grid would mean a shelf that fills up with five things they did not make and
+ * grid would mean a shelf that fills up with seven things they did not make and
  * cannot delete. Below it, the grid still reads as "yours", and this reads as
  * what it is: a second door, in the room, not blocking it.
  *
  * It stays on the page when the shelf is full. A coach who has built three
  * systems is exactly the person who might want to see how we do a switch of
  * play, and hiding it once they are "experienced" would be guessing.
+ *
+ * ── WHY ONE SECTION AND TWO GRIDS ───────────────────────────────────────────
+ *
+ * The official ones are the systems that went out as videos, and they lead,
+ * because "this is the actual document that video was made from" is the best
+ * sentence on the page. But they are UPRIGHT and the other five are landscape,
+ * and a board must be handed a container of its own `aspect(view)` or it
+ * renders straight through the letterbox — Board.tsx says so at length. So they
+ * cannot share a row, and a single grid would give one 520px-tall card sitting
+ * beside three 230px ones with a field of white underneath them.
+ *
+ * Two grids under one heading is what that constraint leaves, and it turns out
+ * to be the more honest layout anyway: the heading can stay "ours" without
+ * claiming the five starters were ever published, and the sub-labels say which
+ * is which in four words each.
  */
+const OFFICIAL = TEMPLATES.filter((t) => t.official)
+const STARTERS = TEMPLATES.filter((t) => !t.official)
+
 function OursToStartFrom() {
   return (
     <section id="start-from-ours" className="mt-20 scroll-mt-12 border-t border-ink-hair pt-12">
       <h2 className="text-section font-black tracking-display text-ink">Or start from one of ours</h2>
       <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-ink-soft">
-        Five systems built on this board, the same ones the films are made from. Open one and it is
-        yours: move the players, rewrite the words, keep what is useful.
+        Every one of these was built on this board. Open one and it is yours: move the players,
+        rewrite the words, keep what is useful.
       </p>
-      <ul className="mt-8 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {TEMPLATES.map((t) => (
+
+      {OFFICIAL.length > 0 && (
+        <>
+          <ShelfLabel
+            branded
+            title="Official — as published on Total Football"
+            note="The documents the videos were rendered from, not a copy of them."
+          />
+          <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            {OFFICIAL.map((t) => (
+              <TemplateCard key={t.id} template={t} />
+            ))}
+          </ul>
+        </>
+      )}
+
+      <ShelfLabel
+        title="Built for the films"
+        note="Shorter, and a good place to start if you have not used the board before."
+      />
+      <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+        {STARTERS.map((t) => (
           <TemplateCard key={t.id} template={t} />
         ))}
       </ul>
@@ -314,8 +354,51 @@ function OursToStartFrom() {
   )
 }
 
+/**
+ * The line above each of the two grids.
+ *
+ * Small type, not a second heading level. These separate two rows of the same
+ * kind of thing; an <h3> would imply the page has two subjects down here, and
+ * it has one — systems of ours — sorted by whether it went out as a film.
+ *
+ * `branded` puts the mark on the official row, and only there. It is the same
+ * geometry the end card of every short draws (see ../viewer/Mark), which is the
+ * entire reason it earns the space: a coach who has seen the videos recognises
+ * it, and recognising it is the claim these two cards are making. Putting it on
+ * the second row as well — or up beside the <h2>, where it would cover both
+ * grids — would spend that recognition on five systems that were never
+ * published, and it would stop meaning anything on the two that were.
+ *
+ * `items-center` rather than baseline: an SVG has no useful baseline, and on a
+ * narrow screen the note wraps under the title, where centring the mark against
+ * the pair is what keeps it looking placed rather than dropped.
+ */
+function ShelfLabel({
+  title,
+  note,
+  branded = false,
+}: {
+  title: string
+  note: string
+  branded?: boolean
+}) {
+  return (
+    <div className="mt-9 flex items-center gap-3 border-t border-ink-hair pt-6">
+      {branded && (
+        <span className="shrink-0 text-ink" aria-hidden="true">
+          <Mark size={26} />
+        </span>
+      )}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <p className="text-micro uppercase text-ink">{title}</p>
+        <p className="text-[13px] text-ink-faint">{note}</p>
+      </div>
+    </div>
+  )
+}
+
 function TemplateCard({ template }: { template: Template }) {
-  const { system } = template
+  const { system, watch } = template
   const view = PITCH_VIEWS[resolveViewId(system.pitch)]
   const first = system.acts[0]
   const href = `/studio/new/?t=${encodeURIComponent(template.id)}`
@@ -330,10 +413,14 @@ function TemplateCard({ template }: { template: Template }) {
         className="flex flex-1 flex-col no-underline"
         aria-label={`Start from ${system.title}`}
       >
-        <div className="w-full overflow-hidden bg-paper" style={{ aspectRatio: aspect(view) }}>
+        <div
+          className="relative w-full overflow-hidden bg-paper"
+          style={{ aspectRatio: aspect(view) }}
+        >
           <div className="h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]">
             {first && <Board system={system} act={resolveAct(first)} idp={idp} />}
           </div>
+          {template.official && <OfficialBadge />}
         </div>
         <div className="flex flex-1 flex-col border-t border-ink-hair p-4">
           <span className="block text-[15px] font-bold leading-tight text-ink">{system.title}</span>
@@ -348,7 +435,152 @@ function TemplateCard({ template }: { template: Template }) {
           </span>
         </div>
       </a>
+
+      {/* OUTSIDE the anchor above, and it has to be: an <a> inside an <a> is
+          invalid, and browsers recover from it by closing the outer one early,
+          which would quietly cut the card's own link in half. The copy button
+          has the same problem for the same reason — a <button> is interactive
+          content too. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-ink-hair bg-paper/60 px-4 py-2.5">
+        {watch && (
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="text-[11px] font-black uppercase tracking-micro text-ink-faint">
+              Watch it
+            </span>
+            {watch.instagram && (
+              <WatchLink href={watch.instagram} where="instagram" template={template} />
+            )}
+            {watch.facebook && (
+              <WatchLink href={watch.facebook} where="facebook" template={template} />
+            )}
+          </span>
+        )}
+        {/* `ml-auto` rather than `justify-between`, so this sits right whether
+            or not there are watch links to its left. */}
+        <span className="ml-auto">
+          <CopyLink template={template} />
+        </span>
+      </div>
     </li>
+  )
+}
+
+/**
+ * "Copy link" — a system of ours, sent to anybody.
+ *
+ * WHY A TEMPLATE NEEDS THIS AT ALL. The card's own link is `/studio/new/?t=…`,
+ * which hands over an editable copy and therefore sits behind the sign-in wall.
+ * That is right for the coach standing here and useless for the person they
+ * want to show it to: sending it means sending a stranger to a login screen.
+ * `/o/press-4141` opens the viewer, needs no account, and carries the
+ * build-your-own door at the bottom of it — so the thing a coach passes on is
+ * the system, not an invitation to sign up before seeing one.
+ *
+ * The link is built from `window.location.origin` rather than the site config
+ * because a deploy preview must copy a link to ITSELF. A card on a preview that
+ * copies a production URL is a card that cannot be tested.
+ */
+function CopyLink({ template }: { template: Template }) {
+  const [done, setDone] = useState(false)
+
+  const copy = useCallback(async () => {
+    const url = templateUrl(template.id, window.location.origin)
+    track(STUDIO_EVENTS.templateShared, template.id)
+    try {
+      await navigator.clipboard.writeText(url)
+      setDone(true)
+      window.setTimeout(() => setDone(false), 1800)
+    } catch {
+      // Clipboard refused — an insecure context, or permission denied. A prompt
+      // is ugly and it is still a link the coach can select and copy, which is
+      // the whole job. Failing silently here would look like a dead button.
+      window.prompt('Copy this link', url)
+    }
+  }, [template.id])
+
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[12px] font-bold text-ink-soft transition-colors hover:bg-ink-hair hover:text-ink"
+    >
+      {done ? (
+        <>
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5 text-green"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m3 8.5 3.5 3.5L13 5" />
+          </svg>
+          Copied
+        </>
+      ) : (
+        <>
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="5.5" y="5.5" width="8" height="8" rx="2" />
+            <path d="M10.5 3.5A2 2 0 0 0 8.5 2h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 1.5 1.94" />
+          </svg>
+          Copy link
+        </>
+      )}
+    </button>
+  )
+}
+
+/**
+ * The mark on an official card's board.
+ *
+ * On the picture rather than in the text block, because the picture is what a
+ * coach is scanning and the badge's whole job is to be caught in that scan. The
+ * brand gradient is used here and almost nowhere else in the portal, which is
+ * the point: it is the channel's signature, and this is the one place on the
+ * shelf that is claiming to be the channel.
+ */
+function OfficialBadge() {
+  return (
+    <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-tf-gradient px-2.5 py-1 text-[10px] font-black uppercase tracking-micro text-[#161618] shadow-paper">
+      Official
+    </span>
+  )
+}
+
+function WatchLink({
+  href,
+  where,
+  template,
+}: {
+  href: string
+  where: 'instagram' | 'facebook'
+  template: Template
+}) {
+  const label = where === 'instagram' ? 'Instagram' : 'Facebook'
+  return (
+    <a
+      href={href}
+      target="_blank"
+      // noreferrer as well as noopener: the target is a social platform, and
+      // there is no reason to hand it the URL of a coach's private shelf.
+      rel="noopener noreferrer"
+      onClick={() => track(STUDIO_EVENTS.officialWatched, `${template.id}:${where}`)}
+      className="text-[12px] font-bold text-ink-soft no-underline underline-offset-2 transition-colors hover:text-ink hover:underline"
+    >
+      {label} ↗
+    </a>
   )
 }
 

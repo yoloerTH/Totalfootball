@@ -30,12 +30,46 @@ import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, holdMs, moveMs } from '../pace'
 import { resolveAct, tweenActs } from '../tween'
-import { fetchShared, idFromPath, systemFromHash } from '../share'
+import { fetchShared, idFromPath, systemFromHash, templateIdFromUrl } from '../share'
 import type { System } from '../schema'
 import { BuildCta } from './BuildCta'
 import { CreditBar, formatDate } from './CreditBar'
 import { Mark } from './Mark'
 import { STUDIO_EVENTS, track } from '../track'
+
+/**
+ * The three link shapes, resolved to one document.
+ *
+ * Split out of the component because it is the only part of the viewer that
+ * cares where a system came from, and because the template branch has to be
+ * able to `await import` without that turning the effect inside out.
+ */
+async function resolve(): Promise<System | null> {
+  const shared = idFromPath(window.location.pathname)
+  if (shared) return fetchShared(shared)
+
+  const ours = templateIdFromUrl(window.location.pathname, window.location.search)
+  if (ours) {
+    // Lazy, for the same reason StudioMount is: the seven documents are 90KB,
+    // and a coach opening somebody else's `/s/` link must not pay for ours.
+    const { templateById } = await import('../templates')
+    const template = templateById(ours)
+    if (!template) return null
+    /*
+     * Signed, here and nowhere else.
+     *
+     * The stored document carries no credit — `scripts/pull-system.mjs` takes
+     * it off, and `fromTemplate` takes it off again for the coach's editable
+     * copy, because a copy of ours is theirs and must not go out under our
+     * name. A link to the ORIGINAL is the opposite case: it is ours, it is
+     * being shown to somebody who may never have heard of us, and the credit
+     * bar is the only thing on the page that says whose system this is.
+     */
+    return { ...template.system, credit: { presenter: 'Total Football' } }
+  }
+
+  return systemFromHash(window.location.hash)
+}
 
 export default function Viewer() {
   const [system, setSystem] = useState<System | null>(null)
@@ -49,17 +83,18 @@ export default function Viewer() {
   /*
    * Where the system comes from, in order:
    *
-   *  1. `/s/k7f3q9` — the short link. Fetched from /api/share/:id.
-   *  2. `#s=…` — the self-contained fallback link, unpacked in the browser.
+   *  1. `/s/k7f3q9` — a coach's short link. Fetched from /api/share/:id.
+   *  2. `/o/press-4141` — one of OURS. Read out of the template registry, which
+   *     is in the bundle, so this branch touches no network and cannot 404.
+   *  3. `#s=…` — the self-contained fallback link, unpacked in the browser.
    *
-   * Both end in the same place. Either way it is async, so the page has a real
-   * loading state rather than a flash of empty pitch.
+   * All three end in the same place. Either way it is async, so the page has a
+   * real loading state rather than a flash of empty pitch.
    */
   useEffect(() => {
     let live = true
     const read = async () => {
-      const id = idFromPath(window.location.pathname)
-      const s = id ? await fetchShared(id) : await systemFromHash(window.location.hash)
+      const s = await resolve()
       if (!live) return
       setSystem(s)
       setState(s ? 'ready' : 'broken')
