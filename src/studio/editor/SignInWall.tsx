@@ -37,6 +37,7 @@
  */
 
 import { useEffect } from 'react'
+import { Mark } from '../viewer/Mark'
 import { Button } from './ui'
 
 /** One place, so the three pieces can never drift into disagreeing. */
@@ -84,8 +85,25 @@ export function SignInWall({ onClose }: { onClose: () => void }) {
           floating in the centre is rounded all round, a sheet sitting on the
           bottom edge of the screen is rounded only at the top. */}
       <div className="w-full max-w-md rounded-t-2xl border border-ink-hair bg-surface p-6 shadow-lift sm:rounded-2xl">
-        <p className="micro text-ink-faint">{WALL.eyebrow}</p>
-        <h2 className="mt-3 text-xl font-black tracking-display text-ink">{WALL.title}</h2>
+        {/*
+          The mark, and it earns its place here rather than being decoration.
+          This sheet is the first moment on the page that says who is asking —
+          the board above it is the SYSTEM's, and a stranger who followed a link
+          from under a video may not have read a single word of ours yet. So the
+          lockup goes at the top of the one card that asks them for something.
+
+          `text-ink` on the row, not inherited: the mark's ball and studs draw in
+          `currentColor` (see ../viewer/Mark.tsx), so hanging this off a faint
+          parent would print half the logo at 38% and leave the gold ring around
+          nothing.
+        */}
+        <div className="flex items-center gap-2.5 text-ink">
+          <Mark size={30} />
+          <span className="text-[13px] font-black tracking-display">Total Football</span>
+        </div>
+
+        <p className="mt-5 micro text-ink-faint">{WALL.eyebrow}</p>
+        <h2 className="mt-2.5 text-xl font-black tracking-display text-ink">{WALL.title}</h2>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{WALL.body}</p>
 
         <a
@@ -148,7 +166,20 @@ export function SignInPill() {
 export function SignInPanel({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="border-b border-ink-hair bg-paper/60 p-4">
-      <p className="micro text-ink-faint">{WALL.eyebrow}</p>
+      {/* Inline, where the sheet stacks it: this card sits at the head of a
+          16rem panel and has to leave room for the sentence that matters, so
+          the mark goes beside the eyebrow rather than above it.
+
+          24 AND NOT SMALLER. The mark is a ball with five studs and three
+          arrows around it (../viewer/Mark.tsx) and it has a floor — at 18 the
+          studs close up and the whole thing reads as a dark blob in a gold
+          ring, which is worse than no logo. 24 is the smallest size at which it
+          is still the mark. `text-ink` for the same reason it is set on the
+          sheet: the ball draws in `currentColor`. */}
+      <div className="flex items-center gap-2.5 text-ink">
+        <Mark size={24} />
+        <p className="micro text-ink-faint">{WALL.eyebrow}</p>
+      </div>
       <p className="mt-2.5 text-[13px] font-bold leading-snug text-ink">
         Press Play, or step through the phases below. This board is read only.
       </p>
