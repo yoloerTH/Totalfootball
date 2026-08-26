@@ -141,29 +141,85 @@ Check it reports `rsa` and a modulus of at least 1024 bits.
 into who else was sending as the domain. Now live:
 
 ```
-_dmarc.naurra.ai.  TXT  "v=DMARC1; p=none; rua=mailto:athanasios@naurra.ai; ruf=mailto:athanasios@naurra.ai; fo=1; adkim=r; aspf=r; pct=100"
+_dmarc.naurra.ai.  TXT  "v=DMARC1; p=none; rua=mailto:athanasios@naurra.ai; adkim=r; aspf=r;"
 ```
 
+Reconciled by `scripts/set-dmarc.mjs`. Run it with no flags to print the live record with
+every tag decoded; `--apply` to write. It refuses to write an `rua` it has not verified as
+authorised (see below), so it cannot leave you silently receiving nothing.
+
 - `p=none` — **monitor only.** Changes nothing about delivery; it turns reporting on.
-- `rua`/`ruf` point at a mailbox on **the same domain as the policy**, so no external
-  destination-verification record is needed at the receiving end. Pointing them at a
-  different domain would silently produce no reports until that domain published a
-  `naurra.ai._report._dmarc` record authorising it.
 - `adkim=r` / `aspf=r` — relaxed alignment, which is what lets a subdomain
   (`totalfootball.naurra.ai`) and the alias sender align against the organisational domain.
+- `pct` is gone. It only means anything once something is being enforced, and `pct=100`
+  under `p=none` reads like a decision when it is the default.
+
+**`ruf=` and `fo=1` were removed on 2026-08-26.** `rua` is the aggregate stream: one
+gzipped XML summary per receiving provider per day, counts and IPs, no message content.
+`ruf` is the forensic stream: one mail per *failing message*, carrying that message's
+headers and usually its body. With `fo=1` — "report if ANY mechanism fails", not "if DMARC
+fails" — a newsletter a subscriber auto-forwards still passes DMARC on DKIM, fails SPF at
+the forwarder, and generates a forensic report anyway. Volume therefore tracked how often
+mail was *forwarded*, which is unbounded and says nothing about whether anything is wrong,
+and what arrived was copies of subscribers' own mail in a personal inbox. Google and
+Microsoft decline to send `ruf` at all on privacy grounds, which is the only reason it
+never buried the mailbox. It diagnoses nothing the aggregate reports do not.
+
+#### Pointing `rua` off-domain — the doubled-label trap
+
+An `rua` on the same domain as the policy needs no authorisation. An `rua` on **any other
+domain** does, or a conforming receiver sends nothing (RFC 7489 §7.1). The receiver builds
+the query from the **full domain of the report address**, not its registrable domain. For
+`rua=mailto:x@dmarc.postmarkapp.com`:
+
+```sh
+dig +short TXT naurra.ai._report._dmarc.dmarc.postmarkapp.com   # → "v=DMARC1;"  ✓
+dig +short TXT naurra.ai._report._dmarc.postmarkapp.com         # → "3kc6stb9…"  ✗ not a DMARC record
+```
+
+Both names resolve at Postmark. Only the first is the authorisation; the second is an
+unrelated verification string. Checking the wrong one "passes", and you then wait weeks for
+reports that were never authorised. There is no error in this failure mode — reports simply
+never arrive. `scripts/set-dmarc.mjs` performs the correct check and refuses to write an
+unauthorised `rua`; there is deliberately no `--force`.
 
 **Do not tighten this yet.** Leave `p=none` for at least two weeks and read the aggregate
 reports first. Only once ZeptoMail *and* Campaigns both show as passing should it move
 `p=none` → `p=quarantine` → `p=reject`, in that order. Going straight to `p=reject` before
 the new senders are DKIM-aligned silently bins your own newsletter.
 
+The reports are the evidence that no *forgotten* sender exists — a form tool, an invoice
+service, anything nobody remembers wiring up years ago. That is the only thing enforcement
+can break, and the only way to find it is to read a few weeks of reports first.
+
+```sh
+node scripts/set-dmarc.mjs                                  # what is live now
+node scripts/set-dmarc.mjs --apply --policy quarantine --pct 25
+node scripts/set-dmarc.mjs --apply --policy quarantine      # then 100%
+node scripts/set-dmarc.mjs --apply --policy reject          # finally
+```
+
 ### 2.4 · Verify before trusting
 
 ```sh
-dig +short naurra.ai TXT                      # exactly one v=spf1 line
+dig +short naurra.ai TXT                         # exactly one v=spf1 line
 dig +short _dmarc.naurra.ai TXT
-dig +short zmail._domainkey.naurra.ai TXT     # existing Zoho Mail
+dig +short zmail._domainkey.naurra.ai TXT        # Zoho Mail  (athanasios@, Campaigns)
+dig +short 22225042._domainkey.naurra.ai TXT     # ZeptoMail  (transactional)
+dig +short bounce-zem.naurra.ai TXT              # ZeptoMail Return-Path, via CNAME
 ```
+
+The ZeptoMail key is published as `k=rsa; p=…` with **no `v=DKIM1;` prefix** — that is how
+ZeptoMail issues it. RFC 6376 §3.6.1 makes `v=` recommended-with-default rather than
+required, so verifiers accept it and DKIM passes today. Leave it alone: adding the prefix
+is cosmetic, and every safe way to change a live DKIM record is worse than the wart. A
+replace opens a window with no key at all, keeping both records breaks verifiers that treat
+a multi-record selector as undefined, and ZeptoMail may re-check the string it wrote and
+mark the domain unverified.
+
+`bounce-zem` is a CNAME to `cluster89.zeptomail.eu`, whose SPF is
+`v=spf1 include:eu.zeptomail.net -all`. That is the Return-Path domain, so it is what SPF
+actually authenticates; `aspf=r` is what aligns it back to `naurra.ai`.
 
 Then send yourself one message through each path and read the raw headers. All three of
 `spf=pass`, `dkim=pass`, `dmarc=pass` must be present, and the `dkim` line must name the
