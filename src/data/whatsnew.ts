@@ -56,6 +56,22 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'arrows-follow-players',
+    date: '2026-08-26',
+    kind: 'better',
+    title: 'Arrows follow the players they are about',
+    body: 'Draw an arrow between two counters and it takes hold of them. Move either one, in this phase or the next, and the arrow goes with them instead of staying behind on the grass it was drawn over. An end dropped on open pitch stays on the pitch, which is what you want for a ball played into space.',
+    where: 'Pass, Run, Carry, Press, Switch',
+  },
+  {
+    id: 'arrows-adjustable',
+    date: '2026-08-26',
+    kind: 'better',
+    title: 'Adjust an arrow after you have drawn it',
+    body: 'Select an arrow and it gets handles: one on each end, one in the middle. Drag an end onto a different counter or off onto the grass, drag the middle to bow it, or drag the line itself to move the whole thing. Redrawing an arrow because it landed two metres short is over.',
+    where: 'Move',
+  },
+  {
     id: 'move-speed',
     date: '2026-08-26',
     kind: 'new',

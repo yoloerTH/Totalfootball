@@ -56,9 +56,35 @@ export type ArrowKind = 'pass' | 'run' | 'carry' | 'press' | 'switch'
 export interface Arrow {
   id: string
   kind: ArrowKind
-  /** Percent coords, same space as tokens. */
+  /**
+   * Percent coords, same space as tokens.
+   *
+   * Where the end IS when it is not bound to anybody, and where it falls back
+   * to when it is bound to a player this phase does not contain. Kept current
+   * either way — see `bindEnd` in ../arrows.ts.
+   */
   from: { x: number; y: number }
   to: { x: number; y: number }
+  /**
+   * The player an end is attached to, if it is attached to one.
+   *
+   * A `Band` has never stored its own shape: it names the players it threads
+   * through and is worked out at render time, so it follows them. Arrows used
+   * to be the exception, which made them wrong the moment anybody was dragged
+   * — and since every phase of a system is the same players somewhere else,
+   * that was most of the time. An end named here is read off whoever the
+   * renderer is currently drawing, which means it follows its player through a
+   * tween as well as around a pose.
+   *
+   * Absent means the end is on a piece of grass and meant to be: a through ball
+   * into space, a run to the back post, a press towards an area. Both forms are
+   * first class, and one arrow commonly has one of each.
+   *
+   * Undefined on every arrow drawn before this existed, which is exactly what
+   * those arrows already did.
+   */
+  fromId?: string
+  toId?: string
   /**
    * Curvature, -1..1. 0 is straight; positive bows one way, negative the other.
    * Coaches draw curves, and a bowed pass reads as a different idea to a

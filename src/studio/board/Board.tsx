@@ -42,10 +42,11 @@ import type { PitchView } from './pitch'
 import { cameraRect, cameraViewBox } from '../camera'
 import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
-import { Arrow, BlockBand, Zone } from './Overlays'
+import { Arrow, BlockBand, Zone, arrowGeometry, arrowRim } from './Overlays'
 import type { Pt } from './Overlays'
 import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
+import { arrowEnds } from '../arrows'
 import type { System, TeamStyle } from '../schema'
 import type { RenderAct, RenderBand } from '../tween'
 
@@ -77,7 +78,11 @@ interface Props {
    * system with the camera off.
    */
   showFrame?: boolean
-  /** Token currently being dragged, drawn with a marching-ants ring. */
+  /**
+   * The token under the coach's hand, drawn with a marching-ants ring. Either
+   * the one being dragged, or the one an arrow end is about to take hold of —
+   * both mean "this is the man you are acting on", which is what the ring says.
+   */
   activeTokenId?: string | null
   /**
    * The selected arrow or shaded area, drawn with a gold halo. Marks are picked
@@ -92,6 +97,13 @@ interface Props {
    * that is already there.
    */
   onArrowPointerDown?: (id: string, e: React.PointerEvent<SVGPathElement>) => void
+  /**
+   * Passing this puts grips on the SELECTED arrow: one on each end and one at
+   * the bow. Same bargain as the zone's grips — only the selected mark carries
+   * them, because eight handles on every arrow on a busy phase would bury the
+   * football under its own annotation.
+   */
+  onArrowGripPointerDown?: (id: string, part: ArrowPart, e: React.PointerEvent<SVGElement>) => void
   onBandPointerDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
   /**
    * Passing this puts grips on the SELECTED drawn area: one on each corner to
@@ -167,6 +179,17 @@ const CURSOR: Record<BoardMode, { board: string; token: string | undefined }> = 
 /** Which part of the camera frame a pointer went down on. */
 export type FramePart = 'move' | 'nw' | 'ne' | 'sw' | 'se'
 
+/**
+ * The grabbable parts of a selected arrow.
+ *
+ * A separate union from `FramePart` rather than a reuse, because an arrow is
+ * genuinely a different shape: it has two ends and a bow, not four corners, and
+ * the one word they would share ('move') is the only overlap. `FramePart` is
+ * shared between the zone and the camera frame because those two ARE the same
+ * shape; this one is not.
+ */
+export type ArrowPart = 'move' | 'from' | 'to' | 'bend'
+
 const FRAME_CORNERS: { part: FramePart; fx: number; fy: number; cursor: string }[] = [
   { part: 'nw', fx: 0, fy: 0, cursor: 'nwse-resize' },
   { part: 'ne', fx: 1, fy: 0, cursor: 'nesw-resize' },
@@ -184,6 +207,7 @@ export function Board({
   activeMarkId = null,
   onTokenPointerDown,
   onArrowPointerDown,
+  onArrowGripPointerDown,
   onBandPointerDown,
   onZonePointerDown,
   onBallPointerDown,
@@ -336,19 +360,52 @@ export function Board({
         return null
       })}
 
-      {act.arrows.map((a) => (
-        <g key={a.id} opacity={a.opacity}>
-          <Arrow
-            kind={a.kind}
-            a={pos(a.from.x, a.from.y)}
-            b={pos(a.to.x, a.to.y)}
-            bend={a.bend}
-            label={a.label}
-            active={activeMarkId === a.id}
-            onPointerDown={onArrowPointerDown ? (e) => onArrowPointerDown(a.id, e) : undefined}
-          />
-        </g>
-      ))}
+      {act.arrows.map((a) => {
+        /*
+         * An end bound to a player is read off the tokens THIS RENDER is
+         * drawing, which mid-tween are the blended positions. That is what
+         * makes a bound arrow follow its man through the move rather than
+         * snapping to him at either end of it. See ../arrows.ts.
+         */
+        const ends = arrowEnds(a, act.tokens)
+        const { a: ua, b: ub } = arrowRim(
+          pos(ends.from.x, ends.from.y),
+          pos(ends.to.x, ends.to.y),
+          ends.fromBound,
+          ends.toBound,
+        )
+
+        const grabbable = Boolean(onArrowGripPointerDown) && activeMarkId === a.id
+        return (
+          <g key={a.id} opacity={a.opacity}>
+            <Arrow
+              kind={a.kind}
+              a={ua}
+              b={ub}
+              bend={a.bend}
+              label={a.label}
+              active={activeMarkId === a.id}
+              onPointerDown={onArrowPointerDown ? (e) => onArrowPointerDown(a.id, e) : undefined}
+            />
+            {grabbable && (
+              <ArrowGrips
+                a={ua}
+                b={ub}
+                bend={a.bend ?? 0}
+                grip={grip}
+                gold={surface.palette.gold}
+                halo={surface.palette.halo}
+                /* A bound end is held by its player, so it is drawn as held
+                   rather than as a handle you can pull: dragging it off is
+                   still allowed, and the filled ring says what it will cost. */
+                fromBound={ends.fromBound}
+                toBound={ends.toBound}
+                onDown={(part, e) => onArrowGripPointerDown!(a.id, part, e)}
+              />
+            )}
+          </g>
+        )
+      })}
 
       {/* Opposition under our own players: when counters overlap, the lesson is
           always about our shape, so ours stays readable. */}
@@ -543,6 +600,75 @@ function ZoneGrips({
           onPointerDown={(e) => onDown(part, e)}
         />
       ))}
+    </g>
+  )
+}
+
+/**
+ * The two ends and the bow of a selected arrow.
+ *
+ * Round rather than square, which is the one place this deliberately breaks
+ * step with the zone and camera grips: those resize a box and a square corner
+ * says so, whereas these are points on a line. A coach never has to be told
+ * which is which, but the shapes stop the two reading as the same control.
+ *
+ * The bow handle sits at the drawn midpoint — the point at t=0.5 on the
+ * quadratic, from `arrowGeometry`, not the middle of the chord — so it stays
+ * under the pointer on a bent arrow instead of floating off the line it is
+ * supposed to be bending. `bendFor` in ../arrows.ts is its exact inverse.
+ */
+function ArrowGrips({
+  a,
+  b,
+  bend,
+  grip,
+  gold,
+  halo,
+  fromBound,
+  toBound,
+  onDown,
+}: {
+  a: Pt
+  b: Pt
+  bend: number
+  grip: number
+  gold: string
+  halo: string
+  fromBound: boolean
+  toBound: boolean
+  onDown: (part: ArrowPart, e: React.PointerEvent<SVGElement>) => void
+}) {
+  const { mid } = arrowGeometry(a, b, bend)
+  const r = grip * 0.52
+  const ends: { part: ArrowPart; p: Pt; bound: boolean }[] = [
+    { part: 'from', p: a, bound: fromBound },
+    { part: 'to', p: b, bound: toBound },
+  ]
+  return (
+    <g>
+      {ends.map(({ part, p, bound }) => (
+        <circle
+          key={part}
+          cx={p.x}
+          cy={p.y}
+          r={r}
+          fill={bound ? gold : halo}
+          stroke={bound ? halo : gold}
+          strokeWidth={r * 0.44}
+          style={{ cursor: 'grab' }}
+          onPointerDown={(e) => onDown(part, e)}
+        />
+      ))}
+      <circle
+        cx={mid.x}
+        cy={mid.y}
+        r={r * 0.78}
+        fill={halo}
+        stroke={gold}
+        strokeWidth={r * 0.36}
+        style={{ cursor: 'grab' }}
+        onPointerDown={(e) => onDown('bend', e)}
+      />
     </g>
   )
 }

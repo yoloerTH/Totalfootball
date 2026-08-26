@@ -479,6 +479,29 @@ export const NEWS = {
 } as const
 
 /**
+ * What a selected arrow says about itself.
+ *
+ * `ends` is the one piece of state a coach cannot see by looking: an arrow
+ * attached to a player and an arrow that merely finishes near one are drawn
+ * identically, and they behave completely differently the moment anybody is
+ * dragged. So it is said in words rather than left to be discovered on the
+ * next phase.
+ *
+ * Written without pronouns on purpose. A counter is a position on a board and
+ * the studio has no idea who is standing on it.
+ */
+export const ARROW_MARK = {
+  ends: (from: string | null, to: string | null) => {
+    if (from && to) return `Runs from ${from} to ${to}. Both ends follow their players.`
+    if (from) return `Starts on ${from} and follows. The far end is on the grass.`
+    if (to) return `Finishes on ${to} and follows. The near end is on the grass.`
+    return 'Both ends are on the grass, so nothing moves this arrow but you.'
+  },
+  adjust:
+    'Drag either end onto a counter to attach it, or out onto the grass to let it go. Drag the middle to bow it, or the line itself to move it.',
+} as const
+
+/**
  * The pace control, in the two places it appears.
  *
  * `line` is a function because the sentence has numbers in it and the numbers

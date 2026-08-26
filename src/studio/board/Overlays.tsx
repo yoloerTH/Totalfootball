@@ -14,6 +14,7 @@
  */
 
 import { U } from './pitch'
+import { TOKEN_R } from './Token'
 import { resolveBandStyle, arrowStyle, useSurface, type BandOverrides } from './surfaces'
 import type { ArrowKind, BandKind, BandShape } from '../schema'
 
@@ -54,6 +55,70 @@ export function arrowGeometry(a: Pt, b: Pt, bend = 0) {
   // Point at t=0.5 on the quadratic, where a label sits without fouling the line.
   const mid = { x: 0.25 * a.x + 0.5 * c.x + 0.25 * b.x, y: 0.25 * a.y + 0.5 * c.y + 0.25 * b.y }
   return { c, mid, len }
+}
+
+/**
+ * Pull the bound ends of an arrow back to the rim of the counters they belong
+ * to, in units.
+ *
+ * Drawn from a player's centre, a pass arrow starts underneath the passer and
+ * finishes its head underneath the receiver — hiding the one part of an arrow
+ * that says which way round it goes. An end on grass is left exactly where the
+ * coach put it, because there is nothing there to clear.
+ *
+ * IN UNITS, WHICH IS THE ONLY SPACE THIS IS CORRECT IN. Percent is percent of
+ * the crop along each axis, and the crop is not square, so a radius in percent
+ * is an ellipse. Units are metre space (`U` in ./pitch.ts), where the counter
+ * is the circle it looks like.
+ */
+export function arrowRim(
+  a: Pt,
+  b: Pt,
+  fromBound: boolean,
+  toBound: boolean,
+): { a: Pt; b: Pt } {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-6) return { a, b }
+
+  // A shade over the counter, so the line starts clear of the ring rather than
+  // touching it.
+  const rim = TOKEN_R * U * 1.12
+  // Never past each other: two men standing on top of one another would
+  // otherwise turn the arrow inside out and point it backwards.
+  const room = Math.min(rim, (len - 1) / 2)
+  if (room <= 0) return { a, b }
+
+  const ux = dx / len
+  const uy = dy / len
+  return {
+    a: fromBound ? { x: a.x + ux * room, y: a.y + uy * room } : a,
+    b: toBound ? { x: b.x - ux * room, y: b.y - uy * room } : b,
+  }
+}
+
+/**
+ * The bend a coach means, having dragged the bow handle to `pt`. The exact
+ * inverse of the offset `arrowGeometry` applies, and in the same space.
+ *
+ * `arrowGeometry` puts the control point at `bend × len × 0.28` off the chord,
+ * which places the point at t=0.5 — the thing actually under the pointer — at
+ * half of that, `bend × len × 0.14`. So the inverse divides by the same.
+ * Deriving it rather than tuning a feel constant is what keeps the handle under
+ * the pointer at every arrow length instead of only at the one it was tuned on.
+ */
+export function bendFor(a: Pt, b: Pt, pt: Pt): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-6) return 0
+  // The same perpendicular, in the same direction, so the side a coach drags
+  // towards is the side the arrow bows to.
+  const px = -dy / len
+  const py = dx / len
+  const off = (pt.x - (a.x + b.x) / 2) * px + (pt.y - (a.y + b.y) / 2) * py
+  return Math.min(1, Math.max(-1, off / (len * 0.14)))
 }
 
 /** Sample a quadratic bezier. Used for the carry's waviness. */

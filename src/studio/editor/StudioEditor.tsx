@@ -35,7 +35,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Board, clampToBoard, clientToPercent, type BoardMode, type FramePart } from '../board/Board'
+import {
+  Board,
+  clampToBoard,
+  clientToPercent,
+  type ArrowPart,
+  type BoardMode,
+  type FramePart,
+} from '../board/Board'
+import { arrowRim, bendFor } from '../board/Overlays'
+import { arrowEnds, bindEnd, snapTarget } from '../arrows'
 import {
   PITCH_VIEWS,
   PITCH_VIEW_LIST,
@@ -111,6 +120,7 @@ import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
 import { GuideRail } from './GuideRail'
 import {
+  ARROW_MARK,
   ARROW_TOOL_IDS,
   HINT,
   NEWS,
@@ -364,6 +374,13 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const [blockClose, setBlockClose] = useState<'auto' | 'goal' | 'shape'>('auto')
   const [dragging, setDragging] = useState<{ kind: 'token'; id: string } | { kind: 'ball' } | null>(null)
   const [pending, setPending] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null)
+  /*
+   * The counter an arrow end will take hold of if the coach lets go now.
+   * Held in state ONLY to draw the ring on him — the binding itself is written
+   * straight into the document on every move, so releasing outside a gesture
+   * cannot leave the mark and the highlight disagreeing about what happened.
+   */
+  const [snapId, setSnapId] = useState<string | null>(null)
   const [playhead, setPlayhead] = useState<number | null>(null)
   const [labels, setLabels] = useState<LabelMode>('position')
   const [usFormation, setUsFormation] = useState('4-3-3')
@@ -786,6 +803,114 @@ export default function StudioEditor({ systemId, initial }: Props) {
   )
 
   /**
+   * Adjusting an arrow after it has been drawn.
+   *
+   * WHY THIS EXISTS AT ALL
+   *
+   * An arrow used to be final the instant the drag ended: the only edits were a
+   * bend slider and a caption in the side panel, so an end that landed two
+   * metres short meant deleting it and drawing it again. Every other mark on
+   * the board — the zones, the camera frame — has been draggable by its own
+   * handles for as long as it has existed. This is the one that was missing.
+   *
+   * FOUR PARTS, AND `move` IS THE INTERESTING ONE
+   *
+   * Dragging the body moves the ends that are ON GRASS and leaves the ends that
+   * belong to a player exactly where they are. That looks like an inconsistency
+   * and is the opposite: each end obeys whoever owns it, so shifting a run's
+   * finishing point away from a defender does not silently tear its start off
+   * the player who is making it. Nothing is unbound behind the coach's back —
+   * to free an end, you drag that end.
+   *
+   * THE BEND IS SOLVED IN UNITS, NOT IN PERCENT
+   *
+   * `bend` is applied to the points the board actually draws, which are units,
+   * and units are metre space. Percent is percent of the crop along each axis
+   * and the crop is not square, so a perpendicular measured in percent points
+   * somewhere the arrow does not bow. Same reason the rim inset is done there.
+   * `bendFor` is the exact inverse of the offset `arrowGeometry` applies, over
+   * the same rim-inset endpoints the handle is drawn from, so the handle stays
+   * under the pointer rather than near it.
+   */
+  const beginArrowDrag = useCallback(
+    (id: string, part: ArrowPart, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      const source = act
+      if (!svg || !source) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const base = source.arrows.find((x) => x.id === id)
+      if (!base) return
+
+      // The gesture reads the arrow as it was when the pointer went down, so a
+      // `move` translates from a fixed origin instead of accumulating its own
+      // rounding a frame at a time.
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const grab = clampToBoard(down.x, down.y)
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const p = clampToBoard(raw.x, raw.y)
+
+          if (part === 'bend') {
+            const ends = arrowEnds(base, source.tokens)
+            const { a: ua, b: ub } = arrowRim(
+              toUnits(view, ends.from.x, ends.from.y),
+              toUnits(view, ends.to.x, ends.to.y),
+              ends.fromBound,
+              ends.toBound,
+            )
+            const bend = bendFor(ua, ub, toUnits(view, p.x, p.y))
+            patchAct(`arrow:${id}:bend`, (a) => ({
+              ...a,
+              arrows: a.arrows.map((x) => (x.id === id ? { ...x, bend } : x)),
+            }))
+            return
+          }
+
+          if (part === 'move') {
+            const dx = p.x - grab.x
+            const dy = p.y - grab.y
+            patchAct(`arrow:${id}:move`, (a) => ({
+              ...a,
+              arrows: a.arrows.map((x) =>
+                x.id === id
+                  ? {
+                      ...x,
+                      // A bound end is held by its player. Only the ends on
+                      // grass travel with the body.
+                      from: x.fromId ? x.from : clampToBoard(base.from.x + dx, base.from.y + dy),
+                      to: x.toId ? x.to : clampToBoard(base.to.x + dx, base.to.y + dy),
+                    }
+                  : x,
+              ),
+            }))
+            return
+          }
+
+          // An end. `exclude` is the OTHER end's player, so a drag cannot land
+          // both ends of one arrow on the same man.
+          const other = part === 'from' ? base.toId : base.fromId
+          const target = snapTarget(view, p, source.tokens, other)
+          setSnapId(target)
+          patchAct(`arrow:${id}:${part}`, (a) => ({
+            ...a,
+            arrows: a.arrows.map((x) => (x.id === id ? bindEnd(x, part, p, target) : x)),
+          }))
+        },
+        () => {
+          setSnapId(null)
+          seal()
+        },
+      )
+    },
+    [act, bindGesture, view, patchAct, seal],
+  )
+
+  /**
    * Adjusting the camera's frame.
    *
    * The maths is done in BOARD UNITS rather than in percent, and that is the
@@ -1056,7 +1181,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const beginDraw = useCallback(
     (e: React.PointerEvent) => {
       const svg = svgRef.current
-      if (!svg) return
+      const source = act
+      if (!svg || !source) return
       e.preventDefault()
       const from = clientToPercent(svg, view, e.clientX, e.clientY)
       // Held here as well as in state: the commit at the end reads these
@@ -1069,14 +1195,30 @@ export default function StudioEditor({ systemId, initial }: Props) {
         (ev) => {
           to = clientToPercent(svg, view, ev.clientX, ev.clientY)
           setPending({ from, to })
+          // Ring the man the head will attach to, so the coach can see the
+          // arrow is going to hold on to him before they let go of it.
+          if (isArrowTool(tool)) setSnapId(snapTarget(view, to, source.tokens))
         },
         () => {
           if (isArrowTool(tool)) {
             // A click that did not travel is a misclick, not a zero-length arrow.
             if (Math.hypot(to.x - from.x, to.y - from.y) > 3) {
+              /*
+               * Both ends look for a player as the arrow lands, so the common
+               * case — dragging from one counter to another — comes out bound
+               * without the coach doing anything about it, and the arrow
+               * follows them both from then on. `fromId` is excluded from the
+               * far end's search so a short arrow between two men standing
+               * close cannot attach both ends to the same one.
+               */
+              const fromId = snapTarget(view, from, source.tokens) ?? undefined
+              const toId = snapTarget(view, to, source.tokens, fromId) ?? undefined
               patchAct('arrow', (a) => ({
                 ...a,
-                arrows: [...a.arrows, { id: uid('ar'), kind: tool, from, to }],
+                arrows: [
+                  ...a.arrows,
+                  { id: uid('ar'), kind: tool, from, to, ...(fromId ? { fromId } : null), ...(toId ? { toId } : null) },
+                ],
               }))
               seal()
             }
@@ -1091,11 +1233,12 @@ export default function StudioEditor({ systemId, initial }: Props) {
             }
           }
           setPending(null)
+          setSnapId(null)
           setTool('select')
         },
       )
     },
-    [bindGesture, view, tool, patchAct, seal],
+    [act, bindGesture, view, tool, patchAct, seal],
   )
 
   // ── playback ───────────────────────────────────────────────────────────────
@@ -1876,7 +2019,13 @@ export default function StudioEditor({ systemId, initial }: Props) {
            are: a coach dragging out a zone across the frame's edge must not
            have the camera grab the gesture instead. */
         onFramePointerDown={playing || drawing ? undefined : beginFrameDrag}
-        activeTokenId={dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null)}
+        /* The snap target wins while an arrow end is in the air: it is the
+           counter the coach is acting on, and it is the one thing on the board
+           that tells them the end is about to attach rather than land. */
+        activeTokenId={
+          snapId ??
+          (dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null))
+        }
         activeMarkId={selectedMarkId}
         /* Counters stay live while the Block tool is armed — that tool IS
            clicking counters — and a click on one picks it for the line instead
@@ -1902,9 +2051,17 @@ export default function StudioEditor({ systemId, initial }: Props) {
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
-                setSelection({ kind: 'mark', id })
+                /* Pressing an arrow that is already selected starts moving it;
+                   pressing an unselected one only selects it. Otherwise the
+                   click that picks a mark out of a crowded phase also nudges
+                   it, and a coach cannot select without editing. */
+                if (selectedMarkId === id) beginArrowDrag(id, 'move', e)
+                else setSelection({ kind: 'mark', id })
               }
         }
+        /* Handles on the selected arrow only, and only with the Move tool —
+           the same bargain the zone's grips are on. */
+        onArrowGripPointerDown={playing || drawing ? undefined : beginArrowDrag}
         onBandPointerDown={
           playing || drawing
             ? undefined
@@ -1981,8 +2138,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
         </>
       ) : selectedArrow ? (
         <>
-          <span className="font-bold text-ink">{markName(selectedArrow, act)} selected.</span> Bend it or delete it
-          on the right, or press Delete on your keyboard.
+          <span className="font-bold text-ink">{markName(selectedArrow, act)} selected.</span> Drag its ends onto
+          counters, drag the middle to bow it, or press Delete to take it off.
         </>
       ) : selectedBand ? (
         // Its own sentence now that a shaded area has controls of its own.
@@ -2589,6 +2746,15 @@ export default function StudioEditor({ systemId, initial }: Props) {
       ) : selectedArrow ? (
         <Panel title={`Selected ${TOOL_DOC[selectedArrow.kind].label.toLowerCase()}`}>
           <p className="mb-3 text-[11px] leading-relaxed text-ink-faint">{TOOL_DOC[selectedArrow.kind].what}</p>
+          {/*
+           * Whether the ends are attached is invisible on the board — an arrow
+           * holding a player and one merely finishing near them are drawn the
+           * same, and behave completely differently the moment anybody moves.
+           */}
+          <p className="mb-3 text-[11px] leading-relaxed text-ink-soft">
+            {ARROW_MARK.ends(tokenLabel(selectedArrow.fromId, act), tokenLabel(selectedArrow.toId, act))}
+          </p>
+          <p className="mb-3 text-[11px] leading-relaxed text-ink-faint">{ARROW_MARK.adjust}</p>
           <Field label="Bend">
             <input
               type="range"
@@ -3060,6 +3226,12 @@ function rectOf(a: { x: number; y: number }, b: { x: number; y: number }) {
 }
 
 /** What to call a mark in a list or a panel title. */
+/** What is printed on a counter, for naming an arrow's end in a sentence. */
+function tokenLabel(id: string | undefined, act: Act | undefined): string | null {
+  if (!id || !act) return null
+  return act.tokens.find((t) => t.id === id)?.label ?? null
+}
+
 function markName(mark: Arrow | Band, act: Act): string {
   // A label the coach typed wins over anything we would have called it. It is
   // the name they chose for the thing, it is already drawn on the board, and a
