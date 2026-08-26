@@ -15,6 +15,7 @@
 
 import { U } from './pitch'
 import { TOKEN_R } from './Token'
+import { arrowGeometry } from '../arrows'
 import { resolveBandStyle, arrowStyle, useSurface, type BandOverrides } from './surfaces'
 import type { ArrowKind, BandKind, BandShape } from '../schema'
 
@@ -39,23 +40,13 @@ export interface Pt {
   y: number
 }
 
-/**
- * The quadratic curve behind every arrow. `bend` is -1..1; the control point is
- * pushed off the midpoint along the perpendicular, so 0 is a straight line and
- * the sign picks which way it bows.
+/*
+ * Re-exported from ../arrows.ts, where it moved so that ../tween.ts can bow a
+ * movement along EXACTLY the curve the arrow is drawn with rather than a second
+ * copy of the same four lines. Everything that draws an arrow still reaches for
+ * it here, which is where it reads.
  */
-export function arrowGeometry(a: Pt, b: Pt, bend = 0) {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const len = Math.hypot(dx, dy) || 1
-  const px = -dy / len
-  const py = dx / len
-  const off = bend * len * 0.28
-  const c = { x: (a.x + b.x) / 2 + px * off, y: (a.y + b.y) / 2 + py * off }
-  // Point at t=0.5 on the quadratic, where a label sits without fouling the line.
-  const mid = { x: 0.25 * a.x + 0.5 * c.x + 0.25 * b.x, y: 0.25 * a.y + 0.5 * c.y + 0.25 * b.y }
-  return { c, mid, len }
-}
+export { arrowGeometry }
 
 /**
  * Pull the bound ends of an arrow back to the rim of the counters they belong

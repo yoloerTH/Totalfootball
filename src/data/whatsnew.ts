@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'bent-arrows-bend-the-path',
+    date: '2026-08-26',
+    kind: 'better',
+    title: 'A bowed arrow is now a bowed path',
+    body: 'Curl a pass round a defender and the ball takes the curve instead of cutting straight through it. Bend a run, a carry or a press and the player does the same. The board was already drawing the bow; now Play and the exported film agree with it.',
+    where: 'Bend',
+  },
+  {
     id: 'arrows-do-the-move',
     date: '2026-08-26',
     kind: 'new',

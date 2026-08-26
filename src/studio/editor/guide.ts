@@ -535,6 +535,12 @@ export const ARROW_MARK = {
   },
   adjust:
     'Drag either end onto a counter to attach it, or out onto the grass to let it go. Drag the middle to bow it, or the line itself to move it.',
+  /**
+   * The bend is not a drawing any more, so it stops being described as one. A
+   * coach curling a pass round a defender is now setting the path the ball
+   * takes, and the one place they will find that out is here.
+   */
+  bow: 'A bowed arrow is a bowed path. Whatever it describes travels along the curve you draw, on Play and in the film.',
 } as const
 
 /**

@@ -2895,6 +2895,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
               className="w-full accent-ink"
               aria-label="How much the arrow bows"
             />
+            <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{ARROW_MARK.bow}</p>
           </Field>
           <Field label="Label (optional)">
             <TextInput

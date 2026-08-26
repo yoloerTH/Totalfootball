@@ -17,6 +17,7 @@
 import { PITCH_VIEWS, resolveViewId } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
+import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
 import type { Act, Arrow, Band, System, Token } from './schema'
 
 export interface RenderToken extends Token {
@@ -169,6 +170,13 @@ export function resolveAct(act: Act, system?: System): RenderAct {
  *    a removed block fades out early. A block present in both acts stays at
  *    full opacity and simply follows its players as they move — that is already
  *    the whole animation, and no extra work is needed here for it.
+ *  · Anything a BOWED arrow describes travels along that bow instead of down
+ *    the chord. A coach who curls a pass round a defender has said where the
+ *    ball goes; drawing the curve and then sending the ball straight through it
+ *    made the film contradict the board it came from. Which arrow governs which
+ *    movement is decided in ../arrows.ts, and an unbowed one is not a special
+ *    case: a quadratic with its control point on the midpoint IS the chord, to
+ *    the last bit, so everything built before this animates unchanged.
  *  · Cues switch at the midpoint, once the players are roughly in place.
  *  · The CAMERA moves across the whole beat on the same curve as the players,
  *    so a push-in lands with the shape rather than chasing it.
@@ -187,15 +195,37 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   const byId = new Map(to.tokens.map((tok) => [tok.id, tok]))
   const fromIds = new Set(from.tokens.map((tok) => tok.id))
 
+  /*
+   * The space the bows are solved in. `resolveViewId(undefined)` is 'full',
+   * which is what a bare tween with no system should get and is also what it
+   * has always effectively drawn.
+   */
+  const view = PITCH_VIEWS[resolveViewId(system?.pitch)]
+  /*
+   * Read off the phase the arrows are DRAWN on. An arrow belongs to the
+   * transition out of `from`, which is exactly the transition being played.
+   */
+  const marks = from.arrows
+
   const tokens: RenderToken[] = []
+
+  /*
+   * How far each player travelled, kept for the ball. A ball whose journey is
+   * the same journey as somebody else's is a ball being CARRIED, and it has to
+   * take that player's bow or it leaves their feet halfway through the move.
+   */
+  const carried: { by: string; from: Pt; to: Pt; bend: number }[] = []
 
   for (const a of from.tokens) {
     const b = byId.get(a.id)
     if (b) {
+      const bend = bendOver(marks, from.tokens, to.tokens, { from: a, to: b }, TOKEN_KINDS, view)
+      const at = travel(a, b, bend, t, view)
+      if (bend) carried.push({ by: a.id, from: { x: a.x, y: a.y }, to: { x: b.x, y: b.y }, bend })
       tokens.push({
         ...b,
-        x: lerp(a.x, b.x, t),
-        y: lerp(a.y, b.y, t),
+        x: at.x,
+        y: at.y,
         cue: p < 0.5 ? a.cue : b.cue,
         dim: p < 0.5 ? a.dim : b.dim,
         opacity: 1,
@@ -219,7 +249,26 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
 
   const ball =
     from.ball && to.ball
-      ? { x: lerp(from.ball.x, to.ball.x, t), y: lerp(from.ball.y, to.ball.y, t), opacity: 1 }
+      ? (() => {
+          const move = { from: from.ball, to: to.ball }
+          /*
+           * A carrier's bow first, and by an EXACT match on the journey rather
+           * than by proximity: `perform` moves a carried ball by the player's
+           * own displacement, so the two paths are the same path to the metre.
+           * Anything looser would let a ball near a runner get dragged onto a
+           * curve it was never on.
+           */
+          const rider = carried.find(
+            (c) =>
+              Math.abs(c.to.x - c.from.x - (to.ball!.x - from.ball!.x)) < 0.05 &&
+              Math.abs(c.to.y - c.from.y - (to.ball!.y - from.ball!.y)) < 0.05,
+          )
+          const bend = rider
+            ? rider.bend
+            : bendOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
+          const at = travel(from.ball, to.ball, bend, t, view)
+          return { x: at.x, y: at.y, opacity: 1 }
+        })()
       : from.ball
         ? { ...from.ball, opacity: 1 - span(p, 0, 0.4) }
         : to.ball
