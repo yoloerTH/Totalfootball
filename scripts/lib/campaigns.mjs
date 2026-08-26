@@ -261,11 +261,29 @@ export async function listContacts(status = 'active') {
   let fromIndex = 1
 
   for (;;) {
-    const body = await call(
-      'getlistsubscribers',
-      { listkey: LIST_KEY, status, fromindex: String(fromIndex), range: String(PAGE) },
-      { method: 'GET' },
-    )
+    let body
+    try {
+      body = await call(
+        'getlistsubscribers',
+        { listkey: LIST_KEY, status, fromindex: String(fromIndex), range: String(PAGE) },
+        { method: 'GET' },
+      )
+    } catch (err) {
+      // 2502 is Campaigns saying "Yet,There are no contacts in this list." It
+      // is an error code for a state that is not an error: an empty list is
+      // exactly what the FIRST sync of a new list finds, and on a `status`
+      // page it is the ordinary case forever — most lists never accumulate a
+      // single bounce.
+      //
+      // Caught by CODE and nothing else. The block below deliberately refuses
+      // to read an empty page as "nobody has unsubscribed", because a silent
+      // zero there skips recording real opt-outs; that reasoning holds, and
+      // this does not weaken it. 2502 is not an ambiguous empty page, it is
+      // Campaigns stating the count is zero, which is the one case where the
+      // empty answer is the true one.
+      if (err?.code === '2502') break
+      throw err
+    }
 
     // Campaigns has shipped this payload under more than one key across
     // versions. Take the documented one, and otherwise find the single array
