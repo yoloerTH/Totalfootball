@@ -16,6 +16,7 @@
 
 import { PITCH_VIEWS, resolveViewId } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
+import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import type { Act, Arrow, Band, System, Token } from './schema'
 
 export interface RenderToken extends Token {
@@ -76,21 +77,35 @@ function shotOf(system: System | undefined, act: Act): Shot | null {
   return shotFor(system, act, PITCH_VIEWS[resolveViewId(system.pitch)])
 }
 
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
 /**
- * The house easing curve: cubic-bezier(0.16, 1, 0.3, 1).
+ * The house easing curve: cubic-bezier(0.16, 1, 0.3, 1), and the family of
+ * curves it relaxes into as a coach slows the move down.
  *
  * The same curve MiniBoard.astro animates on and the same feel as the shorts —
  * a fast departure that settles a long way out. It is what makes the board
  * look like ours rather than like a generic slide transition, so it is solved
  * properly here rather than approximated with an easeOut.
  *
- * Newton-Raphson on x(t) to recover t, then evaluate y(t). Four iterations is
- * well inside a pixel for curves this tame.
+ * `relax` blends toward an even ease-in-out. At 0 the arithmetic is the house
+ * curve's and nothing about a stored system changes; at 1 the travel is spread
+ * across the beat instead of being spent in the first tenth of it. WHY that is
+ * tied to the clock is argued at length in ./pace.ts. This file only knows how
+ * to draw the curve it is handed.
+ *
+ * It blends the CONTROL POINTS, not the two curves' outputs. That is the part
+ * worth not getting wrong: every intermediate setting stays a real cubic bezier
+ * — monotonic, smooth, and with no kink halfway up where two independently
+ * eased values happened to cross.
+ *
+ * Newton-Raphson on x(t) to recover t, then evaluate y(t). Six iterations
+ * rather than the four the fixed curve needed: the relaxed end of the family
+ * has a gentler slope near the origin, so the first correction lands further
+ * from the root and the extra passes cost nothing.
  */
-const CX1 = 0.16
-const CY1 = 1
-const CX2 = 0.3
-const CY2 = 1
+const HOUSE_CURVE = { x1: 0.16, y1: 1, x2: 0.3, y2: 1 } as const
+const EVEN_CURVE = { x1: 0.42, y1: 0.02, x2: 0.2, y2: 1 } as const
 
 function bezier(a: number, b: number, t: number): number {
   const it = 1 - t
@@ -102,19 +117,24 @@ function bezierSlope(a: number, b: number, t: number): number {
   return 3 * it * it * a + 6 * it * t * (b - a) + 3 * t * t * (1 - b)
 }
 
-export function easeHouse(x: number): number {
+export function easeHouse(x: number, relax = 0): number {
   if (x <= 0) return 0
   if (x >= 1) return 1
-  let t = x
-  for (let i = 0; i < 4; i++) {
-    const slope = bezierSlope(CX1, CX2, t)
-    if (Math.abs(slope) < 1e-6) break
-    t -= (bezier(CX1, CX2, t) - x) / slope
-  }
-  return bezier(CY1, CY2, t)
-}
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+  const r = Math.min(1, Math.max(0, relax))
+  const x1 = lerp(HOUSE_CURVE.x1, EVEN_CURVE.x1, r)
+  const y1 = lerp(HOUSE_CURVE.y1, EVEN_CURVE.y1, r)
+  const x2 = lerp(HOUSE_CURVE.x2, EVEN_CURVE.x2, r)
+  const y2 = lerp(HOUSE_CURVE.y2, EVEN_CURVE.y2, r)
+
+  let t = x
+  for (let i = 0; i < 6; i++) {
+    const slope = bezierSlope(x1, x2, t)
+    if (Math.abs(slope) < 1e-6) break
+    t -= (bezier(x1, x2, t) - x) / slope
+  }
+  return bezier(y1, y2, t)
+}
 
 /** Clamp and remap `x` from [a,b] to [0,1]. */
 const span = (x: number, a: number, b: number) =>
@@ -154,7 +174,16 @@ export function resolveAct(act: Act, system?: System): RenderAct {
  *    so a push-in lands with the shape rather than chasing it.
  */
 export function tweenActs(from: Act, to: Act, p: number, system?: System): RenderAct {
-  const t = easeHouse(Math.min(1, Math.max(0, p)))
+  /*
+   * The curve comes off the document, exactly as the camera does two lines
+   * further down, so nothing above this function had to learn about it: every
+   * caller that animates a real system — the editor's playback, the shared
+   * viewer, the video exporter — was already passing one in for the camera.
+   * No system means the house curve, which is what the preview page and any
+   * bare tween want.
+   */
+  const relax = system ? moveRelax(system) : 0
+  const t = easeHouse(Math.min(1, Math.max(0, p)), relax)
   const byId = new Map(to.tokens.map((tok) => [tok.id, tok]))
   const fromIds = new Set(from.tokens.map((tok) => tok.id))
 
@@ -179,7 +208,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
 
   for (const b of to.tokens) {
     if (fromIds.has(b.id)) continue
-    const k = easeHouse(span(p, 0.55, 1))
+    const k = easeHouse(span(p, 0.55, 1), relax)
     tokens.push({
       ...b,
       opacity: span(p, 0.55, 0.85),
@@ -246,10 +275,12 @@ export interface Timeline {
   done: boolean
 }
 
-export const HOLD_MS = 2600
-export const MOVE_MS = 1100
-
-export function timelineAt(ms: number, actCount: number, hold = HOLD_MS, move = MOVE_MS): Timeline {
+export function timelineAt(
+  ms: number,
+  actCount: number,
+  hold = DEFAULT_HOLD_MS,
+  move = DEFAULT_MOVE_MS,
+): Timeline {
   if (actCount <= 1) return { index: 0, next: 0, p: 0, done: true }
   const beat = hold + move
   const total = actCount * beat - move
@@ -265,6 +296,6 @@ export function timelineAt(ms: number, actCount: number, hold = HOLD_MS, move = 
   }
 }
 
-export function totalDuration(actCount: number, hold = HOLD_MS, move = MOVE_MS): number {
+export function totalDuration(actCount: number, hold = DEFAULT_HOLD_MS, move = DEFAULT_MOVE_MS): number {
   return actCount <= 1 ? hold : actCount * (hold + move) - move
 }

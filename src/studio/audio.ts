@@ -38,8 +38,7 @@
  */
 
 import type { System } from './schema'
-import { holdMs } from './pace'
-import { HOLD_MS, MOVE_MS } from './tween'
+import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, holdMs, moveMs } from './pace'
 
 /** Lives in public/, like the match balls. Same reasoning as ./balls.ts. */
 const KICK_SRC = '/studio/sfx/ball-kick.mp3'
@@ -69,12 +68,20 @@ export interface Kick {
  * Every kick in a system, in order.
  *
  * The timing has to agree with `timelineAt()` or the sound drifts off the
- * picture, so it is derived from the same two constants rather than from a
- * number typed in here: each phase holds for `HOLD_MS` and then takes `MOVE_MS`
- * to become the next one, so the move out of phase `i` starts at
- * `i * (HOLD_MS + MOVE_MS) + HOLD_MS`.
+ * picture, so it is derived from the same two numbers rather than from a value
+ * typed in here: each phase holds for `hold` and then takes `move` to become
+ * the next one, so the move out of phase `i` starts at
+ * `i * (hold + move) + hold`.
+ *
+ * BOTH ARGUMENTS HAVE TO BE PASSED BY ANYONE RENDERING A REAL SYSTEM. The
+ * defaults exist for a bare call, not as a shortcut: because the offset is
+ * multiplied by `i`, a wrong `move` does not put the track a fixed distance
+ * out, it puts kick `i` out by `i` times the error. A four-phase system with
+ * the move stretched to 2.6s and this left on its default lands its last kick
+ * a full three seconds early, which is not a sync problem any more, it is the
+ * wrong sound over the wrong picture.
  */
-export function kicks(system: System, hold = HOLD_MS, move = MOVE_MS): Kick[] {
+export function kicks(system: System, hold = DEFAULT_HOLD_MS, move = DEFAULT_MOVE_MS): Kick[] {
   const beat = hold + move
   const out: Kick[] = []
 
@@ -150,8 +157,10 @@ export async function kickTrack(
   sampleRate = 48_000,
 ): Promise<AudioBuffer | null> {
   // The system's own pace, not the default: a ball struck on the beat of a
-  // 2.6s hold lands in silence once the coach has taken the film down to 1.4s.
-  const marks = kicks(system, holdMs(system))
+  // 2.6s hold lands in silence once the coach has taken the film down to 1.4s,
+  // and one struck on a 1.1s move lands before the pass once they have stretched
+  // it. Both halves of the beat, every time.
+  const marks = kicks(system, holdMs(system), moveMs(system))
   if (!marks.length) return null
 
   let sample: AudioBuffer

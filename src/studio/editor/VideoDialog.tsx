@@ -39,7 +39,8 @@ type Status = 'idle' | 'working' | 'done' | 'failed'
 export function VideoDialog({
   system,
   onHold,
-  onHoldCommit,
+  onMove,
+  onPaceCommit,
   onSaved,
   onClose,
 }: {
@@ -54,7 +55,8 @@ export function VideoDialog({
    * with it; see ../pace.ts for why that is the right place for it to live.
    */
   onHold: (ms: number) => void
-  onHoldCommit: () => void
+  onMove: (ms: number) => void
+  onPaceCommit: () => void
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
   onClose: () => void
@@ -227,7 +229,7 @@ export function VideoDialog({
               </p>
 
               <div className="mt-4 border-t border-ink-hair pt-3">
-                <PaceField system={system} onChange={onHold} onCommit={onHoldCommit} />
+                <PaceField system={system} onHold={onHold} onMove={onMove} onCommit={onPaceCommit} />
               </div>
 
               {system.credit?.sharedOn && (

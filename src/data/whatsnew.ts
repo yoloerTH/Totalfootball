@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'move-speed',
+    date: '2026-08-26',
+    kind: 'new',
+    title: 'Slow the move down',
+    body: 'How long the players and the ball take to travel between phases is now yours to set, separately from how long each phase stands still. Slowing it also spreads the movement evenly across the beat instead of covering most of the ground in the first instant, so a move you are teaching can be followed rather than just seen to have happened.',
+    where: 'Pace',
+  },
+  {
     id: 'block-shades-around-them',
     date: '2026-08-22',
     kind: 'fixed',

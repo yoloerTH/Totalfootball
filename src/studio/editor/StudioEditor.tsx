@@ -105,7 +105,7 @@ import {
   type Token,
 } from '../schema'
 import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
-import { holdMs } from '../pace'
+import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
@@ -507,9 +507,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
     return () => clearTimeout(t)
   }, [markGuide])
 
-  // Every clock in the editor reads this one value — playback below, the
+  // Every clock in the editor reads these two values — playback below, the
   // length quoted in the video dialog, and the beat the ball is struck on.
   const hold = holdMs(system)
+  const move = moveMs(system)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   /*
@@ -1102,7 +1103,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
     if (playhead === null) return
     let raf = 0
     const start = performance.now() - playhead
-    const total = totalDuration(system.acts.length, hold)
+    const total = totalDuration(system.acts.length, hold, move)
     const step = () => {
       const t = performance.now() - start
       if (t >= total) {
@@ -1118,9 +1119,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // Restarting on every playhead tick would reset `start`; the ref-free
     // approach here is to depend only on whether playback is on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playhead === null, system.acts.length, hold])
+  }, [playhead === null, system.acts.length, hold, move])
 
-  const timeline = playhead === null ? null : timelineAt(playhead, system.acts.length, hold)
+  const timeline = playhead === null ? null : timelineAt(playhead, system.acts.length, hold, move)
   const rendered = useMemo(() => {
     if (timeline) {
       return tweenActs(system.acts[timeline.index], system.acts[timeline.next], timeline.p, system)
@@ -2313,10 +2314,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
       </Panel>
 
       <Panel title="Pace">
-        <Tip text={HINT.pace} title="How long each phase holds" block>
+        <Tip text={HINT.pace} title="The hold and the move" block>
           <PaceField
             system={system}
-            onChange={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
+            onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
+            onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
             onCommit={seal}
           />
         </Tip>
@@ -2972,7 +2974,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
         <VideoDialog
           system={system}
           onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
-          onHoldCommit={seal}
+          onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
+          onPaceCommit={seal}
           onSaved={() => recordWin('video')}
           onClose={closeExport}
         />

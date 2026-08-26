@@ -13,7 +13,7 @@
  */
 
 import type { System } from './schema'
-import { holdMs } from './pace'
+import { holdMs, moveMs } from './pace'
 import { totalDuration } from './tween'
 
 /**
@@ -190,7 +190,7 @@ export function videoSupported(): boolean {
 
 /** How long the finished film will run, in seconds. Shown before committing. */
 export function videoSeconds(system: System): number {
-  return totalDuration(system.acts.length, holdMs(system)) / 1000
+  return totalDuration(system.acts.length, holdMs(system), moveMs(system)) / 1000
 }
 
 /** Hand the file to the browser. Separate from the render so a retry is free. */

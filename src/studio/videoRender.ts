@@ -70,7 +70,7 @@ import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
 import type { System } from './schema'
-import { holdMs } from './pace'
+import { holdMs, moveMs } from './pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs, type Timeline } from './tween'
 import {
   frameSize,
@@ -720,7 +720,8 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   } = await import('mediabunny')
 
   const hold = holdMs(system)
-  const totalMs = totalDuration(system.acts.length, hold)
+  const move = moveMs(system)
+  const totalMs = totalDuration(system.acts.length, hold, move)
   const frames = Math.max(1, Math.round((totalMs / 1000) * fps))
 
   // H.264 in MP4 is the only combination every phone, every messenger and every
@@ -786,7 +787,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
     for (let i = 0; i < frames; i++) {
       if (opts.signal?.aborted) throw new DOMException('Export stopped', 'AbortError')
 
-      const tl = timelineAt((i / fps) * 1000, system.acts.length, hold)
+      const tl = timelineAt((i / fps) * 1000, system.acts.length, hold, move)
       const key = tl.p === 0 ? `hold:${tl.index}` : `${tl.index}:${tl.p.toFixed(4)}`
 
       if (key !== lastKey) {

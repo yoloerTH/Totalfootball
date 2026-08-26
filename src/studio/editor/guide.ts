@@ -256,7 +256,7 @@ export const HINT = {
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
   pace:
-    'How long each phase stands still before it moves on. Bring it down and the whole thing plays quicker — the film, the share link and Play, all together, because the speed belongs to the system rather than to whoever is watching it. The move between phases is not shortened: that is the part carrying the football.',
+    'The two halves of a beat, set apart. The hold is how long a phase stands still, which is reading time. The move is how long it takes to become the next one, which is the football. Bring the hold down and stretch the move and you get the shape a coach rehearsing something familiar wants: poses they already know gone quickly, transitions they are teaching drawn out. Both belong to the system rather than to whoever is watching, so the film, the share link and Play all move together.',
 
   camera:
     'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball pushes in on whatever each phase is about — the ball, your arrows, anyone you have given a role cue — and travels between them, the way the videos are shot. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
@@ -488,9 +488,15 @@ export const NEWS = {
  */
 export const PACE = {
   label: `How long each ${PHASE.one} holds`,
-  /** What the current setting buys, in the two units a coach thinks in. */
-  line: (holdSeconds: number, filmSeconds: number, phases: number) =>
-    `Each ${PHASE.one} holds for ${holdSeconds.toFixed(1)}s, then takes about a second to move. ` +
+  moveLabel: 'How long the move takes',
+  /**
+   * What the current settings buy, in the units a coach thinks in. One sentence
+   * for the pair rather than one under each slider: the number they actually
+   * care about is the length of the finished film, and that is a function of
+   * both.
+   */
+  line: (holdSeconds: number, moveSeconds: number, filmSeconds: number, phases: number) =>
+    `Each ${PHASE.one} holds for ${holdSeconds.toFixed(1)}s, then takes ${moveSeconds.toFixed(1)}s to move. ` +
     `${phases} ${phases === 1 ? PHASE.one : PHASE.many} ${phases === 1 ? 'runs' : 'run'} ${filmSeconds.toFixed(1)}s.`,
   /**
    * Shown at the fast end. Says what the limit is protecting rather than that a
@@ -498,6 +504,19 @@ export const PACE = {
    * is a reason.
    */
   floor: 'As quick as it goes. Any less and a pose is gone before a room has taken it in.',
+  /**
+   * The move's floor is the speed everything here has always moved at, so this
+   * says so plainly rather than apologising for a limit. Nobody has ever asked
+   * for a quicker move — the complaint runs the other way.
+   */
+  moveFloor: 'The speed the board has always moved at. This one only slows down.',
+  /**
+   * Shown as soon as the move is slowed at all, because the slider does two
+   * things and a coach is entitled to know about the second one. Describes what
+   * they will see rather than naming a curve.
+   */
+  moveEven:
+    'Players set off gently and hold their speed the whole way, instead of covering most of the ground in the first instant and drifting in.',
   slower: 'Slower',
   quicker: 'Quicker',
 } as const

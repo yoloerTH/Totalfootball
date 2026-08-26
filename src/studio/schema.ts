@@ -327,6 +327,19 @@ export interface System {
    */
   hold?: number
   /**
+   * How long the move OUT of each phase takes, in milliseconds.
+   *
+   * The other half of the beat, and the one a coach reaches for when they
+   * cannot follow the football rather than when they are bored of waiting for
+   * it. Slowing it also relaxes the easing curve, so the extra time is spent
+   * travelling rather than settling — `easeHouse` in ./tween.ts.
+   *
+   * Undefined on documents written before the move was adjustable. `moveMs()`
+   * in ./pace.ts supplies 1100, which is what they have always run at, and is
+   * also the floor: this slider only goes slower.
+   */
+  move?: number
+  /**
    * How the two shapes share the board once an opposition is on it.
    *
    * Undefined or false — the default, and what every system saved before this

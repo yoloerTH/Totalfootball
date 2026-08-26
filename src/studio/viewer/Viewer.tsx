@@ -28,8 +28,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
-import { DEFAULT_HOLD_MS, holdMs } from '../pace'
-import { MOVE_MS, resolveAct, tweenActs } from '../tween'
+import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, holdMs, moveMs } from '../pace'
+import { resolveAct, tweenActs } from '../tween'
 import { fetchShared, idFromPath, systemFromHash } from '../share'
 import type { System } from '../schema'
 import { BuildCta } from './BuildCta'
@@ -100,6 +100,7 @@ export default function Viewer() {
    * there is nothing on screen to pace anyway.
    */
   const hold = system ? holdMs(system) : DEFAULT_HOLD_MS
+  const moveFor = system ? moveMs(system) : DEFAULT_MOVE_MS
 
   const holdUntil = useRef(0)
   useEffect(() => {
@@ -108,7 +109,7 @@ export default function Viewer() {
     const tick = () => {
       const now = performance.now()
       if (move) {
-        const t = Math.min(1, (now - move.at) / MOVE_MS)
+        const t = Math.min(1, (now - move.at) / moveFor)
         setP(t)
         if (t >= 1) {
           setMove(null)
@@ -124,7 +125,7 @@ export default function Viewer() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [move, playing, index, count, goTo, hold])
+  }, [move, playing, index, count, goTo, hold, moveFor])
 
   const play = () => {
     if (playing) {
