@@ -155,30 +155,33 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms))
  */
 async function assertSingleOptIn() {
   const ourDomain = (FROM.match(/@([^\s>]+)/)?.[1] ?? '').toLowerCase()
-  const canary =
-    CANARY_ARG?.toLowerCase() ??
-    toAdd.find((r) => r.email.toLowerCase().endsWith(`@${ourDomain}`))?.email
+  const activeNow = new Set((await listContacts('active')).map((c) => c.email))
+
+  // Zoho rejects plus-addressing outright — /json/listsubscribe answers
+  // `2004 Invalid Contact Email address` for anything@with+a+tag — so a
+  // throwaway probe minted on the spot is not available. The canary has to be
+  // a real deliverable address that is NOT yet active, because an already
+  // active one proves only that somebody once clicked a link, which is how a
+  // DOUBLE opt-in list produces an active contact too.
+  const unspent = (e) => e && !activeNow.has(e.toLowerCase())
+
+  const ours = sendable.find((r) => r.email.toLowerCase().endsWith(`@${ourDomain}`) && unspent(r.email))
+  const canary = (CANARY_ARG?.toLowerCase() && unspent(CANARY_ARG) ? CANARY_ARG.toLowerCase() : null) ?? ours?.email ?? toAdd[0]?.email
 
   if (!canary) {
-    console.error(
-      `\n  PREFLIGHT CANNOT RUN.\n\n` +
-        `  Nothing in the audience is at @${ourDomain}, so there is no address of\n` +
-        `  ours to test the list with, and testing with a coach's address is what\n` +
-        `  this check exists to avoid.\n\n` +
-        `  Re-run with:  --run --canary you@${ourDomain}\n`,
-    )
-    process.exit(1)
+    console.log(`\n   Preflight  nothing left to add; skipping.`)
+    return
   }
 
-  console.log(`\n   Preflight  adding ${canary} to test the list's opt-in type…`)
-  const before = new Set((await listContacts('active')).map((c) => c.email))
-
-  if (before.has(canary)) {
-    // Already active from an earlier run, so adding it proves nothing. It
-    // being active at all is itself the proof: a double opt-in list cannot
-    // produce an active contact without a human clicking a link.
-    console.log(`              ${canary} is already active — list is single opt-in.`)
-    return
+  const isOurs = canary.endsWith(`@${ourDomain}`)
+  console.log(`\n   Preflight  testing the list's opt-in type with ${canary}`)
+  if (!isOurs) {
+    // Said out loud, because the cost of the bad case now lands on a real
+    // person. It is still the right trade — one confirmation email instead of
+    // ${'$'}{toAdd.length} — but it should never be a silent one.
+    console.log(`              NOTE: no unspent @${ourDomain} address available, so this is a`)
+    console.log(`              real subscriber. If the list is double opt-in they get ONE`)
+    console.log(`              confirmation email and the other ${toAdd.length - 1} are not touched.`)
   }
 
   const row = toAdd.find((r) => r.email.toLowerCase() === canary)
@@ -192,16 +195,16 @@ async function assertSingleOptIn() {
         `  STOPPED. THIS LIST IS DOUBLE OPT-IN.\n\n` +
         `  ${canary} was added and did not become an active contact, which means\n` +
         `  Campaigns has emailed it a confirmation link instead. Exactly ONE such\n` +
-        `  email was sent, to us. The other ${toAdd.length - 1} addresses were not touched.\n\n` +
-        `  FIX IT IN THE UI — the opt-in type is not exposed to the API:\n` +
-        `    campaigns.zoho.eu -> Contacts -> Lists -> the list -> edit details\n` +
-        `    -> set the opt-in / signup confirmation to SINGLE.\n\n` +
+        `  email was sent. The other ${toAdd.length - 1} addresses were not touched.\n\n` +
+        `  FIX IT IN THE UI — the opt-in type is not exposed to the API, and the\n` +
+        `  bulk-import endpoint does NOT bypass it (it answers "success" and adds\n` +
+        `  nobody, which is worse). It lives on the SIGNUP FORM, not the list:\n` +
+        `    campaigns.zoho.eu -> Contacts -> Lists -> the list -> the signup form\n` +
+        `    -> Edit -> untick "Enable Double opt-in".\n\n` +
         `  Single is the correct setting here. Every address in email_audience\n` +
         `  opted in on the site already and carries its source as a provenance\n` +
-        `  trail; asking all of them to opt in a second time loses most of them\n` +
-        `  and mails people who never asked to hear from Zoho.\n\n` +
-        `  Then re-run this command. Contacts left pending from a previous run\n` +
-        `  convert to active when they are re-added.\n${line}\n`,
+        `  trail; asking all of them to opt in a second time loses most of them.\n\n` +
+        `  Then re-run. Contacts left pending convert to active when re-added.\n${line}\n`,
     )
     process.exit(1)
   }
