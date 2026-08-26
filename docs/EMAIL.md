@@ -63,7 +63,7 @@ All records on **`naurra.ai`**. What is already live, and what has to be added.
 > `netlify api getDnsRecords` / `createDnsRecord` / `deleteDnsRecord`. The API has
 > **no update** — changing a record means delete then create.
 
-### 2.1 · SPF — DONE (2026-08-22)
+### 2.1 · SPF — DONE (2026-08-22, corrected 2026-08-27)
 
 A domain may publish **exactly one** SPF record. Two `v=spf1` TXT records is a permanent
 failure, not a merge — which is why the swap was done delete-then-create on a single
@@ -80,22 +80,46 @@ naurra.ai.  TXT  "v=spf1 include:zohomail.eu ~all"
 Now live:
 
 ```
-naurra.ai.  TXT  "v=spf1 include:zohomail.eu include:zeptomail.net include:zcsend.net ~all"
+naurra.ai.  TXT  "v=spf1 include:zohomail.eu include:zeptomail.net include:eu.zcsend.net ~all"
 ```
 
 Verified against `dns1.p04.nsone.net` and against 1.1.1.1 / 8.8.8.8: exactly one record.
-Both new includes are published sending infrastructures, **not** account-specific, so they
-are safe to authorise before those products are configured — it means mail passes the
-moment they are.
 
 - `zohomail.eu` — the mailbox, already there, keeps normal mail working
 - `zeptomail.net` — ZeptoMail
-- `zcsend.net` — Campaigns
+- `eu.zcsend.net` — Campaigns
 
-These are the `.net`/`.eu` sending infrastructures and are **not** data-centre specific;
-they are the same values for an EU account. SPF allows 10 DNS lookups and this uses **4**
-(`zohomail.eu` costs 2, since it nests `spf.zohomail.eu`; the other two are flat IP
-lists), so there is headroom.
+SPF allows 10 DNS lookups and this uses **4** (`zohomail.eu` costs 2, since it nests
+`spf.zohomail.eu`; the other two are flat IP lists), so there is headroom.
+
+#### These includes ARE data-centre specific
+
+This section said the opposite until 2026-08-27, and it was wrong. `zcsend.net` and
+`eu.zcsend.net` are disjoint networks, not aliases:
+
+```sh
+dig +short TXT zcsend.net      # ip4:135.84.81.0/24  136.143.160.0/24  165.173.128.0/24 …   US
+dig +short TXT eu.zcsend.net   # ip4:31.186.226.160/27  185.20.211.0/25  91.103.152.0/24    EU
+```
+
+The record originally published `include:zcsend.net`, which authorises the **US** ranges
+for an account that sends from the **EU** ones. Nothing reported this: Campaigns had never
+sent, so there was no failing message to notice, and it would have surfaced as SPF failing
+on the first real campaign to the whole list. Swapped to `include:eu.zcsend.net` on
+2026-08-27, delete-then-create on one connection, matching only the `v=spf1` record so the
+`zoho-verification=` TXT beside it survived.
+
+**Take the value from the product's own console rather than from this file.** Campaigns →
+Settings → Domain Authentication prints the include it expects for *this* account's data
+centre, and that is the authority.
+
+> Still unreconciled: `include:zeptomail.net` is the US range list too — EU is
+> `eu.zeptomail.net`. It has not been changed because it is not what authenticates
+> ZeptoMail today and changing it is not risk-free. ZeptoMail sets the Return-Path to
+> `bounce-zem.naurra.ai`, which is a CNAME to `cluster89.zeptomail.eu`, so the SPF a
+> receiver evaluates is that cluster's own `v=spf1 include:eu.zeptomail.net -all` and
+> naurra.ai's apex record is never consulted for that mail. It is dead weight rather than
+> a live fault. Fix it the next time this record is touched for another reason.
 
 Check after editing:
 
@@ -113,9 +137,10 @@ are not reproduced here — only which host holds what.
 | `zmail._domainkey.naurra.ai` | Zoho Mail | live since before this work — **leave alone** |
 | `22225042._domainkey.naurra.ai` | ZeptoMail | **live 2026-08-23**, 1024-bit RSA |
 | `bounce-zem.naurra.ai` (CNAME → `cluster89.zeptomail.eu`) | ZeptoMail bounce tracking | **live 2026-08-23** |
-| `<selector>._domainkey.naurra.ai` | Campaigns → Settings → Domain Authentication | not yet added |
+| `27035._domainkey.naurra.ai` | Campaigns | **live 2026-08-27**, 1024-bit RSA |
 
-Note ZeptoMail's value begins `k=rsa; p=…` with **no `v=DKIM1;` prefix**. That is what its
+Note ZeptoMail's value begins `k=rsa; p=…` with **no `v=DKIM1;` prefix**, and so does
+Campaigns'. That is what its
 console issues and it is valid — the `v=` tag is optional when it is the first tag. Publish
 exactly what the console shows; do not "helpfully" prepend `v=DKIM1;`.
 
@@ -206,6 +231,7 @@ dig +short naurra.ai TXT                         # exactly one v=spf1 line
 dig +short _dmarc.naurra.ai TXT
 dig +short zmail._domainkey.naurra.ai TXT        # Zoho Mail  (athanasios@, Campaigns)
 dig +short 22225042._domainkey.naurra.ai TXT     # ZeptoMail  (transactional)
+dig +short 27035._domainkey.naurra.ai TXT        # Campaigns  (broadcast)
 dig +short bounce-zem.naurra.ai TXT              # ZeptoMail Return-Path, via CNAME
 ```
 
@@ -299,7 +325,10 @@ node scripts/send-welcome.mjs --test you@example.com
 ## 4 · Campaigns setup
 
 1. `campaigns.zoho.eu` → **Settings → Domain Authentication** → authenticate `naurra.ai`,
-   add the DKIM record it gives you.
+   add the SPF include and DKIM record it gives you. **DONE 2026-08-27** — selector
+   `27035`, and the SPF include corrected to the EU list (see §2.1). Campaigns refuses to
+   let a campaign be sent from a DMARC-enabled domain until this passes, which is what the
+   "Fix your sender domain errors!" banner on the Sender step means.
 2. **Contacts → Lists** → create the audience list, and **set its opt-in type to
    SINGLE** (see 4.1 below — this is the step that bites).
 
