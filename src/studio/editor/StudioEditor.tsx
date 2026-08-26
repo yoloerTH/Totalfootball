@@ -45,6 +45,7 @@ import {
 } from '../board/Board'
 import { arrowRim, bendFor } from '../board/Overlays'
 import { arrowEnds, bindEnd, snapTarget } from '../arrows'
+import { perform, type Target } from '../actions'
 import {
   PITCH_VIEWS,
   PITCH_VIEW_LIST,
@@ -120,6 +121,7 @@ import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
 import { GuideRail } from './GuideRail'
 import {
+  ACTION,
   ARROW_MARK,
   ARROW_TOOL_IDS,
   HINT,
@@ -381,6 +383,15 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * cannot leave the mark and the highlight disagreeing about what happened.
    */
   const [snapId, setSnapId] = useState<string | null>(null)
+  /*
+   * The player an armed arrow tool is acting FROM, between the two taps.
+   *
+   * A toggle rather than an append, for the reason `blockPick` is one: the
+   * commonest mistake with a tap-to-pick control is tapping the wrong man, and
+   * the only recovery anybody looks for is tapping him again. Nobody halfway
+   * through drawing one mark thinks to reach for undo.
+   */
+  const [actor, setActor] = useState<string | null>(null)
   const [playhead, setPlayhead] = useState<number | null>(null)
   const [labels, setLabels] = useState<LabelMode>('position')
   const [usFormation, setUsFormation] = useState('4-3-3')
@@ -803,6 +814,51 @@ export default function StudioEditor({ systemId, initial }: Props) {
   )
 
   /**
+   * Carry out an armed arrow tool: draw the mark, and pose the phase after it.
+   *
+   * ONE `edit`, NOT TWO. The arrow lands on this phase and the pose lands on the
+   * next one, and a coach who presses undo means "put that back" about both
+   * halves — an action that took two entries to reverse would be a worse tool
+   * than drawing it by hand.
+   *
+   * The next phase is created only if it is not already there, and the caller
+   * stays where it is. That is what lets a pass, the overlapping run it releases
+   * and the press it beats all land on the SAME transition instead of becoming
+   * three phases of a film that is now three times as long. See ../actions.ts.
+   */
+  const performAction = useCallback(
+    (kind: ArrowKind, actorId: string, target: Target) => {
+      edit(`action:${kind}`, (s) => {
+        const i = Math.min(actIndex, s.acts.length - 1)
+        const cur = s.acts[i]
+        const hasNext = i + 1 < s.acts.length
+        const next: Act = hasNext
+          ? s.acts[i + 1]
+          : {
+              ...structuredClone(cur),
+              id: uid('act'),
+              title: `${PHASE.One} ${s.acts.length + 1}`,
+              // A copied-forward phase does NOT inherit this one's arrows. They
+              // describe the move INTO it, so carrying them across would leave
+              // the board annotated with something that has already happened.
+              arrows: [],
+            }
+
+        const done = perform(kind, cur, next, actorId, target)
+        if (!done) return s
+
+        const acts = [...s.acts]
+        acts[i] = { ...cur, arrows: [...cur.arrows, done.arrow] }
+        if (hasNext) acts[i + 1] = done.next
+        else acts.splice(i + 1, 0, done.next)
+        return { ...s, acts }
+      })
+      seal()
+    },
+    [actIndex, edit, seal],
+  )
+
+  /**
    * Adjusting an arrow after it has been drawn.
    *
    * WHY THIS EXISTS AT ALL
@@ -1174,12 +1230,32 @@ export default function StudioEditor({ systemId, initial }: Props) {
   }, [tool, blockPick.length, blockClose])
 
   /*
+   * An armed actor must not outlive the tool or the phase it was armed in. The
+   * second tap would otherwise land on a different idea from the first — a
+   * press aimed at a man who is no longer on this board, or a pass performed
+   * with the Run tool because the coach switched between taps.
+   */
+  useEffect(() => {
+    setActor(null)
+  }, [tool, actIndex])
+
+  /*
    * Arrows and shaded areas are the same gesture: press, drag, release. They
    * differ only in what gets committed, so they share one handler rather than
    * two that drift apart.
    */
   const beginDraw = useCallback(
-    (e: React.PointerEvent) => {
+    /**
+     * `startTokenId` is the counter the press landed on, when it landed on one.
+     *
+     * Arrow tools keep counters live rather than taking them away, which every
+     * other drawing tool does. It is the same bargain the Block tool struck: a
+     * tool whose whole job is naming players cannot have the players switched
+     * off. Dragging still works exactly as it did — the gesture just knows
+     * where it started, and a press that never travels is read as a tap on that
+     * man instead of being thrown away as a misclick.
+     */
+    (e: React.PointerEvent, startTokenId: string | null = null) => {
       const svg = svgRef.current
       const source = act
       if (!svg || !source) return
@@ -1201,8 +1277,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
         },
         () => {
           if (isArrowTool(tool)) {
-            // A click that did not travel is a misclick, not a zero-length arrow.
-            if (Math.hypot(to.x - from.x, to.y - from.y) > 3) {
+            const travelled = Math.hypot(to.x - from.x, to.y - from.y) > 3
+            if (travelled) {
               /*
                * Both ends look for a player as the arrow lands, so the common
                * case — dragging from one counter to another — comes out bound
@@ -1221,6 +1297,33 @@ export default function StudioEditor({ systemId, initial }: Props) {
                 ],
               }))
               seal()
+            } else if (!actor) {
+              /*
+               * First tap. It only arms if it landed on somebody: an action has
+               * to come FROM a player, and a tap on grass with nothing armed is
+               * a coach who has not started yet rather than one who has made a
+               * mistake worth interrupting them about.
+               */
+              if (startTokenId) {
+                setActor(startTokenId)
+                setPending(null)
+                setSnapId(null)
+                // The tool stays armed. The second tap is the other half of it.
+                return
+              }
+            } else if (startTokenId === actor) {
+              // Tapping the armed man again takes it back.
+              setActor(null)
+              setPending(null)
+              setSnapId(null)
+              return
+            } else {
+              performAction(
+                tool,
+                actor,
+                startTokenId ? { kind: 'token', id: startTokenId } : { kind: 'spot', pt: to },
+              )
+              setActor(null)
             }
           } else if (isZoneTool(tool)) {
             // A sliver of a box is a misdrag. Both sides have to be real.
@@ -1238,7 +1341,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
         },
       )
     },
-    [act, bindGesture, view, tool, patchAct, seal],
+    [act, actor, bindGesture, view, tool, patchAct, performAction, seal],
   )
 
   // ── playback ───────────────────────────────────────────────────────────────
@@ -1395,7 +1498,16 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * is the opposite case: it needs the counters to be clickable and nothing
    * else to be, so the two cannot share one flag.
    */
-  const dragging_tool = drawing && !isPickTool(tool)
+  /*
+   * Which tools take the counters away.
+   *
+   * The zone tools do: a box dragged across a player is one gesture and must
+   * not be interrupted by him. The Block tool never did, because clicking
+   * players IS that tool. Arrow tools have now joined it for the same reason —
+   * they name players too — and they keep the drag by starting the same gesture
+   * from the counter instead of from the grass under it.
+   */
+  const dragging_tool = drawing && !isPickTool(tool) && !isArrowTool(tool)
 
   /**
    * What the pointer is for, as the board understands it — see `BoardMode` in
@@ -2024,6 +2136,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
            that tells them the end is about to attach rather than land. */
         activeTokenId={
           snapId ??
+          actor ??
           (dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null))
         }
         activeMarkId={selectedMarkId}
@@ -2038,6 +2151,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
                   e.stopPropagation()
                   e.preventDefault()
                   pickForBlock(id)
+                  return
+                }
+                if (isArrowTool(tool)) {
+                  // Not a drag of the player: the same press-and-pull the grass
+                  // gets, told which counter it started on. Releasing without
+                  // travelling is the tap that arms or fires the action.
+                  e.stopPropagation()
+                  beginDraw(e, id)
                   return
                 }
                 setSelection({ kind: 'token', id })
@@ -2127,6 +2248,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
             : blockPick.length === 1
               ? 'Click the next one along. A block needs at least two.'
               : HINT.blockPicking}
+        </>
+      ) : isArrowTool(tool) ? (
+        // Its own branch above the generic drawing one, for the same reason the
+        // Block tool has one: this tool has a running state, and the useful
+        // sentence is which of the two taps the coach is on.
+        <>
+          <span className="font-bold text-ink">{actor ? ACTION.aim[tool] : ACTION.arm[tool]}</span>{' '}
+          {actor ? ACTION.armed : ACTION.also}
         </>
       ) : drawing ? (
         <>

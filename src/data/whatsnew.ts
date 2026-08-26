@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'arrows-do-the-move',
+    date: '2026-08-26',
+    kind: 'new',
+    title: 'Let the arrow make the move for you',
+    body: 'Pick Pass, tap the passer, tap who receives it, and the studio draws the arrow and puts the ball on the receiver in the next phase. Run, Carry, Press and Switch all work the same way. Do several in a row and they land on the same transition, so a pass, the overlap it releases and the press it beats stay one beat of football rather than three. Everything it poses is still yours to drag afterwards.',
+    where: 'Pass, Run, Carry, Press, Switch',
+  },
+  {
     id: 'arrows-follow-players',
     date: '2026-08-26',
     kind: 'better',

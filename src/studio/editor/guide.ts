@@ -178,31 +178,31 @@ export const TOOL_DOC = {
     label: 'Pass',
     what: 'A ball played from one player to another.',
     when: 'Use one per pass, and let the chain of them tell the story of the move. If the ball travels, it is a pass.',
-    drag: 'Drag from the player with the ball to the player receiving it.',
+    drag: 'Tap the passer, then tap who gets it. Or drag between them to draw the line and move nobody.',
   },
   run: {
     label: 'Run',
     what: 'A player moving without the ball. Drawn as a dashed line.',
     when: 'Use it for the runs that make the pass possible: the winger in behind, the full-back overlapping, the striker dragging a centre-back away.',
-    drag: 'Drag from where the player starts to where the run finishes.',
+    drag: 'Tap the runner, then tap where the run finishes. Or drag to draw the line and move nobody.',
   },
   carry: {
     label: 'Carry',
     what: 'A player travelling with the ball at their feet. Drawn as a squiggle.',
     when: 'Use it when the point is that nobody passes: the centre-back stepping into midfield, the winger taking someone on.',
-    drag: 'Drag from where they pick the ball up to where they let it go.',
+    drag: 'Tap the carrier, then tap where they let it go. Or drag to draw the line and move nobody.',
   },
   press: {
     label: 'Press',
     what: 'Pressure going on to the ball.',
     when: 'Use it out of possession, to show who goes and, just as important, from which angle they approach.',
-    drag: 'Drag from the player pressing towards the ball they are going after.',
+    drag: 'Tap the player pressing, then tap who they go after. Or drag to draw the line and move nobody.',
   },
   switch: {
     label: 'Switch',
     what: 'A long ball that changes the side of the pitch.',
     when: 'Save it for the one ball that moves the whole opposition. If every pass is a switch, none of them reads as one.',
-    drag: 'Drag right across the board, from one flank to the other.',
+    drag: 'Tap the player switching it, then tap who receives it on the far side. Or drag to draw the line.',
   },
   block: {
     label: 'Block',
@@ -476,6 +476,42 @@ export const NEWS = {
   },
   /** On an entry the coach has not had in front of them before. */
   unread: 'Not read yet',
+} as const
+
+/**
+ * Arming an arrow tool and letting it do the work.
+ *
+ * WHY EACH KIND GETS ITS OWN SENTENCE
+ *
+ * Because the two taps mean different things per tool and a generic "tap a
+ * player, then tap a target" hides exactly the part a coach needs: who they are
+ * tapping first. For a pass that is the man ON the ball; for a press it is the
+ * man going TO it. One sentence that covered both would have to say "the player
+ * involved", which is not guidance, it is a shrug.
+ *
+ * `also` is on every one of them because the drag has not gone anywhere. A
+ * coach who wants a line and nothing else must not have to discover that by
+ * undoing a phase they did not mean to create.
+ */
+export const ACTION = {
+  arm: {
+    pass: 'Tap the player making the pass.',
+    run: 'Tap the player making the run.',
+    carry: 'Tap the player carrying it.',
+    press: 'Tap the player going to press.',
+    switch: 'Tap the player switching it.',
+  },
+  aim: {
+    pass: 'Now tap who receives it, or the space to play it into.',
+    run: 'Now tap where the run finishes.',
+    carry: 'Now tap where they let it go.',
+    press: 'Now tap who they are going after.',
+    switch: 'Now tap who receives it, or the space to find.',
+  },
+  /** What the two taps will actually change, said before they are made. */
+  also: `Both taps together draw the arrow AND pose the next ${PHASE.one}. Drag instead of tapping to draw a line that moves nobody.`,
+  /** After the first tap. Tapping the same player again is how you take it back. */
+  armed: 'Tap the same player again to change your mind.',
 } as const
 
 /**
