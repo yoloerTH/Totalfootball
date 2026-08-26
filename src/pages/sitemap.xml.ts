@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { POSTS } from '../data/posts'
 import { SYSTEMS, THEMES, systemsByTheme } from '../data/systems'
+import { TEMPLATES } from '../studio/templates'
 import { abs } from '../lib/site'
 
 export const prerender = true
@@ -62,6 +63,29 @@ const staticPages: Entry[] = [
   { loc: abs('/terms/'), lastmod: PAGE_LASTMOD.terms, changefreq: 'yearly', priority: '0.2' },
 ]
 
+/**
+ * The two published systems, each opening the studio itself with the board
+ * locked. See src/pages/o/[slug].astro.
+ *
+ * These belong here and the rest of /studio/ does not, which is the same rule
+ * applied rather than an exception to it: every other studio URL is noindex
+ * because it is a tool with no content or a page that cannot be rendered without
+ * knowing who is asking. These two are neither. They are the only indexable
+ * pages on the site that carry a whole system — eighteen and fourteen phases of
+ * titles and captions — and until they existed a crawler following the link
+ * under either video landed on a single noindex viewer.
+ *
+ * `lastmod` comes off the same date the rest of the authored content uses. The
+ * documents live in content/systems/ and change on a deploy, not on a schedule,
+ * and stamping today on them every morning is the lie the note above refuses.
+ */
+const officialPages: Entry[] = TEMPLATES.filter((t) => t.official).map((t) => ({
+  loc: abs(`/o/${t.id}/`),
+  lastmod: CONTENT_LASTMOD,
+  changefreq: 'monthly',
+  priority: '0.8',
+}))
+
 const themePages: Entry[] = THEMES.filter((t) => systemsByTheme(t.slug).length > 0).map((t) => ({
   loc: abs(`/library/theme/${t.slug}/`),
   lastmod: CONTENT_LASTMOD,
@@ -89,7 +113,7 @@ const postPages: Entry[] = POSTS.map((post) => ({
 }))
 
 export const GET: APIRoute = () => {
-  const entries = [...staticPages, ...themePages, ...systemPages, ...postPages]
+  const entries = [...staticPages, ...officialPages, ...themePages, ...systemPages, ...postPages]
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

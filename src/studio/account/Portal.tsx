@@ -472,9 +472,11 @@ function TemplateCard({ template }: { template: Template }) {
  * which hands over an editable copy and therefore sits behind the sign-in wall.
  * That is right for the coach standing here and useless for the person they
  * want to show it to: sending it means sending a stranger to a login screen.
- * `/o/press-4141` opens the viewer, needs no account, and carries the
- * build-your-own door at the bottom of it — so the thing a coach passes on is
- * the system, not an invitation to sign up before seeing one.
+ * `/o/press-4141/` needs no account and opens the STUDIO — the real editor,
+ * every panel and every phase, with the board locked and a door on it. See
+ * src/pages/o/[slug].astro. So the thing a coach passes on is the system AND
+ * the tool that drew it, rather than an invitation to sign up before seeing
+ * either.
  *
  * The link is built from `window.location.origin` rather than the site config
  * because a deploy preview must copy a link to ITSELF. A card on a preview that

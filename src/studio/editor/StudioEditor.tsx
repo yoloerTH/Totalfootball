@@ -135,6 +135,7 @@ import {
 } from './guide'
 import { useHistory } from './history'
 import { ShareDialog } from './ShareDialog'
+import { SignInPanel, SignInPill, SignInWall } from './SignInWall'
 import { SmallScreen, isSmallScreen } from './SmallScreen'
 import { ThemeToggle } from './ThemeToggle'
 import { VideoDialog } from './VideoDialog'
@@ -345,10 +346,63 @@ function useMediaQuery(query: string): boolean {
 interface Props {
   systemId: string
   initial: System
+  /**
+   * Open the studio, and let nobody change anything in it.
+   *
+   * WHAT THIS SERVES. `/o/press-4141` and `/o/escaping-the-trap` — our two
+   * published systems, opened by somebody with no account, from a link a coach
+   * passed on or from under one of the videos. The whole editor mounts: both
+   * panels, the tool rail, the strip with every phase in it. Play works and the
+   * phases step. Nothing else does, and every one of the dead controls opens the
+   * door instead (./SignInWall.tsx).
+   *
+   * WHY THE WHOLE EDITOR RATHER THAN THE VIEWER. ../viewer/Viewer.tsx already
+   * plays a system beautifully and it is still what a coach's own `/s/…` link
+   * gets. But a slideshow shows the SYSTEM and hides the TOOL, and on these two
+   * pages the tool is the thing being sold. Somebody who has just watched the
+   * film should see the room it was built in.
+   *
+   * ── THE LOCK IS THE SEAM, NOT THE CHROME ─────────────────────────────────────
+   *
+   * `edit` below is wrapped, and every mutation in this file goes through it —
+   * see `patchAct`. So the document cannot change no matter what is pressed,
+   * what a stray handler does, or what somebody types into the console. The
+   * greying and the intercepted regions are how it LOOKS right; that wrap is why
+   * it IS right. Anything added to this file later inherits the lock for free by
+   * doing what everything else already does.
+   *
+   * Three other things have to be switched off with it, and none of them are
+   * cosmetic: the local autosave, the account sync, and everything that writes
+   * to the guide. All three would otherwise treat a stranger looking at our
+   * system as a coach working on theirs.
+   */
+  locked?: boolean
 }
 
-export default function StudioEditor({ systemId, initial }: Props) {
-  const [actIndex, setActIndex] = useState(0)
+export default function StudioEditor({ systemId, initial, locked = false }: Props) {
+  /*
+   * A locked board opens on the first phase that has anybody on it.
+   *
+   * WHY THIS IS NOT ALWAYS 0. `the-4-1-4-1-press.json` opens on a title card —
+   * a phase with a name and no players, which is exactly right in the film it
+   * was rendered for and is a BARE PITCH as the first thing on a public page.
+   * Somebody arriving from under that video, having been told this is the board
+   * the system was built on, would land on an empty one; they have no reason to
+   * press anything after that and every reason to leave.
+   *
+   * It is a viewing decision, not a change to the document. Phase one is still
+   * in the strip, still one click away, and Play still runs the film from the
+   * top — playback reads the whole timeline, never `actIndex`.
+   *
+   * Only when locked. A coach who owns this document must open on the phase
+   * they left, empty or not, because on their board an empty phase is a phase
+   * they are in the middle of building.
+   */
+  const [actIndex, setActIndex] = useState(() => {
+    if (!locked) return 0
+    const first = initial.acts.findIndex((a) => a.tokens.length > 0)
+    return first === -1 ? 0 : first
+  })
   const [selection, setSelection] = useState<Selection>(null)
   const [tool, setTool] = useState<Tool>('select')
   /**
@@ -405,7 +459,86 @@ export default function StudioEditor({ systemId, initial }: Props) {
   const getMeta = useCallback(() => ({ actIndex: actIndexRef.current }), [])
   const history = useHistory<System, { actIndex: number }>(initial, getMeta)
   const system = history.value
-  const { edit, seal, replace } = history
+  // `rawEdit` is the real one, and it is taken apart from `history` on purpose:
+  // it is the stable `useCallback` out of ./history.ts, where the object around
+  // it is rebuilt every render. The wrapper below inherits that stability, and
+  // every memoised handler in this file that closes over `edit` depends on it.
+  const { edit: rawEdit, seal, replace } = history
+
+  /** Is the sign-in sheet up? Only ever true on a locked board. */
+  const [wall, setWall] = useState(false)
+
+  /**
+   * Somebody reached for something they cannot have.
+   *
+   * Returns whether it was refused, so a caller that has other work to do can
+   * bail on one line: `if (refuse()) return`.
+   */
+  const refuse = useCallback((): boolean => {
+    if (!locked) return false
+    setWall(true)
+    return true
+  }, [locked])
+
+  /**
+   * THE LOCK. Every change to the document in this file goes through `edit`, so
+   * wrapping it here is the whole of it — there is no second path to the
+   * document and no control that can find one.
+   *
+   * A refused edit is not silent. It raises the sheet, which is what makes a
+   * greyed board answer back rather than just fail to respond: a stranger who
+   * grabs a player and finds them nailed down is being told something, and this
+   * is where they are told it.
+   */
+  const edit = useCallback(
+    (label: string, fn: (s: System) => System) => {
+      if (refuse()) return
+      rawEdit(label, fn)
+    },
+    [refuse, rawEdit],
+  )
+
+  /**
+   * Spread onto a region that is greyed and inert while locked.
+   *
+   * CAPTURE, and on the CONTAINER. Doing it here rather than at each control is
+   * not laziness — it is the only version that cannot rot. The setup panel alone
+   * holds a dozen selects, colour wells and toggles, and a rule written into
+   * each of them is a rule the next control added to the panel will not have.
+   * A capturing handler on the region covers everything inside it, including
+   * whatever gets added tomorrow.
+   *
+   * `preventDefault` on the pointer is what stops a locked <input> taking focus
+   * and showing a caret, which would say "type here" to somebody who cannot.
+   *
+   * `data-locked` carries the greying, in ../../styles/global.css. It is left to
+   * CSS rather than to a Tailwind class per site so that a region keeps its own
+   * layout classes untouched and the treatment can be changed in one place.
+   */
+  const inert = locked
+    ? {
+        'data-locked': '',
+        onPointerDownCapture: (e: React.PointerEvent) => {
+          e.preventDefault()
+          e.stopPropagation()
+          refuse()
+        },
+        onClickCapture: (e: React.MouseEvent) => {
+          e.preventDefault()
+          e.stopPropagation()
+          refuse()
+        },
+        onKeyDownCapture: (e: React.KeyboardEvent) => {
+          // Tab has to keep working. Somebody reading the page with a keyboard
+          // is still allowed to move around it; they are only stopped from
+          // changing it.
+          if (e.key === 'Tab') return
+          e.preventDefault()
+          e.stopPropagation()
+          refuse()
+        },
+      }
+    : {}
 
   // ── what the coach has been taught ─────────────────────────────────────────
   const [guide, setGuide] = useState<GuideState>(() => readGuide())
@@ -460,7 +593,22 @@ export default function StudioEditor({ systemId, initial }: Props) {
    */
   const busyRef = useRef(false)
 
-  const markGuide = useCallback((patch: Partial<GuideState>) => {
+  const markGuide = useCallback(
+    (patch: Partial<GuideState>) => {
+    /*
+     * A locked board teaches nobody anything, so it must not record having
+     * taught them.
+     *
+     * The guide is a claim about what THIS coach has done in the studio, and it
+     * is written to the browser rather than to an account. Left running here, a
+     * stranger pressing Play on one of our systems would be marked as having
+     * played one, and the walkthrough they have never seen would be marked as
+     * shipped news they have already read — so the day they do sign up, the
+     * studio would open on a board with its rail already ticked off and nothing
+     * offering to show them round. The one visit that most needs the guide is
+     * the one this would have spent it on.
+     */
+    if (locked) return
     const cur = guideRef.current
     const changed = (Object.keys(patch) as (keyof GuideState)[]).some((k) => cur[k] !== patch[k])
     if (!changed) return
@@ -469,9 +617,11 @@ export default function StudioEditor({ systemId, initial }: Props) {
     // that latches a flag and then reads the guide back in the same tick — the
     // feedback ask does exactly that. Writing it here as well makes the ref
     // mean "what is stored", always.
-    guideRef.current = next
-    setGuide(next)
-  }, [])
+      guideRef.current = next
+      setGuide(next)
+    },
+    [locked],
+  )
 
   /**
    * The watermark moves when the panel OPENS, not when it closes.
@@ -498,10 +648,24 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * like it knows what it is doing.
    */
   useEffect(() => {
+    /*
+     * None of the three, on a locked board.
+     *
+     * The walkthrough teaches controls that are switched off, the what's-new
+     * panel lists changes to a tool the reader has never used, and the small
+     * screen interstitial is the worst of the three by some distance: it exists
+     * to stop a coach trying to POSE on a phone, which is genuinely no good,
+     * and here there is nothing to pose. Somebody arriving from a link under one
+     * of the videos is on a phone almost by definition, and the stacked layout
+     * plays a system on one perfectly well. Throwing up a wall telling them to
+     * come back on a laptop is a door closed on the exact person these two pages
+     * were built for. The only thing that greets a stranger is ./SignInWall.tsx.
+     */
+    if (locked) return
     if (isSmallScreen() && !guideRef.current.smallOk) setTooSmall(true)
     else if (!guideRef.current.seen) setWalkthrough(true)
     else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
-  }, [openNews])
+  }, [openNews, locked])
 
   /**
    * And, occasionally, the question — on the way in rather than after a win.
@@ -522,6 +686,10 @@ export default function StudioEditor({ systemId, initial }: Props) {
    * See ../feedback.ts.
    */
   useEffect(() => {
+    // And never of somebody who is not a coach of ours yet. The question is
+    // "how is the studio treating you", which has no answer from a chair
+    // nobody is sitting in.
+    if (locked) return
     if (!shouldAskOnOpen(guideRef.current)) return
     const t = setTimeout(() => {
       // Re-read rather than trusting the decision made 40 seconds ago: a coach
@@ -533,7 +701,7 @@ export default function StudioEditor({ systemId, initial }: Props) {
       setFeedback('open')
     }, OPEN_ASK_DELAY_MS)
     return () => clearTimeout(t)
-  }, [markGuide])
+  }, [markGuide, locked])
 
   // Every clock in the editor reads these two values — playback below, the
   // length quoted in the video dialog, and the beat the ball is struck on.
@@ -566,13 +734,25 @@ export default function StudioEditor({ systemId, initial }: Props) {
   // every pointermove, which would serialise the whole document 60 times a
   // second for no benefit.
   useEffect(() => {
+    /*
+     * A locked board is never written down, anywhere.
+     *
+     * The document cannot change, so there is nothing here worth keeping — but
+     * that is not the reason. The reason is `lastOpened()`: saving would put OUR
+     * system id at the head of this browser's shelf, and ./StudioMount.tsx opens
+     * whatever is there. So the coach who signs up an hour later, having been
+     * sold on the studio by this exact page, would open it onto a locked copy of
+     * our system instead of a board of their own.
+     */
+    if (locked) return
     const t = setTimeout(() => saveSystem(systemId, system), 400)
     return () => clearTimeout(t)
-  }, [systemId, system])
+  }, [systemId, system, locked])
 
   // And behind that, the account — if there is one. Local is authoritative and
-  // this never blocks it; see ../account/sync.ts.
-  const cloud = useCloudSync(systemId, system)
+  // this never blocks it; see ../account/sync.ts. Off entirely when locked, for
+  // the signed-in coach who opens one of ours: see `enabled` over there.
+  const cloud = useCloudSync(systemId, system, !locked)
 
   // Deleting the last phase, or undoing back past one, can leave the index
   // pointing at nothing. Render already clamps; this keeps the state honest so
@@ -2024,34 +2204,70 @@ export default function StudioEditor({ systemId, initial }: Props) {
 
   const toolbar = (
     <header className="flex shrink-0 items-center gap-2 border-b border-ink-hair bg-surface px-3 py-2.5 lg:gap-3 lg:px-4">
-      <div className="min-w-0 flex-1">
-        <Tip text={HINT.title} title="Name of this system" side="bottom">
-          <input
-            value={system.title}
-            onChange={(e) => edit('title', (s) => ({ ...s, title: e.target.value }))}
-            placeholder="Name your system…"
-            aria-label="Name of this system"
-            className="w-full max-w-sm bg-transparent text-sm font-black tracking-display text-ink outline-none placeholder:text-ink-faint"
-          />
-        </Tip>
+      {/* The title is a field a coach types in and, on a locked board, the
+          name of a published system — so it is read as a heading there rather
+          than dressed as an input nobody may use. */}
+      {/* NOT `inert` when locked — there is nothing to intercept on a heading,
+          and greying it would dim the name of the system as well as the field
+          it replaced. This is the one piece of the top bar that is content. */}
+      {/*
+        The name of the system, and where it goes when there is no room for it.
+        See also the locked branch of `boardLine`, which is the other half of
+        this and must be read with it.
+
+        On a phone this bar is already carrying six tool names, Play, Share,
+        Video and the sign-in pill. `flex-1` is `grow-1 shrink-1 basis-0%`, so
+        the title asks for no width of its own and gets whatever is left, which
+        there is not: it truncates to two characters and an ellipsis, which is
+        worse than absent. That is survivable on a coach's own board — the field
+        is usually empty and they know what they are building — and not here,
+        where the name IS the page.
+
+        So on the stacked layout the locked title comes off the bar entirely and
+        goes under the board instead, where there is a whole line for it and
+        where the reader is already looking.
+      */}
+      <div className={locked && stacked ? 'hidden' : 'min-w-0 flex-1'} {...(locked ? {} : inert)}>
+        {locked ? (
+          <h1 className="truncate text-sm font-black tracking-display text-ink">{system.title}</h1>
+        ) : (
+          <Tip text={HINT.title} title="Name of this system" side="bottom">
+            <input
+              value={system.title}
+              onChange={(e) => edit('title', (s) => ({ ...s, title: e.target.value }))}
+              placeholder="Name your system…"
+              aria-label="Name of this system"
+              className="w-full max-w-sm bg-transparent text-sm font-black tracking-display text-ink outline-none placeholder:text-ink-faint"
+            />
+          </Tip>
+        )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 rounded-lg bg-paper p-1">
-        <Tip text={HINT.undo} title="Undo" side="bottom">
-          <Button onClick={undo} disabled={!history.canUndo} className="!px-2" aria-label="Undo">
-            <Arc dir="left" />
-          </Button>
-        </Tip>
-        <Tip text={HINT.redo} title="Redo" side="bottom">
-          <Button onClick={redo} disabled={!history.canRedo} className="!px-2" aria-label="Redo">
-            <Arc dir="right" />
-          </Button>
-        </Tip>
-      </div>
+      {/* Undo and redo are the one greyed pair with nothing to sell. There is
+          no history on a board that cannot be changed, so they come off
+          entirely rather than sitting there permanently dimmed. */}
+      {!locked && (
+        <div className="flex shrink-0 items-center gap-1 rounded-lg bg-paper p-1">
+          <Tip text={HINT.undo} title="Undo" side="bottom">
+            <Button onClick={undo} disabled={!history.canUndo} className="!px-2" aria-label="Undo">
+              <Arc dir="left" />
+            </Button>
+          </Tip>
+          <Tip text={HINT.redo} title="Redo" side="bottom">
+            <Button onClick={redo} disabled={!history.canRedo} className="!px-2" aria-label="Redo">
+              <Arc dir="right" />
+            </Button>
+          </Tip>
+        </div>
+      )}
 
       {/* The mark vocabulary. Scrolls rather than wraps on a narrow screen, so
           the board never gets pushed off the bottom by a second row. */}
-      <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1">
+      {/* The tool rail is the single most valuable thing on a locked board.
+          It is the vocabulary — Move, Pass, Run, Carry, Press, Switch — and
+          reading it is most of understanding what the studio does, which is why
+          it stays on screen greyed rather than being taken away. */}
+      <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1" {...inert}>
         {(['select', ...ARROW_TOOL_IDS] as Tool[]).map((id) => (
           <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom">
             <Button active={tool === id} onClick={() => setTool(id)} className="!px-2 lg:!px-2.5">
@@ -2061,7 +2277,29 @@ export default function StudioEditor({ systemId, initial }: Props) {
         ))}
       </div>
 
-      <Tip text={playing ? HINT.stop : HINT.play} title={playing ? 'Stop' : 'Play'} side="bottom">
+      {/* The hints stay on every greyed control, and that is deliberate: only
+          the press is intercepted, never the hover, so reading what Pass or
+          Share or Video does is the one thing a stranger CAN do with them. It
+          is most of what this page is for.
+
+          These two are the exception that has to be rewritten rather than
+          reused. "Stop and go back to editing" is addressed to somebody who was
+          editing, and "you need two phases before there is anything to watch"
+          is advice to somebody building one. Both are wrong in the same way
+          here: they describe a job the reader does not have. */}
+      <Tip
+        text={
+          locked
+            ? playing
+              ? 'Stop the film and hold on this moment.'
+              : `Runs all ${system.acts.length} ${PHASE.many} in order, at the pace this system was filmed at.`
+            : playing
+              ? HINT.stop
+              : HINT.play
+        }
+        title={playing ? 'Stop' : 'Play'}
+        side="bottom"
+      >
         <Button
           variant="solid"
           onClick={() => {
@@ -2074,49 +2312,87 @@ export default function StudioEditor({ systemId, initial }: Props) {
         </Button>
       </Tip>
 
-      <Tip text={HINT.share} title="Share" side="bottom">
-        <Button onClick={openShare}>Share</Button>
-      </Tip>
+      {/* Share and Video say what a coach walks out of here with: a link, and
+          a film. Both greyed, both doors. */}
+      <div className="flex shrink-0 items-center gap-2 lg:gap-3" {...inert}>
+        <Tip text={HINT.share} title="Share" side="bottom">
+          <Button onClick={openShare}>Share</Button>
+        </Tip>
 
-      <Tip text={HINT.video} title="Video" side="bottom">
-        <Button onClick={() => setMakingVideo(true)}>Video</Button>
-      </Tip>
+        <Tip text={HINT.video} title="Video" side="bottom">
+          <Button onClick={() => setMakingVideo(true)}>Video</Button>
+        </Tip>
+      </div>
 
       {/*
        * Only ever says that the work HAS landed. A coach cannot act on "could
        * not reach the server", their work is already safe on this machine
        * either way, and a warning they cannot do anything about mid-drag is
        * just noise — see ../account/sync.ts.
+       *
+       * On a locked board the slot can never fill, because nothing is being
+       * saved — so the sign-in pill takes it. See ./SignInWall.tsx.
        */}
-      {(cloud === 'saving' || cloud === 'saved') && (
-        <span className="hidden shrink-0 text-[11px] font-bold text-ink-faint lg:inline">
-          {cloud === 'saving' ? 'Saving…' : 'Saved'}
-        </span>
+      {locked ? (
+        <SignInPill />
+      ) : (
+        (cloud === 'saving' || cloud === 'saved') && (
+          <span className="hidden shrink-0 text-[11px] font-bold text-ink-faint lg:inline">
+            {cloud === 'saving' ? 'Saving…' : 'Saved'}
+          </span>
+        )
       )}
 
+      {/* The theme is the one setting on this bar that belongs to the READER
+          rather than to the document, so it stays live on a locked board.
+          Somebody watching a system on a bright train platform is allowed to
+          turn the lights on. */}
       <ThemeToggle />
 
-      <Tip text={HINT.news} title={NEWS.title} side="bottom">
-        <NewsBell
-          open={news}
-          unread={newsUnread}
-          onOpen={openNews}
-          onClose={() => setNews(false)}
-        />
-      </Tip>
+      {/* Both of these are about a coach's own history with the studio: what
+          has changed since they were last here, and a tour of controls that are
+          switched off. Neither means anything to a stranger. */}
+      {!locked && (
+        <>
+          <Tip text={HINT.news} title={NEWS.title} side="bottom">
+            <NewsBell
+              open={news}
+              unread={newsUnread}
+              onOpen={openNews}
+              onClose={() => setNews(false)}
+            />
+          </Tip>
 
-      <Tip text={HINT.help} title="Guide" side="bottom">
-        <Button onClick={() => setWalkthrough(true)} className="!px-2" aria-label="Reopen the guide">
-          ?
-        </Button>
-      </Tip>
+          <Tip text={HINT.help} title="Guide" side="bottom">
+            <Button onClick={() => setWalkthrough(true)} className="!px-2" aria-label="Reopen the guide">
+              ?
+            </Button>
+          </Tip>
+        </>
+      )}
     </header>
   )
 
+  /*
+   * The board itself is intercepted rather than greyed.
+   *
+   * `inert` here takes the pointer handlers and leaves the pixels alone — see
+   * the `data-locked` rule in ../../styles/global.css, which exempts the board.
+   * Dimming the one thing a stranger came to look at would be an odd way to
+   * show it to them; the greying is for the CONTROLS around it, and the board
+   * stays at full strength and plays at full strength.
+   *
+   * The interception still matters even though `edit` already refuses
+   * everything: without it, grabbing a player would arm a gesture, put the
+   * marching-ants ring on a counter and swallow the press, so the board would
+   * look alive and do nothing. With it, the first touch on the grass raises the
+   * sheet, which is the answer somebody reaching for a player is owed.
+   */
   const boardStage = (
     <div
-      className="min-h-0 max-h-full max-w-full overflow-hidden rounded-xl shadow-lift"
+      className="tf-board min-h-0 max-h-full max-w-full overflow-hidden rounded-xl shadow-lift"
       style={{ aspectRatio: aspect(view), height: '100%' }}
+      {...inert}
     >
       <Board
         svgRef={svgRef}
@@ -2233,7 +2509,27 @@ export default function StudioEditor({ systemId, initial }: Props) {
    */
   const boardLine = (
     <p className="shrink-0 px-3 text-center text-[11px] leading-snug text-ink-faint">
-      {isPickTool(tool) ? (
+      {locked ? (
+        /*
+         * The line under the board is the most-read guidance in the studio,
+         * because it is in the only place a coach is already looking. Every
+         * sentence it normally carries tells somebody what to DO next, which on
+         * a locked board is a sentence about a thing they cannot do — the
+         * default is "Move the players to where they finish, then press Play",
+         * addressed to a stranger who cannot move a player. So it says what IS
+         * true here instead, in the same voice: which phase, out of how many,
+         * and the two controls that work.
+         */
+        <>
+          {/* The title, on the layout that had to give it up. See the toolbar. */}
+          {stacked && <span className="font-black tracking-display text-ink">{system.title} · </span>}
+          <span className="font-bold text-ink">
+            {PHASE.One} {Math.min(actIndex, system.acts.length - 1) + 1} of {system.acts.length}
+            {act?.title ? `: ${act.title}` : ''}.
+          </span>{' '}
+          Press Play to watch it run, or pick a {PHASE.one} below to jump to it.
+        </>
+      ) : isPickTool(tool) ? (
         // Its own branch above the generic drawing one, because this tool has a
         // running state and the useful sentence is a count: how many are in the
         // line so far, and what the next press does.
@@ -2349,11 +2645,13 @@ export default function StudioEditor({ systemId, initial }: Props) {
             </span>
           </button>
         ))}
-        <Tip text={HINT.addPhase} title={`Add ${PHASE.one}`} side="top">
-          <Button onClick={addAct} variant={system.acts.length < 2 ? 'solid' : 'ghost'}>
-            + Add {PHASE.one}
-          </Button>
-        </Tip>
+        <span {...inert}>
+          <Tip text={HINT.addPhase} title={`Add ${PHASE.one}`} side="top">
+            <Button onClick={addAct} variant={system.acts.length < 2 ? 'solid' : 'ghost'}>
+              + Add {PHASE.one}
+            </Button>
+          </Tip>
+        </span>
       </div>
 
       <Tip text={HINT.nextPhase} title={`Next ${PHASE.one}`} side="top">
@@ -2367,7 +2665,24 @@ export default function StudioEditor({ systemId, initial }: Props) {
         </Button>
       </Tip>
 
-      <div className="flex shrink-0 items-center gap-1 border-l border-ink-hair pl-2">
+      {/*
+        Reordering and deleting. The thumbnails to their left and the two
+        chevrons around them stay live on a locked board — stepping between
+        phases is the whole of what a stranger is here to do — and only this
+        group, which changes the film rather than watching it, is greyed.
+
+        AND ON A PHONE IT IS NOT THERE AT ALL. Greying a control costs nothing on
+        a desktop, where there is room for both it and the strip. In 390 points
+        it costs about 40% of the strip, so a reader gets one and a half phases
+        of thirteen to scroll through and the space goes to three buttons nobody
+        may press. The rule the rest of this file follows is that a switched-off
+        control stays because reading it sells the tool; it does not survive
+        taking the working control's room away.
+      */}
+      <div
+        className={`${locked && stacked ? 'hidden' : 'flex'} shrink-0 items-center gap-1 border-l border-ink-hair pl-2`}
+        {...inert}
+      >
         <Tip text={HINT.movePhaseBack} title="Move earlier" side="top">
           <Button
             onClick={() => moveAct(-1)}
@@ -3232,7 +3547,21 @@ export default function StudioEditor({ systemId, initial }: Props) {
     </>
   )
 
-  const rail = (
+  /*
+   * The head of the right-hand panel. Two different things in the same slot.
+   *
+   * On a coach's own board it is the guide rail — five things they have learned
+   * to do, and how many are left. On a locked one that is a scorecard for a game
+   * the reader is not playing, so the invitation takes the slot instead. Same
+   * position on the panel that carries the title and the caption, which are the
+   * two fields most obviously somebody's.
+   *
+   * NOT inside `inert`. The card is the one thing on the panel that is meant to
+   * be pressed.
+   */
+  const rail = locked ? (
+    <SignInPanel onOpen={() => setWall(true)} />
+  ) : (
     <GuideRail
       done={railDone}
       open={guide.railOpen}
@@ -3285,6 +3614,9 @@ export default function StudioEditor({ systemId, initial }: Props) {
           }}
         />
       )}
+      {/* The only one of the five that a locked board can raise, and the only
+          one the other four can never stack under: nothing else here opens. */}
+      {wall && <SignInWall onClose={() => setWall(false)} />}
     </>
   )
 
@@ -3299,6 +3631,14 @@ export default function StudioEditor({ systemId, initial }: Props) {
         </main>
         {phaseStrip}
         <div className="min-h-0 flex-1 overflow-y-auto border-t border-ink-hair bg-surface">
+          {/* The rail leads on a locked board and trails on an unlocked one.
+              Stacked, this panel is below the fold of a phone — an invitation
+              at the bottom of it is an invitation nobody scrolls to, where the
+              guide rail is a summary and belongs at the end. */}
+          {locked && rail}
+          {/* Switching which panel is on screen shows different controls; it
+              changes nothing. So the tabs stay live even locked — this is how
+              a stranger gets to SEE the phase panel at all. */}
           <div className="sticky top-0 z-10 border-b border-ink-hair bg-surface p-2">
             <Segmented
               label="Which controls to show"
@@ -3310,8 +3650,8 @@ export default function StudioEditor({ systemId, initial }: Props) {
               ]}
             />
           </div>
-          {panelTab === 'setup' ? setupPanel : phasePanel}
-          {rail}
+          <div {...inert}>{panelTab === 'setup' ? setupPanel : phasePanel}</div>
+          {!locked && rail}
         </div>
         {overlays}
       </div>
@@ -3324,16 +3664,22 @@ export default function StudioEditor({ systemId, initial }: Props) {
       {toolbar}
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-64 shrink-0 overflow-y-auto border-r border-ink-hair bg-surface">{setupPanel}</aside>
+        <aside className="w-64 shrink-0 overflow-y-auto border-r border-ink-hair bg-surface" {...inert}>
+          {setupPanel}
+        </aside>
 
         <main className="flex min-w-0 flex-1 select-none flex-col items-center justify-center gap-3 overflow-hidden p-6">
           {boardStage}
           {boardLine}
         </main>
 
+        {/* The rail is outside `inert` and the panel under it is inside, which
+            is why this aside is not spread as a whole: the invitation at the top
+            of this column has to stay pressable while everything below it is
+            greyed. */}
         <aside className="w-64 shrink-0 overflow-y-auto border-l border-ink-hair bg-surface">
           {rail}
-          {phasePanel}
+          <div {...inert}>{phasePanel}</div>
         </aside>
       </div>
 

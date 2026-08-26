@@ -84,8 +84,13 @@ export default function Viewer() {
    * Where the system comes from, in order:
    *
    *  1. `/s/k7f3q9` — a coach's short link. Fetched from /api/share/:id.
-   *  2. `/o/press-4141` — one of OURS. Read out of the template registry, which
+   *  2. `?t=press-4141` — one of OURS. Read out of the template registry, which
    *     is in the bundle, so this branch touches no network and cannot 404.
+   *     NOTE: `/o/press-4141/` no longer arrives here. It is a real page now,
+   *     and it opens the locked studio rather than this viewer — see
+   *     src/pages/o/[slug].astro. What is left on this branch is the `?t=`
+   *     spelling, for links posted before those pages existed and for anybody
+   *     who wants the slideshow and the print sheet instead of the tool.
    *  3. `#s=…` — the self-contained fallback link, unpacked in the browser.
    *
    * All three end in the same place. Either way it is async, so the page has a

@@ -195,6 +195,39 @@
     @apply h-px w-full bg-ink-hair;
   }
 
+  /*
+   * A region of the studio that is switched off, on a locked board — one of our
+   * two published systems opened by somebody with no account. See the `locked`
+   * note in src/studio/editor/StudioEditor.tsx.
+   *
+   * OPACITY, NOT `pointer-events: none`. Every one of these regions is still
+   * meant to be pressed: pressing it is what raises the sign-in sheet, and a
+   * greyed control that swallows the press is a dead end rather than a door.
+   * The refusal is a capturing handler in the editor, not this rule.
+   *
+   * Written here rather than as a utility at each site so the treatment lives
+   * in one place, and so every region keeps its own layout classes untouched.
+   */
+  [data-locked] {
+    @apply opacity-45 saturate-[0.65];
+  }
+
+  /* The board is intercepted but never dimmed. It is the thing a stranger came
+     to look at, it plays at full strength, and greying it would be an odd way
+     to show somebody the work. It can sit inside a locked region on the stacked
+     layout, so the exemption has to be a rule rather than an omission. */
+  [data-locked] .tf-board,
+  [data-locked].tf-board {
+    @apply opacity-100 saturate-100;
+  }
+
+  /* Nothing inside a switched-off region should look clickable on its own. The
+     press is caught by the region, so a caret or a text cursor over a field in
+     there is a promise the page will not keep. */
+  [data-locked] * {
+    cursor: default;
+  }
+
   /* Gold→green text fill, used only on the wordmark and single accent words. */
   .grad-text {
     @apply bg-tf-gradient bg-clip-text text-transparent;

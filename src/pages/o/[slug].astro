@@ -1,0 +1,110 @@
+---
+/**
+ * One of OURS, opened inside the studio itself.
+ *
+ * `/o/press-4141` and `/o/escaping-the-trap`: the two systems that went out as
+ * Total Football videos, which every signed-in coach already has on their portal
+ * and which anybody at all can now open here — the real editor, every panel and
+ * every phase, with nothing editable in it.
+ *
+ * ── WHAT THIS REPLACED, AND WHY ──────────────────────────────────────────────
+ *
+ * These URLs used to be a blind `/o/*` rewrite in netlify.toml onto
+ * /studio/watch/, which mounts ../../studio/viewer/Viewer.tsx — a slideshow.
+ * That is still the right thing for a coach's own `/s/…` link, and it is the
+ * wrong thing here for two reasons.
+ *
+ * FIRST, WHAT A STRANGER SEES. A slideshow shows the SYSTEM and hides the TOOL.
+ * Somebody arriving from under one of the films has just been convinced the
+ * ideas are worth ten minutes; the question they have not had answered is what
+ * the thing that drew them is. So they get the room it was built in, with the
+ * tool rail, the shape controls and all eighteen phases in the strip. Read the
+ * `locked` note in ../../studio/editor/StudioEditor.tsx for how it is held shut.
+ *
+ * SECOND, AND LESS OBVIOUSLY, SEARCH. A rewrite is one static page serving every
+ * `/o/` URL, and that page is `noindex` for a good reason of its own — it is a
+ * viewer with no content, and every shared link would otherwise read as a
+ * duplicate of every other one. But these two are not shared links. They are two
+ * published systems with titles, captions and eighteen phases of real tactical
+ * writing between them, and under the rewrite Google had nothing for either.
+ * A page per system, built from the document, is the whole fix.
+ *
+ * ── WHY THE DOCUMENT IS INLINED RATHER THAN FETCHED ──────────────────────────
+ *
+ * `getStaticPaths` hands each page its own system at build time, so the island
+ * gets the document as a prop. No `/api/share`, no row, no second request, and
+ * — the point — no sibling templates. See ../../studio/editor/LockedStudio.tsx.
+ *
+ * `bare`, like every other full-bleed studio surface: the editor is a whole
+ * screen and the site's nav across the top of it would cost the board its room.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import LockedStudio from '../../studio/editor/LockedStudio'
+import { TEMPLATES } from '../../studio/templates'
+import { SITE_URL } from '../../lib/site'
+
+export function getStaticPaths() {
+  /*
+   * The official ones and only the official ones.
+   *
+   * The other five templates in that registry are starting points — a shape and
+   * a note, meant to be copied and built on. They have no film behind them and
+   * nothing to say to somebody who has not signed up, so they stay where they
+   * are: on the portal, behind the door, reachable at /studio/new/?t=<id>.
+   */
+  return TEMPLATES.filter((t) => t.official).map((t) => ({
+    params: { slug: t.id },
+    props: { template: t },
+  }))
+}
+
+const { template } = Astro.props
+const system = template.system
+
+/**
+ * The description, in the coach's language rather than ours.
+ *
+ * `teaches` is already written to answer "which of these is worth my next ten
+ * minutes" (see the field's own note in ../../studio/templates.ts), which is the
+ * same question somebody reads a search result to answer. Writing a second
+ * sentence here would be writing a worse version of one we already have, and it
+ * would drift the moment either was edited.
+ */
+const description = template.teaches
+
+/**
+ * The phases, as a list a search engine can read.
+ *
+ * The board is a React island, so the crawler that does not run JS sees an empty
+ * page — and the eighteen phase titles are the most substantial thing on it. As
+ * HowTo steps rather than prose because that is what they are: an ordered
+ * sequence, each one a named moment with a line under it.
+ */
+const steps = system.acts.map((act, i) => ({
+  '@type': 'HowToStep',
+  position: i + 1,
+  name: act.title || `Phase ${i + 1}`,
+  text: act.caption || act.title || `Phase ${i + 1}`,
+}))
+
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: system.title,
+    description,
+    step: steps,
+    url: `${SITE_URL}/o/${template.id}/`,
+  },
+]
+---
+
+<BaseLayout
+  title={system.title}
+  description={description}
+  path={`/o/${template.id}/`}
+  structuredData={structuredData}
+  bare
+>
+  <LockedStudio client:only="react" id={template.id} system={system} />
+</BaseLayout>

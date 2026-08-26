@@ -199,19 +199,30 @@ export function idFromPath(pathname: string): string | null {
  */
 const TEMPLATE_SHAPE = /^[a-z0-9][a-z0-9-]{0,63}$/
 
+/**
+ * The trailing slash is not cosmetic. The site is built with
+ * `trailingSlash: 'always'`, so the page really is at `/o/press-4141/` and the
+ * unslashed spelling only works by way of a redirect hop. This is the link a
+ * coach copies and posts under a video; it should arrive, not bounce.
+ */
 export function templateUrl(id: string, origin: string): string {
-  return `${origin.replace(/\/$/, '')}/o/${id}`
+  return `${origin.replace(/\/$/, '')}/o/${id}/`
 }
 
 /**
  * Which of ours a viewer URL is asking for, by either spelling.
  *
- * `/o/press-4141` is the real one, served by a rewrite in netlify.toml.
- * `?t=press-4141` is the same request in a form that survives without the
- * rewrite — which matters more than it sounds, because the rewrite does not
- * exist under plain `astro dev`, exactly as netlify.toml already warns for
- * `/s/*`. Without the second spelling this feature would be untestable on the
- * machine it is written on.
+ * NOTE, since this reads like the counterpart to `idFromPath` and is no longer
+ * quite that: `/o/press-4141/` is a REAL PAGE now — src/pages/o/[slug].astro,
+ * one per official system, which opens the studio itself with the board locked.
+ * It does not come through here.
+ *
+ * What is left for this to answer is the viewer's own `?t=` spelling, which is
+ * kept for two reasons. Links posted before those pages existed used the
+ * fragment-free `/studio/watch/?t=` form and must keep working, and the viewer
+ * remains the right thing for anybody who wants the slideshow and the print
+ * sheet rather than the tool. The `/o/` branch is still matched so that neither
+ * spelling can quietly start meaning something different from the other.
  */
 export function templateIdFromUrl(pathname: string, search: string): string | null {
   const m = pathname.replace(/\/+$/, '').match(/^\/o\/([^/]+)$/)

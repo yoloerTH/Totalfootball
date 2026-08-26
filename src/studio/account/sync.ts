@@ -38,7 +38,18 @@ export type SyncStatus =
  */
 const DEBOUNCE_MS = 2000
 
-export function useCloudSync(systemId: string, system: System): SyncStatus {
+/**
+ * `enabled` is off for a locked board — `/o/…`, one of ours, opened by somebody
+ * who is only looking. Being signed out already produces 'off' below, so this
+ * exists for the case that does not: a coach WITH an account opening one of our
+ * published systems. Without it, the studio would quietly upload our document
+ * into their shelf under an id they never asked for, and the first they would
+ * know of it is a system they did not build appearing on their portal.
+ *
+ * A parameter rather than a conditional `useCloudSync` call at the one site
+ * that needs it, because hooks cannot be called conditionally.
+ */
+export function useCloudSync(systemId: string, system: System, enabled = true): SyncStatus {
   const { status, user } = useSession()
   const [sync, setSync] = useState<SyncStatus>('off')
 
@@ -48,7 +59,7 @@ export function useCloudSync(systemId: string, system: System): SyncStatus {
   const timer = useRef<number | null>(null)
 
   useEffect(() => {
-    if (status !== 'in' || !user) {
+    if (!enabled || status !== 'in' || !user) {
       setSync('off')
       return
     }
@@ -88,7 +99,7 @@ export function useCloudSync(systemId: string, system: System): SyncStatus {
       document.removeEventListener('visibilitychange', flush)
       if (timer.current !== null) window.clearTimeout(timer.current)
     }
-  }, [systemId, system, status, user])
+  }, [systemId, system, status, user, enabled])
 
   return sync
 }

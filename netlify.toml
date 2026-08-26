@@ -29,17 +29,19 @@
   to = "/studio/watch/"
   status = 200
 
-# One of OURS: /o/press-4141 serves the same viewer, which reads the template id
-# off its own path and takes the document straight out of the bundle — no
-# /api/share, no row, nothing to fetch. See src/studio/share.ts for why an
-# official system is addressed by a legible slug rather than published as a
-# `/s/` share. Same 200-rewrite reasoning as above, and the same caveat: this
-# does not exist under plain `astro dev`, so the viewer also accepts
-# `/studio/watch/?t=press-4141`.
-[[redirects]]
-  from = "/o/*"
-  to = "/studio/watch/"
-  status = 200
+# NO `/o/*` RULE, DELIBERATELY. There used to be one here, a 200-rewrite onto
+# /studio/watch/ exactly like the `/s/*` rule above. It is gone because those
+# URLs are real pages now: src/pages/o/[slug].astro builds one per official
+# system, and each opens the studio ITSELF with the board locked rather than the
+# viewer. See the note at the top of that file for both reasons — what a
+# stranger should see, and the fact that a blind rewrite left two published
+# systems invisible to search behind a single noindex page.
+#
+# A catch-all rewrite would also have to be removed rather than merely left
+# alone: without `force`, Netlify prefers a matching static file, so the two
+# real pages would win and every other `/o/…` would silently serve a viewer
+# with nothing in it instead of a 404. Two pages exist; everything else there
+# should say so.
 
 [[headers]]
   for = "/*"
