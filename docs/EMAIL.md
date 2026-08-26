@@ -300,8 +300,18 @@ node scripts/send-welcome.mjs --test you@example.com
 
 1. `campaigns.zoho.eu` → **Settings → Domain Authentication** → authenticate `naurra.ai`,
    add the DKIM record it gives you.
-2. **Contacts → Lists** → create the audience list. Its key is in the URL; that is
-   `ZOHO_CAMPAIGNS_LISTKEY`.
+2. **Contacts → Lists** → create the audience list, and **set its opt-in type to
+   SINGLE** (see 4.1 below — this is the step that bites).
+
+   `ZOHO_CAMPAIGNS_LISTKEY` is **not** the number in the list's URL. That number is
+   the internal record id and Campaigns rejects it. The list key is a 66-character
+   string that the UI does not show; read it off the API instead:
+
+   ```sh
+   curl -s -H "Authorization: Zoho-oauthtoken $TOKEN" \
+     'https://campaigns.zoho.eu/api/v1.1/getmailinglists?resfmt=JSON&sort=asc&fromindex=1&range=20' \
+     | python3 -c 'import json,sys; [print(l["listname"], l["listkey"]) for l in json.load(sys.stdin)["list_of_details"]]'
+   ```
 3. `api-console.zoho.eu` → **Self Client** → create. Note the client id and secret.
 4. On the Self Client's **Generate Code** tab, request scope:
 
@@ -330,6 +340,42 @@ ZOHO_REFRESH_TOKEN=
 ZOHO_CAMPAIGNS_LISTKEY=
 ZOHO_DC=eu
 ```
+
+### 4.1 · Opt-in type, and the 102 emails nobody asked for
+
+**A list created in the UI is double opt-in by default. Change it to single before
+you sync anything into it.**
+
+On a double opt-in list, adding a contact does not add a contact. Campaigns emails
+that address a "Confirm your subscription" message from `mail4.zcsignup.eu` and
+parks them, unconfirmed and invisible, until they click. They are not in `active`,
+not in `unsub`, not in `bounce`, and `noofcontacts` excludes them.
+
+On 2026-08-27 the first real sync ran against a default list. It sent confirmation
+emails to most of the 102-address audience, left the list holding one usable
+contact, and would have produced a campaign that reached that one person while
+reporting nothing wrong.
+
+Three consequences worth holding on to:
+
+- **The setting is not readable.** `getmailinglists` returns thirty fields and the
+  opt-in type is not one of them. It cannot be checked, only tested.
+- **Pending contacts are invisible to the sync's own bookkeeping.** `remoteKnown`
+  is built from active + unsub + bounce, so a re-run re-adds every pending address
+  and sends a *second* confirmation round.
+- **Single opt-in is the correct setting here**, not a corner cut. Everyone in
+  `email_audience` opted in on the site and carries a `source` provenance trail.
+  Re-confirming an already-consented list loses most of it.
+
+Two guards now enforce this and neither should be removed:
+
+| guard | where | what it does |
+|---|---|---|
+| opt-in preflight | `sync-campaigns.mjs` | adds ONE address at our own sending domain, waits, and checks it went active. If not, aborts having sent exactly one confirmation email, to us. `--canary <email>` to choose it, `--preflight-only` to test the check alone. |
+| reach check | `send-newsletter.mjs --campaign` | refuses to create a draft when fewer than 90% of the audience are active contacts. `--force-reach` overrides, deliberately. |
+
+To fix a list that is already wrong: change the opt-in type in the UI, then re-run
+`sync-campaigns.mjs --run`. Pending addresses convert to active on re-add.
 
 ---
 

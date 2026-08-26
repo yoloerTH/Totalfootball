@@ -38,8 +38,13 @@ import {
   campaignsConfigured,
   LIST_KEY,
 } from './lib/campaigns.mjs'
+import { FROM } from './lib/email.mjs'
 
 const RUN = process.argv.includes('--run')
+const canaryIdx = process.argv.indexOf('--canary')
+const CANARY_ARG = canaryIdx >= 0 ? process.argv[canaryIdx + 1] : null
+/** Run the opt-in preflight and stop, without pushing anybody. */
+const PREFLIGHT_ONLY = process.argv.includes('--preflight-only')
 
 if (!campaignsConfigured()) {
   console.error(
@@ -124,16 +129,109 @@ if (!RUN) {
  */
 const pause = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/**
+ * ── THE DOUBLE OPT-IN PREFLIGHT ─────────────────────────────────────────────
+ *
+ * A Campaigns list created in the UI is DOUBLE OPT-IN by default, and adding a
+ * contact to one does not add a contact: it emails that address a "Confirm
+ * your subscription" message and parks them, invisible, until they click. On
+ * 2026-08-27 that turned an import of 102 already-opted-in addresses into 102
+ * confirmation emails nobody asked for, and left the list holding one usable
+ * contact.
+ *
+ * The setting cannot be read. getmailinglists returns thirty fields and the
+ * opt-in type is not among them, so this cannot be a lookup — it has to be an
+ * experiment: add ONE address, see whether it lands `active` on its own.
+ *
+ * The canary is an address at our OWN sending domain, so the single email the
+ * bad case costs goes to us rather than to a coach. If the audience has no
+ * such address, that is not a reason to guess — pass --canary <email>.
+ *
+ * WHY THIS CANNOT BE SKIPPED ONCE THE LIST IS KNOWN-GOOD: pending contacts are
+ * absent from `active`, `unsub` AND `bounce`, so `remoteKnown` above cannot
+ * see them and a re-run re-adds every one. On a double opt-in list that is a
+ * SECOND confirmation email to everybody. The preflight is what stops the
+ * second round, not just the first.
+ */
+async function assertSingleOptIn() {
+  const ourDomain = (FROM.match(/@([^\s>]+)/)?.[1] ?? '').toLowerCase()
+  const canary =
+    CANARY_ARG?.toLowerCase() ??
+    toAdd.find((r) => r.email.toLowerCase().endsWith(`@${ourDomain}`))?.email
+
+  if (!canary) {
+    console.error(
+      `\n  PREFLIGHT CANNOT RUN.\n\n` +
+        `  Nothing in the audience is at @${ourDomain}, so there is no address of\n` +
+        `  ours to test the list with, and testing with a coach's address is what\n` +
+        `  this check exists to avoid.\n\n` +
+        `  Re-run with:  --run --canary you@${ourDomain}\n`,
+    )
+    process.exit(1)
+  }
+
+  console.log(`\n   Preflight  adding ${canary} to test the list's opt-in type…`)
+  const before = new Set((await listContacts('active')).map((c) => c.email))
+
+  if (before.has(canary)) {
+    // Already active from an earlier run, so adding it proves nothing. It
+    // being active at all is itself the proof: a double opt-in list cannot
+    // produce an active contact without a human clicking a link.
+    console.log(`              ${canary} is already active — list is single opt-in.`)
+    return
+  }
+
+  const row = toAdd.find((r) => r.email.toLowerCase() === canary)
+  await addContact({ email: canary, name: row?.name, source: row?.sources || 'preflight' })
+  await pause(3000)
+
+  const after = new Set((await listContacts('active')).map((c) => c.email))
+  if (!after.has(canary)) {
+    console.error(
+      `\n${line}\n` +
+        `  STOPPED. THIS LIST IS DOUBLE OPT-IN.\n\n` +
+        `  ${canary} was added and did not become an active contact, which means\n` +
+        `  Campaigns has emailed it a confirmation link instead. Exactly ONE such\n` +
+        `  email was sent, to us. The other ${toAdd.length - 1} addresses were not touched.\n\n` +
+        `  FIX IT IN THE UI — the opt-in type is not exposed to the API:\n` +
+        `    campaigns.zoho.eu -> Contacts -> Lists -> the list -> edit details\n` +
+        `    -> set the opt-in / signup confirmation to SINGLE.\n\n` +
+        `  Single is the correct setting here. Every address in email_audience\n` +
+        `  opted in on the site already and carries its source as a provenance\n` +
+        `  trail; asking all of them to opt in a second time loses most of them\n` +
+        `  and mails people who never asked to hear from Zoho.\n\n` +
+        `  Then re-run this command. Contacts left pending from a previous run\n` +
+        `  convert to active when they are re-added.\n${line}\n`,
+    )
+    process.exit(1)
+  }
+
+  console.log(`              ${canary} went active immediately — list is single opt-in.`)
+}
+
+await assertSingleOptIn()
+
+if (PREFLIGHT_ONLY) {
+  console.log(`\n--preflight-only: list is single opt-in, ${toAdd.length} would be pushed. Nothing pushed.\n`)
+  process.exit(0)
+}
+
 let added = 0
 let existed = 0
 const failures = []
 
-for (const r of toAdd) {
+// Progress is printed as it goes, because this is the slow half — Campaigns
+// answers an add in about a second and there are a hundred of them, so a run
+// that prints nothing until the end looks identical to a run that has hung.
+for (const [i, r] of toAdd.entries()) {
   try {
     const outcome = await addContact({ email: r.email, name: r.name, source: r.sources })
     outcome === 'added' ? added++ : existed++
   } catch (err) {
     failures.push(`add ${r.email}: ${err.message}`)
+  }
+  if ((i + 1) % 10 === 0 || i + 1 === toAdd.length) {
+    console.log(`              ${i + 1}/${toAdd.length} (${added} added, ${existed} already there)`)
   }
   await pause(250)
 }

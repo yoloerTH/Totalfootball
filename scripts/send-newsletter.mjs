@@ -49,7 +49,7 @@ import {
   transportName,
   lintEmailHtml,
 } from './lib/email.mjs'
-import { createCampaign, campaignsConfigured, LIST_KEY } from './lib/campaigns.mjs'
+import { createCampaign, campaignsConfigured, LIST_KEY, listContacts } from './lib/campaigns.mjs'
 import { audience } from './lib/audience.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
@@ -272,6 +272,42 @@ if (!fetched.includes(CAMPAIGNS_UNSUBSCRIBE_TAG)) {
       `  It is probably an older deploy. Push the current public/newsletters/${slug}.html first.\n`,
   )
   process.exit(1)
+}
+
+/**
+ * ── WHO WOULD ACTUALLY RECEIVE THIS ─────────────────────────────────────────
+ *
+ * A campaign goes to the list's ACTIVE contacts. On a double opt-in list, an
+ * imported address is not active until the person clicks a confirmation link,
+ * and Campaigns reports no error about it — the draft is created, the preview
+ * looks right, the recipient count quietly says 1.
+ *
+ * So the reach is checked against the audience we believe we have, and a large
+ * shortfall is fatal rather than a warning. The failure this prevents is not a
+ * crash; it is pressing send on a newsletter that reaches four people and
+ * believing it went out, which is only discovered a week later when nobody
+ * replies.
+ */
+const activeThere = new Set((await listContacts('active')).map((c) => c.email))
+const { sendable: audienceNow } = await audience()
+const reach = audienceNow.filter((r) => activeThere.has(r.email)).length
+const missing = audienceNow.length - reach
+
+console.log(`\nReach      ${reach} of ${audienceNow.length} would receive this`)
+
+if (audienceNow.length && reach < audienceNow.length * 0.9) {
+  console.error(
+    `\n  STOPPED. ${missing} of ${audienceNow.length} in the audience are not active contacts in\n` +
+      `  Campaigns, so this campaign would reach ${reach}.\n\n` +
+      `  The usual cause is a DOUBLE OPT-IN list: imported addresses sit unconfirmed\n` +
+      `  and invisible until the person clicks Campaigns' confirmation email. Set the\n` +
+      `  list to single opt-in in the UI, then:\n\n` +
+      `    node scripts/sync-campaigns.mjs --run\n\n` +
+      `  and run this again. If the shortfall is real and intended, that is what\n` +
+      `  --force-reach is for.\n`,
+  )
+  if (!rest.includes('--force-reach')) process.exit(1)
+  console.error(`  --force-reach given; continuing anyway.\n`)
 }
 
 const campaignName = `${series}${edition ? ` — ${edition}` : ''} (${slug})`
