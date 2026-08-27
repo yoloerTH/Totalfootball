@@ -63,16 +63,30 @@ type State = 'loading' | 'ready' | 'saving' | 'saved' | 'failed'
 // ── small pieces, so the page below reads as its own outline ─────────────────
 
 function Section({
+  id,
   title,
   note,
   children,
 }: {
+  /**
+   * An anchor, so somewhere else can send a coach to the right part of a long
+   * page. The portal's profile prompt does exactly that — it lists three things
+   * that are missing and each one lands on the section that owns it, rather
+   * than at the top of eight hundred pixels of form (./ProfileNudge.tsx).
+   *
+   * `scroll-mt` below is what stops the heading arriving flush against the top
+   * of the viewport, where it reads as the page having started there.
+   */
+  id?: string
   title: string
   note?: string
   children: React.ReactNode
 }) {
   return (
-    <section className="mt-12 border-t border-ink-hair pt-7 first:mt-8 first:border-0 first:pt-0">
+    <section
+      id={id}
+      className="mt-12 scroll-mt-8 border-t border-ink-hair pt-7 first:mt-8 first:border-0 first:pt-0"
+    >
       <h2 className="text-micro uppercase text-ink-faint">{title}</h2>
       {note && <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-ink-soft">{note}</p>}
       {children}
@@ -615,6 +629,7 @@ export default function Settings() {
           ─────────────────────────────────────────────────────────────────── */}
 
       <Section
+        id="you"
         title="You"
         note="Who you are, and what you do. This is the only part of this page anybody else can ever see — and only once you turn it on at the foot of the section. Everything below is yours alone."
       >
@@ -787,6 +802,7 @@ export default function Settings() {
       {/* ── 2. the club, and how a board is signed ────────────────────────── */}
 
       <Section
+        id="club"
         title="Your club"
         note="The other half of the credit bar. Your name above is the person; this is the badge beside it."
       >
@@ -836,8 +852,9 @@ export default function Settings() {
       {/* ── 3. the kit ────────────────────────────────────────────────────── */}
 
       <Section
+        id="kit"
         title="Your kit"
-        note="The colours and the shirt a new system starts in. Systems you have already made keep the kit they were built in, so changing this never rewrites old work."
+        note="The colours and the shirt a new system starts in. Systems you have already made keep the kit they were built in — changing this never rewrites old work. To bring a new kit onto a board you have already started, open it and press Use my kit in the Your club panel."
       >
         <div className="mt-5" id="fault-kit">
           <KitEditor
@@ -856,6 +873,7 @@ export default function Settings() {
       {/* ── 4. the squad ──────────────────────────────────────────────────── */}
 
       <Section
+        id="squad"
         title="Your squad"
         note="Your players, typed once. In the studio, a counter can then take a name, a number and a face in one press instead of three fields. Everything here is yours alone: a board you share carries the names you put on it and never the photographs, which stay in your account."
       >

@@ -216,6 +216,12 @@ export const TOOL_DOC = {
     when: 'Use it for the space you want attacked: the cutback zone, the pocket in front of their back four, the far post.',
     drag: 'Drag a box around the area you want to talk about.',
   },
+  text: {
+    label: 'Text',
+    what: 'Writes on the grass. Any words, anywhere on the board, at any size.',
+    when: 'Use it for the thing the picture cannot say by itself: a trigger, a coaching point, a name for a space. It is the mark to reach for when you were about to draw a zone with its shading turned off.',
+    drag: 'Click anywhere on the pitch and start typing. Drag it to move it.',
+  },
   zone: {
     label: 'Zone',
     what: 'Shades an area in a neutral grey.',
@@ -230,6 +236,14 @@ export type ToolId = keyof typeof TOOL_DOC
 export const ARROW_TOOL_IDS = ['pass', 'run', 'carry', 'press', 'switch'] as const
 export const ZONE_TOOL_IDS = ['danger', 'zone'] as const
 
+/**
+ * The text tool. On its own and not in either list above, because it is neither
+ * an arrow (it has no ends) nor an area (it shades nothing) — it is a point and
+ * some words. It sits in the toolbar beside the arrows, where a coach is
+ * already looking when they want to add something to a phase.
+ */
+export const TEXT_TOOL_ID = 'text' as const
+
 // ── control hints ────────────────────────────────────────────────────────────
 
 /**
@@ -243,6 +257,8 @@ export const HINT = {
   play: `Runs your ${PHASE.many} in order so you can watch the movement. You need two ${PHASE.many} before there is anything to watch.`,
   stop: 'Stop and go back to editing.',
   video: 'Saves the whole thing as a video file you can post. Made here on your machine, so nothing is uploaded.',
+  export:
+    'Saves a picture of any phase, or a PDF with one phase a page. For a slide, a session plan, or a printout to take out to the grass.',
   help: 'Reopen the welcome guide.',
   news: 'Everything that has been added to the studio, newest first. It opens on its own when there is something on it you have not seen.',
 
@@ -463,6 +479,41 @@ export const VIDEO = {
  * been trained by every other tool that a panel which appears on its own and
  * says "new" is about to ask them for money.
  */
+/**
+ * The Export dialog: pictures and paper.
+ *
+ * A single dialog for the two exports that are NOT the link and NOT the film,
+ * because they answer the same question — "give me this as a file I can put in
+ * something else" — and because separating them would have meant two more
+ * buttons on a top bar that is already carrying six tool names.
+ */
+export const EXPORT = {
+  title: 'Images and PDF',
+  body: `A picture of every ${PHASE.one}, or the whole system on paper. For a slide, a session plan, a group chat, or a printout to take out to the grass.`,
+
+  imagesTitle: 'Images',
+  imagesBody: 'PNG files, one per phase. Drawn through exactly the same renderer as the film, so a picture is a frame of it.',
+  shape: 'Shape',
+  size: 'How big',
+  which: 'Which phases',
+  chrome: 'Put the words on the picture',
+  chromeOn: 'The title, the caption and your credit line, over the board.',
+  chromeOff: 'The board and nothing else. For dropping into your own slide, under your own title.',
+  date: 'Show the date',
+  making: 'Drawing…',
+  saving: 'Saving them one at a time — your browser will ask about multiple files.',
+  ready: (n: number) => (n === 1 ? 'Saved. It has gone to your downloads.' : `Saved ${n} images to your downloads.`),
+  failed: 'That did not finish. Nothing was uploaded, and your system is untouched. Worth trying once more.',
+  unsupported: 'This browser cannot write image files. Send the link instead, which works everywhere.',
+
+  pdfTitle: 'PDF',
+  pdfBody:
+    'One phase a page, with your caption and notes under each board, and a cover with your name on it. It goes through your browser\u2019s own print, so pick "Save as PDF" as the destination.',
+  pdfNote:
+    'The boards print as vector, so it stays sharp at any size and on any printer. Cmd-P or Ctrl-P does the same thing from anywhere on this page.',
+  pdfButton: 'Open the print sheet',
+} as const
+
 export const NEWS = {
   title: "What's new",
   body: 'Everything added to the studio since you last looked. It is all here already, and all included.',

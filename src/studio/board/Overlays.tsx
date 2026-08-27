@@ -16,8 +16,8 @@
 import { U } from './pitch'
 import { TOKEN_R } from './Token'
 import { arrowGeometry } from '../arrows'
-import { resolveBandStyle, arrowStyle, useSurface, type BandOverrides } from './surfaces'
-import type { ArrowKind, BandKind, BandShape } from '../schema'
+import { resolveBandStyle, arrowStyle, resolveTextStyle, useSurface, type BandOverrides } from './surfaces'
+import type { ArrowKind, BandKind, BandShape, TextMark } from '../schema'
 
 /**
  * What a coach has changed about one band's appearance, as the board sees it.
@@ -618,6 +618,188 @@ export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: Zo
           {label}
         </text>
       )}
+    </g>
+  )
+}
+
+// ── writing on the grass ─────────────────────────────────────────────────────
+
+/**
+ * How far apart the lines of a multi-line mark sit, as a multiple of the cap
+ * height. 1.34 is the same rhythm the rest of the studio's small type is set
+ * at, and it is tight enough that three lines still read as one block of text
+ * rather than as three marks that happen to be near each other.
+ */
+const LINE = 1.34
+
+/** Padding round a plate, as a multiple of the cap height. */
+const PLATE_PAD_X = 0.52
+const PLATE_PAD_Y = 0.42
+
+/**
+ * Roughly how wide a line of Inter is, per character, as a multiple of the font
+ * size.
+ *
+ * ESTIMATED, and it has to be. SVG cannot size a rectangle to its own text
+ * without measuring it in a live document, and this component is rendered
+ * server-side into a string by the video and image exporters where there is no
+ * layout engine to ask. `Token.tsx` has the same problem with its cue chips and
+ * solves it the same way.
+ *
+ * 0.56 is Inter's average advance across mixed-case text at weight 700-900. The
+ * padding is generous enough to swallow the error either way; the failure mode
+ * is a plate a few per cent wide or narrow, never clipped words, because the
+ * text is drawn on top of the plate and is not clipped by it.
+ */
+const CHAR_W = 0.56
+
+interface TextNoteProps {
+  mark: TextMark
+  /** Anchor, in SVG units. Resolved by the caller, which owns the view. */
+  cx: number
+  cy: number
+  active?: boolean
+  onPointerDown?: (e: React.PointerEvent<SVGElement>) => void
+}
+
+/**
+ * A coach's own writing, placed anywhere on the board.
+ *
+ * ── WHY THE TEXT IS BUILT LINE BY LINE ──────────────────────────────────────
+ *
+ * `<text>` has no wrapping and `<tspan dy>` is the only way to get a second
+ * line, so the lines are split here and laid out by hand. That is also what
+ * makes the plate possible: the plate has to be sized from the longest line and
+ * the number of lines, and both of those are known only once the string has
+ * been split.
+ *
+ * ── AND WHY IT IS DRAWN TWICE ───────────────────────────────────────────────
+ *
+ * `paintOrder="stroke"` puts the halo under the fill of the SAME element, which
+ * is what the player names use and is right for one line. Across MULTIPLE lines
+ * it is not enough on its own: a descender on line one is stroked over by line
+ * two's halo, because the strokes and fills interleave per glyph run. Drawing
+ * the whole halo pass first and the whole fill pass second is the only way the
+ * outline stays behind ALL the letters.
+ *
+ * The rotation is applied to the group about the anchor, so `angle` turns the
+ * words without moving where the coach put them.
+ */
+export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNoteProps) {
+  const p = useSurface()
+  const s = resolveTextStyle(p, mark)
+  const size = u(s.metres)
+  const step = size * LINE
+
+  // An empty mark still has to be findable and hittable — it is a mark a coach
+  // has just placed and not yet typed into. One space gives it a box.
+  const lines = (mark.text || ' ').split('\n')
+  const longest = lines.reduce((n, l) => Math.max(n, l.length), 1)
+
+  const padX = size * PLATE_PAD_X
+  const padY = size * PLATE_PAD_Y
+  const boxW = longest * size * CHAR_W + padX * 2
+  const boxH = (lines.length - 1) * step + size + padY * 2
+  // The anchor is the LEFT of the first line for 'left', its middle for
+  // 'center', its right for 'right' — so the box hangs off it accordingly.
+  const boxX = cx - (s.anchor === 'start' ? padX : s.anchor === 'middle' ? boxW / 2 : boxW - padX)
+  // `cy` is the first line's cap centre, so the box starts half a cap above it.
+  const boxY = cy - size / 2 - padY
+
+  const plate = s.look === 'plate'
+  const fill = plate ? s.plateInk : s.colour
+  const lineY = (i: number) => cy + i * step
+
+  const body = (i: number, key: string, extra: Record<string, unknown>) => (
+    <text
+      key={key}
+      x={cx}
+      y={lineY(i)}
+      textAnchor={s.anchor}
+      dominantBaseline="central"
+      fontFamily="Inter Variable, Inter, system-ui, sans-serif"
+      fontWeight={s.weight}
+      fontSize={size}
+      letterSpacing={size * -0.012}
+      style={{ userSelect: 'none' }}
+      {...extra}
+    >
+      {lines[i]}
+    </text>
+  )
+
+  return (
+    <g
+      transform={mark.angle ? `rotate(${mark.angle} ${cx} ${cy})` : undefined}
+      onPointerDown={onPointerDown}
+      style={{ cursor: onPointerDown ? 'pointer' : undefined }}
+    >
+      {/*
+       * The target. Always present when the mark is interactive, and always the
+       * full box — including on 'bare', where there is no plate to press and
+       * the letters alone are a poor thing to aim a finger at.
+       */}
+      {onPointerDown && (
+        <rect x={boxX} y={boxY} width={boxW} height={boxH} rx={size * 0.24} fill="transparent" />
+      )}
+
+      {plate && (
+        <>
+          <rect
+            x={boxX}
+            y={boxY}
+            width={boxW}
+            height={boxH}
+            rx={size * 0.24}
+            fill={s.plateFill}
+            pointerEvents="none"
+          />
+          {/* The same hairline the counters wear, so a plate reads as an object
+              on the board rather than as a hole cut in it. */}
+          <rect
+            x={boxX}
+            y={boxY}
+            width={boxW}
+            height={boxH}
+            rx={size * 0.24}
+            fill="none"
+            stroke={s.halo}
+            strokeWidth={size * 0.06}
+            opacity={0.55}
+            pointerEvents="none"
+          />
+        </>
+      )}
+
+      {/* Selected: the same gold outline every other selected mark wears. */}
+      {active && (
+        <rect
+          x={boxX - size * 0.16}
+          y={boxY - size * 0.16}
+          width={boxW + size * 0.32}
+          height={boxH + size * 0.32}
+          rx={size * 0.3}
+          fill="none"
+          stroke={p.gold}
+          strokeWidth={size * 0.09}
+          strokeDasharray={`${size * 0.34} ${size * 0.26}`}
+          pointerEvents="none"
+        />
+      )}
+
+      {/* the halo, all of it, under all of the letters — see the header */}
+      {s.look === 'halo' &&
+        lines.map((_, i) =>
+          body(i, `halo-${i}`, {
+            fill: 'none',
+            stroke: p.halo,
+            strokeWidth: size * 0.3,
+            strokeLinejoin: 'round',
+            pointerEvents: 'none',
+          }),
+        )}
+
+      {lines.map((_, i) => body(i, `ink-${i}`, { fill, pointerEvents: 'none' }))}
     </g>
   )
 }

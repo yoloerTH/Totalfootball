@@ -83,23 +83,79 @@ export function resolveCamera(id: string | undefined): CameraMode {
   return id === 'follow' ? 'follow' : 'off'
 }
 
+// ── how far it goes ──────────────────────────────────────────────────────────
+
+/**
+ * How hard the camera pushes in.
+ *
+ * Two numbers per setting and nothing else, because there are only two things
+ * that decide whether a follow reads as a drift or as a lunge:
+ *
+ *   `tightest`  the hard floor on the frame, as a fraction of the crop. This is
+ *               the one a coach actually feels. At 0.45 the frame is under half
+ *               the pitch and a full-back is off the side of it with no warning
+ *               they were ever there; at 0.68 the same phase is framed closer
+ *               than the whole board and still has a team in it.
+ *
+ *   `margin`    grass left around the action, in METRES. It is what stops the
+ *               frame sitting tight to the outermost counter, which always
+ *               reads as a crop rather than as a shot. It is also, quietly, the
+ *               thing that decides how OFTEN the camera moves at all: a wider
+ *               margin pushes more phases past `WORTH_IT` and leaves them wide,
+ *               so a system of team-shape phases stops drifting about.
+ *
+ * `close` is the old behaviour, kept and named rather than deleted — a coach
+ * shooting one tight phase of a pressing trap should still be able to ask for
+ * it. It is no longer what anybody gets without asking.
+ */
+export type CameraPush = 'gentle' | 'standard' | 'close'
+
+export const CAMERA_PUSHES: {
+  id: CameraPush
+  label: string
+  hint: string
+  tightest: number
+  margin: number
+}[] = [
+  {
+    id: 'gentle',
+    label: 'Gentle',
+    hint: 'Barely moves. Keeps most of the pitch in shot and drifts towards the action.',
+    tightest: 0.68,
+    margin: 15,
+  },
+  {
+    id: 'standard',
+    label: 'Standard',
+    hint: 'Frames the phase with room around it. The middle setting, and a safe one.',
+    tightest: 0.56,
+    margin: 11,
+  },
+  {
+    id: 'close',
+    label: 'Close',
+    hint: 'Pushes right in on what each phase is about. The way the videos are cut.',
+    tightest: 0.45,
+    margin: 9,
+  },
+]
+
+export const DEFAULT_PUSH: CameraPush = 'gentle'
+
+/** Coerce anything stored on a document — including nothing — to a live push. */
+export function resolvePush(id: string | undefined): (typeof CAMERA_PUSHES)[number] {
+  return CAMERA_PUSHES.find((p) => p.id === id) ?? CAMERA_PUSHES[0]
+}
+
 // ── deriving a shot ──────────────────────────────────────────────────────────
 
-/**
- * Never pushes in past this, as a fraction of the crop.
- *
- * Tighter than about a third of the view and a full-back is off the side of the
- * frame with no warning that they were ever there.
+/*
+ * TIGHTEST and MARGIN used to live here as two constants. They are now the two
+ * columns of CAMERA_PUSHES above, because they are the whole of what a coach is
+ * choosing when they pick how hard the camera pushes, and having them in one
+ * table is what makes that choice one line to read rather than two numbers to
+ * find. Nothing else about the derivation changed.
  */
-const TIGHTEST = 0.45
-
-/**
- * Grass left around the action, in metres.
- *
- * Generous on purpose. A frame drawn tight to the outermost counter reads as a
- * crop; the videos always leave the move somewhere to travel to.
- */
-const MARGIN = 9
 
 /**
  * Under this much push-in, don't bother.
@@ -145,6 +201,21 @@ function interest(act: Act): Pt[] {
     at(a.to.x, a.to.y)
   }
   for (const t of act.tokens) if (t.cue && !t.dim) at(t.x, t.y)
+  /*
+   * Writing counts, and it has to.
+   *
+   * A coach who puts a coaching point on the grass has said, as plainly as this
+   * board allows, "read this" — and a camera that crops it out of the film has
+   * contradicted them. It is the same argument as the cues one line up: the
+   * phase's subject is whatever the coach marked, not only whatever is round
+   * the ball.
+   *
+   * Only the anchor, not the block of words. Their extent depends on the font,
+   * which this file cannot measure and must not guess at; the margin (see
+   * MARGIN in CAMERA_PUSHES) is more than a line of type wide, so anchoring is
+   * enough in every case that is not a paragraph written at XL.
+   */
+  for (const t of act.texts ?? []) if (t.text.trim()) at(t.x, t.y)
   for (const b of act.bands) {
     if (!b.rect) continue
     at(b.rect.x, b.rect.y)
@@ -207,11 +278,12 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
     y1 = Math.max(y1, p.y)
   }
 
-  // The margin is real grass, so it is converted per axis: the same nine metres
-  // is a bigger slice of a crop that is only half a pitch long than of a full
-  // one, and a fixed percentage would breathe differently on every view.
-  const mx = (MARGIN / (view.x1 - view.x0)) * 100
-  const my = (MARGIN / (view.y1 - view.y0)) * 100
+  // The margin is real grass, so it is converted per axis: the same fifteen
+  // metres is a bigger slice of a crop that is only half a pitch long than of a
+  // full one, and a fixed percentage would breathe differently on every view.
+  const margin = resolvePush(system.push).margin
+  const mx = (margin / (view.x1 - view.x0)) * 100
+  const my = (margin / (view.y1 - view.y0)) * 100
 
   const shot: Shot = {
     x: (x0 + x1) / 2,
@@ -271,6 +343,19 @@ export function lerpShot(a: Shot | null, b: Shot | null, t: number): Shot | null
 export function cameraRect(
   view: PitchView,
   shot: Shot | null,
+  /**
+   * The floor on the frame, as a fraction of the crop.
+   *
+   * Passed rather than read off a system, because half this function's callers
+   * do not have one: `Board.tsx` outlines a frame, the editor drags one, and
+   * both of those are working on a view and a box. Defaulted to the gentle
+   * setting so a caller that does not care gets the calm answer.
+   *
+   * It bounds a coach's HAND-DRAWN frame too, and that is on purpose. The cap
+   * is not a rule about the derivation, it is a rule about the picture: below
+   * it there is not enough pitch on screen to tell where you are.
+   */
+  tightest: number = CAMERA_PUSHES[0].tightest,
 ): { x: number; y: number; w: number; h: number } {
   const crop = cropRect(view)
   if (!shot) return crop
@@ -291,7 +376,7 @@ export function cameraRect(
   const aspect = crop.w / crop.h
   let w = Math.max(bx1 - bx0, (by1 - by0) * aspect)
   // Never tighter than the cap, never wider than there is grass for.
-  w = Math.min(Math.max(w, crop.w * TIGHTEST), crop.w)
+  w = Math.min(Math.max(w, crop.w * tightest), crop.w)
   const h = w / aspect
 
   const cx = (bx0 + bx1) / 2
@@ -306,8 +391,8 @@ export function cameraRect(
 }
 
 /** The viewBox a board draws through. Falls back to the whole crop. */
-export function cameraViewBox(view: PitchView, shot: Shot | null): string {
-  const r = cameraRect(view, shot)
+export function cameraViewBox(view: PitchView, shot: Shot | null, tightest?: number): string {
+  const r = cameraRect(view, shot, tightest)
   return `${r.x} ${r.y} ${r.w} ${r.h}`
 }
 
@@ -317,8 +402,8 @@ export function cameraViewBox(view: PitchView, shot: Shot | null): string {
  * For the editor's read-out. "1.6x" means nothing to anybody; "48 metres
  * across" is a distance a coach can picture, because they have stood on it.
  */
-export function frameMetres(view: PitchView, shot: Shot | null): number {
-  const r = cameraRect(view, shot)
+export function frameMetres(view: PitchView, shot: Shot | null, tightest?: number): number {
+  const r = cameraRect(view, shot, tightest)
   // Upright views stand the pitch on its end, so the frame's width is measured
   // along the pitch's short axis either way — units are units, and U is the
   // only conversion. Capped at the pitch so padding is not reported as grass.

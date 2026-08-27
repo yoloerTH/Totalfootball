@@ -629,6 +629,112 @@ export function resolveBandStyle(
   }
 }
 
+// ── written text ─────────────────────────────────────────────────────────────
+
+/**
+ * How big a piece of text on the board is, in METRES of grass.
+ *
+ * Metres and not pixels, and not points, for the reason every other measurement
+ * on this board is metres: all five pitch views crop the same 68m width, so a
+ * caption written at 2.6m is the same size on screen on a full pitch and in the
+ * final third. Set it in pixels and the same note is a whisper on one view and
+ * a billboard on another.
+ *
+ * The steps are named against what is already on the board rather than against
+ * each other, because "medium" tells a coach nothing and "as tall as the number
+ * on a counter" tells them exactly where it will land. A counter is 4.2m across
+ * and its number is drawn at about 1.7m, which is what makes `note` the step
+ * that matches the board's own type.
+ */
+export type TextSize = 'xs' | 's' | 'm' | 'l' | 'xl'
+
+export const TEXT_SIZES: { id: TextSize; label: string; note: string; metres: number }[] = [
+  { id: 'xs', label: 'XS', note: 'Smaller than a shirt number. For a note beside a mark.', metres: 1.3 },
+  { id: 's', label: 'S', note: 'About the size of the number on a counter.', metres: 1.8 },
+  { id: 'm', label: 'M', note: 'Reads across a room. The one to write a coaching point at.', metres: 2.5 },
+  { id: 'l', label: 'L', note: 'As tall as a counter. A heading on the board.', metres: 3.6 },
+  { id: 'xl', label: 'XL', note: 'The biggest thing on the pitch. One phrase, no more.', metres: 5.2 },
+]
+
+/**
+ * How the text sits on the grass.
+ *
+ * Three, and each one solves a different legibility problem rather than being a
+ * decoration:
+ *
+ *  · `halo` is the board's own trick, the one the player names already use: the
+ *    type is stroked in the surface's halo colour underneath itself, so it holds
+ *    its edge over a pitch line, a shaded area or a counter without putting a
+ *    box on the board. It is the default because it costs nothing visually.
+ *  · `plate` is a filled card behind the words. For a note that has to survive
+ *    being written across the busiest part of the board, and for anything a
+ *    coach wants to read as a caption rather than as a marking.
+ *  · `bare` is the type and nothing else. For a big quiet heading on empty
+ *    grass, where a halo would only add a fringe.
+ */
+export type TextLook = 'halo' | 'plate' | 'bare'
+
+export const TEXT_LOOKS: { id: TextLook; label: string; note: string }[] = [
+  { id: 'halo', label: 'Halo', note: 'Outlined in the board colour, so it reads over anything.' },
+  { id: 'plate', label: 'Plate', note: 'On a filled card. The most legible, and the loudest.' },
+  { id: 'bare', label: 'Plain', note: 'Just the letters. For a heading on empty grass.' },
+]
+
+export type TextWeight = 'regular' | 'bold' | 'black'
+
+export const TEXT_WEIGHTS: { id: TextWeight; label: string; value: number }[] = [
+  { id: 'regular', label: 'Regular', value: 500 },
+  { id: 'bold', label: 'Bold', value: 700 },
+  { id: 'black', label: 'Heavy', value: 900 },
+]
+
+export type TextAlign = 'left' | 'center' | 'right'
+
+export const TEXT_ALIGNS: { id: TextAlign; label: string; anchor: 'start' | 'middle' | 'end' }[] = [
+  { id: 'left', label: 'Left', anchor: 'start' },
+  { id: 'center', label: 'Centre', anchor: 'middle' },
+  { id: 'right', label: 'Right', anchor: 'end' },
+]
+
+/**
+ * Everything a text mark needs to draw itself, resolved from what the coach
+ * chose and what this build knows about.
+ *
+ * Same posture as `resolveBandStyle`: every field goes through a table, so a
+ * value written by a newer build falls back to the house treatment rather than
+ * drawing nothing. A document must stay readable in an older studio.
+ */
+export function resolveTextStyle(
+  p: BoardPalette,
+  overrides?: { size?: string; look?: string; weight?: string; align?: string; tone?: string },
+) {
+  const size = pick(TEXT_SIZES, overrides?.size) ?? TEXT_SIZES[2]
+  const look = pick(TEXT_LOOKS, overrides?.look) ?? TEXT_LOOKS[0]
+  const weight = pick(TEXT_WEIGHTS, overrides?.weight) ?? TEXT_WEIGHTS[2]
+  const align = pick(TEXT_ALIGNS, overrides?.align) ?? TEXT_ALIGNS[1]
+  const toneId = pick(BAND_TONES, overrides?.tone)?.id
+  const colour = toneId ? bandTone(p, toneId) : p.ink
+
+  return {
+    /** Cap height in METRES. The caller converts with `U`. */
+    metres: size.metres,
+    look: look.id,
+    weight: weight.value,
+    anchor: align.anchor,
+    align: align.id,
+    colour,
+    /*
+     * On a plate the words are drawn on the tone, so they cannot also BE the
+     * tone. `onInk` is the surface's own answer to "what do you write on a
+     * filled ink chip", which is the same question — see the cue chips in
+     * ../board/Token.tsx, which have had this problem solved since the start.
+     */
+    plateInk: colour === p.ink || colour === p.inkSoft ? p.onInk : '#FFFFFF',
+    plateFill: colour === p.ink ? p.inkChip : colour,
+    halo: p.halo,
+  }
+}
+
 /**
  * The paper instances of the three, for the illustrations that draw an arrow or
  * a cue OUTSIDE a board — the walkthrough's diagram, chiefly. They are derived

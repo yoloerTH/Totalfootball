@@ -63,8 +63,25 @@ export const STUDIO_EVENTS = {
   shareFallback: 'studio:share-fallback',
   /** An MP4 finished writing, with the shape it was written in. */
   videoSaved: 'studio:video-saved',
-  /** The print stylesheet was used, which is how the PDF export happens. */
+  /**
+   * The print stylesheet was used, which is how the PDF export happens.
+   *
+   * Counted from two places now — the shared viewer's own button and the
+   * studio's Export dialog — and deliberately NOT split into two labels. The
+   * question it answers is "does anybody make PDFs", and one number answers it;
+   * a split would only answer "which button", which nobody is asking.
+   */
   printed: 'studio:printed',
+  /**
+   * A set of PNGs finished writing, with the shape and size they came out at.
+   *
+   * The cheapest export we have and the one most likely to be the ONLY thing a
+   * coach uses — it needs no WebCodecs, so it works in browsers that cannot
+   * make a film at all. Worth knowing separately from `videoSaved` for exactly
+   * that reason: if this is where the coaches are, the film is a feature for a
+   * minority and the pictures are the product.
+   */
+  imagesSaved: 'studio:images-saved',
   /**
    * Somebody who arrived on a shared link pressed a build-your-own button, with
    * which one they pressed.
@@ -83,6 +100,16 @@ export const STUDIO_EVENTS = {
    * genuinely all we can see — what happens in WhatsApp afterwards is theirs.
    */
   shareSent: 'studio:share-sent',
+  /**
+   * The portal's profile prompt, and what happened to it: shown, opened (with
+   * which step), dismissed, or turned off for good.
+   *
+   * Worth counting as one label with a suffix rather than four events, because
+   * the only useful number here is a RATIO — a prompt that is shown two hundred
+   * times and opened twice is a prompt to delete, and neither half of that
+   * sentence means anything without the other.
+   */
+  profileNudge: 'studio:profile-nudge',
   /** Somebody pressed a sign-in button. The attempt, not the outcome: the
       outcome is a redirect to Google and back, on a different page load. */
   signIn: 'studio:sign-in',

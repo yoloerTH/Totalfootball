@@ -18,7 +18,7 @@ import { PITCH_VIEWS, resolveViewId } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
-import type { Act, Arrow, Band, System, Token } from './schema'
+import type { Act, Arrow, Band, System, TextMark, Token } from './schema'
 
 export interface RenderToken extends Token {
   opacity: number
@@ -43,11 +43,25 @@ export interface RenderBand extends Band {
   opacity: number
 }
 
+/**
+ * A text mark carrying an opacity, exactly like a band.
+ *
+ * Text does not TRAVEL between phases even when the same mark is on both, and
+ * that is deliberate rather than unfinished. A band follows its players because
+ * it is drawn from them; a piece of writing is placed on the grass, and a
+ * caption sliding across the board mid-move is the single most distracting
+ * thing you can put on a tactics film. It appears, it holds, it goes.
+ */
+export interface RenderText extends TextMark {
+  opacity: number
+}
+
 export interface RenderAct {
   tokens: RenderToken[]
   ball: { x: number; y: number; opacity: number } | null
   arrows: RenderArrow[]
   bands: RenderBand[]
+  texts: RenderText[]
   /**
    * Where the camera is pointed for this pose, or null for the whole view.
    *
@@ -148,6 +162,9 @@ export function resolveAct(act: Act, system?: System): RenderAct {
     ball: act.ball ? { ...act.ball, opacity: 1 } : null,
     arrows: act.arrows.map((a) => ({ ...a, opacity: 1 })),
     bands: act.bands.map((b) => ({ ...b, opacity: 1 })),
+    // `?? []` and not `act.texts.map`: the field is optional and absent on every
+    // act written before it existed. See `Act.texts` in ./schema.ts.
+    texts: (act.texts ?? []).map((t) => ({ ...t, opacity: 1 })),
     shot: shotOf(system, act),
   }
 }
@@ -303,11 +320,33 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
       .filter((b) => b.opacity > 0.01),
   ]
 
+  /*
+   * Text hands over the way the CHROME's words do rather than the way a band
+   * does: the outgoing line is gone before the incoming one starts, with no
+   * overlap in the middle. Two captions cross-fading through each other over a
+   * moving board is unreadable, and unreadable is the one thing a caption
+   * cannot be. A mark present on both phases and unchanged simply holds.
+   */
+  const fromTexts = from.texts ?? []
+  const toTexts = to.texts ?? []
+  const fromTextIds = new Set(fromTexts.map((x) => x.id))
+  const toTextIds = new Set(toTexts.map((x) => x.id))
+
+  const texts: RenderText[] = [
+    ...fromTexts
+      .filter((x) => !toTextIds.has(x.id))
+      .map((x) => ({ ...x, opacity: 1 - span(p, 0, 0.32) })),
+    ...toTexts.filter((x) => fromTextIds.has(x.id)).map((x) => ({ ...x, opacity: 1 })),
+    ...toTexts
+      .filter((x) => !fromTextIds.has(x.id))
+      .map((x) => ({ ...x, opacity: span(p, 0.6, 0.95) })),
+  ].filter((x) => x.opacity > 0.01)
+
   // The camera travels on the same curve as the players, so the push-in and
   // the move arrive together instead of the frame chasing the ball.
   const shot = lerpShot(shotOf(system, from), shotOf(system, to), t)
 
-  return { tokens, ball, arrows, bands, shot }
+  return { tokens, ball, arrows, bands, texts, shot }
 }
 
 /**

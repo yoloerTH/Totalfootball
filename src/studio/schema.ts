@@ -18,7 +18,7 @@
 import type { BallId } from './balls'
 import type { PitchViewId } from './board/pitch'
 import type { PitchSurfaceId } from './board/surfaces'
-import type { CameraMode } from './camera'
+import type { CameraMode, CameraPush } from './camera'
 
 /** Which side of the ball a token belongs to. Drives its colour. */
 export type Side = 'us' | 'them'
@@ -232,6 +232,65 @@ export interface Band {
 }
 
 /**
+ * A piece of writing on the grass.
+ *
+ * ── WHY THIS IS ITS OWN MARK ────────────────────────────────────────────────
+ *
+ * There was text on the board before this: an arrow can be labelled, a shaded
+ * area can be labelled, a phase has a title and a caption under it. Every one
+ * of those is text ATTACHED to something — and a coach who wants to write "hold
+ * until he commits" in the space between the lines had nowhere to put it except
+ * a zone with its shading turned off and its outline turned off, which is a
+ * text mark drawn by someone who did not have one (user, 2026-08-27).
+ *
+ * So this is the thing itself: a point, some words, and how they are set. It
+ * carries no geometry beyond where it starts, which is what keeps it out of the
+ * way of everything else — it is not a region, so it shades nothing, and it is
+ * not a line, so it points at nothing.
+ *
+ * ── EVERY FIELD BUT THE FIRST THREE IS OPTIONAL ─────────────────────────────
+ *
+ * And they are all `string`, not unions, for the same reason `Band`'s
+ * appearance fields are: the document format must not depend on the drawing
+ * code, or a saved system stops being readable without it. `resolveTextStyle`
+ * in ../board/surfaces.ts falls back to the house treatment on anything it does
+ * not recognise, which is what makes a system written by a newer build open in
+ * an older one instead of drawing nothing.
+ */
+export interface TextMark {
+  id: string
+  /** Percent coords, the same space a token is stored in. */
+  x: number
+  y: number
+  /**
+   * The words. Newlines are kept and drawn as lines — a coach writing three
+   * bullet points wants three lines, not one long one, and asking them to place
+   * three separate marks to get that would be the tool being difficult.
+   */
+  text: string
+  /** 'xs' | 's' | 'm' | 'l' | 'xl'. See TEXT_SIZES: the number is METRES. */
+  size?: string
+  /** 'halo' | 'plate' | 'bare'. How it holds its edge against the board. */
+  look?: string
+  /** 'regular' | 'bold' | 'black'. */
+  weight?: string
+  /** 'left' | 'center' | 'right', measured about `x`. */
+  align?: string
+  /** A BAND_TONES id. Absent means the board's own ink. */
+  tone?: string
+  /**
+   * Degrees, clockwise, about the mark's own anchor.
+   *
+   * For writing along a touchline or up a channel, which is a thing coaches do
+   * on every whiteboard in the world and which no amount of moving the mark
+   * around can substitute for. Absent means level, and level is what it should
+   * almost always be — this is here for the one label that has to run with the
+   * pitch rather than across it.
+   */
+  angle?: number
+}
+
+/**
  * The rectangle of board to look at: a centre, and the box that must be in shot.
  *
  * All four numbers are percent-of-crop — the same space a token stores — so a
@@ -295,6 +354,15 @@ export interface Act {
   ball: { x: number; y: number } | null
   arrows: Arrow[]
   bands: Band[]
+  /**
+   * Writing on the grass. See `TextMark`.
+   *
+   * OPTIONAL, and every reader has to treat `undefined` as an empty list. Every
+   * act written before this existed has no such field, and a document format
+   * that requires a migration to stay readable is a document format that will
+   * one day fail to open somebody's season.
+   */
+  texts?: TextMark[]
 }
 
 /** A team's visual identity. Defaults come from the owner's profile. */
@@ -382,6 +450,53 @@ export interface System {
    * `resolveCamera()` supplies 'off', which is exactly what they already did.
    */
   camera?: CameraMode
+  /**
+   * HOW FAR the camera pushes in, when it is following.
+   *
+   * A second control rather than more modes, because "does the eye move" and
+   * "how close does it get" are genuinely different questions and folding them
+   * into one list would make a coach who wants a calmer film go looking under
+   * the heading that says Fixed.
+   *
+   * The derivation in ./camera.ts was tuned for the videos, where a shot is cut
+   * to and held. A studio film travels between every shot, and at the old
+   * settings a four-phase system was a camera lunging at the ball and back out
+   * again four times (user, 2026-08-27). 'gentle' is the default now: it leaves
+   * more grass round the action and refuses to go tighter than about two
+   * thirds of the view, so the movement reads as a drift rather than a zoom.
+   *
+   * Undefined means 'gentle', which is a DELIBERATE change of behaviour for
+   * systems written before this existed. The alternative was to leave every
+   * saved system on a setting the coach never chose and has already complained
+   * about, and there is nothing here that can be lost by it — the camera is a
+   * render-time crop and not a single stored coordinate.
+   */
+  push?: CameraPush
+  /**
+   * The club crest, drawn in the corner of the board.
+   *
+   * TWO fields rather than one nullable URL, and the split is what makes the
+   * toggle honest. `crestUrl` is WHICH crest — copied off the coach's profile
+   * onto the document, because a share link is opened by somebody who has no
+   * profile and a video is watched by somebody who has no browser session, and
+   * a board that only shows its crest to its author is not a crest. `showCrest`
+   * is WHETHER to draw it, which is a thing a coach changes per system: the
+   * same club badge belongs on a presentation to the board and is noise on a
+   * session plan for the under-11s.
+   *
+   * Keeping them apart means turning it off does not throw the URL away, so
+   * turning it back on is a toggle rather than a trip to the settings page.
+   *
+   * A PUBLIC url, on purpose. `crests` is the one open bucket (see
+   * ../account/images.ts) precisely so a crest can be drawn on boards that get
+   * shared, printed and filmed. Player photographs are the opposite case and
+   * live behind signed URLs; nothing here may ever hold one.
+   *
+   * Absent on every document written before this existed, which draws no crest
+   * — exactly what they already did.
+   */
+  crestUrl?: string
+  showCrest?: boolean
   /**
    * How long each phase sits on screen before it starts moving, in
    * milliseconds. The move that follows it is a fixed length and is not part of

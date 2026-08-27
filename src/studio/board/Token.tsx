@@ -145,10 +145,32 @@ export function Token({
    * and a square crop both come out as a face in a circle instead of a face
    * with bars beside it.
    */
-  const pr = r * 0.72
-  // Lifted further when there is a name to clear; the name's own line sits at
-  // cy - 1.42r and its cap height reaches roughly 1.92r.
-  const pcy = cy - r * (name ? 2.78 : 1.95)
+  /*
+   * ── HOW BIG, AND WHY IT GREW ─────────────────────────────────────────────
+   *
+   * It was 0.72r, and at that size a face on a floodlit pitch was a thumbnail
+   * of a thumbnail — a coach could tell somebody was there and not who (user,
+   * 2026-08-27). 0.98r is the largest it can be before two headshots on
+   * adjacent counters touch at the 4.5m spacing the board is laid out at, so
+   * this is the size, not a step towards one.
+   *
+   * It is a multiple of `r`, which is a multiple of TOKEN_R, which is METRES —
+   * so this is the identical picture on all five pitch views. A face does not
+   * grow when a coach crops to the final third, and it does not shrink on a
+   * full pitch. That is the whole reason the board is measured in grass.
+   */
+  const pr = r * 0.98
+  /*
+   * Lifted clear of whatever is under it.
+   *
+   * With a name: the name's baseline is at cy - 1.42r and Inter's caps reach
+   * about 0.36r above it, so the top of the type is at cy - 1.78r. The face
+   * needs its own radius, HALF ITS OWN RIM (the stroke is centred on the
+   * circle, so it reaches 0.085r past it) and a hair of air above that:
+   * 1.78 + 0.98 + 0.085 + 0.3. Without a name it only has to clear the
+   * counter's rim at cy - r, on the same arithmetic: 1 + 0.98 + 0.085 + 0.24.
+   */
+  const pcy = cy - r * (name ? 3.15 : 2.3)
   const pclip = `${clip}-face`
   const isPress = cue === 'PRESS'
   const cueCol = cue ? (cueColor(p)[cue] ?? p.ink) : p.ink
@@ -301,6 +323,9 @@ export function Token({
 
       {photoHref && (
         <g>
+          {/* The seat. Painted before the photo so it only ever shows as the
+              ring of it that the photo does not cover. */}
+          <circle cx={cx} cy={pcy} r={pr * 1.1} fill={`url(#${idp}-contact)`} />
           <image
             href={photoHref}
             x={cx - pr}
@@ -310,24 +335,53 @@ export function Token({
             preserveAspectRatio="xMidYMid slice"
             clipPath={`url(#${pclip})`}
           />
-          {/* The same white rim the counter wears, so a face reads as part of
-              the same set of objects and holds its edge against grass, paper
-              or a floodlit pitch alike. */}
+          {/*
+            The rim, in three passes, and each one is doing a different job.
+
+            A photograph is the only thing on this board we did not draw, so it
+            is the only thing whose edge colour we cannot predict — a dark
+            training top against a night pitch has no edge at all, and a pale
+            kit against paper has none either. The counter has the same problem
+            and solves it with a white rim; a face needs one pass more because
+            it has no rim colour of its own underneath.
+
+              · a SEAT, drawn under the photo, slightly proud of it. It is the
+                contact shadow the counter already has, and it is what stops a
+                light face dissolving into a light surface.
+              · the RIM, white, exactly what the counter wears three lines
+                further down — `rgba(255,255,255,0.85)` and NOT `p.halo`. The
+                halo is the surface's own GROUND colour, which is what you
+                outline type in so it separates from the board; on a floodlit
+                pitch it is dark green, so a face rimmed in it had no bright
+                edge at all and disappeared into the grass. That was half of
+                why headshots were hard to see (user, 2026-08-27) — the other
+                half was the size.
+              · a HAIRLINE of ink over the rim, which gives the white its own
+                edge on a paper board where white-on-white would vanish.
+          */}
           <circle
             cx={cx}
             cy={pcy}
             r={pr}
             fill="none"
-            stroke={p.halo}
-            strokeWidth={pr * 0.13}
+            stroke="rgba(255,255,255,0.85)"
+            strokeWidth={pr * 0.17}
+          />
+          <circle
+            cx={cx}
+            cy={pcy}
+            r={pr * 1.085}
+            fill="none"
+            stroke="rgba(0,0,0,0.22)"
+            strokeWidth={pr * 0.045}
           />
           <circle
             cx={cx}
             cy={pcy}
             r={pr}
             fill="none"
-            stroke="rgba(0,0,0,0.18)"
-            strokeWidth={pr * 0.05}
+            stroke="rgba(0,0,0,0.16)"
+            strokeWidth={pr * 0.045}
           />
         </g>
       )}

@@ -458,14 +458,19 @@ If you are tempted to add a view, count it in the shorts first.
 ## 4. Still to build
 
 1. ~~**Supabase auth + persistence**~~ — **built.** See §3f. What is left of this
-   item: password reset, email change, account deletion, and the **crest upload**
-   (needs a storage bucket; settings is name/club/colour only today).
+   item: password reset, email change, account deletion. The **crest upload** is
+   built and the badge now draws in the corner of the board — `System.crestUrl`
+   plus `showCrest`, copied onto the document so it survives a share link, a
+   PDF and a film, and inlined as a `data:` URI by the exporters like the ball.
+   A coach's kit can also be brought onto a board they have already started
+   ("Use my kit"), which `withProfile` only ever did for a NEW one.
 2. **PPTX** (`pptxgenjs`) — the one export still missing, and the only one a
-   club analyst will ask for by name. It needs a raster of each board, and both
-   halves of that are now built: `frameSvg`/`raster` in `videoRender.ts` do
-   exactly this per frame, and the **font** and **match ball** gotchas of §6 are
-   paid for there. PNG-per-act is the same call without the encoder. The share
-   link and the print PDF cover everything else.
+   club analyst will ask for by name. Everything it needs is now not merely
+   possible but **built and shipping**: `renderStills()` in `videoRender.ts` is
+   PNG-per-act, through `frameSvg`/`raster` with the **font**, **match ball**,
+   **headshot** and **crest** gotchas of §6 all paid for. A PPTX is that array
+   of blobs plus a slide per phase carrying `act.title`, `act.caption` and
+   `act.notes` in the speaker notes. Nothing new has to be solved.
 3. ~~**`/studio` landing + library + settings**, and a nav entry~~ — **built.**
    See §3f. The studio is no longer unlinked: `/studio/` is in the header nav and
    in the sitemap.
@@ -477,15 +482,34 @@ If you are tempted to add a view, count it in the shorts first.
 
 Editor gaps, in order:
 
+- ~~**Writing on the board.**~~ — **built.** `Act.texts`, a `TextMark` each: a
+  point, some words, and how they are set (size in METRES, weight, colour off
+  the nine band tones, alignment, angle, and whether it wears a halo, a plate or
+  nothing). The Text tool places one on a single click and the panel is where it
+  is typed, because a coach has to see what they are writing over. It was
+  previously done by drawing a zone with its shading and its outline both turned
+  off, which is a text mark made by somebody who did not have one.
+- ~~**Images out, and the PDF from the studio.**~~ — **built.** `renderStills()`
+  and the Export dialog: PNG per phase, landscape/square/vertical, with the
+  chrome optional. The PDF was always the print stylesheet, but it lived on
+  `/studio/watch/` — so from the studio you had to publish your own system and
+  open your own link to reach it. `PrintSheet` and its stylesheet are shared
+  now (`src/studio/viewer/PrintSheet.tsx`, `src/styles/global.css`), and the
+  editor carries one outside `.tf-screen` at all times so Cmd-P works.
+
 - **No onion-skin.** When posing phase 3 you cannot see phase 2's positions. A
   ghost of the previous phase under the board would make posing much faster, and
   it is the natural companion to the "a phase is a moment" idea the walkthrough
   teaches.
 - ~~**Manual per-phase framing.**~~ — **built.** `Act.shot`, dragged on the
-  board: the outline slides it, the four corners size it, and the Camera panel
-  hands a phase back to the automatic framing. What is left is a **keyboard
-  path** — the frame is pointer-only today, which is the same gap the marks
-  have.
+  board: the four EDGES slide it, the four corners zoom it about its own middle,
+  and the Camera panel hands a phase back to the automatic framing. The corners
+  own a square of the outline that the move band is cut away from, so the two
+  gestures never compete for a press — that overlap was the whole of "it moves
+  when I just want to expand" (user, 2026-08-27). How far the automatic camera
+  pushes in is `System.push`, and it is **gentle** by default now. What is left
+  is a **keyboard path** — the frame is pointer-only today, which is the same
+  gap the marks have.
 - ~~**A worked example a coach can open.**~~ — **built.** Five of them, in
   `src/studio/templates.ts`, reached at `/studio/new/?t=<id>` and offered under
   the shelf on the portal. They are the documents in `content/systems/` that the

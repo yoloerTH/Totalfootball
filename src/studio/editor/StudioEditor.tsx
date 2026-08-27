@@ -71,6 +71,11 @@ import {
   BAND_TONES,
   resolveBandStyle,
   resolveSurface,
+  resolveTextStyle,
+  TEXT_ALIGNS,
+  TEXT_LOOKS,
+  TEXT_SIZES,
+  TEXT_WEIGHTS,
   type BandStrength,
   type BandTone,
   type PitchSurfaceId,
@@ -78,11 +83,14 @@ import {
 import { BALLS, DEFAULT_BALL, resolveBall, type BallId } from '../balls'
 import {
   CAMERA_MODES,
+  CAMERA_PUSHES,
   cameraRect,
   frameMetres,
   resolveCamera,
+  resolvePush,
   viewMetres,
   type CameraMode,
+  type CameraPush,
 } from '../camera'
 import {
   FORMATION_BY_ID,
@@ -112,6 +120,7 @@ import {
   type Shot,
   type Side,
   type System,
+  type TextMark,
   type Token,
 } from '../schema'
 import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
@@ -119,12 +128,15 @@ import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
+import { loadProfile, withProfile, type Profile } from '../account/cloud'
+import { imageUrl } from '../account/images'
 import { SquadPick, useSquad, useSquadPhotos } from './SquadPick'
 import { GuideRail } from './GuideRail'
 import {
   ACTION,
   ARROW_MARK,
   ARROW_TOOL_IDS,
+  TEXT_TOOL_ID,
   HINT,
   NEWS,
   PHASE,
@@ -140,9 +152,11 @@ import { SignInPanel, SignInPill, SignInWall } from './SignInWall'
 import { SmallScreen, isSmallScreen } from './SmallScreen'
 import { ThemeToggle } from './ThemeToggle'
 import { VideoDialog } from './VideoDialog'
+import { ExportDialog } from './ExportDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
 import { FeedbackDialog } from './FeedbackDialog'
+import { PrintSheet } from '../viewer/PrintSheet'
 import { PaceField } from './PaceField'
 import { NewsBell } from './WhatsNew'
 import {
@@ -187,6 +201,19 @@ const isZoneTool = (t: Tool): t is 'danger' | 'zone' => (ZONE_TOOL_IDS as readon
  * the board decides what a pointer means. That is what this predicate is for.
  */
 const isPickTool = (t: Tool): t is 'block' => t === 'block'
+
+/**
+ * The other tool that is not a drag — and unlike the block, not a sequence of
+ * clicks either. It is ONE click.
+ *
+ * Writing on a board is the one mark with no geometry to draw: there are no
+ * ends to pull and no corners to set, only a place for the words to start. So
+ * the gesture is the shortest one there is, and everything else about the mark
+ * is set afterwards in the panel, where a coach can actually see what they are
+ * typing. Making a coach drag out a box first, before there was any text to
+ * size it against, would be ceremony in front of the one thing they came to do.
+ */
+const isTextTool = (t: Tool): t is 'text' => t === TEXT_TOOL_ID
 
 /** The most players a hand-drawn block can be threaded through. */
 const BLOCK_MAX = 6
@@ -581,6 +608,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const pendingWin = useRef<FeedbackContext | null>(null)
   const [makingVideo, setMakingVideo] = useState(false)
+  const [exporting, setExporting] = useState(false)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
   // have an interstitial thrown over their work. See ./SmallScreen.tsx.
   const [tooSmall, setTooSmall] = useState(false)
@@ -726,7 +754,49 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const shotRef = useRef<Shot | null>(null)
   const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  /*
+   * How close this system's camera is allowed to get, as a fraction of the crop.
+   *
+   * Read once here and passed to every camera call in this file, so the outline
+   * the coach drags, the metres the panel reads out and the frame the film is
+   * shot through are all bounded by the same number. Splitting them is how a
+   * preview starts promising a shot the video does not keep.
+   */
+  const tightest = resolvePush(system.push).tightest
   const act = system.acts[Math.min(actIndex, system.acts.length - 1)]
+
+  /*
+   * ── THE COACH'S OWN KIT AND CREST, ON A BOARD THAT ALREADY EXISTS ─────────
+   *
+   * `withProfile` has always painted a coach's colours onto a NEW board, and
+   * that was the whole of it — so a coach who set their kit in Settings after
+   * starting a system, or who changed it, saw nothing change in the studio and
+   * reasonably concluded the setting did not work (user, 2026-08-27).
+   *
+   * It is not a bug in `withProfile`; it is that nothing ever offered to apply
+   * it again. A document is the coach's and must not be repainted behind their
+   * back — a system deliberately coloured for an opponent's kit would be
+   * destroyed by that — so this is a BUTTON, on a panel, next to a preview of
+   * what it will do. Explicit, undoable, and reaching the whole kit rather than
+   * the base colour the ColorWell can already reach.
+   *
+   * Loaded once and never refetched. It is one row, it lands while the coach is
+   * still looking at the board, and `null` — signed out, offline, no profile
+   * yet — simply means the panel does not appear.
+   */
+  const [profile, setProfile] = useState<Profile | null>(null)
+  useEffect(() => {
+    let live = true
+    void loadProfile().then((p) => {
+      if (live) setProfile(p)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  const myCrest = profile?.crestPath ? imageUrl(profile.crestPath) : ''
+  const myKit = profile?.teamColour.trim() ?? ''
   const stacked = useMediaQuery('(max-width: 1023px)')
 
   // Whether there is an opposition is asked of a PHASE, not of the document —
@@ -811,6 +881,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const selectedMarkId = selection?.kind === 'mark' ? selection.id : null
   const selectedArrow = selectedMarkId ? (act?.arrows.find((a) => a.id === selectedMarkId) ?? null) : null
   const selectedBand = selectedMarkId ? (act?.bands.find((b) => b.id === selectedMarkId) ?? null) : null
+  const selectedText = selectedMarkId
+    ? ((act?.texts ?? []).find((t) => t.id === selectedMarkId) ?? null)
+    : null
 
   /** Take the selected thing off this phase. Returns whether there was one. */
   const deleteSelection = useCallback((): boolean => {
@@ -819,7 +892,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     patchAct('delete', (a) =>
       kind === 'token'
         ? { ...a, tokens: a.tokens.filter((t) => t.id !== id) }
-        : { ...a, arrows: a.arrows.filter((x) => x.id !== id), bands: a.bands.filter((b) => b.id !== id) },
+        : {
+            ...a,
+            arrows: a.arrows.filter((x) => x.id !== id),
+            bands: a.bands.filter((b) => b.id !== id),
+            texts: (a.texts ?? []).filter((x) => x.id !== id),
+          },
     )
     seal()
     setSelection(null)
@@ -1087,6 +1165,51 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * the same rim-inset endpoints the handle is drawn from, so the handle stays
    * under the pointer rather than near it.
    */
+  /**
+   * Dragging a piece of writing.
+   *
+   * The simplest gesture in the file, and it is short for a reason worth
+   * stating: a text mark has ONE point. There are no ends that might belong to
+   * a player, no bend to invert, no corners whose opposite has to be held. The
+   * whole of it is "the pointer moved this far, so the words moved this far",
+   * done in percent because percent is where the mark lives and there is no
+   * geometry here that percent's non-square axes could distort.
+   *
+   * The offset is taken from the pointer's own position at press rather than
+   * from the mark's, so grabbing a caption by its corner does not snap its
+   * middle under the cursor.
+   */
+  const beginTextDrag = useCallback(
+    (id: string, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      const source = act
+      if (!svg || !source) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const base = (source.texts ?? []).find((x) => x.id === id)
+      if (!base) return
+
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const grab = clampToBoard(down.x, down.y)
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const p = clampToBoard(raw.x, raw.y)
+          const at = clampToBoard(base.x + (p.x - grab.x), base.y + (p.y - grab.y))
+          patchAct(`text:${id}:move`, (a) => ({
+            ...a,
+            texts: (a.texts ?? []).map((x) => (x.id === id ? { ...x, ...at } : x)),
+          }))
+        },
+        () => seal(),
+      )
+    },
+    [act, bindGesture, view, patchAct, seal],
+  )
+
   const beginArrowDrag = useCallback(
     (id: string, part: ArrowPart, e: React.PointerEvent<SVGElement>) => {
       const svg = svgRef.current
@@ -1193,14 +1316,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       e.stopPropagation()
       e.preventDefault()
 
-      const start = cameraRect(view, shotRef.current)
+      const start = cameraRect(view, shotRef.current, tightest)
       const crop = cropRect(view)
       const down = clientToPercent(svg, view, e.clientX, e.clientY)
       const downU = toUnits(view, down.x, down.y)
-      // The corner that stays put while its opposite is dragged.
-      const anchor = {
-        x: part === 'nw' || part === 'sw' ? start.x + start.w : start.x,
-        y: part === 'nw' || part === 'ne' ? start.y + start.h : start.y,
+      const mid = { x: start.x + start.w / 2, y: start.y + start.h / 2 }
+      /*
+       * How far the pressed corner started from the middle. Never zero, because
+       * it goes underneath a division — a press exactly on the centre of the
+       * frame cannot happen through a corner grip, but a bad number here would
+       * be an Infinity written into the document rather than a wrong drag.
+       */
+      const reach = {
+        x: Math.max(start.w * 0.02, Math.abs(downU.x - mid.x)),
+        y: Math.max(start.h * 0.02, Math.abs(downU.y - mid.y)),
       }
 
       bindGesture(
@@ -1213,14 +1342,38 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           if (part === 'move') {
             box = { ...start, x: start.x + (pu.x - downU.x), y: start.y + (pu.y - downU.y) }
           } else {
+            /*
+             * ── A CORNER ZOOMS ABOUT THE MIDDLE. IT DOES NOT ANCHOR. ────────
+             *
+             * This used to pin the opposite corner, the way a photo editor
+             * resizes a rectangle, and it was the wrong gesture for a CAMERA.
+             * Pinning one corner moves the centre by half of every size change,
+             * so a coach pulling a corner outward to "see a bit more" watched
+             * the shot slide off what they had framed — and then `cameraRect`
+             * clamped it to the grass and slid it again. That is the whole of
+             * "it moves when I just want to expand" (user, 2026-08-27).
+             *
+             * Scaling about the middle makes the two gestures mean exactly one
+             * thing each: an edge MOVES the shot, a corner CHANGES HOW MUCH IS
+             * IN IT, and neither one does any of the other. It is also what the
+             * word zoom already means to everybody.
+             *
+             * The scale is the larger of the two axes' ratios rather than the
+             * diagonal distance, so dragging out sideways widens the frame even
+             * when the pointer has not travelled downward at all — a coach
+             * pulling a corner straight out along one axis is asking for more,
+             * and a diagonal-only reading would give them almost none of it.
+             */
+            const k = Math.max(
+              Math.abs(pu.x - mid.x) / reach.x,
+              Math.abs(pu.y - mid.y) / reach.y,
+            )
             // Never degenerate. `cameraRect` enforces the real floor on the way
             // out; this only stops a box of no width being stored on the way in.
             const min = crop.w * 0.08
-            const x0 = Math.min(anchor.x, pu.x)
-            const x1 = Math.max(anchor.x, pu.x)
-            const y0 = Math.min(anchor.y, pu.y)
-            const y1 = Math.max(anchor.y, pu.y)
-            box = { x: x0, y: y0, w: Math.max(min, x1 - x0), h: Math.max(min, y1 - y0) }
+            const w = Math.max(min, start.w * k)
+            const h = Math.max(min, start.h * k)
+            box = { x: mid.x - w / 2, y: mid.y - h / 2, w, h }
           }
 
           const a = unitsToPercent(view, box.x, box.y)
@@ -1238,7 +1391,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         () => seal(),
       )
     },
-    [bindGesture, view, patchAct, seal],
+    [bindGesture, view, patchAct, seal, tightest],
   )
 
   /**
@@ -1533,6 +1686,33 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               }))
               seal()
             }
+          } else if (isTextTool(tool)) {
+            /*
+             * ── PLACING WRITING ──────────────────────────────────────────────
+             *
+             * At `from` and not at `to`, so a click and a small accidental drag
+             * both put the words where the coach pressed. There is no minimum
+             * gesture to satisfy and no sliver to reject: unlike a zone, a text
+             * mark drawn by a twitch is a text mark in the right place.
+             *
+             * It is placed EMPTY and then selected, which is the whole design of
+             * this tool. The alternative is a prompt, and a prompt is a modal in
+             * front of a board — a coach cannot see what they are writing over
+             * while a dialog is covering it. Here the mark is on the grass from
+             * the first frame, the panel opens on it, and every keystroke lands
+             * on the board where they can judge it.
+             *
+             * `size: 'm'` and no other field: everything else is house default,
+             * resolved at draw time. Writing the defaults into the document
+             * would freeze today's house style into every note ever placed.
+             */
+            const id = uid('tx')
+            patchAct('text', (a) => ({
+              ...a,
+              texts: [...(a.texts ?? []), { id, x: from.x, y: from.y, text: '', size: 'm' }],
+            }))
+            seal()
+            setSelection({ kind: 'mark', id })
           }
           setPending(null)
           setSnapId(null)
@@ -1540,7 +1720,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
       )
     },
-    [act, actor, bindGesture, view, tool, patchAct, performAction, seal],
+    [act, actor, bindGesture, view, tool, patchAct, performAction, seal, setSelection],
   )
 
   // ── playback ───────────────────────────────────────────────────────────────
@@ -1675,6 +1855,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const closeExport = useCallback(() => {
     setSharing(false)
     setMakingVideo(false)
+    setExporting(false)
     const win = pendingWin.current
     pendingWin.current = null
     if (win && shouldAsk(guideRef.current)) {
@@ -1688,7 +1869,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   // Everything that means "not now" for the ask above. Recomputed every render,
   // which is exactly what a ref read from inside a timeout wants.
   busyRef.current =
-    playing || drawing || sharing || makingVideo || walkthrough || news || tooSmall || feedback !== null
+    playing ||
+    drawing ||
+    sharing ||
+    makingVideo ||
+    exporting ||
+    walkthrough ||
+    news ||
+    tooSmall ||
+    feedback !== null
   /**
    * A tool that takes the GRASS, as opposed to one that takes clicks on
    * players. Everything the board withholds while a mark is being drawn — the
@@ -1943,6 +2132,23 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }))
   }
 
+  /**
+   * Paint the coach's own kit onto this board.
+   *
+   * `withProfile` and not a hand-written patch, deliberately: it is the same
+   * function that paints a NEW board, so "use my kit" cannot come to mean
+   * something different from "start a board" the next time the kit grows a
+   * field. The last time that spelling was written out by hand at a call site
+   * it silently stopped covering the ring and the pattern — see `creditOnly`
+   * in ../account/cloud.ts, which exists because of exactly that.
+   */
+  const applyMyKit = () => {
+    const p = profile
+    if (!p) return
+    edit('kit:mine', (s) => withProfile(s, p))
+    seal()
+  }
+
   const applyLabels = (mode: LabelMode) => {
     setLabels(mode)
     edit('labels', (s) => ({
@@ -2100,6 +2306,23 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   }
 
   /**
+   * Change one field of the selected writing.
+   *
+   * `undefined` CLEARS a field rather than setting it, which is why every
+   * control below passes `v || undefined` when a coach picks the house value.
+   * A document that stores `size: 'm'` on every note has frozen today's default
+   * into itself; one that stores nothing gets whatever the house style is when
+   * it is next opened. Same policy the bands are on.
+   */
+  const patchText = (patch: Partial<TextMark>) => {
+    if (!selectedMarkId) return
+    patchAct('text-style', (a) => ({
+      ...a,
+      texts: (a.texts ?? []).map((x) => (x.id === selectedMarkId ? { ...x, ...patch } : x)),
+    }))
+  }
+
+  /**
    * Shade the space a side's deepest line is protecting.
    *
    * One block per side, replaced rather than stacked: two overlapping blocks for
@@ -2147,8 +2370,25 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const surface = resolveSurface(system.surface)
   const camera = resolveCamera(system.camera)
   const cameraMode = CAMERA_MODES.find((c) => c.id === camera) ?? CAMERA_MODES[0]
+  const push = resolvePush(system.push)
+  /*
+   * Whether the board already wears the profile's kit.
+   *
+   * Compared case-insensitively on the four fields the kit actually is. It only
+   * decides one line of type, so a false negative costs a coach one harmless
+   * press of a button — which is why it is a plain comparison and not something
+   * that has to resolve derived colours to be right.
+   */
+  const same = (a: string | undefined, b: string | undefined) =>
+    (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase()
+  const kitMatches =
+    Boolean(myKit) &&
+    same(system.teams.us.base, myKit) &&
+    same(system.teams.us.ring, profile?.kitRing) &&
+    same(system.teams.us.alt, profile?.kitAlt) &&
+    same(system.teams.us.pattern ?? 'solid', profile?.kitPattern || 'solid')
   // Read out in metres of grass rather than as a zoom factor — see ../camera.ts.
-  const frameWide = frameMetres(view, rendered.shot)
+  const frameWide = frameMetres(view, rendered.shot, tightest)
   const viewWide = viewMetres(view)
   const formationGroups = useMemo(
     () =>
@@ -2287,7 +2527,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           reading it is most of understanding what the studio does, which is why
           it stays on screen greyed rather than being taken away. */}
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1" {...inert}>
-        {(['select', ...ARROW_TOOL_IDS] as Tool[]).map((id) => (
+        {/* Text sits at the end of the rail with the arrows rather than down in
+            a panel, because it is a MARK a coach adds to a phase, and the rail
+            is where they already look for those. It was the one thing in the
+            studio you could not reach from here. */}
+        {(['select', ...ARROW_TOOL_IDS, TEXT_TOOL_ID] as Tool[]).map((id) => (
           <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom">
             <Button active={tool === id} onClick={() => setTool(id)} className="!px-2 lg:!px-2.5">
               {TOOL_DOC[id].label}
@@ -2340,6 +2584,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
         <Tip text={HINT.video} title="Video" side="bottom">
           <Button onClick={() => setMakingVideo(true)}>Video</Button>
+        </Tip>
+
+        {/* Images and the PDF. Up here with Share and Video rather than down a
+            panel, because it is the third thing a coach walks out of here with
+            and it was the one you could not reach without publishing first. */}
+        <Tip text={HINT.export} title="Images and PDF" side="bottom">
+          <Button onClick={() => setExporting(true)}>Export</Button>
         </Tip>
       </div>
 
@@ -2487,6 +2738,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 setSelection({ kind: 'mark', id })
               }
         }
+        /* The same bargain the arrow is on: the first press selects, the second
+           moves. On writing it matters more than anywhere else, because a text
+           mark's hit box is the whole block of words — the biggest target on
+           the board — and a coach clicking one to edit it must not find they
+           have shifted it half a metre in the process. */
+        onTextPointerDown={
+          playing || drawing
+            ? undefined
+            : (id, e) => {
+                e.stopPropagation()
+                if (selectedMarkId === id) beginTextDrag(id, e)
+                else setSelection({ kind: 'mark', id })
+              }
+        }
         /* Handles on the selected area only, and only with the Move tool. */
         onZonePointerDown={playing || drawing ? undefined : beginZoneDrag}
         onBallPointerDown={
@@ -2585,6 +2850,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         <>
           <span className="font-bold text-ink">{markName(selectedArrow, act)} selected.</span> Drag its ends onto
           counters, drag the middle to bow it, or press Delete to take it off.
+        </>
+      ) : selectedText ? (
+        <>
+          <span className="font-bold text-ink">Writing selected.</span> Type in the panel, drag the words to move
+          them, or press Delete to take them off.
         </>
       ) : selectedBand ? (
         // Its own sentence now that a shaded area has controls of its own.
@@ -2790,6 +3060,84 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </div>
       </Panel>
 
+      {/*
+       * ── YOUR CLUB ────────────────────────────────────────────────────────
+       *
+       * Only appears when there is something in the profile to offer. A panel
+       * that says "you have not set a kit" on every board a coach opens is a
+       * standing reproach for a thing most of them will never want; the door to
+       * setting one is on the portal, where they went to sign in.
+       */}
+      {(myKit || myCrest) && (
+        <Panel title="Your club">
+          {myKit && (
+            <>
+              <Tip
+                text="Paints your kit from Settings onto our side of this board: the colour, the ring, the pattern and its second colour. It changes this system only, and Undo puts it straight back."
+                title="Use my kit"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Button onClick={applyMyKit}>Use my kit</Button>
+                  {/* The kit itself, not a description of it. Three wells is
+                      the smallest honest preview: a coach with hoops needs to
+                      see the second colour is the one they set. */}
+                  <span className="flex items-center gap-1.5" aria-hidden="true">
+                    {[myKit, profile?.kitAlt.trim(), profile?.kitRing.trim()]
+                      .filter(Boolean)
+                      .map((hex, i) => (
+                        <span
+                          key={i}
+                          className="h-5 w-5 rounded-full border border-ink-hair"
+                          style={{ background: hex as string }}
+                        />
+                      ))}
+                  </span>
+                </div>
+              </Tip>
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                {kitMatches
+                  ? 'This board is already in your kit.'
+                  : 'This board is not in your kit yet. Our colour above changes the base only; this brings the whole kit across.'}
+              </p>
+            </>
+          )}
+
+          {myCrest && (
+            <div className={myKit ? 'mt-3 border-t border-ink-hair pt-3' : ''}>
+              <Tip
+                text="Draws your crest in the top-left corner of the board. It travels with the system into the share link, the print sheet, the images and the film."
+                title="Show my crest"
+                block
+              >
+                <Toggle
+                  checked={Boolean(system.showCrest)}
+                  onChange={(on) => {
+                    // The URL is written on the way ON and never taken off
+                    // again, so turning it back on is a toggle rather than a
+                    // trip to the settings page. See `crestUrl` in ../schema.ts.
+                    edit('crest', (sys) => ({
+                      ...sys,
+                      showCrest: on,
+                      crestUrl: on ? myCrest : sys.crestUrl,
+                    }))
+                    seal()
+                  }}
+                  label="Show my crest on the board"
+                />
+              </Tip>
+              <div className="mt-2 flex items-center gap-2">
+                <img src={myCrest} alt="" className="h-7 w-7 shrink-0 object-contain" />
+                <p className="text-[11px] leading-snug text-ink-faint">
+                  {system.showCrest
+                    ? 'Top-left of the board, on every phase.'
+                    : 'Off. The board stays as it is.'}
+                </p>
+              </div>
+            </div>
+          )}
+        </Panel>
+      )}
+
       <Panel title="Opposition">
         <Tip text={HINT.opposition} title="Show opposition" block>
           <Toggle checked={themHere} onChange={toggleOpposition} label={`Show opposition on ${PHASE.one} ${actIndex + 1}`} />
@@ -2880,6 +3228,27 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </p>
         {camera === 'follow' && (
           <>
+            {/*
+             * HOW FAR it goes, under WHETHER it goes. Two controls rather than
+             * five modes: "does the eye move" and "how close does it get" are
+             * different questions, and a coach who wants a calmer film should
+             * not have to find it under a heading that says Fixed.
+             */}
+            <div className="mt-3 border-t border-ink-hair pt-3">
+              <Field label="How far it pushes in">
+                <Segmented
+                  label="How far it pushes in"
+                  value={push.id}
+                  onChange={(id: CameraPush) => {
+                    edit('push', (s) => ({ ...s, push: id }))
+                    seal()
+                  }}
+                  options={CAMERA_PUSHES.map((c) => ({ value: c.id, label: c.label }))}
+                />
+              </Field>
+              <p className="-mt-1 text-[11px] leading-snug text-ink-faint">{push.hint}</p>
+            </div>
+
             <p className="mt-2 text-[11px] leading-snug text-ink-faint">
               {rendered.shot ? (
                 <>
@@ -2908,11 +3277,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
              */}
             <p className="mt-2 text-[11px] leading-snug text-ink-faint">
               {act.shot
-                ? 'Drag the box to move it, or a corner to change how tight it is.'
+                ? 'Drag an EDGE of the box to move it. Drag a CORNER to zoom, which grows the box around its middle and leaves the shot pointing where you put it.'
                 : rendered.shot
                   ? 'Worked out from what is on this ' +
                     PHASE.one +
-                    '. Drag the box, or a corner, to set it yourself.'
+                    '. Drag an edge to move it, a corner to zoom.'
                   : 'You can still frame it by hand.'}
             </p>
 
@@ -3119,7 +3488,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       tone: b.tone as BandTone | undefined,
       strength: b.strength as BandStrength | undefined,
     }).tone
-  const marks: { id: string; name: string; tone: string; kind: 'arrow' | 'band' }[] = [
+  const marks: { id: string; name: string; tone: string; kind: 'arrow' | 'band' | 'text' }[] = [
     ...act.arrows.map((a) => ({
       id: a.id,
       name: TOOL_DOC[a.kind].label,
@@ -3134,6 +3503,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       name: markName(b, act),
       tone: bandTone(b),
       kind: 'band' as const,
+    })),
+    // Named by its own first line, truncated. A list of four marks all called
+    // "Text" is a list you have to click through one at a time; a list that
+    // says "Hold until he commits" is a list you can read.
+    ...(act.texts ?? []).map((t) => ({
+      id: t.id,
+      name: textMarkName(t),
+      tone: resolveTextStyle(surface.palette, t).colour,
+      kind: 'text' as const,
     })),
   ]
 
@@ -3495,11 +3873,134 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </Tip>
           </div>
         </Panel>
+      ) : selectedText ? (
+        /*
+         * ── SELECTED WRITING ──────────────────────────────────────────────
+         *
+         * The words first and everything else under a rule, because that is the
+         * order a coach works in: they place a mark to say something, they type
+         * it, and only then do they decide how loud it is. A panel that opened
+         * on five appearance controls with an empty text box at the bottom
+         * would be asking them to dress a sentence they have not written.
+         */
+        <Panel title="Selected text">
+          <Field label="What it says">
+            <TextArea
+              value={selectedText.text}
+              onChange={(v) => patchText({ text: v })}
+              placeholder="Type on the board…"
+            />
+          </Field>
+          <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+            Every line you type is a line on the board. Drag the words to move them.
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-ink-hair pt-3">
+            <Field label="Size">
+              <Segmented
+                label="Size"
+                value={TEXT_SIZES.some((t) => t.id === selectedText.size) ? selectedText.size! : 'm'}
+                onChange={(v) => patchText({ size: v === 'm' ? undefined : v })}
+                options={TEXT_SIZES.map((t) => ({ value: t.id, label: t.label }))}
+              />
+            </Field>
+            <Field label="Weight">
+              <Segmented
+                label="Weight"
+                value={
+                  TEXT_WEIGHTS.some((t) => t.id === selectedText.weight) ? selectedText.weight! : 'black'
+                }
+                onChange={(v) => patchText({ weight: v === 'black' ? undefined : v })}
+                options={TEXT_WEIGHTS.map((t) => ({ value: t.id, label: t.label }))}
+              />
+            </Field>
+          </div>
+          <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+            {TEXT_SIZES.find((t) => t.id === (selectedText.size ?? 'm'))?.note}
+          </p>
+
+          <div className="mt-3">
+            <Field label="How it sits on the board">
+              <Segmented
+                label="How it sits on the board"
+                value={TEXT_LOOKS.some((t) => t.id === selectedText.look) ? selectedText.look! : 'halo'}
+                onChange={(v) => patchText({ look: v === 'halo' ? undefined : v })}
+                options={TEXT_LOOKS.map((t) => ({ value: t.id, label: t.label }))}
+              />
+            </Field>
+            <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+              {TEXT_LOOKS.find((t) => t.id === (selectedText.look ?? 'halo'))?.note}
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <Field label="Colour">
+              {/* The same nine the shaded areas are painted from, plus the
+                  board's own ink at the top. A second colour vocabulary for
+                  text would mean a caption and the area it names could not be
+                  made to match. */}
+              <Select
+                value={(selectedText.tone ?? 'ink') as string}
+                onChange={(v) => patchText({ tone: v === 'ink' ? undefined : v })}
+                options={[
+                  { value: 'ink', label: 'Board ink (default)' },
+                  ...BAND_TONES.map((t) => ({ value: t.id, label: t.label })),
+                ]}
+              />
+            </Field>
+            <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+              {BAND_TONES.find((t) => t.id === selectedText.tone)?.note ??
+                'The colour the rest of the board is written in.'}
+            </p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Field label="Aligned">
+              <Segmented
+                label="Aligned"
+                value={
+                  TEXT_ALIGNS.some((t) => t.id === selectedText.align) ? selectedText.align! : 'center'
+                }
+                onChange={(v) => patchText({ align: v === 'center' ? undefined : v })}
+                options={TEXT_ALIGNS.map((t) => ({ value: t.id, label: t.label }))}
+              />
+            </Field>
+            <Field label="Angle">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={-90}
+                  max={90}
+                  step={5}
+                  value={selectedText.angle ?? 0}
+                  onChange={(e) => patchText({ angle: Number(e.target.value) || undefined })}
+                  onPointerUp={seal}
+                  className="w-full accent-ink"
+                  aria-label="How far the writing is turned"
+                />
+                <span className="w-10 shrink-0 text-right text-[11px] font-bold tabular-nums text-ink-soft">
+                  {selectedText.angle ?? 0}°
+                </span>
+              </div>
+            </Field>
+          </div>
+          <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+            Turn it to write along a touchline or up a channel. Level reads best for everything else.
+          </p>
+
+          <div className="mt-3">
+            <Tip text={HINT.deleteMark} title="Delete" side="left">
+              <Button variant="danger" onClick={deleteSelection}>
+                Delete this text
+              </Button>
+            </Tip>
+          </div>
+        </Panel>
       ) : (
         <Panel title="Nothing selected">
           <p className="text-[11px] leading-relaxed text-ink-faint">
-            Click a counter to rename it, give it a role cue, or fade it back. Click an arrow or a shaded area to
-            change it or take it off. A player removed here is only gone from this {PHASE.one}.
+            Click a counter to rename it, give it a role cue, or fade it back. Click an arrow, a shaded area or a
+            piece of writing to change it or take it off. A player removed here is only gone from this {PHASE.one}.
           </p>
         </Panel>
       )}
@@ -3516,7 +4017,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       <Panel title={`Marks on this ${PHASE.one}`}>
         {marks.length === 0 ? (
           <p className="text-[11px] leading-relaxed text-ink-faint">
-            Nothing drawn yet. Pick Pass, Run, Carry, Press or Switch at the top and drag on the board.
+            Nothing drawn yet. Pick Pass, Run, Carry, Press or Switch at the top and drag on the board, or
+            pick Text and click where you want to write.
           </p>
         ) : (
           <>
@@ -3556,6 +4058,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                         ...a,
                         arrows: a.arrows.filter((x) => x.id !== m.id),
                         bands: a.bands.filter((b) => b.id !== m.id),
+                        texts: (a.texts ?? []).filter((x) => x.id !== m.id),
                       }))
                       seal()
                       if (selectedMarkId === m.id) setSelection(null)
@@ -3655,6 +4158,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           onClose={closeExport}
         />
       )}
+      {exporting && (
+        <ExportDialog
+          system={system}
+          actIndex={actIndex}
+          onSaved={() => recordWin('images')}
+          onClose={closeExport}
+        />
+      )}
       {feedback && (
         <FeedbackDialog
           context={feedback}
@@ -3667,13 +4178,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {/* The only one of the five that a locked board can raise, and the only
           one the other four can never stack under: nothing else here opens. */}
       {wall && <SignInWall onClose={() => setWall(false)} />}
+
     </>
   )
 
   // ── stacked: the board on top, one panel under it ──────────────────────────
   if (stacked) {
     return (
-      <div className="flex h-[100dvh] flex-col bg-paper-deep text-ink">
+      <>
+      {/* `tf-screen` so printing takes the whole editor off the page and leaves
+          the print sheet below it. See src/styles/global.css. */}
+      <div className="tf-screen flex h-[100dvh] flex-col bg-paper-deep text-ink">
         {toolbar}
         <main className="flex shrink-0 select-none flex-col items-center gap-2 p-3">
           <div className="flex h-[36dvh] min-h-[180px] w-full items-center justify-center">{boardStage}</div>
@@ -3705,12 +4220,39 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </div>
         {overlays}
       </div>
+
+      {/*
+       * ── THE PDF ─────────────────────────────────────────────────────────────
+       *
+       * Always in the document and never on screen: `display: none` until the
+       * browser is printing, at which point this IS the page and `.tf-screen`
+       * above is the part that disappears. The same sheet the shared viewer
+       * prints (../viewer/PrintSheet.tsx), which is the property that matters —
+       * a coach's own PDF and the one their assistant gets off the link are the
+       * same document.
+       *
+       * OUTSIDE the `.tf-screen` element and not inside `overlays`, which is
+       * where it was first put. `@media print` hides `.tf-screen` with an
+       * `!important`, so a print sheet nested in it inherits the hiding and the
+       * PDF comes out as one blank page — a fault that is invisible in the
+       * editor and only shows up in the print preview.
+       *
+       * It is in the tree at all times rather than behind a button because
+       * printing is the browser's own gesture: Cmd-P has to work, and the
+       * Export dialog's PDF button is a second door onto the same thing rather
+       * than the only one. The cost is one hidden render of every phase's board
+       * per keystroke, and boards are cheap — the viewer has always carried
+       * exactly this.
+       */}
+      <PrintSheet system={system} />
+    </>
     )
   }
 
   // ── wide: panel, board, panel ──────────────────────────────────────────────
   return (
-    <div className="flex h-[100dvh] min-h-[620px] flex-col bg-paper-deep text-ink">
+    <>
+    <div className="tf-screen flex h-[100dvh] min-h-[620px] flex-col bg-paper-deep text-ink">
       {toolbar}
 
       <div className="flex min-h-0 flex-1">
@@ -3736,6 +4278,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {phaseStrip}
       {overlays}
     </div>
+
+      {/* Outside `.tf-screen`. See the stacked layout above for why. */}
+      <PrintSheet system={system} />
+    </>
   )
 }
 
@@ -3756,6 +4302,20 @@ function rectOf(a: { x: number; y: number }, b: { x: number; y: number }) {
 function tokenLabel(id: string | undefined, act: Act | undefined): string | null {
   if (!id || !act) return null
   return act.tokens.find((t) => t.id === id)?.label ?? null
+}
+
+/**
+ * What a text mark is called in the list of marks.
+ *
+ * Its own first line, because that is what it IS. Trimmed to something that
+ * fits a narrow panel without wrapping, and with the ellipsis added only when
+ * something was actually cut — a name that ends in "…" when nothing was removed
+ * is a small lie that makes a coach look for text that is not there.
+ */
+function textMarkName(t: { text: string }): string {
+  const first = (t.text ?? '').split('\n')[0].trim()
+  if (!first) return 'Empty text'
+  return first.length > 24 ? `${first.slice(0, 24).trimEnd()}…` : first
 }
 
 function markName(mark: Arrow | Band, act: Act): string {

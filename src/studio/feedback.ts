@@ -80,7 +80,7 @@ const OPEN_ASK_CHANCE = 0.25
  * from somebody who opened the studio and did nothing are two different facts,
  * and the second is the one that says something is missing.
  */
-export type FeedbackContext = 'share' | 'video' | 'open'
+export type FeedbackContext = 'share' | 'video' | 'images' | 'open'
 
 /**
  * Should this win be the one that asks?

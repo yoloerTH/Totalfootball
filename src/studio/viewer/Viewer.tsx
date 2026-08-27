@@ -33,7 +33,8 @@ import { resolveAct, tweenActs } from '../tween'
 import { fetchShared, idFromPath, systemFromHash, templateIdFromUrl } from '../share'
 import type { System } from '../schema'
 import { BuildCta } from './BuildCta'
-import { CreditBar, formatDate } from './CreditBar'
+import { PrintSheet } from './PrintSheet'
+import { CreditBar } from './CreditBar'
 import { Mark } from './Mark'
 import { STUDIO_EVENTS, track } from '../track'
 
@@ -381,61 +382,5 @@ function Step({ dir, onClick, disabled }: { dir: 'left' | 'right'; onClick: () =
         />
       </svg>
     </button>
-  )
-}
-
-/**
- * Every phase, one per page. Hidden on screen, shown by the print stylesheet.
- *
- * It is built as real DOM rather than generated on demand for one reason worth
- * keeping: the thing that prints is the thing that was on screen. There is no
- * export path with its own bugs, no fonts to embed, no ball to inline — the
- * browser already has all of it loaded, and it prints the SVG as vector.
- */
-function PrintSheet({ system }: { system: System }) {
-  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
-  const credit = system.credit
-
-  return (
-    <div className="tf-print" aria-hidden="true">
-      {/* cover */}
-      <section className="tf-slide tf-cover">
-        <div className="tf-cover-mid">
-          <Mark size={54} ink="#161618" />
-          <h1 className="tf-cover-title">{system.title || 'A tactical system'}</h1>
-          {system.subtitle && <p className="tf-cover-sub">{system.subtitle}</p>}
-          <p className="tf-cover-meta">
-            {[credit?.presenter, credit?.team].filter(Boolean).join(' · ')}
-            {credit?.note ? ` · ${credit.note}` : ''}
-          </p>
-          <p className="tf-cover-date">{formatDate(credit?.sharedOn)}</p>
-        </div>
-        <p className="tf-cover-foot">
-          {system.acts.length} {system.acts.length === 1 ? 'phase' : 'phases'} · Made with Total Football
-        </p>
-      </section>
-
-      {system.acts.map((a, i) => (
-        <section key={a.id} className="tf-slide">
-          <header className="tf-slide-head">
-            <span className="tf-slide-n">
-              {i + 1} / {system.acts.length}
-            </span>
-            <h2 className="tf-slide-title">{a.title || `Phase ${i + 1}`}</h2>
-          </header>
-
-          <div className="tf-slide-board" style={{ aspectRatio: aspect(view) }}>
-            <Board system={system} act={resolveAct(a, system)} idp={`print-${a.id}`} />
-          </div>
-
-          {a.caption && <p className="tf-slide-caption">{a.caption}</p>}
-          {a.notes && <p className="tf-slide-notes">{a.notes}</p>}
-
-          <div className="tf-slide-credit">
-            <CreditBar credit={credit} compact cta={false} />
-          </div>
-        </section>
-      ))}
-    </div>
   )
 }

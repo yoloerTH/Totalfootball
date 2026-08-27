@@ -187,6 +187,27 @@ export interface GuideState {
    * should not be asked again every time they open the tab on the same phone.
    */
   smallOk: boolean
+  /**
+   * ── THE PROFILE NUDGE ────────────────────────────────────────────────────
+   *
+   * When the portal last offered to help finish the coach's profile, how many
+   * times it has, and whether they have told it to stop.
+   *
+   * THREE FIELDS AND NOT ONE FLAG, because the thing being modelled is not
+   * "have they seen it" but "how often is it fair to ask". A profile is worth
+   * completing — it is what puts a coach's name and kit and crest on every
+   * board they share — and a single latch would mean asking once, on the day
+   * they were least likely to care, and never again. A boolean per visit would
+   * mean asking every time, which is how a good prompt becomes an advert.
+   *
+   * So: an escalating cadence, in `shouldNudge` (../account/completion.ts).
+   * Kept HERE with the rest of the teaching state rather than on the profile
+   * row, because it is a fact about this browser's relationship with the tool
+   * and not about the coach — the same reason `seen` and `newsSeen` are local.
+   */
+  profileNudgedAt: number
+  profileNudges: number
+  profileNudgeOff: boolean
 }
 
 const GUIDE_DEFAULTS: GuideState = {
@@ -202,6 +223,9 @@ const GUIDE_DEFAULTS: GuideState = {
   feedbackAskedAt: 0,
   feedbackSentAt: 0,
   smallOk: false,
+  profileNudgedAt: 0,
+  profileNudges: 0,
+  profileNudgeOff: false,
 }
 
 export function readGuide(): GuideState {

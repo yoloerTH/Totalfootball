@@ -46,10 +46,10 @@ import {
   unitsToPercent,
 } from './pitch'
 import type { PitchView } from './pitch'
-import { cameraRect, cameraViewBox } from '../camera'
+import { cameraRect, cameraViewBox, resolvePush } from '../camera'
 import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
-import { Arrow, BlockBand, Zone, arrowGeometry, arrowRim } from './Overlays'
+import { Arrow, BlockBand, TextNote, Zone, arrowGeometry, arrowRim } from './Overlays'
 import type { Pt } from './Overlays'
 import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
@@ -126,11 +126,28 @@ interface Props {
   /** Passing this makes the ball draggable; without it the ball is inert. */
   onBallPointerDown?: (e: React.PointerEvent<SVGGElement>) => void
   /**
+   * Pressing a piece of writing: selects it, and starts dragging it.
+   *
+   * Withheld exactly like every other mark handler while a tool is drawing —
+   * see the note on the token handler — because a drag across the grass must
+   * not be stolen by whatever text happens to be sitting under it.
+   */
+  onTextPointerDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
+  /**
    * Override for the ball's image, as a `data:` URI. Export only: the live
    * editor draws from the public path, which a canvas cannot fetch out of a
    * serialised SVG. See ../balls.ts `inlineBall`.
    */
   ballHref?: string
+  /**
+   * The club crest, drawn in the corner. Same contract as `ballHref`: a plain
+   * URL on a live board, a `data:` URI in an export, and resolved by the CALLER
+   * because a canvas will not fetch anything out of a serialised SVG. Falls
+   * back to `system.crestUrl` when nothing is passed, so the editor, the shared
+   * viewer and the print sheet all get it for free and only the rasterising
+   * exporters have to think about it.
+   */
+  crestHref?: string
   /**
    * Storage path → a drawable URL for a player's photograph.
    *
@@ -213,6 +230,31 @@ const FRAME_CORNERS: { part: FramePart; fx: number; fy: number; cursor: string }
   { part: 'se', fx: 1, fy: 1, cursor: 'nwse-resize' },
 ]
 
+/**
+ * The four strips of outline that MOVE the frame, with the corners cut out.
+ *
+ * `band` is how thick each strip is and `gap` is how much of each end belongs
+ * to the corner instead. Everything is clamped at zero so a frame narrower than
+ * two corner squares degrades to no move band rather than to rectangles with
+ * negative widths, which draw nothing and would take the corners with them —
+ * and a frame that small cannot happen anyway, because the camera's own floor
+ * is 45% of the crop and two corner squares are about 14% of it.
+ */
+function FRAME_EDGES(
+  f: { x: number; y: number; w: number; h: number },
+  band: number,
+  gap: number,
+): { part: string; x: number; y: number; width: number; height: number }[] {
+  const midW = Math.max(0, f.w - gap * 2)
+  const midH = Math.max(0, f.h - gap * 2)
+  return [
+    { part: 'n', x: f.x + gap, y: f.y, width: midW, height: band },
+    { part: 's', x: f.x + gap, y: f.y + f.h - band, width: midW, height: band },
+    { part: 'w', x: f.x, y: f.y + gap, width: band, height: midH },
+    { part: 'e', x: f.x + f.w - band, y: f.y + gap, width: band, height: midH },
+  ]
+}
+
 export function Board({
   system,
   act,
@@ -225,12 +267,14 @@ export function Board({
   onArrowPointerDown,
   onArrowGripPointerDown,
   onBandPointerDown,
+  onTextPointerDown,
   onZonePointerDown,
   onBallPointerDown,
   onBackgroundPointerDown,
   onFramePointerDown,
   ballHref,
   photoHrefs,
+  crestHref,
   mode = 'move',
   className,
   svgRef,
@@ -241,13 +285,34 @@ export function Board({
   const crop = cropRect(view)
   // The camera. `showFrame` inverts it: outline the shot rather than move to it.
   const shot = showFrame ? null : act.shot
-  const frame = showFrame && act.shot ? cameraRect(view, act.shot) : null
+  // How close this system's camera is allowed to get. It bounds the drawn
+  // outline for the same reason it bounds the film: below it there is not
+  // enough pitch on screen to tell where you are. See ../camera.ts.
+  const tightest = resolvePush(system.push).tightest
+  const frame = showFrame && act.shot ? cameraRect(view, act.shot, tightest) : null
   // A grip, in board units. Proportional to the crop so it is the same size on
   // screen whether the system is a full pitch or a penalty box.
-  const grip = crop.w * 0.021
+  const grip = crop.w * 0.026
   /** The grab band along the outline, and how far the corners sit inside it. */
-  const hit = grip * 1.5
+  const hit = grip * 1.6
   const inset = grip * 0.34
+  /**
+   * The square at each corner that belongs to RESIZE and to nothing else.
+   *
+   * This is the fix for the frame being "hard to expand" (user, 2026-08-27).
+   * The move band used to run the whole way round the outline with the four
+   * grips sitting on top of it, so every press within about a grip's width of a
+   * corner was a coin toss between grabbing the corner and grabbing the edge —
+   * and losing the toss moved the frame instead of resizing it, which looks
+   * exactly like the tool ignoring you. Now the corners are cut OUT of the move
+   * band rather than laid over it: a press in this square can only ever resize,
+   * and a press on an edge can only ever move. No overlap, so no coin toss.
+   *
+   * Generous, because the thing being aimed at is a finger on a phone. At the
+   * camera's own floor of 0.45 of the crop the four corner squares still take
+   * up well under a third of the outline, so there is plenty of edge left.
+   */
+  const corner = grip * 2.7
   // The surface is read here and nowhere else. Everything under this <svg> takes
   // it from context, so there is no component that can be left drawing in
   // paper's ink on a night pitch — see ./surfaces.ts.
@@ -261,7 +326,7 @@ export function Board({
     <SurfaceContext.Provider value={surface.palette}>
     <svg
       ref={svgRef}
-      viewBox={cameraViewBox(view, shot)}
+      viewBox={cameraViewBox(view, shot, tightest)}
       className={className}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
@@ -472,6 +537,66 @@ export function Board({
         )}
 
         {/*
+         * Writing, over everything the coach has drawn and over the players.
+         *
+         * LAST of the marks, on purpose. A caption is the one thing on the
+         * board that is addressed to the reader rather than describing the
+         * football, so it must never end up behind a counter that happened to
+         * be dragged onto it — a shaded area half-covering a player is
+         * information, and a shaded area half-covering a sentence is a fault.
+         */}
+        {(act.texts ?? []).map((t) => {
+          const q = pos(t.x, t.y)
+          return (
+            <g key={t.id} opacity={t.opacity}>
+              <TextNote
+                mark={t}
+                cx={q.x}
+                cy={q.y}
+                active={activeMarkId === t.id}
+                onPointerDown={
+                  onTextPointerDown ? (e) => onTextPointerDown(t.id, e) : undefined
+                }
+              />
+            </g>
+          )
+        })}
+
+        {/*
+         * ── THE CLUB CREST ───────────────────────────────────────────────────
+         *
+         * A watermark, in the top-left of the CROP.
+         *
+         * Positioned off the crop rather than off the pitch, so it lands in the
+         * same corner of the picture on all five views and on both
+         * orientations — a badge that wanders to a different place when a coach
+         * crops to the final third is not a mark, it is a loose object.
+         *
+         * The size is a fraction of the crop for the same reason the counters
+         * are metres: it has to be the same size on screen whatever is being
+         * shown. It sits UNDER the camera frame and over everything else, and
+         * it never takes the pointer — there is nothing here to press, and a
+         * badge that ate a drag on a full-back standing in the corner would be
+         * a bug with a very long repro.
+         *
+         * `meet`, not `slice`: a crest is somebody's club badge and it is not
+         * ours to crop. A tall one letterboxes inside its square, which is the
+         * correct answer and looks like nothing at all.
+         */}
+        {system.showCrest && (crestHref ?? system.crestUrl) && (
+          <image
+            href={crestHref ?? system.crestUrl}
+            x={crop.x + crop.w * 0.026}
+            y={crop.y + crop.w * 0.026}
+            width={crop.w * 0.075}
+            height={crop.w * 0.075}
+            preserveAspectRatio="xMidYMid meet"
+            opacity={0.92}
+            pointerEvents="none"
+          />
+        )}
+
+        {/*
          * The camera's frame, while posing. Everything outside it is knocked
          * back rather than hidden: a coach needs to see that the full-back they
          * just dragged is OUT of shot, which a hard mask would not tell them —
@@ -525,31 +650,53 @@ export function Board({
                  * not targets at all. Inset by half its own width so the band
                  * lies just inside the line the coach can see.
                  */}
-                <rect
-                  x={frame.x + hit / 2}
-                  y={frame.y + hit / 2}
-                  width={Math.max(0, frame.w - hit)}
-                  height={Math.max(0, frame.h - hit)}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth={hit}
-                  style={{ cursor: 'move' }}
-                  onPointerDown={(e) => onFramePointerDown('move', e)}
-                />
-                {FRAME_CORNERS.map(({ part, fx, fy, cursor }) => (
+                {/*
+                 * MOVE lives on the four edges, and the edges stop short of the
+                 * corners. Four rectangles rather than one fat stroked outline
+                 * because a stroke cannot have a hole cut in it — see `corner`
+                 * above for why the hole is the whole point.
+                 */}
+                {FRAME_EDGES(frame, hit, corner).map(({ part, ...r }) => (
                   <rect
                     key={part}
-                    x={frame.x + inset + fx * Math.max(0, frame.w - grip - inset * 2)}
-                    y={frame.y + inset + fy * Math.max(0, frame.h - grip - inset * 2)}
-                    width={grip}
-                    height={grip}
-                    rx={grip * 0.22}
-                    fill={surface.palette.gold}
-                    stroke={surface.palette.halo}
-                    strokeWidth={grip * 0.14}
-                    style={{ cursor }}
-                    onPointerDown={(e) => onFramePointerDown(part, e)}
+                    {...r}
+                    fill="transparent"
+                    style={{ cursor: 'move' }}
+                    onPointerDown={(e) => onFramePointerDown('move', e)}
                   />
+                ))}
+
+                {FRAME_CORNERS.map(({ part, fx, fy, cursor }) => (
+                  <g key={part}>
+                    {/*
+                     * The target, and then the thing you can see. They are two
+                     * elements because they want to be two sizes: a 2.7-grip
+                     * square is what a thumb needs and a grip-sized square is
+                     * what the eye needs, and drawing the big one in gold would
+                     * put four dinner plates on the coach's board.
+                     */}
+                    <rect
+                      x={frame.x + fx * Math.max(0, frame.w - corner)}
+                      y={frame.y + fy * Math.max(0, frame.h - corner)}
+                      width={corner}
+                      height={corner}
+                      fill="transparent"
+                      style={{ cursor }}
+                      onPointerDown={(e) => onFramePointerDown(part, e)}
+                    />
+                    <rect
+                      x={frame.x + inset + fx * Math.max(0, frame.w - grip - inset * 2)}
+                      y={frame.y + inset + fy * Math.max(0, frame.h - grip - inset * 2)}
+                      width={grip}
+                      height={grip}
+                      rx={grip * 0.22}
+                      fill={surface.palette.gold}
+                      stroke={surface.palette.halo}
+                      strokeWidth={grip * 0.14}
+                      pointerEvents="none"
+                      style={{ cursor }}
+                    />
+                  </g>
                 ))}
               </g>
             )}

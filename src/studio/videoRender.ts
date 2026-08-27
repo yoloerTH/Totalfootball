@@ -85,6 +85,14 @@ import {
   type VideoFile,
   type VideoOptions,
 } from './video'
+import {
+  imageSize,
+  imagesSupported,
+  resolveImageShape,
+  resolveImageSize,
+  type ImageFile,
+  type ImageOptions,
+} from './image'
 import { formatDate } from './viewer/CreditBar'
 import { Mark } from './viewer/Mark'
 
@@ -171,9 +179,19 @@ function frameSvg(
   photoHrefs: Record<string, string>,
   css: string,
   view: PitchView,
+  crestHref?: string,
 ): string {
   const markup = renderToStaticMarkup(
-    createElement(Board, { system, act, idp: 'vid', texture: false, ballHref, photoHrefs, view }),
+    createElement(Board, {
+      system,
+      act,
+      idp: 'vid',
+      texture: false,
+      ballHref,
+      photoHrefs,
+      crestHref,
+      view,
+    }),
   )
   const end = openTagEnd(markup)
   const style = `<style>svg{width:${w}px!important;height:${h}px!important}${css}</style>`
@@ -661,6 +679,49 @@ async function rasterMark(size: number, ink: string): Promise<HTMLCanvasElement 
   }
 }
 
+// ── the crest ────────────────────────────────────────────────────────────────
+
+const crests = new Map<string, string | null>()
+
+/**
+ * The club crest as a `data:` URI, or null.
+ *
+ * The third external reference on the board, and it pays the same tax as the
+ * ball and the faces: a canvas will not fetch a URL out of a serialised SVG,
+ * and it does not error when it fails — the crest is simply gone from the file
+ * and nothing says so. See the header of ../board/Board.tsx.
+ *
+ * `crests` is a PUBLIC bucket, so unlike a player photograph this needs no
+ * signing and no session; it is inlined only because of the canvas, not because
+ * of access. Cached by URL for the same reason the ball is: one export writes
+ * every phase, and re-fetching the same badge per picture is the difference
+ * between an export that feels instant and one that feels broken.
+ *
+ * Null on any failure, which costs the crest and never the export.
+ */
+async function inlineCrest(system: System): Promise<string | null> {
+  if (!system.showCrest || !system.crestUrl) return null
+  const url = system.crestUrl
+  const cached = crests.get(url)
+  if (cached !== undefined) return cached
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(String(res.status))
+    const blob = await res.blob()
+    const uri = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result))
+      fr.onerror = () => reject(fr.error)
+      fr.readAsDataURL(blob)
+    })
+    crests.set(url, uri)
+    return uri
+  } catch {
+    crests.set(url, null)
+    return null
+  }
+}
+
 // ── the export ───────────────────────────────────────────────────────────────
 
 function slug(title: string): string {
@@ -693,12 +754,13 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
 
   // Everything that is fetched rather than computed, up front: a failure here
   // should happen before the coach has watched a progress bar for a minute.
-  const [css, ball, photos] = await Promise.all([
+  const [css, ball, photos, crest] = await Promise.all([
     boardFontCss(),
     inlineBall(resolveBall(system.matchBall).id),
     // `[]` when nobody on the board has a photograph, which resolves to `{}`
     // without a single request. The common case costs nothing.
     inlinePhotos(photoPaths(system)),
+    inlineCrest(system),
   ])
   await document.fonts.ready
   // Once, up front: it is the same picture on all four hundred frames.
@@ -807,7 +869,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
             ? resolveAct(system.acts[tl.index], drawSystem)
             : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p, drawSystem)
         lastBoard = await raster(
-          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view),
+          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view, crest ?? undefined),
           l.w,
           l.h,
         )
@@ -848,4 +910,143 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
     ext,
     seconds: totalMs / 1000,
   }
+}
+
+// ── stills ───────────────────────────────────────────────────────────────────
+
+/**
+ * Every phase, as a PNG.
+ *
+ * ── WHY IT IS IN THIS FILE ──────────────────────────────────────────────────
+ *
+ * Because it is the film's own pipeline with the loop taken out. `frameView`,
+ * `layout`, `frameSvg`, `raster` and `drawChrome` are the five things that
+ * decide what an exported picture of this board looks like, and a still that
+ * built its own version of any of them would drift from the video the first
+ * time either was touched. A PNG out of here is bit-for-bit a frame of the
+ * film, which is the property worth having: what a coach approves in the
+ * preview is what lands in all three exports.
+ *
+ * The parts that genuinely differ are few and all of them are about it being a
+ * PICTURE rather than a strip of time:
+ *
+ *  · A SQUARE shape exists here and not there (see ../image.ts).
+ *  · The chrome can be turned off, because a board going into a coach's own
+ *    slide deck is already under their own title.
+ *  · The progress bar along the bottom edge would be a lie on a still — it
+ *    measures how far through the film you are, and a photograph is not
+ *    anywhere through anything. `drawChrome` takes the phase's own position in
+ *    the system instead, so the hairline reads as "3 of 5" rather than as a
+ *    video that has stopped.
+ *
+ * ── AND WHY IT RASTERISES RATHER THAN SAVING THE SVG ────────────────────────
+ *
+ * An SVG would be smaller, sharper at every size, and useless: it cannot be
+ * pasted into WhatsApp, most slide tools import it badly or not at all, and a
+ * phone will not put it in the photo roll. The whole errand this export serves
+ * is "send a picture of this to somebody", and PNG is the only format that
+ * always survives that trip.
+ */
+export async function renderStills(
+  system: System,
+  opts: ImageOptions = {},
+): Promise<ImageFile[]> {
+  if (!imagesSupported()) throw new Error('This browser cannot make image files.')
+
+  const shape = resolveImageShape(opts.shape)
+  const size = resolveImageSize(opts.size)
+  const frame = imageSize(shape, size)
+  const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
+  const l = layout(frame)
+  const chrome = opts.chrome !== false
+
+  /*
+   * Which phases, sanitised rather than trusted. This is reachable from a
+   * script and from the dialog, and an index that is off the end would throw
+   * inside the loop after some of the pictures had already been written —
+   * which is the worst possible place to fail, because the coach has files.
+   */
+  const wanted = (opts.phases ?? system.acts.map((_, i) => i)).filter(
+    (i) => Number.isInteger(i) && i >= 0 && i < system.acts.length,
+  )
+  if (wanted.length === 0) throw new Error('There is no phase to export.')
+
+  // Everything fetched rather than computed, up front — the same order and the
+  // same reasoning as `renderVideo`.
+  const [css, ball, photos, crest] = await Promise.all([
+    boardFontCss(),
+    inlineBall(resolveBall(system.matchBall).id),
+    inlinePhotos(photoPaths(system)),
+    inlineCrest(system),
+  ])
+  await document.fonts.ready
+
+  const p = resolveSurface(system.surface).palette
+  const mark = chrome ? await rasterMark(l.markSize, p.ink) : null
+
+  // A ball that could not be inlined becomes the drawn vector ball, rather than
+  // an <image> pointing at a path the canvas will not follow. Same call as the
+  // film makes, for the same reason.
+  const drawSystem: System = ball ? system : { ...system, matchBall: 'classic' }
+  const ballHref = ball ?? undefined
+
+  const canvas = document.createElement('canvas')
+  canvas.width = l.w
+  canvas.height = l.h
+  const ctx = canvas.getContext('2d', { alpha: false })!
+
+  const name = slug(system.title)
+  const files: ImageFile[] = []
+
+  for (let n = 0; n < wanted.length; n++) {
+    if (opts.signal?.aborted) throw new DOMException('Export stopped', 'AbortError')
+    const i = wanted[n]
+
+    const act = resolveAct(system.acts[i], drawSystem)
+    const board = await raster(
+      frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view, crest ?? undefined),
+      l.w,
+      l.h,
+    )
+    ctx.drawImage(board, 0, 0)
+
+    if (chrome) {
+      drawChrome(
+        ctx,
+        l,
+        system,
+        // A still is not mid-transition, so the words are this phase's own at
+        // full strength with no drift. That is what `{alpha: 1, dy: 0}` says.
+        { index: i, alpha: 1, dy: 0 },
+        // Where this phase sits in the system, NOT how far through a render we
+        // are. See the header.
+        (i + 1) / system.acts.length,
+        mark,
+        Boolean(opts.date),
+        p,
+      )
+    }
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) throw new Error('This browser would not write the picture.')
+
+    files.push({
+      blob,
+      /*
+       * Numbered, zero-padded, one-based.
+       *
+       * Padded because ten phases sort as 1, 10, 2 in every file manager and
+       * photo roll on earth, and a coach who exports a ten-phase system and
+       * finds it out of order will not blame their file manager. One-based
+       * because it matches what the panel, the board and the printed page all
+       * call this phase.
+       */
+      filename: `${name}-${String(i + 1).padStart(2, '0')}.png`,
+      phase: i + 1,
+    })
+
+    opts.onProgress?.((n + 1) / wanted.length)
+  }
+
+  return files
 }

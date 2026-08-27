@@ -37,6 +37,10 @@ import { TEMPLATES, type Template } from '../templates'
 import { resolveAct } from '../tween'
 import { Mark } from '../viewer/Mark'
 import { useSession, signOut } from './session'
+import { loadProfile } from './cloud'
+import { profileCompletion, shouldNudge, type Completion } from './completion'
+import { ProfileNudge } from './ProfileNudge'
+import { readGuide, writeGuide } from '../storage'
 import {
   claimLocalSystems,
   deleteCloudSystem,
@@ -59,6 +63,18 @@ export default function Portal() {
   const [systems, setSystems] = useState<CloudSystem[]>([])
   const [load, setLoad] = useState<Load>('working')
   const [claimed, setClaimed] = useState(0)
+
+  /*
+   * ── FINISHING THE PROFILE ────────────────────────────────────────────────
+   *
+   * Held as one nullable value rather than as `{ completion, open }`, because
+   * there is no state in which the panel is open without something to say. Null
+   * is "nothing to offer", which covers a complete profile, a coach who has
+   * turned it off, one who was asked too recently, and a failed fetch — all of
+   * which should behave identically, and none of which is worth telling anybody
+   * about. See ./completion.ts for the cadence.
+   */
+  const [nudge, setNudge] = useState<Completion | null>(null)
 
   // Signed out: go and sign in, and come back here afterwards.
   useEffect(() => {
@@ -93,6 +109,56 @@ export default function Portal() {
     if (status !== 'in' || !user) return
     void refresh(user.id, true)
   }, [status, user, refresh])
+
+  /*
+   * Decided once the shelf has landed, and never before it.
+   *
+   * `load` is in the dependencies for a real reason: the cadence needs to know
+   * how long this coach has been using the tool, and the honest answer to that
+   * is on the shelf — the date of the oldest system they own. Asking before the
+   * fetch resolves would read an empty shelf and conclude they are brand new,
+   * which is precisely the coach the prompt is supposed to leave alone.
+   *
+   * A failed profile fetch is silence. There is nothing here worth an error
+   * message: the coach came to open a system, and a portal that greets them
+   * with "we could not check your profile" has made their day worse over
+   * something that was never their business.
+   */
+  useEffect(() => {
+    if (status !== 'in' || load === 'working') return
+    let live = true
+    void loadProfile().then((profile) => {
+      if (!live || !profile) return
+      const completion = profileCompletion(profile)
+      // The oldest thing on the shelf, as a timestamp. `updated` is an ISO
+      // string off the row; an unparseable one becomes 0, which reads as "no
+      // history" and holds the prompt back rather than firing it wrongly.
+      const oldest = systems.reduce((min, r) => {
+        const t = Date.parse(r.updated)
+        return Number.isFinite(t) ? (min === 0 ? t : Math.min(min, t)) : min
+      }, 0)
+      if (!shouldNudge(completion, readGuide(), oldest)) return
+      /*
+       * Stamped when it is SHOWN, not when it is answered.
+       *
+       * Dismissing is an answer for our purposes, and so is ignoring it — the
+       * same policy the feedback ask is on (../feedback.ts). A coach who left
+       * the panel sitting in the corner and got on with their session has been
+       * asked, and must not be asked again tomorrow because they never pressed
+       * anything.
+       */
+      writeGuide({ profileNudgedAt: Date.now(), profileNudges: readGuide().profileNudges + 1 })
+      track(STUDIO_EVENTS.profileNudge, `shown:${completion.done}of${completion.total}`)
+      setNudge(completion)
+    })
+    return () => {
+      live = false
+    }
+    // `systems` is read for the oldest date only, and re-running this on every
+    // rename would re-show a panel the coach has just dismissed. `load` moving
+    // off 'working' is the one transition that matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, load])
 
   const create = useCallback(() => {
     // Written locally before we navigate, so the editor opens on a real
@@ -179,7 +245,24 @@ export default function Portal() {
                 {user.email}
               </span>
             )}
-            <a href="/studio/settings/" className={QUIET}>
+            {/*
+              Ringed while the panel is up, and only while it is up.
+              
+              The panel says WHAT is missing; this says WHERE. A prompt with its
+              own button teaches a coach nothing about the page they will need
+              again next month, and a ringed link with no explanation is a
+              decoration — the two of them together are the whole point of
+              docking the panel rather than putting it in a modal over the top
+              of this. See ./ProfileNudge.tsx.
+            */}
+            <a
+              href="/studio/settings/"
+              className={`${QUIET} ${
+                nudge
+                  ? 'relative bg-ink-hair text-ink ring-2 ring-inset ring-ink/20 motion-safe:animate-pulse'
+                  : ''
+              }`}
+            >
               Personal settings
             </a>
             <button
@@ -239,6 +322,21 @@ export default function Portal() {
       )}
 
       <OursToStartFrom />
+
+      {nudge && (
+        <ProfileNudge
+          completion={nudge}
+          onClose={() => {
+            track(STUDIO_EVENTS.profileNudge, 'dismissed')
+            setNudge(null)
+          }}
+          onNever={() => {
+            track(STUDIO_EVENTS.profileNudge, 'never')
+            writeGuide({ profileNudgeOff: true })
+            setNudge(null)
+          }}
+        />
+      )}
     </div>
   )
 }
