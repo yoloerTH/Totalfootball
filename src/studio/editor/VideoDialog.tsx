@@ -29,7 +29,7 @@ import {
   type VideoQuality,
   type VideoShape,
 } from '../video'
-import { Button, Field, Segmented, Toggle } from './ui'
+import { Button, Field, Modal, Segmented, Toggle } from './ui'
 import { PaceField } from './PaceField'
 import { VIDEO } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
@@ -152,26 +152,55 @@ export function VideoDialog({
 
   const working = status === 'working'
 
+  /*
+   * ── WHY THIS IS A `Modal` NOW ───────────────────────────────────────────
+   *
+   * This is the tallest dialog in the studio — orientation, size, smoothness,
+   * two pace sliders, the date toggle, the film summary and a footnote — and it
+   * was drawn as a centred card with no height limit inside a scrolling
+   * backdrop. Past about 800px of window that combination loses BOTH ends at
+   * once: centring pushes the heading above the scroller's origin, where it
+   * cannot be scrolled back to, and Save the video falls off the bottom. It
+   * filled the screen edge to edge doing it (user, 2026-08-27).
+   *
+   * `Modal` in ./ui.tsx caps the card, scrolls only the middle of it, and pins
+   * Save the video to the bottom where a coach can always reach it.
+   */
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-ink/55 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Save this system as a video"
-      onPointerDown={(e) => e.target === e.currentTarget && !working && onClose()}
+    <Modal
+      title={VIDEO.title}
+      subtitle={VIDEO.body}
+      label="Save this system as a video"
+      onClose={() => !working && onClose()}
+      footer={
+        supported ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {working ? (
+              <Button variant="solid" onClick={stop} className="!px-4 !py-2.5 !text-sm">
+                Stop
+              </Button>
+            ) : (
+              <Button variant="solid" onClick={start} className="!px-4 !py-2.5 !text-sm">
+                {status === 'done' ? 'Make it again' : 'Save the video'}
+              </Button>
+            )}
+            <Button onClick={onClose} disabled={working} className="ml-auto">
+              Done
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        )
+      }
     >
-      <div className="w-full max-w-md rounded-2xl border border-ink-hair bg-surface p-6 shadow-lift">
-        <h2 className="text-xl font-black tracking-display text-ink">{VIDEO.title}</h2>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{VIDEO.body}</p>
-
+      <>
         {!supported ? (
           <>
-            <p className="mt-5 rounded-lg bg-paper p-3 text-[12px] leading-relaxed text-ink-soft">
+            <p className="rounded-lg bg-paper p-3 text-[12px] leading-relaxed text-ink-soft">
               {VIDEO.unsupported}
             </p>
-            <div className="mt-4 flex justify-end">
-              <Button onClick={onClose}>Close</Button>
-            </div>
           </>
         ) : (
           <>
@@ -265,27 +294,12 @@ export function VideoDialog({
               </p>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {working ? (
-                <Button variant="solid" onClick={stop} className="!px-4 !py-2.5 !text-sm">
-                  Stop
-                </Button>
-              ) : (
-                <Button variant="solid" onClick={start} className="!px-4 !py-2.5 !text-sm">
-                  {status === 'done' ? 'Make it again' : 'Save the video'}
-                </Button>
-              )}
-              <Button onClick={onClose} disabled={working} className="ml-auto">
-                Done
-              </Button>
-            </div>
-
             <p className="mt-4 border-t border-ink-hair pt-3 text-[11px] leading-relaxed text-ink-faint">
               {VIDEO.foot}
             </p>
           </>
         )}
-      </div>
-    </div>
+      </>
+    </Modal>
   )
 }

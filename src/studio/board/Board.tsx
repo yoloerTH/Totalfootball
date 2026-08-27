@@ -49,10 +49,11 @@ import type { PitchView } from './pitch'
 import { cameraRect, cameraViewBox, resolvePush } from '../camera'
 import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
-import { Arrow, BlockBand, TextNote, Zone, arrowGeometry, arrowRim } from './Overlays'
+import { Arrow, BlockBand, GearProp, TextNote, Zone, arrowGeometry, arrowRim } from './Overlays'
 import type { Pt } from './Overlays'
 import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
+import { resolveGear } from '../gear'
 import { arrowEnds } from '../arrows'
 import type { System, TeamStyle } from '../schema'
 import type { RenderAct, RenderBand } from '../tween'
@@ -133,6 +134,24 @@ interface Props {
    * not be stolen by whatever text happens to be sitting under it.
    */
   onTextPointerDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
+  /**
+   * Pressing a piece of training gear: selects it, and starts dragging it.
+   *
+   * Withheld while a tool is drawing, like every other mark handler — an
+   * agility ladder laid across the middle of the pitch must not eat the drag
+   * that was going to be an arrow over the top of it.
+   */
+  onGearPointerDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
+  /**
+   * Gear piece id → a drawable URL for its picture.
+   *
+   * The same contract as `photoHrefs`, and the same reason: a canvas will not
+   * fetch anything out of a serialised SVG, so the exporter passes `data:`
+   * URIs. Keyed by PIECE, not by mark, because a drill with eight cones on it
+   * is eight marks and one image. A piece missing from this map is not drawn.
+   * See `inlineGear` in ../gear.ts.
+   */
+  gearHrefs?: Record<string, string>
   /**
    * Override for the ball's image, as a `data:` URI. Export only: the live
    * editor draws from the public path, which a canvas cannot fetch out of a
@@ -268,6 +287,8 @@ export function Board({
   onArrowGripPointerDown,
   onBandPointerDown,
   onTextPointerDown,
+  onGearPointerDown,
+  gearHrefs,
   onZonePointerDown,
   onBallPointerDown,
   onBackgroundPointerDown,
@@ -440,6 +461,42 @@ export function Board({
           )
         }
         return null
+      })}
+
+      {/*
+       * Training gear: over the shading, under everything drawn on top of it.
+       *
+       * Equipment is the FURNITURE of the session — it is physically on the
+       * grass, so it sits above a shaded area, which is an idea painted onto
+       * the grass. And it sits below the arrows and the players, because those
+       * are the annotation and the people, and a cone that covered a run would
+       * be a prop hiding the point of the drill.
+       */}
+      {(act.gear ?? []).map((g) => {
+        const q = pos(g.x, g.y)
+        return (
+          <g key={g.id} opacity={g.opacity}>
+            <GearProp
+              mark={g}
+              cx={q.x}
+              cy={q.y}
+              /*
+               * When a map is supplied at all, it is the ONLY source.
+               *
+               * A live board passes nothing and draws from the public path.
+               * An exporter passes the map — and a piece missing from it is a
+               * piece whose fetch failed, so falling back to `/studio/gear/…`
+               * there would put a URL in a serialised SVG that the canvas will
+               * not follow and will not complain about. Drawing nothing is the
+               * documented cost of a failed inline; drawing a broken <image>
+               * is the same cost plus a mystery. See `inlineGear` in ../gear.ts.
+               */
+              href={gearHrefs ? gearHrefs[g.kind] : resolveGear(g.kind)?.src}
+              active={activeMarkId === g.id}
+              onPointerDown={onGearPointerDown ? (e) => onGearPointerDown(g.id, e) : undefined}
+            />
+          </g>
+        )
       })}
 
       {act.arrows.map((a) => {

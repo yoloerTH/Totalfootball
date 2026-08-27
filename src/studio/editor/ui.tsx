@@ -15,6 +15,139 @@ import { useEffect, useState } from 'react'
 import type React from 'react'
 import type { BoardPalette } from '../board/surfaces'
 
+/**
+ * A drawer in the left rail.
+ *
+ * ── WHY THE PANELS NEEDED GROUPING AT ALL ────────────────────────────────────
+ *
+ * There are fourteen of them. Flat, in one column, that is a rail a coach
+ * SCROLLS to find the pitch surface, and scrolling past twelve headings is how
+ * a control stops being found at all — which is what happened to the writing
+ * and to half the camera (user, 2026-08-27). Four named sections, each of which
+ * can be shut, turns fourteen things to read into four things to choose
+ * between.
+ *
+ * ── WHY EACH ONE IS INDEPENDENT ──────────────────────────────────────────────
+ *
+ * Not an accordion where opening one shuts the last. A coach setting up a
+ * session has the board section and the equipment section open at once on
+ * purpose, and a rail that closes the thing you were just using because you
+ * touched something else is a rail that is fighting you. Anything may be open;
+ * anything may be shut.
+ *
+ * ── AND WHY IT IS REMEMBERED ─────────────────────────────────────────────────
+ *
+ * In `localStorage`, per section, keyed by name. A coach who works with
+ * Equipment open and Camera shut wants that on Tuesday as well, and re-shutting
+ * four drawers on every page load is a tax on the person who bothered to tidy.
+ * Stored under one key so clearing it is one line. It fails soft in a private
+ * window, where reading it throws: the defaults are good, and a rail that
+ * refuses to render because a browser will not remember a boolean is worse than
+ * a rail that forgets.
+ */
+const OPEN_KEY = 'tf.studio.sections'
+
+function readOpen(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(OPEN_KEY)
+    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function Section({
+  title,
+  hint,
+  defaultOpen = false,
+  badge,
+  children,
+}: {
+  title: string
+  /** One line under the heading, read before the drawer is opened. */
+  hint?: string
+  defaultOpen?: boolean
+  /** A count or a word on the right of the heading: "4 pieces", "On". */
+  badge?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  // After mount, never during: `localStorage` does not exist while Astro is
+  // rendering this on the server, and a first paint that disagreed with the
+  // stored state would flash every drawer open before shutting them.
+  useEffect(() => {
+    const stored = readOpen()[title]
+    if (typeof stored === 'boolean') setOpen(stored)
+  }, [title])
+
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+    try {
+      localStorage.setItem(OPEN_KEY, JSON.stringify({ ...readOpen(), [title]: next }))
+    } catch {
+      // A private window. The drawer still opens; it just will not be
+      // remembered, which is the right thing to lose.
+    }
+  }
+
+  return (
+    <section className="border-b border-ink-hair">
+      <h2>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          /* Tinted, so a DRAWER heading and the PANEL headings inside it are
+             not two weights of the same thing. Without it the rail reads as
+             one long list of labels again, which is the problem the drawers
+             were opened to solve. */
+          className={`flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-paper ${
+            open ? 'bg-paper/70' : ''
+          }`}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-black uppercase tracking-[0.09em] text-ink">
+              {title}
+            </span>
+            {hint && !open && (
+              <span className="mt-0.5 block truncate text-[11px] leading-snug text-ink-faint">{hint}</span>
+            )}
+          </span>
+          {badge && (
+            <span className="shrink-0 rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-ink-soft">
+              {badge}
+            </span>
+          )}
+          {/* A chevron drawn rather than a character: ▸ and ▾ are different
+              widths in Inter, so the heading shifted by a pixel on every open. */}
+          <svg
+            viewBox="0 0 16 16"
+            className={`h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform duration-200 ${
+              open ? 'rotate-90' : ''
+            }`}
+            aria-hidden="true"
+          >
+            <path
+              d="M6 3.5 10.5 8 6 12.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </h2>
+      {/* Unmounted rather than hidden. These panels hold live pickers and
+          sliders, and a shut drawer must not keep a focusable control in the
+          tab order where nobody can see it. */}
+      {open && <div className="pb-1">{children}</div>}
+    </section>
+  )
+}
+
 export function Panel({
   title,
   children,
@@ -25,7 +158,7 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={`border-b border-ink-hair px-4 py-4 ${className}`}>
+    <section className={`border-b border-ink-hair px-4 py-4 last:border-b-0 ${className}`}>
       {title && <h3 className="mb-3 text-micro uppercase text-ink-faint">{title}</h3>}
       {children}
     </section>
@@ -537,5 +670,155 @@ export function Toggle({
         />
       </span>
     </label>
+  )
+}
+
+/**
+ * The shell every studio dialog sits in.
+ *
+ * ── THE BUG THIS EXISTS TO FIX ───────────────────────────────────────────────
+ *
+ * The dialogs were `fixed inset-0 flex items-center justify-center
+ * overflow-y-auto`, with a card that had no height limit. That combination is a
+ * trap: once the card is taller than the window, centring pushes its top ABOVE
+ * the scroll container's origin, and content scrolled off the top of a scroll
+ * container cannot be scrolled back to. So the Video dialog lost its heading at
+ * the top and its footnote at the bottom simultaneously, and filled the screen
+ * edge to edge doing it (user, 2026-08-27).
+ *
+ * The fix is to stop asking one element to be both the scroller and the card:
+ *
+ *  · The BACKDROP scrolls, and the card is centred inside it with `my-auto`,
+ *    which centres while still yielding to the card's own top margin — unlike
+ *    `items-center`, which does not.
+ *  · The CARD is capped at the window height minus its own margin, and lays out
+ *    as a column.
+ *  · The BODY is the only part that scrolls. The title stays at the top and the
+ *    buttons stay at the bottom, which is what makes a long dialog readable at
+ *    all: on a laptop the Save button was below the fold of a dialog that had
+ *    no fold to be below.
+ *
+ * On a phone it comes up from the bottom edge and squares off its lower
+ * corners, which is where a sheet belongs — the same shape ./SignInWall.tsx
+ * already used.
+ */
+export function Modal({
+  title,
+  subtitle,
+  onClose,
+  label,
+  children,
+  footer,
+  width = 'md',
+}: {
+  title: string
+  subtitle?: React.ReactNode
+  onClose: () => void
+  /** The accessible name, when the visible title is not the whole story. */
+  label?: string
+  children: React.ReactNode
+  /** Pinned under the scrolling body. Where Done and the action button go. */
+  footer?: React.ReactNode
+  width?: 'md' | 'lg'
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex justify-center overflow-y-auto overscroll-contain bg-ink/55 p-0 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label ?? title}
+      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className={`my-auto flex max-h-[100dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-ink-hair bg-surface shadow-lift sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl ${
+          width === 'lg' ? 'max-w-lg' : 'max-w-md'
+        }`}
+      >
+        <div className="shrink-0 border-b border-ink-hair px-6 pb-4 pt-5">
+          <div className="flex items-start gap-3">
+            <h2 className="min-w-0 flex-1 text-xl font-black tracking-display text-ink">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="-mr-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-paper hover:text-ink"
+            >
+              <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+                <path
+                  d="m4 4 8 8M12 4l-8 8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+          {subtitle && <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{subtitle}</p>}
+        </div>
+
+        {/* `min-h-0` is load-bearing: without it a flex child refuses to shrink
+            below its content and the cap above does nothing at all. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">{children}</div>
+
+        {footer && (
+          <div className="shrink-0 border-t border-ink-hair bg-surface px-6 py-4">{footer}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The training-gear picker: drawers of pictures, one press to put one down.
+ *
+ * Pictures and not a list of names, the same call `PicturePicker` makes for the
+ * match balls and for the same reason — a coach knows a bosu ball on sight and
+ * could not pick one out of a dropdown. Grouped, because nineteen pieces in one
+ * grid is a wall, and the drawers are named for the job rather than the object:
+ * "Hurdles and ladders" is what somebody is looking for, "Agility" is a
+ * category we invented.
+ *
+ * Pressing a piece ADDS one. It is not a mode and there is nothing to disarm —
+ * the piece lands on the board already selected, and you drag it where you want
+ * it, exactly like the ball. So the same button can be pressed four times to
+ * put four cones down, which is what laying out a drill actually is.
+ */
+export function GearPicker({
+  groups,
+  onAdd,
+}: {
+  groups: { id: string; label: string; items: { id: string; name: string; thumb: string }[] }[]
+  onAdd: (id: string) => void
+}) {
+  return (
+    <div className="space-y-3">
+      {groups.map((g) => (
+        <div key={g.id}>
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-ink-faint">
+            {g.label}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {g.items.map((it) => (
+              <button
+                key={it.id}
+                type="button"
+                onClick={() => onAdd(it.id)}
+                title={`Put a ${it.name.toLowerCase()} on the board`}
+                aria-label={`Add ${it.name}`}
+                className="group flex h-14 w-14 items-center justify-center rounded-lg border border-ink-hair bg-paper p-1.5 transition hover:border-gold hover:bg-surface"
+              >
+                <img
+                  src={it.thumb}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-contain transition-transform group-hover:scale-110"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }

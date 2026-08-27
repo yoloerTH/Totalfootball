@@ -291,6 +291,65 @@ export interface TextMark {
 }
 
 /**
+ * A piece of training gear standing on the grass.
+ *
+ * ── WHY IT IS A MARK AND NOT A TOKEN ────────────────────────────────────────
+ *
+ * A cone and a centre-back are both objects at a position, and it is tempting
+ * to make them the same object. They are not. A `Token` has an identity that
+ * survives the whole system — it is a PERSON, it carries a name, a shirt, a
+ * role cue and a photograph, it is what a bound arrow holds on to, and it is
+ * what `relabel` renumbers when a coach switches to shirt numbers. None of that
+ * means anything to a hurdle. Putting gear in `tokens` would put ladders in the
+ * squad picker, in the counter labelling and in every block the Block tool
+ * threads a line through, all to save one array.
+ *
+ * So it sits beside `texts`: a thing placed on the grass, owned by one phase.
+ *
+ * ── IT TRAVELS, THOUGH ──────────────────────────────────────────────────────
+ *
+ * Unlike a text mark, which appears and holds and goes. A piece of gear matched
+ * by id across two phases LERPS between them on Play, exactly like a player
+ * does (see ../tween.ts), because moving the cones IS the point of the phase in
+ * a session plan — "and now the gate is two metres wider" is a thing a coach
+ * shows by moving it, not by cutting to it.
+ */
+export interface GearMark {
+  id: string
+  /**
+   * Which piece it is: a `GearPiece` id from ../gear.ts.
+   *
+   * `string` rather than a union, the same call `Band` and `TextMark` make. A
+   * document must stay readable without the drawing code — `resolveGear` returns
+   * null for a piece this build does not have and the board leaves it out,
+   * which is how a system saved by a newer release still opens here.
+   */
+  kind: string
+  /** Percent coords, the same space a token is stored in. */
+  x: number
+  y: number
+  /**
+   * A MULTIPLIER on the piece's own width, not a width in metres.
+   *
+   * So a coach who drags one cone bigger and the catalogue that later retunes
+   * every cone do not fight: the stored number says "a bit bigger than a cone",
+   * and what a cone is stays in one place. Absent means 1.
+   */
+  size?: number
+  /** Degrees, clockwise, about its own centre. Absent means square to the pitch. */
+  angle?: number
+  /**
+   * Mirrored left-to-right.
+   *
+   * Only one of the four axes is offered, because the other three are the same
+   * three transforms: a piece flipped vertically is a piece flipped
+   * horizontally and turned 180°, and `angle` already does that. One checkbox
+   * and one slider cover every orientation a mini goal can be in.
+   */
+  flip?: boolean
+}
+
+/**
  * The rectangle of board to look at: a centre, and the box that must be in shot.
  *
  * All four numbers are percent-of-crop — the same space a token stores — so a
@@ -363,6 +422,14 @@ export interface Act {
    * one day fail to open somebody's season.
    */
   texts?: TextMark[]
+  /**
+   * The training gear on this phase. See `GearMark`.
+   *
+   * Optional under the same rule `texts` is, and for the same reason: every act
+   * written before it existed has no such field, and `undefined` must read as
+   * an empty list everywhere rather than as a document to migrate.
+   */
+  gear?: GearMark[]
 }
 
 /** A team's visual identity. Defaults come from the owner's profile. */

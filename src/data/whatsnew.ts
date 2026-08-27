@@ -56,6 +56,46 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'training-gear',
+    date: '2026-08-27',
+    kind: 'new',
+    title: 'Cones, ladders and mannequins',
+    body: 'Nineteen pieces of training kit you can put on the grass: marker cones, hurdles, an agility ladder, mini goals, mannequins, poles and the strength gear. Press one to put it down, drag it where you want it, then size it and turn it. Gear belongs to a phase and moves between phases on Play, so widening a gate is something you show rather than cut to.',
+    where: 'Equipment, then Training gear',
+  },
+  {
+    id: 'the-rail-in-drawers',
+    date: '2026-08-27',
+    kind: 'better',
+    title: 'The left-hand panel is in drawers now',
+    body: 'Fourteen panels in one column meant scrolling to find the pitch surface, and a control you scroll past is a control nobody finds. They are grouped into six named sections you can open and shut, and the studio remembers which ones you keep open.',
+    where: 'The panel down the left',
+  },
+  {
+    id: 'house-colours',
+    date: '2026-08-27',
+    kind: 'new',
+    title: 'A way back from Use my kit',
+    body: 'House colours puts our side back to the studio green and takes off the ring, the pattern and the second colour. Undo was the only route to this before, which meant losing everything you had done since.',
+    where: 'Your club, then House colours',
+  },
+  {
+    id: 'share-knows-your-name',
+    date: '2026-08-27',
+    kind: 'fixed',
+    title: 'Share stops asking who you are',
+    body: 'Boards are signed from your settings now, so Share shows how it will be signed instead of handing you three empty boxes. Sign one differently if you are presenting it for somebody else — it changes that system only.',
+    where: 'Share',
+  },
+  {
+    id: 'bigger-headshots',
+    date: '2026-08-27',
+    kind: 'better',
+    title: 'Squad faces are bigger, and no longer cropped',
+    body: 'The white ring round a headshot was painted over the edge of the photograph, which is what made the faces feel small and tight in their circle. It sits outside the picture now, and the picture itself is a third larger.',
+    where: 'Any counter with a squad photo on it',
+  },
+  {
     id: 'text-on-the-board',
     date: '2026-08-27',
     kind: 'new',

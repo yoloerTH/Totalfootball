@@ -18,7 +18,7 @@ import { PITCH_VIEWS, resolveViewId } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
-import type { Act, Arrow, Band, System, TextMark, Token } from './schema'
+import type { Act, Arrow, Band, GearMark, System, TextMark, Token } from './schema'
 
 export interface RenderToken extends Token {
   opacity: number
@@ -56,12 +56,28 @@ export interface RenderText extends TextMark {
   opacity: number
 }
 
+/**
+ * A piece of gear carrying an opacity — and, unlike a text mark, a POSITION
+ * that moves.
+ *
+ * Gear is the one mark that travels. A cone matched by id across two phases
+ * lerps its x, y, size and angle over the beat, because a session plan whose
+ * second phase is "the gate is wider now" shows that by widening the gate. It
+ * takes no bow: `travel` routes a player around the arrows they would otherwise
+ * walk through, and a cone does not walk anywhere — it is being repositioned by
+ * a coach, and the honest picture of that is a straight line.
+ */
+export interface RenderGear extends GearMark {
+  opacity: number
+}
+
 export interface RenderAct {
   tokens: RenderToken[]
   ball: { x: number; y: number; opacity: number } | null
   arrows: RenderArrow[]
   bands: RenderBand[]
   texts: RenderText[]
+  gear: RenderGear[]
   /**
    * Where the camera is pointed for this pose, or null for the whole view.
    *
@@ -165,6 +181,7 @@ export function resolveAct(act: Act, system?: System): RenderAct {
     // `?? []` and not `act.texts.map`: the field is optional and absent on every
     // act written before it existed. See `Act.texts` in ./schema.ts.
     texts: (act.texts ?? []).map((t) => ({ ...t, opacity: 1 })),
+    gear: (act.gear ?? []).map((g) => ({ ...g, opacity: 1 })),
     shot: shotOf(system, act),
   }
 }
@@ -342,11 +359,42 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
       .map((x) => ({ ...x, opacity: span(p, 0.6, 0.95) })),
   ].filter((x) => x.opacity > 0.01)
 
+  /*
+   * Gear moves like a player and fades like a band.
+   *
+   * `t` and not `p`: the eased progress, so a cone being pushed two metres
+   * wider accelerates and settles on the same curve the players do. A phase
+   * where the coach moved the gate and nobody else moved should still read as
+   * one motion rather than as a board with two different clocks on it.
+   */
+  const fromGear = from.gear ?? []
+  const toGear = to.gear ?? []
+  const toGearById = new Map(toGear.map((g) => [g.id, g]))
+  const fromGearIds = new Set(fromGear.map((g) => g.id))
+
+  const gear: RenderGear[] = [
+    ...fromGear.map((g) => {
+      const b = toGearById.get(g.id)
+      if (!b) return { ...g, opacity: 1 - span(p, 0, 0.4) }
+      return {
+        ...b,
+        x: g.x + (b.x - g.x) * t,
+        y: g.y + (b.y - g.y) * t,
+        size: (g.size ?? 1) + ((b.size ?? 1) - (g.size ?? 1)) * t,
+        angle: (g.angle ?? 0) + ((b.angle ?? 0) - (g.angle ?? 0)) * t,
+        opacity: 1,
+      }
+    }),
+    ...toGear
+      .filter((g) => !fromGearIds.has(g.id))
+      .map((g) => ({ ...g, opacity: span(p, 0.55, 0.85) })),
+  ].filter((g) => g.opacity > 0.01)
+
   // The camera travels on the same curve as the players, so the push-in and
   // the move arrive together instead of the frame chasing the ball.
   const shot = lerpShot(shotOf(system, from), shotOf(system, to), t)
 
-  return { tokens, ball, arrows, bands, texts, shot }
+  return { tokens, ball, arrows, bands, texts, gear, shot }
 }
 
 /**

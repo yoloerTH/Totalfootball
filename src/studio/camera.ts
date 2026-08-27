@@ -216,6 +216,17 @@ function interest(act: Act): Pt[] {
    * enough in every case that is not a paragraph written at XL.
    */
   for (const t of act.texts ?? []) if (t.text.trim()) at(t.x, t.y)
+  /*
+   * Gear counts for the same reason writing does, and more literally: on a
+   * session plan the equipment IS the subject. A phase whose content is a
+   * ladder, four cones and a mannequin has nothing else to point the camera
+   * at, and a film that framed the empty half of the pitch instead would be
+   * describing a drill that is not there.
+   *
+   * The anchor only, like a text mark — the margin is wider than any single
+   * piece, so the extent adds nothing a coach would notice.
+   */
+  for (const g of act.gear ?? []) at(g.x, g.y)
   for (const b of act.bands) {
     if (!b.rect) continue
     at(b.rect.x, b.rect.y)

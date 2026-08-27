@@ -73,6 +73,7 @@ import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
+import { gearKinds, inlineGear } from './gear'
 import type { System } from './schema'
 import { holdMs, moveMs } from './pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs, type Timeline } from './tween'
@@ -177,6 +178,7 @@ function frameSvg(
   h: number,
   ballHref: string | undefined,
   photoHrefs: Record<string, string>,
+  gearHrefs: Record<string, string>,
   css: string,
   view: PitchView,
   crestHref?: string,
@@ -189,6 +191,7 @@ function frameSvg(
       texture: false,
       ballHref,
       photoHrefs,
+      gearHrefs,
       crestHref,
       view,
     }),
@@ -754,12 +757,15 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
 
   // Everything that is fetched rather than computed, up front: a failure here
   // should happen before the coach has watched a progress bar for a minute.
-  const [css, ball, photos, crest] = await Promise.all([
+  const [css, ball, photos, gear, crest] = await Promise.all([
     boardFontCss(),
     inlineBall(resolveBall(system.matchBall).id),
     // `[]` when nobody on the board has a photograph, which resolves to `{}`
     // without a single request. The common case costs nothing.
     inlinePhotos(photoPaths(system)),
+    // Keyed by PIECE, so a drill with eight cones fetches one picture. Empty
+    // on every system with no gear on it, which is most of them.
+    inlineGear(gearKinds(system)),
     inlineCrest(system),
   ])
   await document.fonts.ready
@@ -869,7 +875,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
             ? resolveAct(system.acts[tl.index], drawSystem)
             : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p, drawSystem)
         lastBoard = await raster(
-          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view, crest ?? undefined),
+          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined),
           l.w,
           l.h,
         )
@@ -973,10 +979,11 @@ export async function renderStills(
 
   // Everything fetched rather than computed, up front — the same order and the
   // same reasoning as `renderVideo`.
-  const [css, ball, photos, crest] = await Promise.all([
+  const [css, ball, photos, gear, crest] = await Promise.all([
     boardFontCss(),
     inlineBall(resolveBall(system.matchBall).id),
     inlinePhotos(photoPaths(system)),
+    inlineGear(gearKinds(system)),
     inlineCrest(system),
   ])
   await document.fonts.ready
@@ -1004,7 +1011,7 @@ export async function renderStills(
 
     const act = resolveAct(system.acts[i], drawSystem)
     const board = await raster(
-      frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view, crest ?? undefined),
+      frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined),
       l.w,
       l.h,
     )

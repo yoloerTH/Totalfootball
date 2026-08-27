@@ -43,7 +43,7 @@ import {
   type ImageShape,
   type ImageSize,
 } from '../image'
-import { Button, Field, Segmented, Toggle } from './ui'
+import { Button, Field, Modal, Segmented, Toggle } from './ui'
 import { EXPORT } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
 
@@ -145,20 +145,26 @@ export function ExportDialog({
 
   const working = status === 'working'
 
+  /* On `Modal` for the reason set out in ./VideoDialog.tsx: this dialog is two
+     whole sections tall and was losing its heading off the top and Done off the
+     bottom of a card nothing capped. */
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-ink/55 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Save this system as images or a PDF"
-      onPointerDown={(e) => e.target === e.currentTarget && !working && onClose()}
+    <Modal
+      title={EXPORT.title}
+      subtitle={EXPORT.body}
+      label="Save this system as images or a PDF"
+      onClose={() => !working && onClose()}
+      footer={
+        <div className="flex justify-end">
+          <Button onClick={onClose} disabled={working}>
+            Done
+          </Button>
+        </div>
+      }
     >
-      <div className="my-auto w-full max-w-md rounded-2xl border border-ink-hair bg-surface p-6 shadow-lift">
-        <h2 className="text-xl font-black tracking-display text-ink">{EXPORT.title}</h2>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{EXPORT.body}</p>
-
+      <>
         {/* ── images ── */}
-        <h3 className="mt-5 text-micro uppercase tracking-micro text-ink-faint">{EXPORT.imagesTitle}</h3>
+        <h3 className="text-micro uppercase tracking-micro text-ink-faint">{EXPORT.imagesTitle}</h3>
         <p className="mt-1 text-[11px] leading-snug text-ink-faint">{EXPORT.imagesBody}</p>
 
         {!supported ? (
@@ -288,13 +294,7 @@ export function ExportDialog({
           </Button>
         </div>
         <p className="mt-2 text-[11px] leading-snug text-ink-faint">{EXPORT.pdfNote}</p>
-
-        <div className="mt-5 flex justify-end">
-          <Button onClick={onClose} disabled={working}>
-            Done
-          </Button>
-        </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   )
 }

@@ -207,13 +207,13 @@ export function FeedbackDialog({ context, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-ink/55 p-4"
+      className="fixed inset-0 z-[80] flex justify-center overflow-y-auto overscroll-contain bg-ink/55 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={FEEDBACK.title}
       onPointerDown={(e) => e.target === e.currentTarget && !sent && onClose(false)}
     >
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-lift">
+      <div className="my-auto w-full max-w-md overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-lift">
         {/*
          * THE BAR AT THE TOP is the whole reason this now looks like ours.
          *

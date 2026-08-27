@@ -146,31 +146,53 @@ export function Token({
    * with bars beside it.
    */
   /*
-   * ── HOW BIG, AND WHY IT GREW ─────────────────────────────────────────────
+   * ── HOW BIG, AND WHY IT GREW TWICE ───────────────────────────────────────
    *
-   * It was 0.72r, and at that size a face on a floodlit pitch was a thumbnail
-   * of a thumbnail — a coach could tell somebody was there and not who (user,
-   * 2026-08-27). 0.98r is the largest it can be before two headshots on
-   * adjacent counters touch at the 4.5m spacing the board is laid out at, so
-   * this is the size, not a step towards one.
+   * It was 0.72r, then 0.98r, and it is now 1.18r. The second rise came with a
+   * change that is worth more than the number: the rim moved OFF the face.
+   *
+   * At 0.98r the white rim was a stroke CENTRED on the photo's own circle, so
+   * half its width — 0.085 of the radius — was painted over the picture. The
+   * face a coach actually saw was 0.897r, not 0.98r, and it was a face with its
+   * ears cropped: small, and tight in its ring (user, 2026-08-27). The rim now
+   * sits entirely outside the clip, so the visible face went from 0.897r to
+   * 1.18r in one move — a third bigger, and none of it behind a stroke.
+   *
+   * What that costs is the room a headshot needs beside its neighbours: the
+   * outermost pixel is now 1.357r from the centre rather than 1.063r, so two
+   * faces want about 5.7m between their counters to stay clear of each other
+   * instead of 4.5m. That is a real trade and it is the right way round —
+   * players are laid out across a 68m pitch and are rarely within six metres of
+   * each other, and a face you cannot recognise is worth nothing at any spacing.
    *
    * It is a multiple of `r`, which is a multiple of TOKEN_R, which is METRES —
    * so this is the identical picture on all five pitch views. A face does not
    * grow when a coach crops to the final third, and it does not shrink on a
    * full pitch. That is the whole reason the board is measured in grass.
    */
-  const pr = r * 0.98
+  const pr = r * 1.18
+  /**
+   * How far past the photo the rim reaches, as a multiple of `pr`.
+   *
+   * One constant because four things depend on it and they must agree: where
+   * the face is lifted to, where the seat is drawn, and both hairlines. The rim
+   * is a stroke centred on RIM_MID and RIM_W wide, so its outer edge is at
+   * RIM_MID + RIM_W / 2 — and that number, not `pr`, is the real extent.
+   */
+  const RIM_MID = 1.075
+  const RIM_W = 0.15
+  const RIM_OUT = RIM_MID + RIM_W / 2
   /*
    * Lifted clear of whatever is under it.
    *
    * With a name: the name's baseline is at cy - 1.42r and Inter's caps reach
    * about 0.36r above it, so the top of the type is at cy - 1.78r. The face
-   * needs its own radius, HALF ITS OWN RIM (the stroke is centred on the
-   * circle, so it reaches 0.085r past it) and a hair of air above that:
-   * 1.78 + 0.98 + 0.085 + 0.3. Without a name it only has to clear the
-   * counter's rim at cy - r, on the same arithmetic: 1 + 0.98 + 0.085 + 0.24.
+   * needs its own radius, ITS WHOLE RIM (which is outside the photo now, so all
+   * of it counts rather than half of it) and a hair of air above that:
+   * 1.78 + 1.18 × 1.15 + 0.3 ≈ 3.44. Without a name it only has to clear the
+   * counter's rim at cy - r, on the same arithmetic: 1 + 1.357 + 0.24 ≈ 2.6.
    */
-  const pcy = cy - r * (name ? 3.15 : 2.3)
+  const pcy = cy - r * (name ? 3.44 : 2.6)
   const pclip = `${clip}-face`
   const isPress = cue === 'PRESS'
   const cueCol = cue ? (cueColor(p)[cue] ?? p.ink) : p.ink
@@ -324,8 +346,9 @@ export function Token({
       {photoHref && (
         <g>
           {/* The seat. Painted before the photo so it only ever shows as the
-              ring of it that the photo does not cover. */}
-          <circle cx={cx} cy={pcy} r={pr * 1.1} fill={`url(#${idp}-contact)`} />
+              ring of it that the photo does not cover — which now means the
+              ring outside the rim, since the rim no longer covers any face. */}
+          <circle cx={cx} cy={pcy} r={pr * (RIM_OUT + 0.06)} fill={`url(#${idp}-contact)`} />
           <image
             href={photoHref}
             x={cx - pr}
@@ -358,30 +381,42 @@ export function Token({
                 half was the size.
               · a HAIRLINE of ink over the rim, which gives the white its own
                 edge on a paper board where white-on-white would vanish.
+
+            AND THE RIM IS NOW OUTSIDE THE PHOTO, which is the change that made
+            the face feel like a face. A stroke centred on the clip's own radius
+            paints half of itself over the picture — at the old width that was
+            8.5% of the radius gone all the way round, which crops the ears on
+            every headshot and reads as a portrait squeezed into a badge. It is
+            drawn at RIM_MID instead, so its inner edge lands exactly on the
+            clip and not a pixel of anybody's face is behind it.
           */}
           <circle
             cx={cx}
             cy={pcy}
-            r={pr}
+            r={pr * RIM_MID}
             fill="none"
             stroke="rgba(255,255,255,0.85)"
-            strokeWidth={pr * 0.17}
+            strokeWidth={pr * RIM_W}
           />
           <circle
             cx={cx}
             cy={pcy}
-            r={pr * 1.085}
+            r={pr * (RIM_OUT + 0.015)}
             fill="none"
             stroke="rgba(0,0,0,0.22)"
-            strokeWidth={pr * 0.045}
+            strokeWidth={pr * 0.04}
           />
+          {/* On the seam between the face and the rim, so the photo has its own
+              edge rather than bleeding into the white. Thin, and half of it
+              falls on the rim: this is the one line allowed to touch the face,
+              and 1.75% of the radius is what it costs. */}
           <circle
             cx={cx}
             cy={pcy}
             r={pr}
             fill="none"
             stroke="rgba(0,0,0,0.16)"
-            strokeWidth={pr * 0.045}
+            strokeWidth={pr * 0.035}
           />
         </g>
       )}

@@ -11,16 +11,30 @@
  * hurry gets a working link on the first press; a coach presenting to a board
  * of directors gets their club on every page.
  *
- * WHEN ACCOUNTS LAND these prefill from the profile and this dialog becomes one
- * button with a "presenting as …" line. The fields live on the document
- * (`System.credit`) precisely so that nothing here has to move when they do.
+ * ── ACCOUNTS LANDED, AND THIS IS THAT CHANGE ────────────────────────────────
+ *
+ * The note here used to say "when accounts land these prefill from the profile
+ * and this dialog becomes one button with a presenting-as line". They landed,
+ * that did not happen, and the result was Share asking a signed-in coach for a
+ * name they had already typed on the settings page (user, 2026-08-27).
+ *
+ * Two halves fix it and only one of them is in this file. The board is SIGNED
+ * from the profile in ./StudioEditor.tsx, so the credit is filled in before
+ * anything is published — that is the half that matters, because it is what
+ * puts the right name on the video and the print sheet too, neither of which
+ * has a dialog to ask in. This file's half is only that it now SHOWS the
+ * signature rather than presenting three empty boxes: one line, and a button
+ * for the coach who is presenting this one as somebody else.
+ *
+ * The fields still live on the document (`System.credit`), which is what made
+ * this a change of two dozen lines rather than a migration.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Credit, System } from '../schema'
 import { longUrl, publishSystem } from '../share'
 import { STUDIO_EVENTS, track } from '../track'
-import { Button, Field, TextInput } from './ui'
+import { Button, Field, Modal, TextInput } from './ui'
 import { SHARE } from './guide'
 
 /**
@@ -75,6 +89,15 @@ function SendLink({
 
 interface Props {
   system: System
+  /**
+   * Whether the profile has a name or a club in it.
+   *
+   * Not whether the CREDIT is filled — that is read off the system, right here.
+   * This says where it came from, which decides the wording: "this is how it
+   * will be signed" to somebody whose settings page filled it in, and the
+   * fields to somebody who has never told us who they are.
+   */
+  signedFromProfile?: boolean
   onCredit: (patch: Partial<Credit>) => void
   /** Remembers the id the server gave us, so the next share updates this link. */
   onPublished: (shareId: string) => void
@@ -83,11 +106,39 @@ interface Props {
 
 type Status = 'publishing' | 'short' | 'fallback'
 
-export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
+export function ShareDialog({
+  system,
+  signedFromProfile = false,
+  onCredit,
+  onPublished,
+  onClose,
+}: Props) {
   const [url, setUrl] = useState('')
   const [status, setStatus] = useState<Status>('publishing')
   const [copied, setCopied] = useState(false)
   const firstField = useRef<HTMLDivElement>(null)
+
+  /*
+   * The credit as it stands, and whether it needs asking about.
+   *
+   * `signed` is read off the DOCUMENT rather than off the profile, because the
+   * document is what gets published — a board signed by hand for an assistant
+   * is signed, whatever the settings page says.
+   */
+  const presenter = system.credit?.presenter?.trim() ?? ''
+  const team = system.credit?.team?.trim() ?? ''
+  const signed = Boolean(presenter || team)
+  /*
+   * Open the fields only when there is nothing to show, or when the coach asks.
+   *
+   * Not `useState(!signed)` alone: the board is signed from the profile by an
+   * effect in ./StudioEditor.tsx, which can land a beat after this mounts. So
+   * the initial value would be computed against an unsigned document and the
+   * form would be open under a line that had by then filled itself in. Held as
+   * an override instead — null means "follow the document".
+   */
+  const [editingCredit, setEditingCredit] = useState<boolean | null>(null)
+  const showFields = editingCredit ?? !signed
 
   /*
    * Publish on open, and again whenever the document changes while the dialog
@@ -202,19 +253,73 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
     }
   }, [system.title, message, url])
 
+  /* On `Modal` for the reason set out in ./VideoDialog.tsx. This one is the
+     shortest of the three and still overflowed a laptop once the fields, the
+     link, four send buttons and the footnote were all open at once. */
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-ink/55 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Share this system"
-      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
+    <Modal
+      title={SHARE.title}
+      subtitle={SHARE.body}
+      label="Share this system"
+      onClose={onClose}
+      footer={
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={url || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-bold text-ink-soft no-underline transition-colors hover:bg-ink-hair hover:text-ink"
+          >
+            Open the viewer
+          </a>
+          <Button onClick={onClose} className="ml-auto">
+            Done
+          </Button>
+        </div>
+      }
     >
-      <div className="w-full max-w-md rounded-2xl border border-ink-hair bg-surface p-6 shadow-lift">
-        <h2 className="text-xl font-black tracking-display text-ink">{SHARE.title}</h2>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{SHARE.body}</p>
+      <>
 
-        <div className="mt-5" ref={firstField}>
+        {/*
+         * ── THE SIGNATURE ───────────────────────────────────────────────────
+         *
+         * A line, not a form, whenever we already know the answer. The credit
+         * bar on a shared system carries the coach's name and club (see
+         * ../viewer/CreditBar.tsx), and the settings page exists to collect
+         * exactly that — so a signed-in coach opening Share should be told how
+         * their work is about to be signed, not interrogated about it.
+         *
+         * "Sign it differently" is kept and it is not a formality: a board
+         * presented by an assistant, or under the club's name rather than the
+         * coach's, is a real thing and the document is where that belongs. It
+         * changes THIS system only, which is why it edits the credit and not
+         * the profile.
+         */}
+        {signed && !showFields && (
+          <div className="mb-5 flex items-center gap-3 rounded-lg bg-paper p-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-micro uppercase text-ink-faint">Signed by</p>
+              <p className="mt-1 truncate text-sm font-bold text-ink">
+                {presenter || team}
+                {presenter && team && <span className="font-normal text-ink-soft"> · {team}</span>}
+              </p>
+              {system.credit?.note?.trim() && (
+                <p className="mt-0.5 truncate text-[11px] text-ink-faint">{system.credit.note}</p>
+              )}
+            </div>
+            <Button onClick={() => setEditingCredit(true)} className="shrink-0">
+              Change
+            </Button>
+          </div>
+        )}
+
+        <div className={showFields ? 'mt-5' : 'hidden'} ref={firstField}>
+          {signedFromProfile && showFields && (
+            <p className="mb-3 rounded-lg bg-paper px-3 py-2 text-[11px] leading-snug text-ink-faint">
+              This is how this system will be signed. Changing it here changes this system only — your settings
+              stay as they are.
+            </p>
+          )}
           <Field label="Your name">
             <TextInput
               value={system.credit?.presenter ?? ''}
@@ -239,6 +344,11 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
               maxLength={60}
             />
           </Field>
+          {signed && (
+            <div className="-mt-1 mb-4">
+              <Button onClick={() => setEditingCredit(false)}>Done signing</Button>
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg bg-paper p-3">
@@ -333,22 +443,8 @@ export function ShareDialog({ system, onCredit, onPublished, onClose }: Props) {
           <p className="mt-2 text-[11px] leading-snug text-ink-faint">{SHARE.sendNote}</p>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <a
-            href={url || '#'}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-bold text-ink-soft no-underline transition-colors hover:bg-ink-hair hover:text-ink"
-          >
-            Open the viewer
-          </a>
-          <Button onClick={onClose} className="ml-auto">
-            Done
-          </Button>
-        </div>
-
         <p className="mt-4 border-t border-ink-hair pt-3 text-[11px] leading-relaxed text-ink-faint">{SHARE.foot}</p>
-      </div>
-    </div>
+      </>
+    </Modal>
   )
 }

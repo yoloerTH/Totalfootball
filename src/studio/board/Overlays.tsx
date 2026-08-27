@@ -17,7 +17,8 @@ import { U } from './pitch'
 import { TOKEN_R } from './Token'
 import { arrowGeometry } from '../arrows'
 import { resolveBandStyle, arrowStyle, resolveTextStyle, useSurface, type BandOverrides } from './surfaces'
-import type { ArrowKind, BandKind, BandShape, TextMark } from '../schema'
+import type { ArrowKind, BandKind, BandShape, GearMark, TextMark } from '../schema'
+import { gearSize, resolveGear } from '../gear'
 
 /**
  * What a coach has changed about one band's appearance, as the board sees it.
@@ -800,6 +801,119 @@ export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNo
         )}
 
       {lines.map((_, i) => body(i, `ink-${i}`, { fill, pointerEvents: 'none' }))}
+    </g>
+  )
+}
+
+// ── training gear ───────────────────────────────────────────────────────────
+
+interface GearPropProps {
+  mark: GearMark
+  /** The mark's centre, in board units — the caller owns the view. */
+  cx: number
+  cy: number
+  /**
+   * A drawable URL for the piece.
+   *
+   * The public path on a live board, a `data:` URI in an export, resolved by
+   * the CALLER for the same reason the ball and the headshots are: a canvas
+   * will not fetch a URL out of a serialised SVG. See `inlineGear` in ../gear.ts.
+   * Undefined means the caller could not get it, and the piece is not drawn —
+   * a missing cone costs a cone, never the export.
+   */
+  href?: string
+  active?: boolean
+  onPointerDown?: (e: React.PointerEvent<SVGElement>) => void
+}
+
+/**
+ * A cone, a hurdle, a mannequin — a photographed object standing on the grass.
+ *
+ * Three things it does that a plain <image> would not:
+ *
+ * · A CONTACT SHADOW, the same ellipse the counters and the ball wear. It is
+ *   what makes an object sit ON the pitch rather than float over a picture of
+ *   one, and it is the difference between a drill and a mood board. Drawn as a
+ *   gradient rather than a blur, because a filter resolves against the
+ *   renderer's device space and would land softer in the video than on screen.
+ *
+ * · A HIT TARGET the size of the whole piece. An agility ladder is mostly holes,
+ *   and an <image> only takes a pointer where its pixels are opaque — so
+ *   without this, dragging a ladder means finding a rung.
+ *
+ * · The ROTATION and the FLIP, about the piece's own centre so a coach turning
+ *   a mini goal does not also walk it across the box.
+ */
+export function GearProp({ mark, cx, cy, href, active = false, onPointerDown }: GearPropProps) {
+  const p = useSurface()
+  const piece = resolveGear(mark.kind)
+  if (!piece || !href) return null
+
+  const { w, h } = gearSize(piece, mark.size)
+  const uw = u(w)
+  const uh = u(h)
+  const x = cx - uw / 2
+  const y = cy - uh / 2
+  // The shorter side, so the gold outline and the shadow stay in proportion on
+  // a ladder as well as on a cone.
+  const s = Math.min(uw, uh)
+  const gid = `gear-${mark.id}`
+
+  return (
+    <g
+      transform={mark.angle ? `rotate(${mark.angle} ${cx} ${cy})` : undefined}
+      onPointerDown={onPointerDown}
+      style={{ cursor: onPointerDown ? 'pointer' : undefined }}
+    >
+      <defs>
+        <radialGradient id={`${gid}-contact`} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%" stopColor="#141A16" stopOpacity="0.3" />
+          <stop offset="60%" stopColor="#141A16" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#141A16" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <ellipse
+        cx={cx}
+        cy={cy + uh * 0.36}
+        rx={uw * 0.52}
+        ry={uh * 0.2}
+        fill={`url(#${gid}-contact)`}
+        pointerEvents="none"
+      />
+
+      {onPointerDown && (
+        <rect x={x} y={y} width={uw} height={uh} fill="transparent" />
+      )}
+
+      <image
+        href={href}
+        x={x}
+        y={y}
+        width={uw}
+        height={uh}
+        preserveAspectRatio="none"
+        pointerEvents="none"
+        /* Mirrored about the piece's own middle, so a flip is a flip and not a
+           jump to the other side of the pitch. */
+        transform={mark.flip ? `translate(${2 * cx} 0) scale(-1 1)` : undefined}
+      />
+
+      {/* Selected: the same gold dashed outline every other mark wears. */}
+      {active && (
+        <rect
+          x={x - s * 0.09}
+          y={y - s * 0.09}
+          width={uw + s * 0.18}
+          height={uh + s * 0.18}
+          rx={s * 0.16}
+          fill="none"
+          stroke={p.gold}
+          strokeWidth={s * 0.06}
+          strokeDasharray={`${s * 0.24} ${s * 0.18}`}
+          pointerEvents="none"
+        />
+      )}
     </g>
   )
 }

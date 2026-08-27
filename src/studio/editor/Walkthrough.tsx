@@ -228,12 +228,12 @@ export function Walkthrough({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/55 p-4"
+      className="fixed inset-0 z-[80] flex justify-center overflow-y-auto overscroll-contain bg-ink/55 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="How the studio works"
     >
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-lift">
+      <div className="my-auto w-full max-w-lg overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-lift">
         {/* the drawing sits on the paper stage, like the board does */}
         <div style={{ background: BOARD.paper }}>
           <svg viewBox="0 0 320 160" className="block h-auto w-full" role="presentation">

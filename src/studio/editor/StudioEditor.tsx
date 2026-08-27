@@ -118,11 +118,13 @@ import {
   type Credit,
   type Cue,
   type Shot,
+  type GearMark,
   type Side,
   type System,
   type TextMark,
   type Token,
 } from '../schema'
+import { GEAR, GEAR_GROUPS, GEAR_SIZE_MAX, GEAR_SIZE_MIN, gearSize, resolveGear } from '../gear'
 import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
 import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
@@ -164,10 +166,13 @@ import {
   ColorWell,
   ConfirmButton,
   Field,
+  GearPicker,
   Panel,
   PicturePicker,
+  Section,
   Segmented,
   Select,
+  Slider,
   SurfacePicker,
   TextArea,
   TextInput,
@@ -795,6 +800,49 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }
   }, [])
 
+  /**
+   * Sign the board from the profile, once, if it is not signed already.
+   *
+   * ── THE BUG ──────────────────────────────────────────────────────────────
+   *
+   * Share asked for a name that had already been given on the settings page
+   * (user, 2026-08-27). `withProfile` fills the credit, but only where it is
+   * called: when a BOARD IS CREATED (./StudioMount.tsx). Every board made
+   * before the coach filled their profile in — and every one made before the
+   * profile existed at all — carries an empty credit for ever, so the share
+   * dialog opens on three blank fields and asks a question the studio already
+   * knows the answer to.
+   *
+   * ── WHY IT IS `replace` AND NOT `edit` ───────────────────────────────────
+   *
+   * This is not something the coach did, so it has no business sitting in their
+   * undo stack between two things they did do — the same call `rememberShareId`
+   * makes for the id the server hands back. It does still reach the autosave and
+   * the cloud, which is the point: the signature has to be ON the document by
+   * the time anything is published from it.
+   *
+   * ── AND WHY IT ONLY EVER FILLS A GAP ─────────────────────────────────────
+   *
+   * A credit that says something is a credit the coach may have typed by hand —
+   * a board presented by an assistant, or under a club's name rather than their
+   * own — and quietly overwriting that with the profile would be the settings
+   * page reaching in and correcting them. Empty means unasked; anything else is
+   * an answer.
+   */
+  useEffect(() => {
+    if (!profile || locked) return
+    const presenter = profile.presenter.trim()
+    const team = profile.team.trim()
+    if (!presenter && !team) return
+    replace((sys) => {
+      const c = sys.credit ?? {}
+      const wants: Partial<Credit> = {}
+      if (!c.presenter?.trim() && presenter) wants.presenter = presenter
+      if (!c.team?.trim() && team) wants.team = team
+      return Object.keys(wants).length ? { ...sys, credit: { ...c, ...wants } } : sys
+    })
+  }, [profile, locked, replace])
+
   const myCrest = profile?.crestPath ? imageUrl(profile.crestPath) : ''
   const myKit = profile?.teamColour.trim() ?? ''
   const stacked = useMediaQuery('(max-width: 1023px)')
@@ -884,6 +932,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const selectedText = selectedMarkId
     ? ((act?.texts ?? []).find((t) => t.id === selectedMarkId) ?? null)
     : null
+  const selectedGear = selectedMarkId
+    ? ((act?.gear ?? []).find((g) => g.id === selectedMarkId) ?? null)
+    : null
 
   /** Take the selected thing off this phase. Returns whether there was one. */
   const deleteSelection = useCallback((): boolean => {
@@ -897,6 +948,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             arrows: a.arrows.filter((x) => x.id !== id),
             bands: a.bands.filter((b) => b.id !== id),
             texts: (a.texts ?? []).filter((x) => x.id !== id),
+            gear: (a.gear ?? []).filter((g) => g.id !== id),
           },
     )
     seal()
@@ -1202,6 +1254,47 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           patchAct(`text:${id}:move`, (a) => ({
             ...a,
             texts: (a.texts ?? []).map((x) => (x.id === id ? { ...x, ...at } : x)),
+          }))
+        },
+        () => seal(),
+      )
+    },
+    [act, bindGesture, view, patchAct, seal],
+  )
+
+  /**
+   * Dragging a piece of training gear.
+   *
+   * The text drag, to the line, and deliberately so: a piece of gear is also
+   * one point, and its size and its angle are set in the panel rather than by
+   * pulling at handles on the board. That is not a shortcut — a marker cone is
+   * 1.8m across on a board 68m wide, which is a target too small to hang four
+   * corner grips off without burying the piece under its own furniture. The
+   * panel has room for a slider; the grass does not.
+   */
+  const beginGearDrag = useCallback(
+    (id: string, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      const source = act
+      if (!svg || !source) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const base = (source.gear ?? []).find((g) => g.id === id)
+      if (!base) return
+
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const grab = clampToBoard(down.x, down.y)
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const q = clampToBoard(raw.x, raw.y)
+          const at = clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y))
+          patchAct(`gear:${id}:move`, (a) => ({
+            ...a,
+            gear: (a.gear ?? []).map((g) => (g.id === id ? { ...g, ...at } : g)),
           }))
         },
         () => seal(),
@@ -2149,6 +2242,41 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     seal()
   }
 
+  /**
+   * The way back from "Use my kit".
+   *
+   * Undo was the only route to this, and Undo is the wrong tool for it: it is
+   * the LAST move, so a coach who painted their kit on, then moved four
+   * players, then decided the green read better had no way back that did not
+   * also throw away the four players (user, 2026-08-27). This is a move of its
+   * own — forwards, undoable, and unrelated to what else has happened since.
+   *
+   * `name` is kept. The club is who the board belongs to and this button is
+   * about what colour it is drawn in; wiping "AEL Limassol U16" back to "Our
+   * team" because somebody wanted the house green would be answering a
+   * question nobody asked. The ring, the pattern and the second colour DO go —
+   * they are the kit, and a half-reverted kit is the state this button exists
+   * to get out of.
+   */
+  const useHouseColours = () => {
+    edit('kit:house', (s) => ({
+      ...s,
+      teams: {
+        ...s.teams,
+        us: {
+          ...s.teams.us,
+          base: DEFAULT_US.base,
+          deep: DEFAULT_US.deep,
+          text: DEFAULT_US.text,
+          ring: undefined,
+          pattern: undefined,
+          alt: undefined,
+        },
+      },
+    }))
+    seal()
+  }
+
   const applyLabels = (mode: LabelMode) => {
     setLabels(mode)
     edit('labels', (s) => ({
@@ -2322,6 +2450,61 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }))
   }
 
+  /** Change one field of the selected gear. Same clearing policy as the text. */
+  const patchGear = (patch: Partial<GearMark>, label = 'gear-style') => {
+    if (!selectedMarkId) return
+    patchAct(label, (a) => ({
+      ...a,
+      gear: (a.gear ?? []).map((g) => (g.id === selectedMarkId ? { ...g, ...patch } : g)),
+    }))
+  }
+
+  /**
+   * Put a piece of gear on the board.
+   *
+   * ── WHERE IT LANDS, AND WHY IT IS NOT WHERE YOU CLICKED ──────────────────
+   *
+   * The middle of the board, already selected, ready to be dragged — the same
+   * bargain the ball is on, which is what was asked for. The alternative was to
+   * arm the piece like a tool and place it on the next press of the grass,
+   * which puts it exactly where they meant first time and costs a mode:
+   * something to arm, something to cancel, and a press on the pitch that no
+   * longer means what it means the rest of the time. Laying out a drill is six
+   * or eight pieces, and six presses of one button beats six arm-and-place
+   * cycles.
+   *
+   * Fanned off dead centre by how many are already down, so putting four cones
+   * out does not stack four cones in one place — which reads as the button
+   * having fired once.
+   *
+   * STEP is 7% of the crop, which is about 4.8m of grass — wider than every
+   * piece in the catalogue except the ladder and the mini goal. At 3.5% they
+   * came down overlapping each other, which is the bug this fan exists to
+   * avoid rather than a smaller version of it. Five across, then a row down,
+   * and it wraps rather than walking off the touchline.
+   */
+  const addGear = (kind: string) => {
+    const piece = resolveGear(kind)
+    if (!piece) return
+    const id = uid('gr')
+    const n = (act.gear ?? []).length
+    const STEP = 7
+    patchAct('gear:add', (a) => ({
+      ...a,
+      gear: [
+        ...(a.gear ?? []),
+        {
+          id,
+          kind,
+          x: Math.min(92, Math.max(8, 50 + ((n % 5) - 2) * STEP)),
+          y: Math.min(92, Math.max(8, 42 + (Math.floor(n / 5) % 3) * STEP)),
+        },
+      ],
+    }))
+    seal()
+    setSelection({ kind: 'mark', id })
+  }
+
   /**
    * Shade the space a side's deepest line is protecting.
    *
@@ -2366,6 +2549,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }))
   }
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
+  // What is on THIS phase, for the drawer badges and the two "clear it" rows.
+  // Counted here rather than at each use so the badge and the button can never
+  // disagree about whether there is anything to clear.
+  const gearHere = (act.gear ?? []).length
+  const textsHere = (act.texts ?? []).length
   const ball = resolveBall(system.matchBall)
   const surface = resolveSurface(system.surface)
   const camera = resolveCamera(system.camera)
@@ -2381,6 +2569,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const same = (a: string | undefined, b: string | undefined) =>
     (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase()
+  /**
+   * Whether our side is already in the house green, ring and pattern included.
+   *
+   * Read the same way `kitMatches` is, so the two lines under the buttons can
+   * never both claim to be the current state.
+   */
+  const houseMatches =
+    same(system.teams.us.base, DEFAULT_US.base) &&
+    !system.teams.us.ring &&
+    !system.teams.us.alt &&
+    (system.teams.us.pattern ?? 'solid') === 'solid'
+
   const kitMatches =
     Boolean(myKit) &&
     same(system.teams.us.base, myKit) &&
@@ -2526,18 +2726,50 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           It is the vocabulary — Move, Pass, Run, Carry, Press, Switch — and
           reading it is most of understanding what the studio does, which is why
           it stays on screen greyed rather than being taken away. */}
-      <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1" {...inert}>
-        {/* Text sits at the end of the rail with the arrows rather than down in
-            a panel, because it is a MARK a coach adds to a phase, and the rail
-            is where they already look for those. It was the one thing in the
-            studio you could not reach from here. */}
-        {(['select', ...ARROW_TOOL_IDS, TEXT_TOOL_ID] as Tool[]).map((id) => (
+      {/*
+       * `lg:shrink-0`, and it is a bug fix rather than a tidy.
+       *
+       * The rail was `min-w-0 … overflow-x-auto` next to a title on `flex-1`,
+       * which makes the RAIL the thing that gives way when the bar runs out of
+       * room. It gives way silently — there is no scrollbar on a trackpad — so
+       * the last button in it just is not there, and the last button in it is
+       * Text. That is why the writing tool could not be found on a laptop
+       * (user, 2026-08-27): it was off the right-hand edge of a strip nothing
+       * said could be scrolled.
+       *
+       * On a wide screen the rail now holds its full width and the TITLE gives
+       * way instead, which it is built to do — it truncates, and a truncated
+       * name of a system you are looking at is a much cheaper loss than a tool
+       * you cannot see. Below `lg` it still scrolls, because on a phone there
+       * genuinely is not room and scrolling is the honest answer.
+       */}
+      <div
+        className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1 lg:shrink-0 lg:overflow-visible"
+        {...inert}
+      >
+        {(['select', ...ARROW_TOOL_IDS] as Tool[]).map((id) => (
           <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom">
             <Button active={tool === id} onClick={() => setTool(id)} className="!px-2 lg:!px-2.5">
               {TOOL_DOC[id].label}
             </Button>
           </Tip>
         ))}
+        {/* Text sits at the end of the rail with the arrows rather than down in
+            a panel, because it is a MARK a coach adds to a phase, and the rail
+            is where they already look for those. Behind a rule, because it is
+            not an arrow: everything to the left of the line is drawn between
+            two points, and this is words at one. It also has a door in the
+            panel — see the Writing panel in `setupPanel`. */}
+        <span className="mx-0.5 h-5 w-px shrink-0 bg-ink-hair" aria-hidden="true" />
+        <Tip text={<ToolText id={TEXT_TOOL_ID} />} title={TOOL_DOC[TEXT_TOOL_ID].label} side="bottom">
+          <Button
+            active={tool === TEXT_TOOL_ID}
+            onClick={() => setTool(TEXT_TOOL_ID)}
+            className="!px-2 lg:!px-2.5"
+          >
+            {TOOL_DOC[TEXT_TOOL_ID].label}
+          </Button>
+        </Tip>
       </div>
 
       {/* The hints stay on every greyed control, and that is deliberate: only
@@ -2749,6 +2981,19 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             : (id, e) => {
                 e.stopPropagation()
                 if (selectedMarkId === id) beginTextDrag(id, e)
+                else setSelection({ kind: 'mark', id })
+              }
+        }
+        /* Gear is on the same first-press-selects bargain as the writing, and
+           needs it just as much: a mannequin is a big opaque target sitting
+           under the players, and a coach clicking one to turn it must not find
+           they have walked it two metres up the pitch. */
+        onGearPointerDown={
+          playing || drawing
+            ? undefined
+            : (id, e) => {
+                e.stopPropagation()
+                if (selectedMarkId === id) beginGearDrag(id, e)
                 else setSelection({ kind: 'mark', id })
               }
         }
@@ -3008,473 +3253,635 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   // ── the setup panel (left on a wide screen) ────────────────────────────────
   const setupPanel = (
     <>
-      <Panel title="Pitch view">
-        <Tip text={HINT.pitchView} title="Pitch view" block>
-          <Select
-            value={system.pitch}
-            onChange={setPitch}
-            options={PITCH_VIEW_LIST.map((v) => ({ value: v.id, label: v.label }))}
-          />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          <span className="text-ink-soft">{view.hint}</span> {view.useFor}
-        </p>
-        {cast.partial && (
-          <Tip text={HINT.pitchFit} title="Who fits on this view" block>
-            <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
-              A shape placed here puts on{' '}
-              <span className="font-bold text-ink-soft">{cast.us} of yours</span>
-              {system.teams.them ? (
-                <>
-                  {' '}
-                  and <span className="font-bold text-ink-soft">{cast.them} of theirs</span>
-                </>
-              ) : null}
-              . This part of the pitch cannot hold a full team.
-            </p>
-          </Tip>
-        )}
-      </Panel>
-
-      <Panel title="Our shape">
-        <Tip text={HINT.formationUs} title="Our shape" block>
-          <Select value={usFormation} onChange={(v) => applyFormation('us', v)} groups={formationGroups} />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">{FORMATION_BY_ID.get(usFormation)?.hint}</p>
-        <div className="mt-3">
-          <Tip text={HINT.colourUs} title="Our colour" block>
-            <ColorWell value={system.teams.us.base} onChange={(c) => setTeamColor('us', c)} label="Our colour" />
-          </Tip>
-        </div>
-        <div className="mt-3">
-          <Tip
-            text={
-              usIsBlank
-                ? 'Puts all eleven back on the touchline so you can lay them out again from scratch.'
-                : HINT.replace
-            }
-            title={usIsBlank ? 'Back to the touchline' : 'Re-place shapes'}
-          >
-            <Button onClick={replaceShapes}>{usIsBlank ? 'Back to the touchline' : 'Re-place shapes'}</Button>
-          </Tip>
-        </div>
-      </Panel>
-
       {/*
-       * ── YOUR CLUB ────────────────────────────────────────────────────────
-       *
-       * Only appears when there is something in the profile to offer. A panel
-       * that says "you have not set a kit" on every board a coach opens is a
-       * standing reproach for a thing most of them will never want; the door to
-       * setting one is on the portal, where they went to sign in.
-       */}
-      {(myKit || myCrest) && (
-        <Panel title="Your club">
-          {myKit && (
-            <>
-              <Tip
-                text="Paints your kit from Settings onto our side of this board: the colour, the ring, the pattern and its second colour. It changes this system only, and Undo puts it straight back."
-                title="Use my kit"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Button onClick={applyMyKit}>Use my kit</Button>
-                  {/* The kit itself, not a description of it. Three wells is
-                      the smallest honest preview: a coach with hoops needs to
-                      see the second colour is the one they set. */}
-                  <span className="flex items-center gap-1.5" aria-hidden="true">
-                    {[myKit, profile?.kitAlt.trim(), profile?.kitRing.trim()]
-                      .filter(Boolean)
-                      .map((hex, i) => (
-                        <span
-                          key={i}
-                          className="h-5 w-5 rounded-full border border-ink-hair"
-                          style={{ background: hex as string }}
-                        />
-                      ))}
-                  </span>
-                </div>
-              </Tip>
-              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-                {kitMatches
-                  ? 'This board is already in your kit.'
-                  : 'This board is not in your kit yet. Our colour above changes the base only; this brings the whole kit across.'}
+        ── THE RAIL, IN DRAWERS ────────────────────────────────────────────
+
+        Fourteen panels in one column is a rail you scroll rather than read,
+        and a control you scroll past is a control nobody finds — which is
+        exactly what happened to the writing and to half of the camera (user,
+        2026-08-27). Six named drawers turns "find the pitch surface" into one
+        decision instead of twelve.
+
+        The three a coach touches on every board open by default: what the
+        board IS, who is on it, and what is on this phase. Equipment, the film
+        and the destructive one start shut, and `Section` remembers whatever
+        the coach does about that. See ./ui.tsx.
+      */}
+
+      <Section
+        title="The board"
+        hint="Pitch view, surface, camera"
+        defaultOpen
+        badge={view.label}
+      >
+        <Panel title="Pitch view">
+          <Tip text={HINT.pitchView} title="Pitch view" block>
+            <Select
+              value={system.pitch}
+              onChange={setPitch}
+              options={PITCH_VIEW_LIST.map((v) => ({ value: v.id, label: v.label }))}
+            />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            <span className="text-ink-soft">{view.hint}</span> {view.useFor}
+          </p>
+          {cast.partial && (
+            <Tip text={HINT.pitchFit} title="Who fits on this view" block>
+              <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
+                A shape placed here puts on{' '}
+                <span className="font-bold text-ink-soft">{cast.us} of yours</span>
+                {system.teams.them ? (
+                  <>
+                    {' '}
+                    and <span className="font-bold text-ink-soft">{cast.them} of theirs</span>
+                  </>
+                ) : null}
+                . This part of the pitch cannot hold a full team.
               </p>
+            </Tip>
+          )}
+        </Panel>
+
+        <Panel title="Pitch">
+          <Tip text={HINT.surface} title="What the pitch is drawn on" block>
+            <SurfacePicker
+              label="Pitch"
+              value={system.surface ?? DEFAULT_SURFACE}
+              onChange={(id: PitchSurfaceId) => {
+                edit('surface', (s) => ({ ...s, surface: id }))
+                seal()
+              }}
+              items={PITCH_SURFACES.map((s) => ({ value: s.id, label: s.name, palette: s.palette }))}
+            />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            <span className="font-bold text-ink-soft">{surface.name}.</span> {surface.story}
+          </p>
+        </Panel>
+
+        <Panel title="Camera">
+          <Tip text={HINT.camera} title="How the film is shot" block>
+            <Segmented
+              label="Camera"
+              value={camera}
+              onChange={(id: CameraMode) => {
+                edit('camera', (s) => ({ ...s, camera: id }))
+                seal()
+              }}
+              options={CAMERA_MODES.map((c) => ({ value: c.id, label: c.label }))}
+            />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            <span className="font-bold text-ink-soft">{cameraMode.label}.</span> {cameraMode.hint}
+          </p>
+          {camera === 'follow' && (
+            <>
+              {/*
+               * HOW FAR it goes, under WHETHER it goes. Two controls rather than
+               * five modes: "does the eye move" and "how close does it get" are
+               * different questions, and a coach who wants a calmer film should
+               * not have to find it under a heading that says Fixed.
+               */}
+              <div className="mt-3 border-t border-ink-hair pt-3">
+                <Field label="How far it pushes in">
+                  <Segmented
+                    label="How far it pushes in"
+                    value={push.id}
+                    onChange={(id: CameraPush) => {
+                      edit('push', (s) => ({ ...s, push: id }))
+                      seal()
+                    }}
+                    options={CAMERA_PUSHES.map((c) => ({ value: c.id, label: c.label }))}
+                  />
+                </Field>
+                <p className="-mt-1 text-[11px] leading-snug text-ink-faint">{push.hint}</p>
+              </div>
+
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                {rendered.shot ? (
+                  <>
+                    This {PHASE.one} is shot{' '}
+                    <span className="font-bold text-ink-soft">{Math.round(frameWide)} metres</span>{' '}
+                    across, out of {Math.round(viewWide)}. The dashed box is what the film sees
+                    {act.shot ? ', and you set it' : ''}.
+                  </>
+                ) : (
+                  <>
+                    This {PHASE.one} is shot wide. Put the ball on the board, or draw an arrow, and the
+                    camera has something to point at.
+                  </>
+                )}
+              </p>
+
+              {/*
+               * Two states, one line of type between them.
+               *
+               * With a box on the board there is nothing to press: dragging it is
+               * the control, and a button that says "now you may move it" would
+               * be a step in the way of a thing that already works. What needs a
+               * button is the way BACK — an automatic frame is the good default
+               * and a coach who has overridden one phase must be able to undo
+               * that without knowing where they dragged it from.
+               */}
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                {act.shot
+                  ? 'Drag an EDGE of the box to move it. Drag a CORNER to zoom, which grows the box around its middle and leaves the shot pointing where you put it.'
+                  : rendered.shot
+                    ? 'Worked out from what is on this ' +
+                      PHASE.one +
+                      '. Drag an edge to move it, a corner to zoom.'
+                    : 'You can still frame it by hand.'}
+              </p>
+
+              <div className="mt-2.5">
+                {act.shot ? (
+                  <Tip
+                    text={`Throws away the frame you drew on this ${PHASE.one} and goes back to working it out from the ball, the arrows and anyone you have given a role to.`}
+                    title="Back to automatic"
+                  >
+                    <Button onClick={() => patchAct('frame', (a) => ({ ...a, shot: undefined }))}>
+                      Back to automatic
+                    </Button>
+                  </Tip>
+                ) : (
+                  <Tip
+                    text={`Puts a frame on this ${PHASE.one} for you to drag. Until you move it, it is exactly what the camera was going to do anyway.`}
+                    title="Frame it yourself"
+                  >
+                    <Button onClick={frameByHand}>Frame it yourself</Button>
+                  </Tip>
+                )}
+              </div>
             </>
           )}
+        </Panel>
+      </Section>
 
-          {myCrest && (
-            <div className={myKit ? 'mt-3 border-t border-ink-hair pt-3' : ''}>
-              <Tip
-                text="Draws your crest in the top-left corner of the board. It travels with the system into the share link, the print sheet, the images and the film."
-                title="Show my crest"
-                block
-              >
-                <Toggle
-                  checked={Boolean(system.showCrest)}
-                  onChange={(on) => {
-                    // The URL is written on the way ON and never taken off
-                    // again, so turning it back on is a toggle rather than a
-                    // trip to the settings page. See `crestUrl` in ../schema.ts.
-                    edit('crest', (sys) => ({
-                      ...sys,
-                      showCrest: on,
-                      crestUrl: on ? myCrest : sys.crestUrl,
-                    }))
-                    seal()
-                  }}
-                  label="Show my crest on the board"
-                />
-              </Tip>
-              <div className="mt-2 flex items-center gap-2">
-                <img src={myCrest} alt="" className="h-7 w-7 shrink-0 object-contain" />
-                <p className="text-[11px] leading-snug text-ink-faint">
-                  {system.showCrest
-                    ? 'Top-left of the board, on every phase.'
-                    : 'Off. The board stays as it is.'}
+      <Section
+        title="Teams and kit"
+        hint="Shapes, colours, what is on the counters"
+        defaultOpen
+        badge={themHere ? 'Both' : 'Us'}
+      >
+        <Panel title="Our shape">
+          <Tip text={HINT.formationUs} title="Our shape" block>
+            <Select value={usFormation} onChange={(v) => applyFormation('us', v)} groups={formationGroups} />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">{FORMATION_BY_ID.get(usFormation)?.hint}</p>
+          <div className="mt-3">
+            <Tip text={HINT.colourUs} title="Our colour" block>
+              <ColorWell value={system.teams.us.base} onChange={(c) => setTeamColor('us', c)} label="Our colour" />
+            </Tip>
+          </div>
+          <div className="mt-3">
+            <Tip
+              text={
+                usIsBlank
+                  ? 'Puts all eleven back on the touchline so you can lay them out again from scratch.'
+                  : HINT.replace
+              }
+              title={usIsBlank ? 'Back to the touchline' : 'Re-place shapes'}
+            >
+              <Button onClick={replaceShapes}>{usIsBlank ? 'Back to the touchline' : 'Re-place shapes'}</Button>
+            </Tip>
+          </div>
+        </Panel>
+
+        {/*
+         * ── YOUR CLUB ────────────────────────────────────────────────────────
+         *
+         * Only appears when there is something in the profile to offer. A panel
+         * that says "you have not set a kit" on every board a coach opens is a
+         * standing reproach for a thing most of them will never want; the door to
+         * setting one is on the portal, where they went to sign in.
+         */}
+        {(myKit || myCrest) && (
+          <Panel title="Your club">
+            {myKit && (
+              <>
+                <Tip
+                  text="Paints your kit from Settings onto our side of this board: the colour, the ring, the pattern and its second colour. It changes this system only, and Undo puts it straight back."
+                  title="Use my kit"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Button onClick={applyMyKit}>Use my kit</Button>
+                    {/* The kit itself, not a description of it. Three wells is
+                        the smallest honest preview: a coach with hoops needs to
+                        see the second colour is the one they set. */}
+                    <span className="flex items-center gap-1.5" aria-hidden="true">
+                      {[myKit, profile?.kitAlt.trim(), profile?.kitRing.trim()]
+                        .filter(Boolean)
+                        .map((hex, i) => (
+                          <span
+                            key={i}
+                            className="h-5 w-5 rounded-full border border-ink-hair"
+                            style={{ background: hex as string }}
+                          />
+                        ))}
+                    </span>
+                  </div>
+                </Tip>
+                <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                  {kitMatches
+                    ? 'This board is already in your kit.'
+                    : 'This board is not in your kit yet. Our colour above changes the base only; this brings the whole kit across.'}
                 </p>
+
+                {/*
+                 * The way back, beside the way there.
+                 *
+                 * Withheld while the board is ALREADY in the house colours,
+                 * which is the state most boards spend their life in — a
+                 * permanently useless button under a useful one is how a panel
+                 * starts being skimmed instead of read. Undo is not this: Undo is
+                 * the last move, and by the time a coach has decided the green
+                 * read better they have usually moved four players since.
+                 */}
+                {!houseMatches && (
+                  <div className="mt-3 border-t border-ink-hair pt-3">
+                    <Tip
+                      text="Puts our side back to the studio's own green, and takes off the ring, the pattern and the second colour. Your club name and your crest stay as they are."
+                      title="House colours"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Button onClick={useHouseColours}>House colours</Button>
+                        <span
+                          className="h-5 w-5 rounded-full border border-ink-hair"
+                          style={{ background: DEFAULT_US.base }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </Tip>
+                    <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                      The colour this board started in, before any kit was painted on it.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {myCrest && (
+              <div className={myKit ? 'mt-3 border-t border-ink-hair pt-3' : ''}>
+                <Tip
+                  text="Draws your crest in the top-left corner of the board. It travels with the system into the share link, the print sheet, the images and the film."
+                  title="Show my crest"
+                  block
+                >
+                  <Toggle
+                    checked={Boolean(system.showCrest)}
+                    onChange={(on) => {
+                      // The URL is written on the way ON and never taken off
+                      // again, so turning it back on is a toggle rather than a
+                      // trip to the settings page. See `crestUrl` in ../schema.ts.
+                      edit('crest', (sys) => ({
+                        ...sys,
+                        showCrest: on,
+                        crestUrl: on ? myCrest : sys.crestUrl,
+                      }))
+                      seal()
+                    }}
+                    label="Show my crest on the board"
+                  />
+                </Tip>
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={myCrest} alt="" className="h-7 w-7 shrink-0 object-contain" />
+                  <p className="text-[11px] leading-snug text-ink-faint">
+                    {system.showCrest
+                      ? 'Top-left of the board, on every phase.'
+                      : 'Off. The board stays as it is.'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </Panel>
+        )}
+
+        <Panel title="Opposition">
+          <Tip text={HINT.opposition} title="Show opposition" block>
+            <Toggle checked={themHere} onChange={toggleOpposition} label={`Show opposition on ${PHASE.one} ${actIndex + 1}`} />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {themOnPhases.length === 0
+              ? `No opposition on any ${PHASE.one} yet.`
+              : themOnPhases.length === system.acts.length
+                ? `On every ${PHASE.one}.`
+                : `On ${themOnPhases.length === 1 ? PHASE.one : PHASE.many} ${themOnPhases.map((n) => n + 1).join(', ')}.`}
+          </p>
+          <div className="mt-3">
+            <Tip text={HINT.keepShape} title="Keep my shape" block>
+              <Toggle checked={Boolean(system.keepShape)} onChange={toggleKeepShape} label="Keep my shape" />
+            </Tip>
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {system.keepShape
+              ? 'Your shape holds the whole pitch. The opposition comes on around it.'
+              : 'Each team lines up in its own half when the opposition is on.'}
+          </p>
+          {system.teams.them && (
+            <div className="mt-3">
+              <Tip text={HINT.formationThem} title="Their shape" block>
+                <Select value={themFormation} onChange={(v) => applyFormation('them', v)} groups={formationGroups} />
+              </Tip>
+              <div className="mt-3">
+                <Tip text={HINT.colourThem} title="Their colour" block>
+                  <ColorWell
+                    value={system.teams.them.base}
+                    onChange={(c) => setTeamColor('them', c)}
+                    label="Their colour"
+                  />
+                </Tip>
               </div>
             </div>
           )}
         </Panel>
-      )}
 
-      <Panel title="Opposition">
-        <Tip text={HINT.opposition} title="Show opposition" block>
-          <Toggle checked={themHere} onChange={toggleOpposition} label={`Show opposition on ${PHASE.one} ${actIndex + 1}`} />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          {themOnPhases.length === 0
-            ? `No opposition on any ${PHASE.one} yet.`
-            : themOnPhases.length === system.acts.length
-              ? `On every ${PHASE.one}.`
-              : `On ${themOnPhases.length === 1 ? PHASE.one : PHASE.many} ${themOnPhases.map((n) => n + 1).join(', ')}.`}
-        </p>
-        <div className="mt-3">
-          <Tip text={HINT.keepShape} title="Keep my shape" block>
-            <Toggle checked={Boolean(system.keepShape)} onChange={toggleKeepShape} label="Keep my shape" />
+        <Panel title="Counters">
+          <Tip text={HINT.labels} title="What is on the counters" block>
+            <Select
+              value={labels}
+              onChange={applyLabels}
+              options={[
+                { value: 'position', label: 'Positions (CB, DM, ST)' },
+                { value: 'number', label: 'Shirt numbers' },
+              ]}
+            />
           </Tip>
-        </div>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          {system.keepShape
-            ? 'Your shape holds the whole pitch. The opposition comes on around it.'
-            : 'Each team lines up in its own half when the opposition is on.'}
-        </p>
-        {system.teams.them && (
-          <div className="mt-3">
-            <Tip text={HINT.formationThem} title="Their shape" block>
-              <Select value={themFormation} onChange={(v) => applyFormation('them', v)} groups={formationGroups} />
-            </Tip>
-            <div className="mt-3">
-              <Tip text={HINT.colourThem} title="Their colour" block>
-                <ColorWell
-                  value={system.teams.them.base}
-                  onChange={(c) => setTeamColor('them', c)}
-                  label="Their colour"
-                />
-              </Tip>
-            </div>
-          </div>
-        )}
-      </Panel>
+        </Panel>
+      </Section>
 
-      <Panel title="Match ball">
-        <Tip text={HINT.ball} title="Match ball" block>
-          <PicturePicker
-            label="Match ball"
-            value={system.matchBall ?? DEFAULT_BALL}
-            onChange={(id: BallId) => {
-              edit('ball', (s) => ({ ...s, matchBall: id }))
-              seal()
-            }}
-            items={BALLS.map((b) => ({ value: b.id, label: b.name, src: b.src }))}
-          />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          <span className="font-bold text-ink-soft">{ball.name}.</span> {ball.story}
-        </p>
-      </Panel>
-
-      <Panel title="Pitch">
-        <Tip text={HINT.surface} title="What the pitch is drawn on" block>
-          <SurfacePicker
-            label="Pitch"
-            value={system.surface ?? DEFAULT_SURFACE}
-            onChange={(id: PitchSurfaceId) => {
-              edit('surface', (s) => ({ ...s, surface: id }))
-              seal()
-            }}
-            items={PITCH_SURFACES.map((s) => ({ value: s.id, label: s.name, palette: s.palette }))}
-          />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          <span className="font-bold text-ink-soft">{surface.name}.</span> {surface.story}
-        </p>
-      </Panel>
-
-      <Panel title="Camera">
-        <Tip text={HINT.camera} title="How the film is shot" block>
-          <Segmented
-            label="Camera"
-            value={camera}
-            onChange={(id: CameraMode) => {
-              edit('camera', (s) => ({ ...s, camera: id }))
-              seal()
-            }}
-            options={CAMERA_MODES.map((c) => ({ value: c.id, label: c.label }))}
-          />
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          <span className="font-bold text-ink-soft">{cameraMode.label}.</span> {cameraMode.hint}
-        </p>
-        {camera === 'follow' && (
-          <>
-            {/*
-             * HOW FAR it goes, under WHETHER it goes. Two controls rather than
-             * five modes: "does the eye move" and "how close does it get" are
-             * different questions, and a coach who wants a calmer film should
-             * not have to find it under a heading that says Fixed.
-             */}
-            <div className="mt-3 border-t border-ink-hair pt-3">
-              <Field label="How far it pushes in">
-                <Segmented
-                  label="How far it pushes in"
-                  value={push.id}
-                  onChange={(id: CameraPush) => {
-                    edit('push', (s) => ({ ...s, push: id }))
-                    seal()
-                  }}
-                  options={CAMERA_PUSHES.map((c) => ({ value: c.id, label: c.label }))}
-                />
-              </Field>
-              <p className="-mt-1 text-[11px] leading-snug text-ink-faint">{push.hint}</p>
-            </div>
-
-            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-              {rendered.shot ? (
-                <>
-                  This {PHASE.one} is shot{' '}
-                  <span className="font-bold text-ink-soft">{Math.round(frameWide)} metres</span>{' '}
-                  across, out of {Math.round(viewWide)}. The dashed box is what the film sees
-                  {act.shot ? ', and you set it' : ''}.
-                </>
-              ) : (
-                <>
-                  This {PHASE.one} is shot wide. Put the ball on the board, or draw an arrow, and the
-                  camera has something to point at.
-                </>
-              )}
-            </p>
-
-            {/*
-             * Two states, one line of type between them.
-             *
-             * With a box on the board there is nothing to press: dragging it is
-             * the control, and a button that says "now you may move it" would
-             * be a step in the way of a thing that already works. What needs a
-             * button is the way BACK — an automatic frame is the good default
-             * and a coach who has overridden one phase must be able to undo
-             * that without knowing where they dragged it from.
-             */}
-            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-              {act.shot
-                ? 'Drag an EDGE of the box to move it. Drag a CORNER to zoom, which grows the box around its middle and leaves the shot pointing where you put it.'
-                : rendered.shot
-                  ? 'Worked out from what is on this ' +
-                    PHASE.one +
-                    '. Drag an edge to move it, a corner to zoom.'
-                  : 'You can still frame it by hand.'}
-            </p>
-
-            <div className="mt-2.5">
-              {act.shot ? (
-                <Tip
-                  text={`Throws away the frame you drew on this ${PHASE.one} and goes back to working it out from the ball, the arrows and anyone you have given a role to.`}
-                  title="Back to automatic"
-                >
-                  <Button onClick={() => patchAct('frame', (a) => ({ ...a, shot: undefined }))}>
-                    Back to automatic
-                  </Button>
-                </Tip>
-              ) : (
-                <Tip
-                  text={`Puts a frame on this ${PHASE.one} for you to drag. Until you move it, it is exactly what the camera was going to do anyway.`}
-                  title="Frame it yourself"
-                >
-                  <Button onClick={frameByHand}>Frame it yourself</Button>
-                </Tip>
-              )}
-            </div>
-          </>
-        )}
-      </Panel>
-
-      <Panel title="Pace">
-        <Tip text={HINT.pace} title="The hold and the move" block>
-          <PaceField
-            system={system}
-            onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
-            onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
-            onCommit={seal}
-          />
-        </Tip>
-      </Panel>
-
-      <Panel title="Counters">
-        <Tip text={HINT.labels} title="What is on the counters" block>
-          <Select
-            value={labels}
-            onChange={applyLabels}
-            options={[
-              { value: 'position', label: 'Positions (CB, DM, ST)' },
-              { value: 'number', label: 'Shirt numbers' },
-            ]}
-          />
-        </Tip>
-      </Panel>
-
-      <Panel title={`Players on this ${PHASE.one}`}>
-        <div className="flex flex-wrap gap-1.5">
-          <Tip text={HINT.ballToggle} title={act.ball ? 'Remove ball' : 'Add ball'}>
-            <Button
-              onClick={() => {
-                patchAct('ball-on', (a) => ({ ...a, ball: a.ball ? null : { ...CENTRE_SPOT } }))
+      <Section
+        title="Equipment"
+        hint="The match ball, and the gear on the grass"
+        badge={gearHere > 0 ? String(gearHere) : undefined}
+      >
+        <Panel title="Match ball">
+          <Tip text={HINT.ball} title="Match ball" block>
+            <PicturePicker
+              label="Match ball"
+              value={system.matchBall ?? DEFAULT_BALL}
+              onChange={(id: BallId) => {
+                edit('ball', (s) => ({ ...s, matchBall: id }))
                 seal()
               }}
-              active={Boolean(act.ball)}
-            >
-              {act.ball ? 'Remove ball' : 'Add ball'}
-            </Button>
+              items={BALLS.map((b) => ({ value: b.id, label: b.name, src: b.src }))}
+            />
           </Tip>
-          <Tip text={HINT.addPlayer} title="Add a player">
-            <Button onClick={() => addPlayer('us')}>+ Player</Button>
-          </Tip>
-          <Tip text={HINT.clearPitch} title="Clear the pitch">
-            <ConfirmButton
-              confirm="Yes, clear them"
-              onConfirm={() => {
-                patchAct('clear-players', (a) => ({ ...a, tokens: [] }))
-                seal()
-              }}
-              disabled={act.tokens.length === 0}
-            >
-              Clear players
-            </ConfirmButton>
-          </Tip>
-        </div>
-      </Panel>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            <span className="font-bold text-ink-soft">{ball.name}.</span> {ball.story}
+          </p>
+        </Panel>
 
       {/*
-       * Shaded areas, all in one place and all explained.
+       * ── TRAINING GEAR ──────────────────────────────────────────────────
        *
-       * "Add block" on its own was the least understood control in the studio:
-       * a coach pressed it, half the pitch went green, and nothing said what had
-       * been decided on their behalf. Sitting it next to the two areas you draw
-       * by hand makes the shape of the idea obvious — one is worked out from
-       * your players, two are drawn where you say.
+       * The other half of Equipment. The panel above picks the ONE ball this
+       * system is played with; this one puts objects on the grass, and there
+       * can be as many of them as the drill needs.
+       *
+       * Pressing a piece adds one. It is not a mode — see `addGear` — so four
+       * presses of the cone is four cones, which is what laying out a gate
+       * actually is.
        */}
-      <Panel title="Shaded areas">
+      <Panel title="Training gear">
         <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
-          One block is worked out from your deepest line. Draw the rest yourself: pick the players for a block of
-          your own, or drag a box out for an area. Click any of them afterwards to change its colour, its shape or
-          what it says.
+          Press a piece to put one on the board. It lands in the middle, already picked up — drag it where you want
+          it, then use the panel on the right to size it or turn it. Gear belongs to this {PHASE.one}, and it moves
+          between {PHASE.many} on Play exactly like a player does.
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          <Tip text={HINT.block} title={blockFor('us') ? 'Redraw our block' : 'Our block'}>
-            <Button onClick={() => addBlockBand('us')} active={Boolean(blockFor('us'))}>
-              {blockFor('us') ? 'Redraw our block' : 'Our block'}
-            </Button>
-          </Tip>
-          {system.teams.them && (
-            <Tip text={HINT.blockThem} title={blockFor('them') ? 'Redraw their block' : 'Their block'}>
-              <Button onClick={() => addBlockBand('them')} active={Boolean(blockFor('them'))}>
-                {blockFor('them') ? 'Redraw their block' : 'Their block'}
-              </Button>
+        <GearPicker
+          onAdd={addGear}
+          groups={GEAR_GROUPS.map((g) => ({
+            id: g.id,
+            label: g.label,
+            items: GEAR.filter((it) => it.group === g.id).map((it) => ({
+              id: it.id,
+              name: it.name,
+              thumb: it.thumb,
+            })),
+          }))}
+        />
+        {gearHere > 0 && (
+          <div className="mt-3 flex items-center gap-1.5">
+            <Tip text={`Takes every piece of equipment off this ${PHASE.one}. The players, the arrows and the shaded areas stay.`} title="Clear the gear">
+              <ConfirmButton
+                confirm="Yes, clear it"
+                onConfirm={() => {
+                  patchAct('clear-gear', (a) => ({ ...a, gear: [] }))
+                  seal()
+                }}
+              >
+                Clear the gear
+              </ConfirmButton>
             </Tip>
-          )}
-          {/*
-           * Draw a block by hand. Sits with the two automatic ones rather than
-           * up in the arrow toolbar, because what a coach is choosing between
-           * here is "work it out for me" and "I will pick them", and those two
-           * belong side by side.
-           */}
-          <Tip text={HINT.blockDraw} title="Draw a block">
-            {/* The label does not change to "Cancel" when it is armed. The
-                active state already says it is on, the panel below carries the
-                real Cancel, and two buttons a centimetre apart both reading
-                Cancel is a worse control than one that keeps its name. */}
-            <Button
-              active={tool === 'block'}
-              onClick={() => (tool === 'block' ? cancelBlockPick() : setTool('block'))}
-            >
-              Draw a block
-            </Button>
-          </Tip>
-          {ZONE_TOOL_IDS.map((id) => (
-            <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label}>
-              <Button active={tool === id} onClick={() => setTool(tool === id ? 'select' : id)}>
-                {TOOL_DOC[id].label}
-              </Button>
-            </Tip>
-          ))}
-        </div>
-        {tool === 'block' ? (
-          <div className="mt-2.5 rounded-lg bg-paper p-2.5">
-            <p className="text-[11px] leading-snug text-ink">
-              <span className="font-bold">
-                {blockPick.length === 0
-                  ? 'Nobody picked yet.'
-                  : `${blockPick.length} picked${blockPick.length >= BLOCK_MAX ? ' (the most it takes)' : ''}.`}
-              </span>{' '}
-              {HINT.blockPicking}
-            </p>
-            {/*
-             * Offered HERE, while the line is being picked, and not only in the
-             * inspector afterwards. The board is already drawing the answer —
-             * see the preview band — so this is a control a coach can watch
-             * rather than one they have to imagine, and the choice it makes is
-             * the difference between a block and a flood across the pitch.
-             */}
-            {blockPick.length >= 2 && (
-              <div className="mt-2.5">
-                <Tip text={HINT.blockClose} title="What it shades" side="left" block>
-                  <Field label="Shades">
-                    <Segmented
-                      label="What it shades"
-                      value={effectiveClose}
-                      onChange={(v) => setBlockClose(v as 'goal' | 'shape')}
-                      options={[
-                        { value: 'goal', label: 'To the goal' },
-                        { value: 'shape', label: 'Around them' },
-                      ]}
-                    />
-                  </Field>
-                </Tip>
-              </div>
-            )}
-            <div className="mt-2 flex gap-1.5">
-              <Button variant="solid" onClick={commitBlockPick} disabled={blockPick.length < 2}>
-                Draw it
-              </Button>
-              <Button onClick={cancelBlockPick}>Cancel</Button>
-            </div>
+            <span className="text-[11px] text-ink-faint">
+              {gearHere} {gearHere === 1 ? 'piece' : 'pieces'} on this {PHASE.one}.
+            </span>
           </div>
-        ) : (
-          blockFor('us') && (
-            <p className="mt-2 text-[11px] leading-snug text-ink-faint">{HINT.blockRedraw}</p>
-          )
         )}
       </Panel>
+      </Section>
 
-      <Panel title="This system">
-        <Tip text={HINT.reset} title="Start over">
-          <ConfirmButton confirm="Yes, start over" onConfirm={startOver}>
-            Start over
-          </ConfirmButton>
-        </Tip>
-        <p className="mt-2 text-[11px] leading-snug text-ink-faint">
-          Everything you do is saved on this computer as you go. Undo takes back anything, including this.
+      <Section
+        title={`On this ${PHASE.one}`}
+        hint="Players, shaded areas, writing"
+        defaultOpen
+        badge={String(act.tokens.length)}
+      >
+        <Panel title={`Players on this ${PHASE.one}`}>
+          <div className="flex flex-wrap gap-1.5">
+            <Tip text={HINT.ballToggle} title={act.ball ? 'Remove ball' : 'Add ball'}>
+              <Button
+                onClick={() => {
+                  patchAct('ball-on', (a) => ({ ...a, ball: a.ball ? null : { ...CENTRE_SPOT } }))
+                  seal()
+                }}
+                active={Boolean(act.ball)}
+              >
+                {act.ball ? 'Remove ball' : 'Add ball'}
+              </Button>
+            </Tip>
+            <Tip text={HINT.addPlayer} title="Add a player">
+              <Button onClick={() => addPlayer('us')}>+ Player</Button>
+            </Tip>
+            <Tip text={HINT.clearPitch} title="Clear the pitch">
+              <ConfirmButton
+                confirm="Yes, clear them"
+                onConfirm={() => {
+                  patchAct('clear-players', (a) => ({ ...a, tokens: [] }))
+                  seal()
+                }}
+                disabled={act.tokens.length === 0}
+              >
+                Clear players
+              </ConfirmButton>
+            </Tip>
+          </div>
+        </Panel>
+
+        {/*
+         * Shaded areas, all in one place and all explained.
+         *
+         * "Add block" on its own was the least understood control in the studio:
+         * a coach pressed it, half the pitch went green, and nothing said what had
+         * been decided on their behalf. Sitting it next to the two areas you draw
+         * by hand makes the shape of the idea obvious — one is worked out from
+         * your players, two are drawn where you say.
+         */}
+        <Panel title="Shaded areas">
+          <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
+            One block is worked out from your deepest line. Draw the rest yourself: pick the players for a block of
+            your own, or drag a box out for an area. Click any of them afterwards to change its colour, its shape or
+            what it says.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <Tip text={HINT.block} title={blockFor('us') ? 'Redraw our block' : 'Our block'}>
+              <Button onClick={() => addBlockBand('us')} active={Boolean(blockFor('us'))}>
+                {blockFor('us') ? 'Redraw our block' : 'Our block'}
+              </Button>
+            </Tip>
+            {system.teams.them && (
+              <Tip text={HINT.blockThem} title={blockFor('them') ? 'Redraw their block' : 'Their block'}>
+                <Button onClick={() => addBlockBand('them')} active={Boolean(blockFor('them'))}>
+                  {blockFor('them') ? 'Redraw their block' : 'Their block'}
+                </Button>
+              </Tip>
+            )}
+            {/*
+             * Draw a block by hand. Sits with the two automatic ones rather than
+             * up in the arrow toolbar, because what a coach is choosing between
+             * here is "work it out for me" and "I will pick them", and those two
+             * belong side by side.
+             */}
+            <Tip text={HINT.blockDraw} title="Draw a block">
+              {/* The label does not change to "Cancel" when it is armed. The
+                  active state already says it is on, the panel below carries the
+                  real Cancel, and two buttons a centimetre apart both reading
+                  Cancel is a worse control than one that keeps its name. */}
+              <Button
+                active={tool === 'block'}
+                onClick={() => (tool === 'block' ? cancelBlockPick() : setTool('block'))}
+              >
+                Draw a block
+              </Button>
+            </Tip>
+            {ZONE_TOOL_IDS.map((id) => (
+              <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label}>
+                <Button active={tool === id} onClick={() => setTool(tool === id ? 'select' : id)}>
+                  {TOOL_DOC[id].label}
+                </Button>
+              </Tip>
+            ))}
+          </div>
+          {tool === 'block' ? (
+            <div className="mt-2.5 rounded-lg bg-paper p-2.5">
+              <p className="text-[11px] leading-snug text-ink">
+                <span className="font-bold">
+                  {blockPick.length === 0
+                    ? 'Nobody picked yet.'
+                    : `${blockPick.length} picked${blockPick.length >= BLOCK_MAX ? ' (the most it takes)' : ''}.`}
+                </span>{' '}
+                {HINT.blockPicking}
+              </p>
+              {/*
+               * Offered HERE, while the line is being picked, and not only in the
+               * inspector afterwards. The board is already drawing the answer —
+               * see the preview band — so this is a control a coach can watch
+               * rather than one they have to imagine, and the choice it makes is
+               * the difference between a block and a flood across the pitch.
+               */}
+              {blockPick.length >= 2 && (
+                <div className="mt-2.5">
+                  <Tip text={HINT.blockClose} title="What it shades" side="left" block>
+                    <Field label="Shades">
+                      <Segmented
+                        label="What it shades"
+                        value={effectiveClose}
+                        onChange={(v) => setBlockClose(v as 'goal' | 'shape')}
+                        options={[
+                          { value: 'goal', label: 'To the goal' },
+                          { value: 'shape', label: 'Around them' },
+                        ]}
+                      />
+                    </Field>
+                  </Tip>
+                </div>
+              )}
+              <div className="mt-2 flex gap-1.5">
+                <Button variant="solid" onClick={commitBlockPick} disabled={blockPick.length < 2}>
+                  Draw it
+                </Button>
+                <Button onClick={cancelBlockPick}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            blockFor('us') && (
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">{HINT.blockRedraw}</p>
+            )
+          )}
+        </Panel>
+
+      {/*
+       * ── WRITING ────────────────────────────────────────────────────────
+       *
+       * The text tool has been in the top rail since it shipped, at the end of
+       * the arrows, and it was NOT FOUND (user, 2026-08-27) — the rail scrolls
+       * sideways on anything narrower than a desktop and Text is the last thing
+       * in it, so on most screens it was simply off the edge.
+       *
+       * So it gets a home here as well, beside the shaded areas, which is the
+       * other panel full of "things I add to this phase". Two doors to one tool
+       * is not duplication when one of them is the door people actually walk
+       * through; the rail keeps it because that is where a coach who knows the
+       * studio reaches, and this is where a coach who does not will look.
+       */}
+      <Panel title="Writing">
+        <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
+          {TOOL_DOC[TEXT_TOOL_ID].what} {TOOL_DOC[TEXT_TOOL_ID].when}
         </p>
+        <div className="flex flex-wrap gap-1.5">
+          <Tip text={<ToolText id={TEXT_TOOL_ID} />} title={TOOL_DOC[TEXT_TOOL_ID].label}>
+            <Button
+              active={tool === TEXT_TOOL_ID}
+              onClick={() => setTool(tool === TEXT_TOOL_ID ? 'select' : TEXT_TOOL_ID)}
+            >
+              {tool === TEXT_TOOL_ID ? 'Click the pitch…' : 'Write on the pitch'}
+            </Button>
+          </Tip>
+        </div>
+        {textsHere > 0 && (
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {textsHere} {textsHere === 1 ? 'piece' : 'pieces'} of writing on this {PHASE.one}. Click one on the
+            board to change it.
+          </p>
+        )}
       </Panel>
+      </Section>
+
+      <Section title="The film" hint={`How long each ${PHASE.one} holds`}>
+        <Panel title="Pace">
+          <Tip text={HINT.pace} title="The hold and the move" block>
+            <PaceField
+              system={system}
+              onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
+              onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
+              onCommit={seal}
+            />
+          </Tip>
+        </Panel>
+      </Section>
+
+      <Section title="This system" hint="Start over">
+        <Panel title="This system">
+          <Tip text={HINT.reset} title="Start over">
+            <ConfirmButton confirm="Yes, start over" onConfirm={startOver}>
+              Start over
+            </ConfirmButton>
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            Everything you do is saved on this computer as you go. Undo takes back anything, including this.
+          </p>
+        </Panel>
+      </Section>
     </>
   )
 
@@ -3488,7 +3895,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       tone: b.tone as BandTone | undefined,
       strength: b.strength as BandStrength | undefined,
     }).tone
-  const marks: { id: string; name: string; tone: string; kind: 'arrow' | 'band' | 'text' }[] = [
+  const marks: {
+    id: string
+    name: string
+    tone: string
+    kind: 'arrow' | 'band' | 'text' | 'gear'
+  }[] = [
     ...act.arrows.map((a) => ({
       id: a.id,
       name: TOOL_DOC[a.kind].label,
@@ -3512,6 +3924,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       name: textMarkName(t),
       tone: resolveTextStyle(surface.palette, t).colour,
       kind: 'text' as const,
+    })),
+    // Named for the piece rather than "Gear", for the same reason writing is
+    // named by its own first line: a phase with a ladder, a mannequin and six
+    // cones on it should read as that in the list, not as nine identical rows.
+    ...(act.gear ?? []).map((g) => ({
+      id: g.id,
+      name: resolveGear(g.kind)?.name ?? 'Equipment',
+      tone: surface.palette.gold,
+      kind: 'gear' as const,
     })),
   ]
 
@@ -3996,11 +4417,136 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </Tip>
           </div>
         </Panel>
+      ) : selectedGear ? (
+        /*
+         * ── SELECTED GEAR ────────────────────────────────────────────────
+         *
+         * Three controls, and they are the three the coach asked for: how big,
+         * which way round, and which way it faces. Position is not among them
+         * because position is the drag — putting x and y in a panel as numbers
+         * would be offering a worse way to do the thing the board already does
+         * better.
+         *
+         * The picture is at the top and it is the real asset rather than a
+         * name, for the same reason the picker is pictures: on a phase with
+         * four cones and two hurdles, "Mini hurdle" does not tell you which of
+         * the two you have hold of, and the gold outline on the board does.
+         */
+        <Panel title="Selected equipment">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-ink-hair bg-paper p-1">
+              <img
+                src={resolveGear(selectedGear.kind)?.thumb}
+                alt=""
+                className="h-full w-full object-contain"
+              />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-bold text-ink">
+                {resolveGear(selectedGear.kind)?.name ?? 'Equipment'}
+              </span>
+              <span className="block text-[11px] text-ink-faint">
+                {(() => {
+                  const piece = resolveGear(selectedGear.kind)
+                  if (!piece) return 'This piece is not in this build.'
+                  const size = gearSize(piece, selectedGear.size)
+                  return `${size.w.toFixed(1)} × ${size.h.toFixed(1)} m on the grass`
+                })()}
+              </span>
+            </span>
+          </div>
+
+          <div className="mb-3">
+            <Tip
+              text="How big it draws, as a multiple of the piece's own size. Metres of grass, like everything else on this board — so it stays the same size on screen whichever pitch view you are on."
+              title="Size"
+              side="left"
+              block
+            >
+              <Slider
+                label="Size"
+                min={GEAR_SIZE_MIN}
+                max={GEAR_SIZE_MAX}
+                step={0.05}
+                value={selectedGear.size ?? 1}
+                onChange={(v) => patchGear({ size: v === 1 ? undefined : v }, 'gear:size')}
+                onCommit={seal}
+                readout={`${(selectedGear.size ?? 1).toFixed(2)}×`}
+              />
+            </Tip>
+          </div>
+
+          <div className="mb-3">
+            <Tip
+              text="Turns it about its own middle, so it stays where you put it. A ladder down the channel, a mini goal facing the way the drill attacks."
+              title="Which way round"
+              side="left"
+              block
+            >
+              <Slider
+                label="Turn"
+                min={0}
+                max={355}
+                step={5}
+                value={selectedGear.angle ?? 0}
+                onChange={(v) => patchGear({ angle: v === 0 ? undefined : v }, 'gear:angle')}
+                onCommit={seal}
+                readout={`${selectedGear.angle ?? 0}°`}
+              />
+            </Tip>
+          </div>
+
+          <Tip
+            text="Mirrors it left to right. Between this and the turn there is no way round a mini goal or a mannequin cannot be put."
+            title="Mirror it"
+            side="left"
+            block
+          >
+            <Toggle
+              checked={Boolean(selectedGear.flip)}
+              onChange={(on) => {
+                patchGear({ flip: on || undefined }, 'gear:flip')
+                seal()
+              }}
+              label="Mirror it"
+            />
+          </Tip>
+
+          {/* Back to square. Only offered once it is not — a button that says
+              "reset" on a piece nobody has touched is a control asking to be
+              read and then ignored. */}
+          {(selectedGear.size ?? 1) !== 1 || selectedGear.angle || selectedGear.flip ? (
+            <div className="mt-3">
+              <Tip
+                text="Puts it back to its own size, square to the pitch and unmirrored. It stays exactly where it is."
+                title="Back to square"
+              >
+                <Button
+                  onClick={() => {
+                    patchGear({ size: undefined, angle: undefined, flip: undefined }, 'gear:reset')
+                    seal()
+                  }}
+                >
+                  Back to square
+                </Button>
+              </Tip>
+            </div>
+          ) : null}
+
+          <div className="mt-3">
+            <Tip text={HINT.deleteMark} title="Delete" side="left">
+              <Button variant="danger" onClick={deleteSelection}>
+                Take it off
+              </Button>
+            </Tip>
+          </div>
+        </Panel>
       ) : (
         <Panel title="Nothing selected">
           <p className="text-[11px] leading-relaxed text-ink-faint">
             Click a counter to rename it, give it a role cue, or fade it back. Click an arrow, a shaded area or a
-            piece of writing to change it or take it off. A player removed here is only gone from this {PHASE.one}.
+            piece of writing to change it or take it off. Click a piece of equipment to resize it or turn it. A
+            player removed here is only gone from this {PHASE.one}.
           </p>
         </Panel>
       )}
@@ -4059,6 +4605,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                         arrows: a.arrows.filter((x) => x.id !== m.id),
                         bands: a.bands.filter((b) => b.id !== m.id),
                         texts: (a.texts ?? []).filter((x) => x.id !== m.id),
+                        gear: (a.gear ?? []).filter((g) => g.id !== m.id),
                       }))
                       seal()
                       if (selectedMarkId === m.id) setSelection(null)
@@ -4140,6 +4687,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {sharing && (
         <ShareDialog
           system={system}
+          /* So the dialog can say "presenting as …" instead of asking again.
+             See the effect that signs the board from the profile above. */
+          signedFromProfile={Boolean(profile?.presenter.trim() || profile?.team.trim())}
           onCredit={patchCredit}
           onPublished={(id) => {
             rememberShareId(id)
