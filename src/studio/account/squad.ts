@@ -78,12 +78,17 @@ function toPlayer(row: Record<string, unknown>): Player {
  * hand-written filter agreeing with it teaches the next reader that the filter
  * is what makes it safe.
  */
-export async function listSquad(): Promise<Player[]> {
+export async function listSquad(owner: string): Promise<Player[]> {
   const supabase = db()
-  if (!supabase) return []
+  if (!supabase || !owner) return []
   const { data, error } = await supabase
     .from(TABLE)
     .select(COLUMNS)
+    // A squad is account-private and stays that way (user, 2026-08-28). RLS in
+    // supabase/013 is what enforces that; this filter is so the query keeps
+    // MEANING "mine" if a policy is ever added here. See `listCloudSystems` in
+    // ./cloud.ts for the day that assumption cost a working profile page.
+    .eq('owner', owner)
     .order('sort', { ascending: true })
     .order('created_at', { ascending: true })
   if (error || !data) return []

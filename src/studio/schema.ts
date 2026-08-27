@@ -693,6 +693,66 @@ export function uid(prefix: string): string {
  * a coach who removes the ball and adds it back expects it to land where it
  * started, not somewhere new.
  */
+/**
+ * The same board with nothing on it that names anybody.
+ *
+ * ── WHAT "PERSONAL DETAILS" MEANS, LISTED RATHER THAN IMPLIED ────────────────
+ *
+ * A coach asked to be able to send a board without their name on it (user,
+ * 2026-08-28), and the honest reading of that request is wider than the credit
+ * line. Three separate things on a document identify somebody:
+ *
+ *   1. THE COACH.  `credit.presenter` and `credit.team`.
+ *   2. THE CLUB.   The crest. Also its URL, which contains the account's uuid.
+ *   3. THE SQUAD.  Every player's `name`, and every `photo` path — which again
+ *      contains the account's uuid, and which is account-private data by
+ *      decision (see ./account/squad.ts). A shared board never carried the
+ *      FACES, because supabase/013 will not sign a path a stranger does not
+ *      own, but it did carry the names.
+ *
+ * Taking one and leaving the others is the kind of half-answer that reads as a
+ * bug: a board that says "not presented by anybody" over eleven counters with
+ * real children's names on them has not hidden anything.
+ *
+ * ── WHAT IT DELIBERATELY KEEPS ───────────────────────────────────────────────
+ *
+ * The tactics. Counter labels ("6", "LB") are positions and not people, the
+ * kit colours are the coach's taste rather than their identity, and
+ * `credit.note` ("Pre-season, week 2") is about the session. `sharedOn` stays
+ * too: it says how current the thing you are reading is, which is the one piece
+ * of provenance an anonymous board still owes its reader.
+ *
+ * ── IT IS APPLIED AT THE EDGE, AND NEVER TO THE STORED DOCUMENT ──────────────
+ *
+ * The board on the coach's screen keeps every one of these. This runs on the
+ * copy handed to an exporter, a renderer or `publishSystem`, so turning the
+ * switch back on restores everything without anything having been recovered.
+ * For a share link that is also the strong form of the promise: the names are
+ * not hidden in the public row behind a flag the viewer is trusted to honour,
+ * they were never sent.
+ */
+export function withoutIdentity(system: System): System {
+  const credit = system.credit
+    ? { ...system.credit, presenter: undefined, team: undefined }
+    : undefined
+
+  return {
+    ...system,
+    credit,
+    // Both halves. `showCrest` alone would leave the URL — and the account uuid
+    // inside it — in a published row that draws no crest, which is the leak
+    // without even the picture to show for it.
+    showCrest: false,
+    crestUrl: undefined,
+    acts: system.acts.map((act) => ({
+      ...act,
+      tokens: act.tokens.map((t) =>
+        t.name || t.photo ? { ...t, name: undefined, photo: undefined } : t,
+      ),
+    })),
+  }
+}
+
 export const CENTRE_SPOT = { x: 50, y: 50 }
 
 export function emptyAct(tokens: Token[] = [], n = 1): Act {

@@ -38,7 +38,7 @@ import { resolveAct } from '../tween'
 import { Mark } from '../viewer/Mark'
 import { hydratePrefs } from './prefs'
 import { useSession, signOut } from './session'
-import { loadProfile } from './cloud'
+import { hydrateProfile } from './profile'
 import { profileCompletion, shouldNudge, type Completion } from './completion'
 import { ProfileNudge } from './ProfileNudge'
 import { readGuide, writeGuide } from '../storage'
@@ -109,7 +109,7 @@ export default function Portal() {
      *   null                    -> we could not ask. Only then does the buffer
      *                              stand in, and it is labelled 'local-only'.
      */
-    const rows = await listCloudSystems()
+    const rows = await listCloudSystems(owner)
     if (rows) {
       setSystems(rows)
       setLoad('ready')
@@ -140,9 +140,13 @@ export default function Portal() {
    * something that was never their business.
    */
   useEffect(() => {
-    if (status !== 'in' || load === 'working') return
+    if (status !== 'in' || load === 'working' || !user) return
     let live = true
-    void loadProfile().then((profile) => {
+    // Through the shared store (./profile.ts), so this is the same single read
+    // the editor and the settings page use rather than a fourth request for one
+    // row. A 'none' or an 'error' both land as null here, and both mean the
+    // same thing to a prompt: say nothing.
+    void hydrateProfile(user.id).then(({ profile }) => {
       if (!live || !profile) return
       const completion = profileCompletion(profile)
       // The oldest thing on the shelf, as a timestamp. `updated` is an ISO
@@ -173,7 +177,7 @@ export default function Portal() {
     // rename would re-show a panel the coach has just dismissed. `load` moving
     // off 'working' is the one transition that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, load])
+  }, [status, load, user])
 
   const create = useCallback(() => {
     // Written locally before we navigate, so the editor opens on a real
@@ -213,11 +217,15 @@ export default function Portal() {
     [user],
   )
 
-  const remove = useCallback(async (row: CloudSystem) => {
-    setSystems((s) => s.filter((r) => r.id !== row.id))
-    deleteLocal(row.id)
-    await deleteCloudSystem(row.id)
-  }, [])
+  const remove = useCallback(
+    async (row: CloudSystem) => {
+      if (!user) return
+      setSystems((s) => s.filter((r) => r.id !== row.id))
+      deleteLocal(row.id)
+      await deleteCloudSystem(row.id, user.id)
+    },
+    [user],
+  )
 
   /** The shelf in three numbers. Only the ones that are true get shown. */
   const tally = useMemo(() => {

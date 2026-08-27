@@ -42,7 +42,8 @@
 import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, loadSystem, newSystemId } from '../storage'
-import { creditOnly, loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
+import { creditOnly, loadCloudSystem, withProfile } from '../account/cloud'
+import { hydrateProfile } from '../account/profile'
 import { hydratePrefs } from '../account/prefs'
 import { useSession } from '../account/session'
 import type { System } from '../schema'
@@ -124,7 +125,7 @@ export default function StudioMount() {
         // failing. The id has gone stale; the coach still wants a board.
         if (template) {
           const copy = fromTemplate(template)
-          const profile = await loadProfile()
+          const { profile } = await hydrateProfile(user.id)
           /*
            * The coach's name, but NOT the coach's colours.
            *
@@ -166,13 +167,13 @@ export default function StudioMount() {
        * supabase/016: a stale buffer that comes back cannot overwrite a newer
        * row, because the save carries the version it was loaded at.
        */
-      const remote = await loadCloudSystem(id)
+      const remote = await loadCloudSystem(id, user.id)
       if (remote) return { id, initial: remote, copied: false }
       const local = loadSystem(id)
       if (local) return { id, initial: local, copied: false }
       // A brand new board for a coach we already know something about opens in
       // their colours and already signed. See `withProfile`.
-      const profile = await loadProfile()
+      const { profile } = await hydrateProfile(user.id)
       const blank = newSystem()
       return { id, initial: profile ? withProfile(blank, profile) : blank, copied: false }
     }

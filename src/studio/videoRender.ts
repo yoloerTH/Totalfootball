@@ -87,7 +87,6 @@ import {
   type VideoOptions,
 } from './video'
 import {
-  CHROME_PARTS_ALL,
   imageSize,
   imagesSupported,
   resolveImageShape,
@@ -788,6 +787,9 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // harness and from a script, so an unrecognised number becomes the house rate
   // rather than a frameRate the muxer will reject after a minute of encoding.
   const fps = resolveFps(opts.fps)
+  // Absent means all four, and the watermark tie is applied here rather than
+  // trusted to the dialog. See `resolveParts` in ./image.ts.
+  const parts = resolveParts(opts.parts)
   const frame = frameSize(shape, quality)
   const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
   const l = layout(frame)
@@ -810,7 +812,9 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // The chrome is drawn on top of the board, so it takes the board's palette:
   // ink on paper, bone on a floodlit pitch.
   const p = resolveSurface(system.surface).palette
-  const mark = await rasterMark(l.markSize, p.ink)
+  // Not rasterised at all when our half is not going on, which matches
+  // `renderStills` below and saves a canvas nobody draws.
+  const mark = parts.lockup ? await rasterMark(l.markSize, p.ink) : null
 
   // If the photograph could not be inlined, the document draws the vector ball
   // instead. The alternative is an <image> pointing at a path the canvas will
@@ -932,10 +936,13 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
         mark,
         Boolean(opts.date),
         p,
-        // A film gets the whole chrome. The parts exist for a still going into
-        // somebody's own slide; a video travels furthest from the person who
-        // made it, which is the export that most needs to say whose it is.
-        CHROME_PARTS_ALL,
+        // ALL OF IT BY DEFAULT, and `resolveParts` is what supplies that when
+        // the caller says nothing. It used to be `CHROME_PARTS_ALL` outright,
+        // on the argument that a film travels furthest from its author and so
+        // most needs to say whose it is. Right about the default; wrong as an
+        // absolute, because the one export a coach cannot sign their own way is
+        // the one they crop. See `VideoOptions.parts`.
+        parts,
       )
 
       await source.add(i / fps, 1 / fps)

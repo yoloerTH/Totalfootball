@@ -15,6 +15,7 @@
 import type { System } from './schema'
 import { holdMs, moveMs } from './pace'
 import { totalDuration } from './tween'
+import type { ChromeParts } from './image'
 
 /**
  * The two shapes a coach actually posts in.
@@ -171,6 +172,22 @@ export interface VideoOptions {
    * look out of date. Their name and club is the part that has to be there.
    */
   date?: boolean
+  /**
+   * Which parts of the chrome to draw. Absent means all of them.
+   *
+   * A film USED TO BE HARDCODED to `CHROME_PARTS_ALL`, on the argument that it
+   * travels furthest from the person who made it and so is the export that most
+   * needs to say whose it is. That argument is still right about the DEFAULT
+   * and was wrong to make it the only option: it is the coach's work, and the
+   * one export they cannot take their name off is the one they will crop.
+   *
+   * Note that hiding a coach's identity is NOT done through here — see
+   * `withoutIdentity` in ./schema.ts, which the dialogs apply to the document
+   * before it ever reaches a renderer. This is the layout switch, and the two
+   * compose: with the identity stripped, `parts.credit` still draws the line,
+   * and it reads "A tactical system" beside our mark.
+   */
+  parts?: Partial<ChromeParts>
   /** 0→1, called every frame. */
   onProgress?: (fraction: number) => void
   signal?: AbortSignal

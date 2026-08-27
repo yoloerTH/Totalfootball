@@ -528,6 +528,27 @@ export const EXPORT = {
   pdfButton: 'Open the print sheet',
 } as const
 
+/**
+ * The one control that appears in all three export dialogs.
+ *
+ * ONE SET OF WORDS, USED IN THREE PLACES, because it is one question and a
+ * coach who reads it differently in the share dialog than in the film dialog
+ * will reasonably think it does something different there. The only thing that
+ * changes between them is the noun for what is going out, which is why `off`
+ * takes one.
+ */
+export const IDENTITY = {
+  label: 'Put my name on it',
+  /* Says what stays as well as what goes. A switch that only lists what it
+     removes reads as destructive, and this one changes nothing on the board. */
+  on: 'Your name, your club, your crest and your players\u2019 names go with it.',
+  off: (what: string) =>
+    `No name, no club, no crest, and the counters go out unnamed. Your board is untouched. This only changes ${what}.`,
+  /* Shown under the switch when the coach has not set a default. Points at the
+     setting rather than making them find it. */
+  fromSettings: 'Your default, from your settings.',
+} as const
+
 export const NEWS = {
   title: "What's new",
   body: 'Everything added to the studio since you last looked. It is all here already, and all included.',

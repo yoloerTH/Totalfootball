@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { System } from '../schema'
+import { withoutIdentity, type System } from '../schema'
 import {
   DEFAULT_QUALITY,
   VIDEO_FRAME_RATES,
@@ -33,11 +33,15 @@ import { Button, Field, Modal, Segmented, Toggle } from './ui'
 import { PaceField } from './PaceField'
 import { VIDEO } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
+import { IdentityToggle } from './IdentityToggle'
 
 type Status = 'idle' | 'working' | 'done' | 'failed'
 
 export function VideoDialog({
   system,
+  identity,
+  onIdentity,
+  identityIsDefault,
   onHold,
   onMove,
   onPaceCommit,
@@ -45,6 +49,11 @@ export function VideoDialog({
   onClose,
 }: {
   system: System
+  /** Whether the coach's name, club, crest and squad go into the file. */
+  identity: boolean
+  onIdentity: (next: boolean) => void
+  /** True while `identity` is still the account default and not a choice. */
+  identityIsDefault: boolean
   /**
    * Pace edits the DOCUMENT from inside an export dialog, which looks like a
    * layering mistake and is not. A coach only discovers a film is too slow by
@@ -117,7 +126,9 @@ export function VideoDialog({
       // than on page load — see ../video.ts. It lands while the coach is still
       // reading the dialog, so the wait they notice is the render, not this.
       const { renderVideo } = await import('../videoRender')
-      const file = await renderVideo(system, {
+      // Stripped before the renderer sees it, exactly as the picture and the
+      // link are. See `withoutIdentity` in ../schema.ts.
+      const file = await renderVideo(identity ? system : withoutIdentity(system), {
         shape,
         quality,
         fps,
@@ -134,7 +145,7 @@ export function VideoDialog({
       // Shape, size and rate together, because the question the number has to
       // answer is which combination coaches actually reach for — and a count of
       // "vertical" that cannot tell 720p30 from 1080p60 answers none of it.
-      track(STUDIO_EVENTS.videoSaved, `${shape}-${quality}p${fps}`)
+      track(STUDIO_EVENTS.videoSaved, `${shape}-${quality}p${fps}${identity ? '' : '-anon'}`)
       onSaved?.()
     } catch (err) {
       // Stopping is not failing, and must not be reported as if it were.
@@ -142,7 +153,7 @@ export function VideoDialog({
     } finally {
       abort.current = null
     }
-  }, [system, shape, quality, fps, date, onSaved])
+  }, [system, identity, shape, quality, fps, date, onSaved])
 
   const stop = useCallback(() => {
     abort.current?.abort()
@@ -261,7 +272,19 @@ export function VideoDialog({
                 <PaceField system={system} onHold={onHold} onMove={onMove} onCommit={onPaceCommit} />
               </div>
 
-              {system.credit?.sharedOn && (
+              <div className="mt-3 border-t border-ink-hair pt-3">
+                <IdentityToggle
+                  on={identity}
+                  onChange={onIdentity}
+                  what="this film"
+                  fromDefault={identityIsDefault}
+                />
+              </div>
+
+              {/* Only while there is a name for the date to sit beside. With
+                  the identity off, the credit line is the neutral one and a
+                  date stamped under it says nothing about anything. */}
+              {identity && system.credit?.sharedOn && (
                 <div className="mt-3 border-t border-ink-hair pt-2">
                   <Toggle checked={date} onChange={setDate} label={VIDEO.date} />
                 </div>

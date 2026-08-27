@@ -327,6 +327,35 @@ Handles live in `src/lib/site.ts` (`SOCIAL`). Hashtag: `#totalfootballstudio`.
 **Fix the YouTube handle before Phase 4** — it is still `@Fballvault` from the
 old channel name, and Phase 4 would print it into thousands of captions.
 
+### Phase 1c — the identity switch (`supabase/017`)
+
+A coach can now send work without their name on it. `show_identity` on
+`studio_profiles` is the ACCOUNT DEFAULT, on by default; each of the three
+export dialogs opens set to it and can be flipped for one file without changing
+it. What "identity" covers is defined in exactly one place, `withoutIdentity`
+in `src/studio/schema.ts`, and it is wider than the credit line: the coach's
+name and club, the crest and its URL (which contains the account uuid), and
+every player's name and photo path. The tactics stay: counter labels, kit
+colours, the session note and the date.
+
+Two decisions worth not relitigating:
+
+1. **The share link STRIPS rather than hides.** `withoutIdentity` is applied to
+   the payload `publishSystem` sends, so an anonymous board's names are not in
+   the public row behind a flag the viewer is trusted to honour. They were never
+   sent. The long-URL fallback gets the same copy, which is the half that is
+   easy to forget.
+2. **Our mark stays when their name goes.** `resolveParts` still refuses to draw
+   the lockup with `parts.credit` off, and that rule is untouched — but hiding
+   an identity does not turn that part off. The credit line falls back to the
+   system's own title, or "A tactical system", which is what the viewer has
+   always shown for an unsigned board. The alternative was a coach losing our
+   attribution on precisely the exports that travel furthest.
+
+Also in `017`: `VideoOptions.parts`. A film used to be hardcoded to the whole
+chrome on the argument that it travels furthest and most needs to say whose it
+is. Right about the default, wrong as an absolute.
+
 ---
 
 ## 7. Constraints and gotchas
@@ -346,6 +375,26 @@ old channel name, and Phase 4 would print it into thousands of captions.
   matching `grant` answers 42501 with the policy sitting right there.
 - **`(select auth.uid())`, never a bare `auth.uid()`,** in every policy. The bare
   call is re-evaluated per row.
+- **POLICIES ARE OR'd, SO RLS NEVER MEANS "MINE".** This one cost a working
+  product for a day and is the most expensive mistake in the file. `loadProfile`
+  read `studio_profiles` with no `.eq('id', uid)`, relying on RLS to narrow it.
+  The day `012` added a public read for published profiles, a signed-in coach's
+  query started returning their own row PLUS every public one, `.maybeSingle()`
+  answered `406 PGRST116`, and the client read that as "you have no profile":
+  empty settings page, unpainted kit, a share dialog asking for a name it had
+  been given twice. Worse, before a second coach had a row of their own the ONE
+  visible row was somebody else's, so the settings form loaded a stranger's
+  identity and Save wrote it back under their own id.
+  **Every "my X" query names its owner, even where no policy today makes that
+  necessary.** The filter is not what makes it safe; it is what stops the query
+  silently changing meaning when the next policy lands. Fixed and repaired in
+  `supabase/017`, which also pins `crest_path`, `avatar_path` and `photo_path`
+  to the owning row so no client bug can put one account's file on another's.
+- **A failed read is not an empty record.** `loadProfile` returned `null` for
+  both, and `Settings` turned that into a blank form over a full-payload upsert:
+  one press of Save on a bad connection would have wiped a real profile. It now
+  returns `{kind: 'row' | 'none' | 'error'}` and the page refuses to render a
+  form it could not populate. Any future editor of a single row owes the same.
 
 ---
 

@@ -109,6 +109,7 @@ import {
   DEFAULT_US,
   emptyAct,
   uid,
+  withoutIdentity,
   type Act,
   type Arrow,
   type ArrowKind,
@@ -141,7 +142,9 @@ import {
   type StripSize,
 } from '../storage'
 import { useCloudSync } from '../account/sync'
-import { loadProfile, withProfile, type Profile } from '../account/cloud'
+import { useSession } from '../account/session'
+import { useProfileOrNull } from '../account/profile'
+import { withProfile } from '../account/cloud'
 import { imageUrl } from '../account/images'
 import { SquadPick, useSquad, useSquadPhotos } from './SquadPick'
 import { GuideRail } from './GuideRail'
@@ -903,20 +906,57 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * what it will do. Explicit, undoable, and reaching the whole kit rather than
    * the base colour the ColorWell can already reach.
    *
-   * Loaded once and never refetched. It is one row, it lands while the coach is
-   * still looking at the board, and `null` — signed out, offline, no profile
-   * yet — simply means the panel does not appear.
+   * READ THROUGH THE SHARED STORE (../account/profile.ts) rather than fetched
+   * here. It used to be its own `loadProfile()` on mount, which was a second
+   * request for a row ../account/../editor/StudioMount.tsx had already asked
+   * for, and — worse — it was ungated: it fired whether or not there was a
+   * session yet, and an anonymous read of studio_profiles returns other
+   * people's public rows.
+   *
+   * Now it subscribes, so a coach who changes their kit on the settings page
+   * and comes back to a studio tab that was already open sees the new one. It
+   * used to be loaded once and never refetched, and that was the whole of why
+   * the panel could be out of date.
+   *
+   * `null` — signed out, offline, no profile yet — still simply means the panel
+   * does not appear.
    */
-  const [profile, setProfile] = useState<Profile | null>(null)
-  useEffect(() => {
-    let live = true
-    void loadProfile().then((p) => {
-      if (live) setProfile(p)
-    })
-    return () => {
-      live = false
-    }
-  }, [])
+  const { user } = useSession()
+  const profile = useProfileOrNull(user?.id)
+
+  /**
+   * ── WHETHER THIS COACH'S NAME LEAVES WITH THEIR WORK ─────────────────────
+   *
+   * `null` means "nobody has said", which is not the same as "no" and must not
+   * render as one. The account holds the default (`profile.showIdentity`,
+   * supabase/017) and this holds the exception, so a coach who wants their name
+   * off ONE board can say so here without changing what the next board does,
+   * and a coach who wants it off everywhere says so once in settings and is
+   * never asked again.
+   *
+   * It lives up here rather than inside the export dialog because it reaches
+   * further than that dialog does: the PDF goes through `PrintSheet`, which is
+   * mounted in this tree at all times, and a switch that changed the pictures
+   * but not the printout would be worse than no switch.
+   *
+   * Not persisted, deliberately. An exception that outlived the session would
+   * be a default nobody set and nobody could find.
+   */
+  const [identityChoice, setIdentityChoice] = useState<boolean | null>(null)
+  const identityDefault = profile?.showIdentity ?? true
+  const identity = identityChoice ?? identityDefault
+
+  /**
+   * The board as it will leave. Only ever a copy; the document is untouched.
+   *
+   * Memoised because `PrintSheet` renders every phase's board and is in the
+   * tree on every keystroke — a fresh object per render would redraw the whole
+   * printout each time a caption gained a letter.
+   */
+  const outbound = useMemo(
+    () => (identity ? system : withoutIdentity(system)),
+    [identity, system],
+  )
 
   /**
    * Sign the board from the profile, once, if it is not signed already.
@@ -5088,6 +5128,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {sharing && (
         <ShareDialog
           system={system}
+          identity={identity}
+          onIdentity={setIdentityChoice}
+          identityIsDefault={identityChoice === null}
           /* So the dialog can say "presenting as …" instead of asking again.
              See the effect that signs the board from the profile above. */
           signedFromProfile={Boolean(profile?.presenter.trim() || profile?.team.trim())}
@@ -5102,6 +5145,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {makingVideo && (
         <VideoDialog
           system={system}
+          identity={identity}
+          onIdentity={setIdentityChoice}
+          identityIsDefault={identityChoice === null}
           onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
           onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
           onPaceCommit={seal}
@@ -5113,6 +5159,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         <ExportDialog
           system={system}
           actIndex={actIndex}
+          identity={identity}
+          onIdentity={setIdentityChoice}
+          identityIsDefault={identityChoice === null}
           onSaved={() => recordWin('images')}
           onClose={closeExport}
         />
@@ -5195,7 +5244,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
        * per keystroke, and boards are cheap — the viewer has always carried
        * exactly this.
        */}
-      <PrintSheet system={system} />
+      <PrintSheet system={outbound} />
     </>
     )
   }
@@ -5231,7 +5280,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     </div>
 
       {/* Outside `.tf-screen`. See the stacked layout above for why. */}
-      <PrintSheet system={system} />
+      <PrintSheet system={outbound} />
     </>
   )
 }

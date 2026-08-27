@@ -21,6 +21,7 @@ import { accountsEnabled, db } from './client'
 import { setOwner, wipeScope } from '../scope'
 import { currentOwner } from '../scope'
 import { forgetVersions } from './cloud'
+import { forgetProfile } from './profile'
 import { stopPrefs } from './prefs'
 
 export type SessionStatus = 'unknown' | 'in' | 'out'
@@ -195,6 +196,9 @@ export async function signOut(): Promise<void> {
   await db()?.auth.signOut()
   stopPrefs()
   forgetVersions()
+  // The in-memory profile goes with them. It is the coach's name, club and
+  // crest, and it must not survive into the next sign-in on this machine.
+  forgetProfile()
   wipeScope(leaving)
   setOwner(null)
 }

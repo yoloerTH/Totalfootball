@@ -98,7 +98,7 @@ export default function SquadEditor({ owner }: { owner: string }) {
 
   useEffect(() => {
     let live = true
-    void listSquad().then(async (players) => {
+    void listSquad(owner).then(async (players) => {
       if (!live) return
       setSquad(players)
       setReady(true)
@@ -107,7 +107,7 @@ export default function SquadEditor({ owner }: { owner: string }) {
     return () => {
       live = false
     }
-  }, [resign])
+  }, [resign, owner])
 
   /**
    * Write one row back, and reconcile the list with what the DATABASE returned.

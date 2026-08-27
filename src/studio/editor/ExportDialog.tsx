@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { System } from '../schema'
+import { withoutIdentity, type System } from '../schema'
 import {
   DEFAULT_IMAGE_SHAPE,
   DEFAULT_IMAGE_SIZE,
@@ -46,6 +46,7 @@ import {
   type ImageSize,
 } from '../image'
 import { Button, Field, Modal, Segmented, Toggle } from './ui'
+import { IdentityToggle } from './IdentityToggle'
 import { EXPORT } from './guide'
 import { STUDIO_EVENTS, track } from '../track'
 
@@ -56,11 +57,26 @@ export function ExportDialog({
   system,
   /** Which phase the coach is looking at. The default subject of "this one". */
   actIndex,
+  /**
+   * Whether the coach's name, club, crest and squad go on the file.
+   *
+   * LIFTED OUT OF THIS DIALOG rather than held here, because the PDF half of it
+   * is not rendered here: printing goes through `PrintSheet`, which lives in
+   * the editor's tree and is always mounted. A switch that changed the pictures
+   * and not the printout would be the worst of both.
+   */
+  identity,
+  onIdentity,
+  /** True while `identity` is still the account default and not a choice. */
+  identityIsDefault,
   onSaved,
   onClose,
 }: {
   system: System
   actIndex: number
+  identity: boolean
+  onIdentity: (next: boolean) => void
+  identityIsDefault: boolean
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
   onClose: () => void
@@ -136,7 +152,11 @@ export function ExportDialog({
       // the same module the film comes out of, so a coach who has already made
       // a video pays nothing for this at all. See ../videoRender.ts.
       const { renderStills } = await import('../videoRender')
-      const files = await renderStills(system, {
+      // The document is stripped BEFORE it reaches the renderer, rather than
+      // the renderer being asked to leave things out. One function decides what
+      // "my details" means (`withoutIdentity`) and every export asks it the
+      // same question; nothing downstream has to remember the list.
+      const files = await renderStills(identity ? system : withoutIdentity(system), {
         shape,
         size,
         chrome,
@@ -155,7 +175,10 @@ export function ExportDialog({
       // because the question worth answering is which combination coaches reach
       // for — and a count that cannot tell a square from a story answers none
       // of it. `printed` covers the other half of this dialog.
-      track(STUDIO_EVENTS.imagesSaved, `${shape}-${size}${chrome ? '' : '-bare'}`)
+      track(
+        STUDIO_EVENTS.imagesSaved,
+        `${shape}-${size}${chrome ? '' : '-bare'}${identity ? '' : '-anon'}`,
+      )
       onSaved?.()
     } catch (err) {
       // Stopping is not failing, and must not be reported as if it were.
@@ -163,7 +186,7 @@ export function ExportDialog({
     } finally {
       abort.current = null
     }
-  }, [system, shape, size, chrome, parts, date, everything, actIndex, onSaved])
+  }, [system, identity, shape, size, chrome, parts, date, everything, actIndex, onSaved])
 
   const stop = useCallback(() => {
     abort.current?.abort()
@@ -240,6 +263,18 @@ export function ExportDialog({
               <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
                 {px.w} × {px.h}. {IMAGE_SIZES.find((q) => q.id === size)?.note}
               </p>
+
+              {/* ABOVE the layout switches, because it is a different KIND of
+                  question. The four below are about what a picture looks like;
+                  this one is about what leaves the building with it. */}
+              <div className="mt-3 border-t border-ink-hair pt-3">
+                <IdentityToggle
+                  on={identity}
+                  onChange={onIdentity}
+                  what="this picture and the printout"
+                  fromDefault={identityIsDefault}
+                />
+              </div>
 
               <div className="mt-3 border-t border-ink-hair pt-3">
                 <Toggle checked={chrome} onChange={setChrome} label={EXPORT.chrome} />

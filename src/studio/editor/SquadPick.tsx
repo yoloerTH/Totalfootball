@@ -72,19 +72,21 @@ export function useSquadPhotos(system: System): Record<string, string> {
  * counter for data that has not moved.
  */
 export function useSquad(): Player[] {
-  const { status } = useSession()
+  const { status, user } = useSession()
   const [squad, setSquad] = useState<Player[]>([])
 
   useEffect(() => {
-    if (status !== 'in') return
+    // The uid is now part of the question rather than something RLS is trusted
+    // to supply, so this waits for a session instead of merely for a status.
+    if (status !== 'in' || !user) return
     let live = true
-    void listSquad().then((players) => {
+    void listSquad(user.id).then((players) => {
       if (live) setSquad(players)
     })
     return () => {
       live = false
     }
-  }, [status])
+  }, [status, user])
 
   return squad
 }

@@ -67,12 +67,22 @@ export function forgetVersions(): void {
  * and the other means "fall back to the buffer". They used to be the same
  * value and the portal had to guess.
  */
-export async function listCloudSystems(): Promise<CloudSystem[] | null> {
+export async function listCloudSystems(owner: string): Promise<CloudSystem[] | null> {
   const supabase = db()
-  if (!supabase) return null
+  if (!supabase || !owner) return null
   const { data, error } = await supabase
     .from(TABLE)
     .select('id, doc, updated_at')
+    // ASK FOR YOUR OWN, RATHER THAN TRUSTING RLS TO MEAN THAT.
+    //
+    // RLS is still the boundary and this filter is not what makes it safe. It
+    // is what stops the query CHANGING MEANING when a policy is added later:
+    // `loadProfile` was written exactly like this, and the day supabase/012
+    // gave studio_profiles a public read, "my profile" silently became "every
+    // published profile" and the client broke in a way nobody could see. There
+    // is no public policy on this table today. There was none on that one
+    // either, once.
+    .eq('owner', owner)
     .order('updated_at', { ascending: false })
   if (error || !data) return null
   return data.map((row) => {
@@ -83,12 +93,15 @@ export async function listCloudSystems(): Promise<CloudSystem[] | null> {
   })
 }
 
-export async function loadCloudSystem(id: string): Promise<System | null> {
+export async function loadCloudSystem(id: string, owner: string): Promise<System | null> {
   const supabase = db()
-  if (!supabase) return null
+  if (!supabase || !owner) return null
   const { data, error } = await supabase
     .from(TABLE)
     .select('doc, updated_at')
+    // The primary key in supabase/005 is (owner, id), so an id on its own does
+    // not name a row. See `listCloudSystems` for why the filter is written out.
+    .eq('owner', owner)
     .eq('id', id)
     .maybeSingle()
   if (error || !data) return null
@@ -147,10 +160,10 @@ export async function saveCloudSystem(
   return result.ok ? 'saved' : 'conflict'
 }
 
-export async function deleteCloudSystem(id: string): Promise<boolean> {
+export async function deleteCloudSystem(id: string, owner: string): Promise<boolean> {
   const supabase = db()
-  if (!supabase) return false
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
+  if (!supabase || !owner) return false
+  const { error } = await supabase.from(TABLE).delete().eq('owner', owner).eq('id', id)
   return !error
 }
 
@@ -200,7 +213,10 @@ export async function claimLocalSystems(owner: string): Promise<number> {
   const local = listSystems(GUEST)
   if (local.length === 0) return 0
 
-  const { data: existing, error: readError } = await supabase.from(TABLE).select('id')
+  const { data: existing, error: readError } = await supabase
+    .from(TABLE)
+    .select('id')
+    .eq('owner', owner)
   // A failed read must not be mistaken for an empty account: claiming against
   // an empty `known` set is safe (ignoreDuplicates), but CLEARING the guest
   // scope on the back of a request that never landed is not.
@@ -274,6 +290,16 @@ export interface Profile {
   kitAlt: string
   visibility: Visibility
   links: ProfileLink[]
+  /**
+   * Whether the coach's name, club and squad travel with their work.
+   *
+   * A DEFAULT AND NOT A RULE. It is what each export, film and share link
+   * starts set to; every one of the three dialogs can flip it for that one file
+   * without coming back here. See `withoutIdentity` in ../schema.ts for exactly
+   * what "identity" covers, and supabase/017 for why this defaults to ON when
+   * `visibility` defaults to off.
+   */
+  showIdentity: boolean
 }
 
 export const EMPTY_PROFILE: Profile = {
@@ -290,21 +316,79 @@ export const EMPTY_PROFILE: Profile = {
   kitAlt: '',
   visibility: 'private',
   links: [],
+  // Signing your own work is the behaviour that shipped and the one the
+  // watermark policy is built on. This field exists to let a coach say no.
+  showIdentity: true,
 }
 
 const PROFILE_COLUMNS =
-  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links'
+  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links, show_identity'
 
-export async function loadProfile(): Promise<Profile | null> {
+/**
+ * What a read of the profile actually found. THREE ANSWERS, NOT TWO.
+ *
+ * ── WHY THIS IS NOT `Profile | null` ANY MORE ────────────────────────────────
+ *
+ * It was, and the conflation cost real data. `null` meant "you have no profile
+ * yet" AND "the request failed", and ./Settings.tsx could not tell them apart,
+ * so a failed read presented an empty form — and `saveProfile` sends a FULL
+ * payload by design, so one press of Save on that form overwrites a good row
+ * with blanks. A load that did not land must never become the baseline for a
+ * write.
+ *
+ * The studio and the portal collapse 'none' and 'error' back together, because
+ * for them the two really are the same: paint nothing extra, say nothing. It is
+ * only the page that WRITES that has to know the difference.
+ */
+export type ProfileRead =
+  | { kind: 'row'; profile: Profile }
+  /** Signed in, asked, and this account has never saved one. Safe to write. */
+  | { kind: 'none' }
+  /** Could not ask, or was refused. NOT a baseline for a save. */
+  | { kind: 'error' }
+
+/**
+ * This coach's profile. Filtered BY ID, and that filter is the whole fix.
+ *
+ * ── THE BUG IT CLOSES ────────────────────────────────────────────────────────
+ *
+ * This query used to be `.select(...).maybeSingle()` with no `.eq()`, leaning
+ * on RLS to make "a profile" mean "my profile". RLS does not work that way:
+ * policies are OR'd, and supabase/012 added a public read for every published
+ * profile. So a signed-in coach's own row came back alongside every public one,
+ * `.maybeSingle()` answered 406 PGRST116 — "The result contains 2 rows" — and
+ * this function reported it as "no profile". The settings page emptied, the
+ * studio stopped painting the coach's kit, and the share dialog asked for a
+ * name it had been told twice (user, 2026-08-28).
+ *
+ * It got worse before it was found. While a second coach had no row of their
+ * own, the ONE visible row was somebody else's public profile, so the settings
+ * form loaded a stranger's identity and Save wrote it back under their own id.
+ * supabase/017 is the layer under this one, and is the reason a client bug can
+ * no longer put one account's crest path on another account's row.
+ *
+ * ── SO IT TAKES A uid, AND CALLERS MUST HAVE A SESSION ───────────────────────
+ *
+ * A parameter rather than a `getUser()` inside, deliberately: it forces every
+ * call site to be reached from `useSession()`, which is the gating that was
+ * missing. A read fired before the session is restored is an anonymous read,
+ * and an anonymous read of this table returns other people's public rows.
+ */
+export async function loadProfile(uid: string): Promise<ProfileRead> {
   const supabase = db()
-  if (!supabase) return null
-  const { data, error } = await supabase.from('studio_profiles').select(PROFILE_COLUMNS).maybeSingle()
-  if (error || !data) return null
+  if (!supabase || !uid) return { kind: 'error' }
+  const { data, error } = await supabase
+    .from('studio_profiles')
+    .select(PROFILE_COLUMNS)
+    .eq('id', uid)
+    .maybeSingle()
+  if (error) return { kind: 'error' }
+  if (!data) return { kind: 'none' }
 
   const row = data as Record<string, unknown>
   const str = (k: string) => (row[k] as string | null) ?? ''
 
-  return {
+  const profile: Profile = {
     presenter: str('presenter'),
     team: str('team'),
     teamColour: str('team_colour'),
@@ -328,7 +412,14 @@ export async function loadProfile(): Promise<Profile | null> {
           .filter((l) => l && typeof l.label === 'string' && typeof l.url === 'string')
           .slice(0, 5)
       : [],
+    // Absent on a row written before supabase/017, which is every existing row.
+    // Missing must read as ON: the column's default is true and so is the
+    // behaviour that shipped, and a coach whose name quietly vanished from
+    // their exports on deploy day would have no idea what to look for.
+    showIdentity: row.show_identity !== false,
   }
+
+  return { kind: 'row', profile }
 }
 
 /**
@@ -448,6 +539,9 @@ export async function saveProfile(profile: Profile, id: string): Promise<boolean
       // an absence the default might fill in differently later.
       visibility: profile.visibility === 'public' ? 'public' : 'private',
       links: profile.links.filter((l) => l.label.trim() && l.url.trim()).slice(0, 5),
+      // `not null default true`, and read back the same way: a boolean has no
+      // "unset" worth preserving, so it goes up as itself every time.
+      show_identity: profile.showIdentity !== false,
     },
     { onConflict: 'id' },
   )

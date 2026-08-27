@@ -31,8 +31,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Credit, System } from '../schema'
+import { withoutIdentity, type Credit, type System } from '../schema'
 import { longUrl, publishSystem } from '../share'
+import { IdentityToggle } from './IdentityToggle'
 import { STUDIO_EVENTS, track } from '../track'
 import { Button, Field, Modal, TextInput } from './ui'
 import { SHARE } from './guide'
@@ -98,6 +99,22 @@ interface Props {
    * fields to somebody who has never told us who they are.
    */
   signedFromProfile?: boolean
+  /**
+   * Whether the coach's name, club, crest and squad go into the PUBLISHED row.
+   *
+   * ── THIS ONE IS NOT A DISPLAY SETTING, AND THAT IS THE POINT ───────────────
+   *
+   * On the picture and on the film, hiding an identity is about what gets drawn
+   * on a file the coach is holding. Here the document leaves the browser and is
+   * stored on a row that anybody holding the link can read, so "hidden" has to
+   * mean NOT SENT. `withoutIdentity` is applied to the payload rather than to
+   * the viewer, and there is deliberately no flag in the row for the viewer to
+   * honour: a name that is not in the database cannot be shown by a bug.
+   */
+  identity: boolean
+  onIdentity: (next: boolean) => void
+  /** True while `identity` is still the account default and not a choice. */
+  identityIsDefault: boolean
   onCredit: (patch: Partial<Credit>) => void
   /** Remembers the id the server gave us, so the next share updates this link. */
   onPublished: (shareId: string) => void
@@ -109,6 +126,9 @@ type Status = 'publishing' | 'short' | 'fallback'
 export function ShareDialog({
   system,
   signedFromProfile = false,
+  identity,
+  onIdentity,
+  identityIsDefault,
   onCredit,
   onPublished,
   onClose,
@@ -165,11 +185,16 @@ export function ShareDialog({
   useEffect(() => {
     let live = true
     const t = setTimeout(async () => {
-      const payload = JSON.stringify({ ...system, shareId: undefined })
+      // WHAT WILL ACTUALLY BE SENT, and the comparison is made against that
+      // rather than against the board. Flipping the switch has to re-publish —
+      // it changes the row — and a payload keyed on the untouched document
+      // would decide nothing had changed and leave the name up there.
+      const outbound = identity ? system : withoutIdentity(system)
+      const payload = JSON.stringify({ ...outbound, shareId: undefined })
       if (payload === lastSent.current) return
       lastSent.current = payload
       try {
-        const published = await publishSystem(system, window.location.origin)
+        const published = await publishSystem(outbound, window.location.origin)
         if (!live) return
         setUrl(published.url)
         setStatus('short')
@@ -180,7 +205,10 @@ export function ShareDialog({
         if (published.id !== system.shareId) onPublished(published.id)
       } catch {
         if (!live) return
-        const fallback = await longUrl(system, window.location.origin)
+        // The long link carries the whole document in the URL, so it must be
+        // the stripped copy too. A fallback that leaked what the published row
+        // would not is the failure mode worth being careful about here.
+        const fallback = await longUrl(outbound, window.location.origin)
         if (!live) return
         setUrl(fallback)
         setStatus('fallback')
@@ -194,7 +222,7 @@ export function ShareDialog({
       live = false
       clearTimeout(t)
     }
-  }, [system, onPublished])
+  }, [system, identity, onPublished])
 
   useEffect(() => {
     if (!copied) return
@@ -295,7 +323,24 @@ export function ShareDialog({
          * changes THIS system only, which is why it edits the credit and not
          * the profile.
          */}
-        {signed && !showFields && (
+        {/*
+          * ── AND WHETHER IT IS SIGNED AT ALL ──────────────────────────────
+          *
+          * Above the signature, because it decides whether there is one. With
+          * it off, the two controls below are hidden rather than greyed: a
+          * "Signed by" line over a link that carries no name is the dialog
+          * telling the coach the opposite of what it is about to do.
+          */}
+        <div className="mb-5 rounded-lg bg-paper p-3">
+          <IdentityToggle
+            on={identity}
+            onChange={onIdentity}
+            what="the link"
+            fromDefault={identityIsDefault}
+          />
+        </div>
+
+        {identity && signed && !showFields && (
           <div className="mb-5 flex items-center gap-3 rounded-lg bg-paper p-3">
             <div className="min-w-0 flex-1">
               <p className="text-micro uppercase text-ink-faint">Signed by</p>
@@ -313,7 +358,7 @@ export function ShareDialog({
           </div>
         )}
 
-        <div className={showFields ? 'mt-5' : 'hidden'} ref={firstField}>
+        <div className={identity && showFields ? 'mt-5' : 'hidden'} ref={firstField}>
           {signedFromProfile && showFields && (
             <p className="mb-3 rounded-lg bg-paper px-3 py-2 text-[11px] leading-snug text-ink-faint">
               This is how this system will be signed. Changing it here changes this system only — your settings

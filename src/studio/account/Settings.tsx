@@ -44,23 +44,80 @@
  * served. Every one of those is the only way a coach can check their own work.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession, signOut } from './session'
-import {
-  EMPTY_PROFILE,
-  handleTaken,
-  loadProfile,
-  saveProfile,
-  type Profile,
-} from './cloud'
+import { EMPTY_PROFILE, handleTaken, saveProfile, type Profile } from './cloud'
+import { putProfile, useProfile } from './profile'
 import { IMAGE_ACCEPT, bust, imageUrl, removeImage, uploadImage, type ImageKind } from './images'
 import { BIO_MAX, LINKS_MAX, ROLES, normaliseHandle, profileFaults } from './identity'
 import KitEditor from './KitEditor'
 import SquadEditor from './SquadEditor'
 
-type State = 'loading' | 'ready' | 'saving' | 'saved' | 'failed'
+/**
+ * 'unreadable' IS A STATE OF THE PAGE AND NOT OF THE SAVE, and it is new.
+ *
+ * The read used to be `p ?? EMPTY_PROFILE`, so a request that failed produced
+ * exactly the same blank form as an account that has never saved one. The two
+ * are not the same at all: this page sends a FULL payload on Save (see
+ * `saveProfile`), so pressing it on a form that only looks empty because the
+ * fetch fell over overwrites a real, complete row with nothing.
+ *
+ * So a failed read no longer renders a form. There is nothing safe to do with
+ * one. See ./profile.ts for the three answers a read can now give.
+ */
+type State = 'loading' | 'unreadable' | 'ready' | 'saving' | 'saved' | 'failed'
 
 // ── small pieces, so the page below reads as its own outline ─────────────────
+
+/**
+ * The switch, with its own promise written beside it.
+ *
+ * Extracted because there are now two of them saying opposite-shaped things —
+ * one about who may look at a page ABOUT the coach, one about whether the
+ * coach's name travels ON their work — and a coach reading the settings page
+ * has to be able to tell at a glance that they are two different questions and
+ * not one restated. Same control, same weight; the words are what differ.
+ */
+function Switch({
+  on,
+  onChange,
+  label,
+  title,
+  children,
+}: {
+  on: boolean
+  onChange: (next: boolean) => void
+  /** For a screen reader. The visible `title` changes with the state. */
+  label: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-[13px] font-bold text-ink">{title}</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">{children}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        onClick={() => onChange(!on)}
+        className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition-colors ${
+          on ? 'bg-green' : 'bg-ink-hair'
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-5 w-5 rounded-full bg-surface shadow-paper transition-all ${
+            on ? 'left-6' : 'left-1'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
 
 function Section({
   id,
@@ -454,21 +511,43 @@ export default function Settings() {
     window.location.replace('/studio/login/?next=%2Fstudio%2Fsettings%2F')
   }, [status])
 
+  /**
+   * The read, through the shared store, so this page and an open studio tab
+   * are looking at one copy of one row. See ./profile.ts.
+   */
+  const read = useProfile(user?.id)
+
+  /**
+   * The profile this form was last seeded FROM, by identity.
+   *
+   * The store publishes to every subscriber, and this page is one of them —
+   * including when this page is what published. Without this, `save` would put
+   * the new profile in the store, the store would hand it straight back, and
+   * the effect below would re-seed and reset `state` to 'ready', wiping the
+   * "Saved" the coach had pressed for a tenth of a second earlier.
+   *
+   * A ref and not a dependency: putting `profile` in the effect's deps would
+   * re-run it on every keystroke, and re-seeding the draft from the stored copy
+   * mid-sentence would delete what they were typing.
+   */
+  const seeded = useRef<Profile | null>(null)
+
   useEffect(() => {
-    if (status !== 'in') return
-    let live = true
-    void loadProfile().then((p) => {
-      if (!live) return
-      const next = p ?? EMPTY_PROFILE
-      setProfile(next)
-      setSaved(next)
-      setPics({ crest: imageUrl(next.crestPath), avatar: imageUrl(next.avatarPath) })
-      setState('ready')
-    })
-    return () => {
-      live = false
+    if (read.status === 'loading') return
+    if (read.status === 'error') {
+      setState('unreadable')
+      return
     }
-  }, [status])
+    // 'none' is a real, safe answer: this account has never saved a profile, so
+    // a blank form IS the truth and writing it is an insert. 'row' is the row.
+    const next = read.profile ?? EMPTY_PROFILE
+    if (seeded.current === next) return
+    seeded.current = next
+    setProfile(next)
+    setSaved(next)
+    setPics({ crest: imageUrl(next.crestPath), avatar: imageUrl(next.avatarPath) })
+    setState('ready')
+  }, [read])
 
   const set = useCallback((patch: Partial<Profile>) => {
     setProfile((p) => ({ ...p, ...patch }))
@@ -536,7 +615,17 @@ export default function Settings() {
     const ok = await saveProfile(profile, user.id)
     // The share panel may only offer a link that actually resolves, so the
     // saved snapshot moves forward on success and stays put on failure.
-    if (ok) setSaved(profile)
+    if (ok) {
+      setSaved(profile)
+      // Claimed BEFORE it is published, so the echo this page is about to get
+      // back from the store is recognised as its own and does not re-seed the
+      // form out from under the "Saved" below.
+      seeded.current = profile
+      // Straight into the shared store, without a round trip to confirm what
+      // we just sent. A studio tab left open on another board repaints its kit
+      // and its credit from here. See `putProfile`.
+      putProfile(profile)
+    }
     setState(ok ? 'saved' : 'failed')
   }, [profile, user])
 
@@ -594,6 +683,39 @@ export default function Settings() {
       <div className="flex min-h-[50vh] items-center justify-center">
         <p className="text-micro uppercase text-ink-faint">
           {status === 'out' ? 'Taking you to sign in…' : 'Opening your settings…'}
+        </p>
+      </div>
+    )
+  }
+
+  /*
+   * NO FORM AT ALL, rather than a blank one with a Save button under it.
+   *
+   * The one thing this page must never do is offer to write over a profile it
+   * could not read. Reloading is the whole of the advice because it is the whole
+   * of the fix: the row is on the account and it is fine.
+   */
+  if (state === 'unreadable') {
+    return (
+      <div className="mx-auto max-w-2xl px-5 py-20">
+        <h1 className="text-title font-black tracking-display text-ink">
+          We could not open your settings
+        </h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
+          Your profile is safe on your account. We just could not read it this time, and rather
+          than show you an empty form you might save over the top of it, we are showing you this.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-6 rounded-full bg-ink px-5 py-2.5 text-[14px] font-bold text-paper"
+        >
+          Try again
+        </button>
+        <p className="mt-6 text-[13px] text-ink-faint">
+          <a href="/studio/portal/" className="font-bold text-ink-soft">
+            ‹ Back to your systems
+          </a>
         </p>
       </div>
     )
@@ -766,34 +888,16 @@ export default function Settings() {
         {/* The switch, and the whole promise stated next to it rather than in a
             help page nobody opens. */}
         <div className="mt-7 rounded-xl border border-ink-hair bg-paper p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[13px] font-bold text-ink">
-                {isPublic ? 'Your profile is public' : 'Your profile is private'}
-              </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
-                {isPublic
-                  ? 'Anyone with the link can see your name, picture, club, crest, role, bio and links. Your systems stay private until you publish one, and your squad is never shown.'
-                  : 'Nobody can see any of this. Your systems are private either way, and turning this on never publishes one.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isPublic}
-              aria-label="Make my profile public"
-              onClick={() => set({ visibility: isPublic ? 'private' : 'public' })}
-              className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition-colors ${
-                isPublic ? 'bg-green' : 'bg-ink-hair'
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-surface shadow-paper transition-all ${
-                  isPublic ? 'left-6' : 'left-1'
-                }`}
-              />
-            </button>
-          </div>
+          <Switch
+            on={isPublic}
+            onChange={(next) => set({ visibility: next ? 'public' : 'private' })}
+            label="Make my profile public"
+            title={isPublic ? 'Your profile is public' : 'Your profile is private'}
+          >
+            {isPublic
+              ? 'Anyone with the link can see your name, picture, club, crest, role, bio and links. Your systems stay private until you publish one, and your squad is never shown.'
+              : 'Nobody can see any of this. Your systems are private either way, and turning this on never publishes one.'}
+          </Switch>
 
           <ShareProfile saved={saved} draft={profile} />
         </div>
@@ -878,6 +982,35 @@ export default function Settings() {
         note="Your players, typed once. In the studio, a counter can then take a name, a number and a face in one press instead of three fields. Everything here is yours alone: a board you share carries the names you put on it and never the photographs, which stay in your account."
       >
         {user && <SquadEditor owner={user.id} />}
+      </Section>
+
+      {/* ── 5. what leaves with the work ──────────────────────────────────── */}
+
+      <Section
+        id="identity"
+        title="Your name on your work"
+        note="A different question from the one above. That one is about a page people visit; this one is about the files and links you send them."
+      >
+        <div className="mt-5 rounded-xl border border-ink-hair bg-paper p-4">
+          <Switch
+            on={profile.showIdentity}
+            onChange={(next) => set({ showIdentity: next })}
+            label="Show my details on exports, films and share links"
+            title={
+              profile.showIdentity
+                ? 'Your work is signed'
+                : 'Your work goes out unsigned'
+            }
+          >
+            {profile.showIdentity
+              ? 'Your name, your club and your crest go on the pictures, films and links you send, and your players are named on the board. This is what a credit line is for, and it is how somebody knows whose work they are looking at.'
+              : 'Pictures, films and share links go out with no name, no club, no crest and no player names on the counters. The board itself is untouched: everything is still here, and turning this back on puts it all back.'}
+          </Switch>
+          <p className="mt-3 border-t border-ink-hair pt-3 text-[12px] leading-relaxed text-ink-faint">
+            This is the DEFAULT each export starts on. You can flip it for one picture, one film or
+            one link in the dialog itself, without changing it here.
+          </p>
+        </div>
       </Section>
 
       {/* ── save ──────────────────────────────────────────────────────────── */}
