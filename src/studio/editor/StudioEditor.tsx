@@ -119,6 +119,7 @@ import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
 import { useCloudSync } from '../account/sync'
+import { SquadPick, useSquad, useSquadPhotos } from './SquadPick'
 import { GuideRail } from './GuideRail'
 import {
   ACTION,
@@ -227,15 +228,22 @@ function bandSide(band: Band, act: Act): Side {
  * Carry a coach's per-player editing across a re-place.
  *
  * Re-placing a formation resets POSITIONS, which is the point of it. It must
- * not also throw away the label they retyped, the name they added, the cue they
- * assigned or the fade they set — those are the parts they had to think about.
+ * not also throw away the label they retyped, the name they added, the player
+ * they picked, the cue they assigned or the fade they set — those are the parts
+ * they had to think about.
  * Matched by token id, which is stable by construction (see ../schema.ts).
+ *
+ * EVERY OPTIONAL FIELD ON `Token` HAS TO BE NAMED HERE. The list is spelled out
+ * rather than spread because a spread would carry `x` and `y` too and undo the
+ * re-placement entirely — which means adding a field to the schema and not to
+ * this line silently drops it the next time a coach changes formation. `photo`
+ * was the first one to prove it.
  */
 function withEdits(placed: Token[], previous: Token[]): Token[] {
   const prev = new Map(previous.map((t) => [t.id, t]))
   return placed.map((t) => {
     const p = prev.get(t.id)
-    return p ? { ...t, label: p.label, name: p.name, cue: p.cue, dim: p.dim } : t
+    return p ? { ...t, label: p.label, name: p.name, photo: p.photo, cue: p.cue, dim: p.dim } : t
   })
 }
 
@@ -753,6 +761,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   // this never blocks it; see ../account/sync.ts. Off entirely when locked, for
   // the signed-in coach who opens one of ours: see `enabled` over there.
   const cloud = useCloudSync(systemId, system, !locked)
+
+  /**
+   * The coach's squad, and signed URLs for whichever faces are on this board.
+   *
+   * Both are empty for a signed-out visitor and for a coach who has never added
+   * a player, and both cost nothing in that case — `useSquadPhotos` does not
+   * even make a request when no token on the board carries a photo. See
+   * ./SquadPick.tsx.
+   */
+  const squad = useSquad()
+  const photoHrefs = useSquadPhotos(system)
 
   // Deleting the last phase, or undoing back past one, can leave the index
   // pointing at nothing. Render already clamps; this keeps the state honest so
@@ -2400,6 +2419,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         act={rendered}
         idp="studio"
         mode={boardMode}
+        photoHrefs={photoHrefs}
         /* Wide while posing with the shot outlined on top; the real push-in
            happens on Play. See `showFrame` in ../board/Board.tsx. */
         showFrame={!playing}
@@ -2639,7 +2659,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           >
             {/* No system, so no camera: a thumbnail is for finding a phase by
                 its shape, which a push-in would crop away. */}
-            <Board system={system} act={resolveAct(a)} idp={`thumb-${a.id}`} />
+            <Board
+              system={system}
+              act={resolveAct(a)}
+              idp={`thumb-${a.id}`}
+              photoHrefs={photoHrefs}
+            />
             <span className="absolute bottom-0 left-0 right-0 bg-ink/75 px-1 py-0.5 text-[10px] font-bold text-paper">
               {i + 1}. {a.title}
             </span>
@@ -3148,6 +3173,31 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       {selectedToken ? (
         <Panel title="Selected player">
+          {/* Above the fields rather than below them, because picking a player
+              FILLS those fields. A control that rewrites the two inputs under it
+              belongs where it can be seen doing so. */}
+          <SquadPick
+            squad={squad}
+            token={selectedToken}
+            onPick={(player) =>
+              patchToken(
+                {
+                  // The squad's number wins if there is one, and the counter
+                  // keeps whatever it had if there is not. A player with no
+                  // number is a real entry, and blanking a counter that already
+                  // said "6" would be the picker taking something away.
+                  label: player.number || selectedToken.label,
+                  name: player.name,
+                  photo: player.photoPath || undefined,
+                },
+                'player',
+              )
+            }
+            // Clears what the pick put there and nothing else. The counter's
+            // label is left alone for the same reason it is kept above: it is a
+            // position on the board, not a property of the person.
+            onClear={() => patchToken({ name: undefined, photo: undefined }, 'player')}
+          />
           <Field label="On the counter">
             <Tip text={HINT.playerLabel} title="On the counter" side="left" block>
               <TextInput value={selectedToken.label} onChange={(v) => patchToken({ label: v }, 'label')} maxLength={4} />

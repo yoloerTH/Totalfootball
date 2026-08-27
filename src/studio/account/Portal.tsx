@@ -180,7 +180,7 @@ export default function Portal() {
               </span>
             )}
             <a href="/studio/settings/" className={QUIET}>
-              Settings
+              Personal settings
             </a>
             <button
               type="button"

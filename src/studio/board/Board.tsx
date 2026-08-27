@@ -7,11 +7,18 @@
  * server. Every choice in ./Pitch.tsx, ./Token.tsx and ./Overlays.tsx defers to
  * that: no CSS filters, no webfont we cannot inline.
  *
- * There is now exactly ONE external reference, and it is deliberate: the match
- * ball is a photograph. A canvas will not fetch it out of a serialised SVG, so
- * the exporter has to pass `ballHref` as a `data:` URI — see ../balls.ts. That
- * is the whole exception. Nothing else may point outside this document, because
- * everything else would fail the same way and none of it would error.
+ * There are exactly TWO external references, both photographs and both handled
+ * the same way: the match ball, and a player's headshot. A canvas will not fetch
+ * either out of a serialised SVG, so the exporter passes `ballHref` and
+ * `photoHrefs` as `data:` URIs — see ../balls.ts `inlineBall` and
+ * ../account/squad.ts `inlinePhotos`. Those two are the whole exception. Nothing
+ * else may point outside this document, because everything else would fail the
+ * same way and none of it would error.
+ *
+ * Note the shape of `photoHrefs`: keyed by STORAGE PATH, not by token id. One
+ * player stands on the board in every phase of a session and is the same
+ * picture each time, so a map keyed by path resolves them all from one entry and
+ * one fetch.
  *
  * The component is pure. It takes a resolved RenderAct — a pose, or a blend of
  * two poses from ../tween.ts — and draws it. It owns no state, so the editor
@@ -125,6 +132,15 @@ interface Props {
    */
   ballHref?: string
   /**
+   * Storage path → a drawable URL for a player's photograph.
+   *
+   * Signed URLs on a live board, `data:` URIs in an export. A token whose
+   * `photo` is missing from this map is simply drawn without a face — which is
+   * the ordinary state for anyone viewing a shared board, since the policy in
+   * supabase/013 will not sign a path they do not own.
+   */
+  photoHrefs?: Record<string, string>
+  /**
    * Passing this makes the camera's frame adjustable: a grip on each corner to
    * resize it, and the outline itself to slide it about.
    *
@@ -214,6 +230,7 @@ export function Board({
   onBackgroundPointerDown,
   onFramePointerDown,
   ballHref,
+  photoHrefs,
   mode = 'move',
   className,
   svgRef,
@@ -428,6 +445,7 @@ export function Board({
                 side={t.side}
                 style={styleFor(t.side)}
                 name={t.name}
+                photoHref={t.photo ? photoHrefs?.[t.photo] : undefined}
                 cue={t.cue}
                 dim={t.dim}
                 scale={t.scale}

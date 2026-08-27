@@ -29,6 +29,21 @@
   to = "/studio/watch/"
   status = 200
 
+# A coach's public profile: /c/andreas_p serves one static page that reads the
+# handle off its own path and fetches the row through the PUBLIC RLS policy in
+# supabase/012. Same shape as the /s/* rule above, same reason for the 200, and
+# the same dev/production difference — the rewrite is applied by `netlify dev`
+# on :8888 but not by plain `astro dev` on :4321, which is why
+# `handleFromPath` also accepts a `?h=` query.
+#
+# Only rows whose visibility is 'public' are readable at all, so a handle that
+# is private, unclaimed or mistyped all render the same "nothing here". The
+# rewrite is not the access control and was never asked to be.
+[[redirects]]
+  from = "/c/*"
+  to = "/c/"
+  status = 200
+
 # NO `/o/*` RULE, DELIBERATELY. There used to be one here, a 200-rewrite onto
 # /studio/watch/ exactly like the `/s/*` rule above. It is gone because those
 # URLs are real pages now: src/pages/o/[slug].astro builds one per official

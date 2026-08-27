@@ -41,6 +41,22 @@ export interface Token {
   side: Side
   /** Optional player name, printed above the counter. */
   name?: string
+  /**
+   * Object path of the player's photograph, in the private `players` bucket.
+   *
+   * A PATH AND NOT A URL, for two separate reasons. The first is the one
+   * `crest_path` gives in supabase/012: a URL bakes in the project ref. The
+   * second is particular to this bucket — it is private, so there is no durable
+   * URL to store. A browser gets a signed one that expires within the hour, and
+   * the exporter gets a `data:` URI. Both are resolved from this path at draw
+   * time by `signPhotos` / `inlinePhotos` in ./account/squad.ts.
+   *
+   * A DOCUMENT CARRYING THIS IS NOT CARRYING THE PICTURE. Share a board and the
+   * recipient sees the names and no faces, because the policy in supabase/013
+   * will not sign a path they do not own. That is the intended behaviour and
+   * not a gap to close casually; see the head of ./account/squad.ts.
+   */
+  photo?: string
   cue?: Cue
   /** Greyed back, for players who are not part of this act's lesson. */
   dim?: boolean
@@ -282,6 +298,22 @@ export interface Act {
 }
 
 /** A team's visual identity. Defaults come from the owner's profile. */
+/**
+ * The shirt, beyond one flat colour.
+ *
+ * Four patterns and a plain shirt, chosen because all four still READ inside a
+ * 2.1 m counter on a board zoomed out to the whole pitch. Quarters and checks
+ * were considered and dropped: they turn to mush at that size, and a kit nobody
+ * can identify is worse than no pattern at all.
+ *
+ * Drawn by `Token.tsx` as flat bands clipped to the counter, under the inner
+ * shade and the highlight, so a striped counter is still the same glossy object
+ * as a plain one. Pure SVG — no fetch, no filter — which is why the video
+ * exporter needed no changes for any of this. See `videoRender.ts` on what a
+ * serialised board can and cannot resolve.
+ */
+export type KitPattern = 'solid' | 'stripes' | 'hoops' | 'halves' | 'sash'
+
 export interface TeamStyle {
   name: string
   /** Counter fill. */
@@ -292,6 +324,20 @@ export interface TeamStyle {
   text: string
   /** Optional trim ring, for kits that need a second colour to read. */
   ring?: string
+  /**
+   * The shirt's pattern. Absent or 'solid' is a plain shirt, which is what
+   * every system built before this existed is, and it stays that way.
+   */
+  pattern?: KitPattern
+  /**
+   * The pattern's second colour — the stripe, the hoop, the far half, the sash.
+   *
+   * Its shaded twin is DERIVED by `darken()` at render time rather than stored,
+   * exactly as `deep` is derived from `base`. supabase/005 gives the reason and
+   * it has not changed: a stored copy is a third place for the same fact to
+   * live and the one that goes stale.
+   */
+  alt?: string
 }
 
 export interface System {

@@ -8,6 +8,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "db:apply": "node scripts/apply-migration.mjs",
     "systems:list": "node scripts/pull-system.mjs --list",
     "systems:pull": "node scripts/pull-system.mjs",
     "email:audience": "node scripts/sync-campaigns.mjs",

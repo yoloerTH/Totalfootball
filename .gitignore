@@ -27,3 +27,6 @@ shots/
 
 # Supabase CLI scratch (version check cache), not project state.
 supabase/.temp/
+
+# Netlify CLI output, pulled down while debugging a deploy.
+netlify-logs.txt

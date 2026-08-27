@@ -38,11 +38,14 @@
  *
  * ── THE TWO GOTCHAS FROM §6, BOTH PAID FOR HERE ──────────────────────────────
  *
- * 1. THE BALL. A canvas will not fetch `/studio/balls/trionda.png` out of a
- *    serialised SVG and does not error when it fails — the ball is simply gone.
- *    `inlineBall()` supplies a `data:` URI, and if that fetch fails we fall the
- *    whole document back to the drawn vector ball rather than emit a broken
- *    `<image>`.
+ * 1. THE BALL, AND THE FACES. A canvas will not fetch `/studio/balls/trionda.png`
+ *    out of a serialised SVG and does not error when it fails — the ball is
+ *    simply gone. `inlineBall()` supplies a `data:` URI, and if that fetch fails
+ *    we fall the whole document back to the drawn vector ball rather than emit a
+ *    broken `<image>`. Player headshots pay the identical tax through
+ *    `inlinePhotos()`, and pay it worse: they live in a PRIVATE bucket, so the
+ *    signed URL a live board draws from would expire part-way through a long
+ *    render. Both are resolved ONCE, up front, for all four hundred frames.
  *
  * 2. THE FONT. Webfonts do not resolve inside a serialised SVG either, so every
  *    counter would silently come out in Times. Inter is fetched once and
@@ -69,6 +72,7 @@ import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
+import { inlinePhotos, photoPaths } from './account/squad'
 import type { System } from './schema'
 import { holdMs, moveMs } from './pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs, type Timeline } from './tween'
@@ -164,11 +168,12 @@ function frameSvg(
   w: number,
   h: number,
   ballHref: string | undefined,
+  photoHrefs: Record<string, string>,
   css: string,
   view: PitchView,
 ): string {
   const markup = renderToStaticMarkup(
-    createElement(Board, { system, act, idp: 'vid', texture: false, ballHref, view }),
+    createElement(Board, { system, act, idp: 'vid', texture: false, ballHref, photoHrefs, view }),
   )
   const end = openTagEnd(markup)
   const style = `<style>svg{width:${w}px!important;height:${h}px!important}${css}</style>`
@@ -688,7 +693,13 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
 
   // Everything that is fetched rather than computed, up front: a failure here
   // should happen before the coach has watched a progress bar for a minute.
-  const [css, ball] = await Promise.all([boardFontCss(), inlineBall(resolveBall(system.matchBall).id)])
+  const [css, ball, photos] = await Promise.all([
+    boardFontCss(),
+    inlineBall(resolveBall(system.matchBall).id),
+    // `[]` when nobody on the board has a photograph, which resolves to `{}`
+    // without a single request. The common case costs nothing.
+    inlinePhotos(photoPaths(system)),
+  ])
   await document.fonts.ready
   // Once, up front: it is the same picture on all four hundred frames.
   // The chrome is drawn on top of the board, so it takes the board's palette:
@@ -795,7 +806,11 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
           tl.p === 0
             ? resolveAct(system.acts[tl.index], drawSystem)
             : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p, drawSystem)
-        lastBoard = await raster(frameSvg(drawSystem, act, l.w, l.h, ballHref, css, view), l.w, l.h)
+        lastBoard = await raster(
+          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, css, view),
+          l.w,
+          l.h,
+        )
         lastKey = key
       }
 

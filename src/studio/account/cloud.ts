@@ -17,7 +17,8 @@
  */
 
 import { darken, readableText } from '../board/palette'
-import type { System } from '../schema'
+import type { System, TeamStyle } from '../schema'
+import type { ProfileLink, Visibility } from './identity'
 import { listSystems, migrate } from '../storage'
 import { db } from './client'
 
@@ -120,35 +121,124 @@ export async function claimLocalSystems(owner: string): Promise<number> {
 // ── the profile ──────────────────────────────────────────────────────────────
 
 /**
- * What a coach signs their work with.
+ * Who a coach is, and what their boards look like.
  *
- * Deliberately the same three fields the share dialog asks for, minus the
- * per-share note. This is where those fields get their DEFAULTS; the values
- * themselves still live on each document (`System.credit`), which is why a
- * system shared last season keeps the club a coach was at last season.
+ * This started as the three fields the share dialog asks for. Phase 1 of
+ * docs/SOCIAL.md added the rest: an optional public identity, and the kit a
+ * coach works in. Two things about that are worth being precise on.
+ *
+ * **It still only supplies DEFAULTS.** `System.credit` and `System.teams` live
+ * on each document, which is why a system shared last season keeps the club a
+ * coach was at last season and the kit they wore then. `withProfile` fills a
+ * blank board; it never edits one that already exists.
+ *
+ * **Every new field is optional and `visibility` starts private.** A coach who
+ * never opens the new sections has a profile identical to the one they had
+ * before, and nothing about them is visible to anybody. See supabase/012.
+ *
+ * Empty string is the "not set" value throughout rather than null, so the form
+ * never has to hold `string | null` in an input's `value`. `saveProfile` turns
+ * empties back into NULL on the way out.
  */
 export interface Profile {
   presenter: string
   team: string
-  /** Hex, the counter fill. `deep` and the label colour are derived at render. */
+  /** Hex, the home counter fill. `deep` and the label colour are derived at render. */
   teamColour: string
+  /** The public address, `/c/<handle>`. Empty until claimed, and claiming is optional. */
+  handle: string
+  bio: string
+  role: string
+  /** Object path in the `crests` bucket. Compose the URL with `imageUrl()`. */
+  crestPath: string
+  /**
+   * The coach's own face, in the same bucket under a different name.
+   *
+   * A SEPARATE FIELD FROM THE CREST and not a replacement for it: a badge says
+   * which club, a face says which person, and a profile that shows one in place
+   * of the other answers the wrong question. Both are optional and neither
+   * implies the other.
+   */
+  avatarPath: string
+  /** Optional trim ring, for kits that need a second colour to read. */
+  kitRing: string
+  /** `KitPattern` — 'solid', 'stripes', 'hoops', 'halves' or 'sash'. */
+  kitPattern: string
+  /** The pattern's second colour. Ignored while the pattern is 'solid'. */
+  kitAlt: string
+  visibility: Visibility
+  links: ProfileLink[]
 }
 
-export const EMPTY_PROFILE: Profile = { presenter: '', team: '', teamColour: '' }
+export const EMPTY_PROFILE: Profile = {
+  presenter: '',
+  team: '',
+  teamColour: '',
+  handle: '',
+  bio: '',
+  role: '',
+  crestPath: '',
+  avatarPath: '',
+  kitRing: '',
+  kitPattern: 'solid',
+  kitAlt: '',
+  visibility: 'private',
+  links: [],
+}
+
+const PROFILE_COLUMNS =
+  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links'
 
 export async function loadProfile(): Promise<Profile | null> {
   const supabase = db()
   if (!supabase) return null
-  const { data, error } = await supabase
-    .from('studio_profiles')
-    .select('presenter, team, team_colour')
-    .maybeSingle()
+  const { data, error } = await supabase.from('studio_profiles').select(PROFILE_COLUMNS).maybeSingle()
   if (error || !data) return null
+
+  const row = data as Record<string, unknown>
+  const str = (k: string) => (row[k] as string | null) ?? ''
+
   return {
-    presenter: (data.presenter as string | null) ?? '',
-    team: (data.team as string | null) ?? '',
-    teamColour: (data.team_colour as string | null) ?? '',
+    presenter: str('presenter'),
+    team: str('team'),
+    teamColour: str('team_colour'),
+    handle: str('handle'),
+    bio: str('bio'),
+    role: str('role'),
+    crestPath: str('crest_path'),
+    avatarPath: str('avatar_path'),
+    kitRing: str('kit_ring'),
+    // Empty reads as plain. A row written before 013, or by a future build this
+    // one has not seen, is a plain shirt rather than an unrenderable one.
+    kitPattern: str('kit_pattern') || 'solid',
+    kitAlt: str('kit_alt'),
+    // Anything but the two known values is read as private. A row written by a
+    // future migration this build has not seen must fail CLOSED.
+    visibility: row.visibility === 'public' ? 'public' : 'private',
+    // jsonb comes back parsed. Filtered rather than trusted, because the column
+    // only guarantees the SHAPE of the array, not what is in each entry.
+    links: Array.isArray(row.links)
+      ? (row.links as ProfileLink[])
+          .filter((l) => l && typeof l.label === 'string' && typeof l.url === 'string')
+          .slice(0, 5)
+      : [],
   }
+}
+
+/**
+ * The profile with every kit colour stripped, credit left alone.
+ *
+ * For starting from a TEMPLATE. A template is already painted — its kits are
+ * part of what it is teaching — so repainting it in the coach's colours is
+ * wrong, while signing it with their name is right.
+ *
+ * This exists as a named function rather than as `{ ...profile, teamColour: '' }`
+ * at the call site because that spelling only blanked the one kit field that
+ * existed when it was written, and quietly stopped being correct the moment a
+ * second one was added.
+ */
+export function creditOnly(profile: Profile): Profile {
+  return { ...profile, teamColour: '', kitRing: '', kitPattern: 'solid', kitAlt: '' }
 }
 
 /**
@@ -156,31 +246,59 @@ export async function loadProfile(): Promise<Profile | null> {
  *
  * The point of the settings page: a signed-in coach's first board is already in
  * their colours and already signed, so the share dialog is one press instead of
- * three fields. `deep` and the label colour are DERIVED rather than stored —
- * the same two functions the board uses at render time, so a kit colour cannot
- * mean one thing here and another on the pitch.
+ * three fields. `deep` and the label colour are DERIVED rather than stored — the
+ * same two functions the board uses at render time, so a kit colour cannot mean
+ * one thing here and another on the pitch.
  *
- * Only fills what is empty. It supplies defaults; it never edits a document.
+ * Each half is applied only when the coach has actually set it, so a profile
+ * with a home kit and no away kit repaints one team and leaves the other at the
+ * house colours. Only fills what is empty; it never edits a document.
  */
 export function withProfile(system: System, profile: Profile): System {
   const presenter = profile.presenter.trim()
   const team = profile.team.trim()
   const colour = profile.teamColour.trim()
+  const ring = profile.kitRing.trim()
+  const alt = profile.kitAlt.trim()
+  const pattern = profile.kitPattern.trim()
+  // A pattern is only a pattern once it has a second colour; without one there
+  // is nothing to draw and `Token.tsx` would fall back to a plain shirt anyway.
+  const patterned = pattern && pattern !== 'solid' && alt
+
+  let teams = system.teams
+
+  if (colour) {
+    teams = {
+      ...teams,
+      us: {
+        ...teams.us,
+        name: team || teams.us.name,
+        base: colour,
+        deep: darken(colour),
+        text: readableText(colour),
+        // Undefined rather than '' when unset: `Token.tsx` draws the ring if the
+        // property is present at all, so an empty string is a stroke of nothing.
+        ring: ring || undefined,
+        pattern: patterned ? (pattern as TeamStyle['pattern']) : undefined,
+        alt: patterned ? alt : undefined,
+      },
+    }
+  }
+
+  // THE OPPOSITION IS NOT REPAINTED, and that is a decision rather than an
+  // omission. A coach owns one kit; the other team is whoever they are playing
+  // this week, and asking somebody to keep a setting up to date with next
+  // Saturday's fixture is asking them to maintain a field that is wrong most of
+  // the time. `teams.them` keeps the house colours unless the system itself
+  // says otherwise, which is where an actual opponent belongs.
+  //
+  // `opponent_colour` still exists on the table (supabase/012) and is dormant.
+  // Nothing reads it and nothing writes it. It was never shipped, so no row
+  // holds a value; if the away kit is ever wanted back it is a column away.
 
   return {
     ...system,
-    teams: colour
-      ? {
-          ...system.teams,
-          us: {
-            ...system.teams.us,
-            name: team || system.teams.us.name,
-            base: colour,
-            deep: darken(colour),
-            text: readableText(colour),
-          },
-        }
-      : system.teams,
+    teams,
     credit:
       presenter || team
         ? { ...system.credit, presenter: presenter || undefined, team: team || undefined }
@@ -188,20 +306,148 @@ export function withProfile(system: System, profile: Profile): System {
   }
 }
 
+/**
+ * Write the profile up. Returns whether it landed.
+ *
+ * A FULL payload every time, not a patch. PostgREST's upsert updates exactly the
+ * columns present in the body, so sending a subset would silently leave the rest
+ * at whatever they were — which is indistinguishable from a successful save
+ * right up until the coach reloads and finds a field they cleared has come back.
+ */
 export async function saveProfile(profile: Profile, id: string): Promise<boolean> {
   const supabase = db()
   if (!supabase) return false
-  // Empty strings go up as NULL: the columns are nullable and "not set yet" is
-  // a real state the credit bar reads, distinct from "set to nothing".
+
+  // Empty strings go up as NULL: the columns are nullable and "not set yet" is a
+  // real state the credit bar and the public policy both read, distinct from
+  // "set to nothing".
   const nil = (s: string) => (s.trim() ? s.trim() : null)
+
   const { error } = await supabase.from('studio_profiles').upsert(
     {
       id,
       presenter: nil(profile.presenter),
       team: nil(profile.team),
       team_colour: nil(profile.teamColour),
+      handle: nil(profile.handle),
+      bio: nil(profile.bio),
+      role: nil(profile.role),
+      crest_path: nil(profile.crestPath),
+      avatar_path: nil(profile.avatarPath),
+      kit_ring: nil(profile.kitRing),
+      kit_pattern: nil(profile.kitPattern),
+      kit_alt: nil(profile.kitAlt),
+      // NOT nullable and NOT nil()'d. The column is `not null default 'private'`
+      // and this is the one field where "unset" must never reach the database as
+      // an absence the default might fill in differently later.
+      visibility: profile.visibility === 'public' ? 'public' : 'private',
+      links: profile.links.filter((l) => l.label.trim() && l.url.trim()).slice(0, 5),
     },
     { onConflict: 'id' },
   )
   return !error
+}
+
+/**
+ * Whether a handle is free, asked while the coach is still typing.
+ *
+ * Reads through the PUBLIC policy in supabase/012, which only exposes profiles
+ * that are public AND have a handle. So this answers "is it taken by somebody
+ * who has published a profile", not "does the string exist in the table" — a
+ * private profile holding the handle is invisible here and the unique index is
+ * what actually refuses the write.
+ *
+ * That is the correct trade and not a bug to fix later: the alternative is an
+ * endpoint that confirms the existence of accounts that have chosen not to be
+ * seen. A rare "that one is taken" at save time is a much smaller cost.
+ */
+export async function handleTaken(handle: string, self: string): Promise<boolean> {
+  const supabase = db()
+  if (!supabase || !handle) return false
+  const { data, error } = await supabase
+    .from('studio_profiles')
+    .select('id')
+    .eq('handle', handle)
+    .maybeSingle()
+  if (error || !data) return false
+  return (data.id as string) !== self
+}
+
+// ── somebody else's profile ──────────────────────────────────────────────────
+
+/**
+ * What a visitor sees. A strict SUBSET of `Profile`.
+ *
+ * Spelled out as its own type rather than reusing `Profile` so that adding a
+ * field to the settings form does not silently publish it. If a value is to be
+ * shown to strangers it has to be named here, on purpose, by somebody who
+ * thought about it. `visibility` is deliberately absent: by the time a row is
+ * readable through the public policy the answer is already 'public'.
+ */
+export interface PublicProfile {
+  handle: string
+  presenter: string
+  team: string
+  role: string
+  bio: string
+  crestPath: string
+  avatarPath: string
+  teamColour: string
+  kitRing: string
+  kitPattern: string
+  kitAlt: string
+  links: ProfileLink[]
+}
+
+/**
+ * Fetch a public profile by handle. `null` for anything that is not one.
+ *
+ * NO `.eq('visibility', 'public')` HERE, and that is not an oversight — it is
+ * the same rule the top of this file states. The policy in supabase/012 already
+ * restricts this table to rows that are public AND have a handle, and a
+ * hand-written filter that agrees with it teaches the next reader that the
+ * filter is what makes it safe. It is not. Delete the policy and this function
+ * would start serving private profiles no matter what it asked for.
+ *
+ * Runs on the ANON key, signed in or not: a shared link has to open for someone
+ * who has never heard of us, which is most of the people it will be sent to.
+ */
+export async function loadPublicProfile(handle: string): Promise<PublicProfile | null> {
+  const supabase = db()
+  if (!supabase || !handle) return null
+
+  const { data, error } = await supabase
+    .from('studio_profiles')
+    .select(
+      'handle, presenter, team, role, bio, crest_path, avatar_path, team_colour, kit_ring, kit_pattern, kit_alt, links',
+    )
+    .eq('handle', handle)
+    .maybeSingle()
+
+  // A private profile, a handle nobody has claimed and a typo are all the same
+  // answer on purpose. Telling them apart would confirm that an account exists
+  // for somebody who has chosen not to be seen.
+  if (error || !data) return null
+
+  const row = data as Record<string, unknown>
+  const str = (k: string) => (row[k] as string | null) ?? ''
+
+  return {
+    handle: str('handle'),
+    presenter: str('presenter'),
+    team: str('team'),
+    role: str('role'),
+    bio: str('bio'),
+    crestPath: str('crest_path'),
+    avatarPath: str('avatar_path'),
+    teamColour: str('team_colour'),
+    kitRing: str('kit_ring'),
+    kitPattern: str('kit_pattern') || 'solid',
+    kitAlt: str('kit_alt'),
+    links: Array.isArray(row.links)
+      ? (row.links as ProfileLink[])
+          .filter((l) => l && typeof l.label === 'string' && typeof l.url === 'string')
+          .slice(0, 5)
+      : [],
+  }
 }

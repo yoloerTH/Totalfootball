@@ -42,7 +42,7 @@
 import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, loadSystem, newSystemId } from '../storage'
-import { loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
+import { creditOnly, loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
 import { useSession } from '../account/session'
 import type { System } from '../schema'
 
@@ -109,14 +109,18 @@ export default function StudioMount() {
           /*
            * The coach's name, but NOT the coach's colours.
            *
-           * `withProfile` repaints the home kit, which is right for a blank
+           * `withProfile` repaints the kits, which is right for a blank
            * board — its own comment says it only fills what is empty — and
            * wrong here: these were coloured deliberately, and a worked example
            * that no longer looks like the film it came from teaches less.
-           * Blanking the colour is how you ask that function for the credit
-           * half, rather than writing a second copy of it here that can drift.
+           * `creditOnly` is how you ask that function for the credit half,
+           * rather than writing a second copy of it here that can drift.
+           *
+           * It replaced `{ ...profile, teamColour: '' }`, which was correct
+           * until the profile grew a second and third kit colour and then
+           * silently was not. See ../account/cloud.ts.
            */
-          const initial = profile ? withProfile(copy, { ...profile, teamColour: '' }) : copy
+          const initial = profile ? withProfile(copy, creditOnly(profile)) : copy
           return { id: newSystemId(), initial, copied: true }
         }
       }

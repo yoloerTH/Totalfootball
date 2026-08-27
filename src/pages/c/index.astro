@@ -1,0 +1,39 @@
+---
+/**
+ * A coach's public profile.
+ *
+ * ONE STATIC PAGE SERVING EVERY HANDLE. `/c/andreas_p` is rewritten onto this
+ * route by netlify.toml — a 200, not a redirect, so the address the coach shared
+ * stays in the bar. The island reads `location.pathname` to find out who it is
+ * showing. This is exactly how `/s/<id>` serves the shared viewer, and the
+ * reasoning for the rewrite target being the ROUTE rather than the built HTML
+ * file is written out next to that rule.
+ *
+ * `noindex` FOR NOW, and the reason is the same one on /studio/watch/: there is
+ * no page here to index, only a shell that fills itself in on the client, and
+ * every handle would otherwise look to a crawler like a duplicate of every
+ * other one. Phase 2 of docs/SOCIAL.md makes this route server-rendered, and
+ * that is the commit where the noindex comes off and the OG card goes on.
+ *
+ * NOT `bare`. The shared viewer hides the site nav because a coach presenting
+ * off it in front of a room does not want it; a profile is the opposite — it is
+ * somebody's shop window, and the nav is the way a visitor who liked what they
+ * saw finds out what this place is.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import PublicProfile from '../../studio/account/PublicProfile'
+---
+
+<BaseLayout
+  title="Profile"
+  description="A coach on Total Football."
+  path="/c/"
+  noindex
+>
+  {/* A `div`, not a `<main>`. BaseLayout already provides `<main id="main">`
+      around the slot, and a nested one is invalid HTML — the studio pages that
+      do it predate this and are left alone rather than quietly rewritten. */}
+  <div class="min-h-[70vh] bg-paper-deep">
+    <PublicProfile client:only="react" />
+  </div>
+</BaseLayout>
