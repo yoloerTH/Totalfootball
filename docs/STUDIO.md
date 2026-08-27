@@ -589,6 +589,53 @@ every field of `GuideState` is monotone, which is why none of this needs clocks.
 with the whole marketing site, like the OS dark-mode setting, and it belongs to
 the screen rather than to the account.
 
+## 3h. Who can reach what — the audit, 2026-08-27
+
+Asked plainly: does everything a coach puts in stay on their account? Checked
+against the live database and against production, not against the migrations.
+
+| What | Where | Scoped by | Verdict |
+|---|---|---|---|
+| Systems | `studio_systems` | `owner = auth.uid()`, RLS `for all` | ✅ |
+| Squad (names, numbers) | `studio_squad` | `owner = auth.uid()`, no anon grant | ✅ |
+| Player photos | `players` bucket, `<uid>/players/<uuid>.ext` | private bucket + `foldername[1] = auth.uid()` on **read** | ✅ anon list returns `[]` |
+| Preferences | `studio_prefs` | `id = auth.uid()` | ✅ (§3g) |
+| Profile | `studio_profiles` | own row, plus opt-in public read gated on `visibility='public' AND handle IS NOT NULL` | ✅ fails closed |
+| Crest / avatar | `crests` bucket, `<uid>/crest.ext` | public bucket, writes pinned to own folder | ⚠️ **was world-listable** — fixed in 015 |
+| Published boards | `studio_shares` | *nothing* | ⚠️ **was world-writable** — fixed in 015 |
+| Feedback | `studio_feedback` | anon INSERT only, no read | ✅ |
+
+**The two that were wrong, so nobody re-opens them.**
+
+`/api/share` accepted a POST with no session and PATCHed whatever id the body
+named. The share id is in the public URL, so the only thing guarding an update
+was printed on the thing it guarded — and the `ALLOWED_ORIGIN` check is no help,
+because it is skipped entirely when a caller sends no `Origin` header, which any
+script does by default. Reproduced against production, then cleaned up.
+`studio_shares` now has an `owner`, set on publish and required to match on
+update. **There is no branch in `share.mts` that writes to a row it cannot
+attribute to the caller** — every other path mints a new id instead. Rows
+published before the column existed have `owner is null` and are adopted only by
+a coach who holds a system in their own account carrying that share id, which is
+evidence a stranger cannot manufacture.
+
+`studio_crests_read` was `bucket_id = 'crests'` with no path predicate, granted
+to `anon`. Anyone could list the bucket and get one folder per coach — the whole
+directory of account ids — and every crest and avatar inside, private profiles
+included. Narrowed to the caller's own folder. Public URL reads bypass RLS
+entirely, so shared boards keep their badges; only enumeration stopped, and
+nothing in the app calls `.list()` on that bucket.
+
+**Two things that look like leaks and are not.** A published board carries player
+*names* — that is what publishing a board means, and it is the coach's deliberate
+act. It carries photo *paths* but never photos: `Token.photo` is a path into the
+private bucket, and `supabase/013` will not sign a path the caller does not own,
+so a recipient sees names and no faces. `inlinePhotos` turns them into `data:`
+URIs only in `videoRender.ts`, on the coach's own machine.
+
+**`tf_theme` is deliberately outside all of this.** It is a device preference
+shared with the marketing site, like OS dark mode; it belongs to the screen.
+
 ## 6. Gotchas — every one of these was a real bug, found by looking
 
 **If the studio renders but nothing responds, it is the Vite cache.**
