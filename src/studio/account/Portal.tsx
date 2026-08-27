@@ -95,18 +95,26 @@ export default function Portal() {
       const n = await claimLocalSystems(owner)
       if (n) setClaimed(n)
     }
+    /*
+     * ── THE SHELF IS THE ACCOUNT'S, NOT THIS MACHINE'S ──────────────────────
+     *
+     * An empty list USED TO BE ambiguous — a new account and an unreachable
+     * server both came back as `[]`, so this fell through to the local buffer
+     * either way and a brand new account could be shown work from a browser it
+     * had nothing to do with. `listCloudSystems` now returns null for a failed
+     * fetch and an array for an answer, so the two cases are told apart:
+     *
+     *   an array, of any length -> that IS the shelf. An empty account has an
+     *                              empty shelf, and saying so is correct.
+     *   null                    -> we could not ask. Only then does the buffer
+     *                              stand in, and it is labelled 'local-only'.
+     */
     const rows = await listCloudSystems()
-    if (rows.length > 0) {
+    if (rows) {
       setSystems(rows)
       setLoad('ready')
       return
     }
-    /*
-     * An empty list is ambiguous — a new account and an unreachable server look
-     * identical from here. Falling back to what is on this machine is both the
-     * safer read and the more useful one: it is never wrong to show a coach the
-     * work that is on the laptop in front of them.
-     */
     const local = listSystems()
     setSystems(local.map((l) => ({ id: l.id, system: l.system, updated: l.updated })))
     setLoad(local.length ? 'local-only' : 'ready')

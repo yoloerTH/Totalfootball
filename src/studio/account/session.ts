@@ -18,7 +18,9 @@
 import { useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { accountsEnabled, db } from './client'
-import { setOwner } from '../scope'
+import { setOwner, wipeScope } from '../scope'
+import { currentOwner } from '../scope'
+import { forgetVersions } from './cloud'
 import { stopPrefs } from './prefs'
 
 export type SessionStatus = 'unknown' | 'in' | 'out'
@@ -176,12 +178,23 @@ export async function signUpWithPassword(
  * on this machine would spend its first render inside a stranger's namespace.
  * Clearing it here makes that ordering irrelevant.
  *
- * The departing coach's namespaced keys are LEFT ALONE. They are unreachable
- * from any other account now, and signing back in should find your work where
- * you left it rather than an empty studio. See ../scope.ts.
+ * The departing coach's namespaced keys are WIPED, which is a reversal of what
+ * this used to do and follows from the account being the source of truth: the
+ * browser copy is a buffer, every system is in `studio_systems` and every
+ * preference in `studio_prefs`, and signing back in fetches both. Leaving a
+ * stale duplicate on a shared laptop protects nothing and exposes something.
+ * See `wipeScope` in ../scope.ts.
+ *
+ * The order matters and is: flush nothing, drop the in-memory version map, wipe
+ * the namespace, THEN clear the marker. Clearing the marker first would point
+ * `wipeScope` at the guest scope and leave the coach's keys exactly where they
+ * were.
  */
 export async function signOut(): Promise<void> {
+  const leaving = currentOwner()
   await db()?.auth.signOut()
   stopPrefs()
+  forgetVersions()
+  wipeScope(leaving)
   setOwner(null)
 }

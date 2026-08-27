@@ -27,6 +27,7 @@ import { db } from './client'
 import {
   applyPrefs,
   hasStored,
+  lastOpened,
   readGuide,
   readView,
   setPrefsSink,
@@ -40,6 +41,7 @@ import { WHATS_NEW } from '../../data/whatsnew'
 interface PrefsRow {
   guide: Partial<GuideState> | null
   view_prefs: Partial<ViewPrefs> | null
+  last_system: string | null
 }
 
 // ── merging ──────────────────────────────────────────────────────────────────
@@ -136,6 +138,17 @@ function reconcile(row: PrefsRow, local: Prefs): Prefs {
         ? { ...(remoteView.sections ?? {}), ...local.view.sections }
         : { ...local.view.sections, ...(remoteView.sections ?? {}) },
     },
+    /*
+     * THE ACCOUNT WINS, and this is the one field where it wins outright.
+     *
+     * Everything above is a preference about how this browser looks, so a
+     * device that has an opinion keeps it. "Which board was I on" is not that:
+     * it is a single moving fact about the coach, and the account holds the
+     * most recent version of it by construction — it was written by whichever
+     * device they used last, which is the one they are asking to continue from.
+     * Deferring to a local value here is how a laptop reopens last week.
+     */
+    last: row.last_system ?? local.last,
   }
 }
 
@@ -147,12 +160,20 @@ function reconcile(row: PrefsRow, local: Prefs): Prefs {
  * for an account that has never written. Hydration therefore cannot race a
  * first write, and there is no second code path to keep in step with this one.
  */
-async function merge(patch: { guide?: unknown; view?: unknown }): Promise<PrefsRow | null> {
+async function merge(patch: {
+  guide?: unknown
+  view?: unknown
+  last?: string
+}): Promise<PrefsRow | null> {
   const supabase = db()
   if (!supabase) return null
   const { data, error } = await supabase.rpc('studio_prefs_merge', {
     p_guide: patch.guide ?? {},
     p_view: patch.view ?? {},
+    // NULL means "not telling", never "clear it" — supabase/016 coalesces it
+    // against what is already there. Hydration sends nothing and must not wipe
+    // the board the coach was on.
+    p_last: patch.last ?? null,
   })
   if (error || !data) return null
   return data as PrefsRow
@@ -171,9 +192,9 @@ async function merge(patch: { guide?: unknown; view?: unknown }): Promise<PrefsR
  * browser, and the next change will carry it up.
  */
 let timer: ReturnType<typeof setTimeout> | null = null
-let pending: { guide?: GuideState; view?: ViewPrefs } = {}
+let pending: { guide?: GuideState; view?: ViewPrefs; last?: string } = {}
 
-function push(patch: { guide?: GuideState; view?: ViewPrefs }): void {
+function push(patch: { guide?: GuideState; view?: ViewPrefs; last?: string }): void {
   pending = { ...pending, ...patch }
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {
@@ -215,7 +236,7 @@ export function hydratePrefs(uid: string): Promise<void> {
   if (already) return already
 
   const run = (async () => {
-    const local: Prefs = { guide: readGuide(), view: readView() }
+    const local: Prefs = { guide: readGuide(), view: readView(), last: lastOpened() ?? '' }
     const row = await merge({})
     if (row) {
       const next = reconcile(row, local)

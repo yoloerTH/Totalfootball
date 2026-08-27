@@ -636,6 +636,47 @@ URIs only in `videoRender.ts`, on the coach's own machine.
 **`tf_theme` is deliberately outside all of this.** It is a device preference
 shared with the marketing site, like OS dark mode; it belongs to the screen.
 
+## 3i. The account is the source of truth. The browser is a buffer.
+
+`supabase/016_systems_save_guard.sql`, `src/studio/account/cloud.ts`,
+`src/studio/editor/StudioMount.tsx`.
+
+**This reverses the order §3g and `storage.ts` were written under**, and the
+reason is a bug rather than a change of taste. `StudioMount` read localStorage
+first and `saveCloudSystem` was a blind upsert, so:
+
+> a laptop holds a week-old copy → the coach edits that system on the desktop →
+> the coach opens it on the laptop → the **stale** copy loads, and two seconds
+> later `useCloudSync` uploads it over the desktop's newer work, silently.
+
+139 systems across 81 owners were on that path.
+
+**What changed, in four lines.** Reads go to the account first and fall back to
+the buffer only when it cannot answer. Writes carry the `updated_at` they were
+loaded at, and `studio_systems_save` refuses one that has been overtaken.
+`lastOpened` moved onto `studio_prefs.last_system`, because "which board was I
+on" is a fact about a coach and not about a laptop. Signing out wipes the
+namespace.
+
+**The buffer is not vestigial and must not be removed.** It is the only copy
+that exists between a keystroke and the upload, and it is what opens when the
+train goes into a tunnel. What makes it *safe* is not the read order — a failed
+fetch can always put a stale document back in play — it is the version guard.
+Ordering is the ordinary case; the guard is the case where ordering did not run.
+
+**A conflict is reported, never resolved.** Pulling the server's copy down over
+a board a coach is mid-drag on destroys the work they can see to save the work
+they cannot. `useCloudSync` latches to `'conflict'`, stops uploading, and the
+editor says so on every width. Retrying would be refused every time, and the
+only way to make it succeed would be to drop the guard.
+
+**`updated_at` is trustworthy as a version token** because 005 maintains it in a
+trigger, not from the client — a browser with a wrong clock cannot forge one.
+
+**Still browser-local, on purpose:** `tf_theme` (a device preference, shared with
+the marketing site) and `tf-studio:owner` (the scope marker itself, which has to
+be readable synchronously before any async session resolves).
+
 ## 6. Gotchas — every one of these was a real bug, found by looking
 
 **If the studio renders but nothing responds, it is the Vite cache.**

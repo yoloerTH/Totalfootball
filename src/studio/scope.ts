@@ -22,9 +22,10 @@
  *     stranger's account permanently. Fixed in ./account/cloud.ts, which now
  *     claims from the GUEST scope only — work that genuinely has no owner.
  *
- *  3. Signing out cleared nothing. Still doesn't clear the previous owner's
- *     namespace, and that is deliberate: signing back in should find your work.
- *     What it does clear is the owner marker, so the next reader is `guest`.
+ *  3. Signing out cleared nothing. It now clears the whole namespace —
+ *     `wipeScope` below — because the account is the source of truth and the
+ *     browser copy is a buffer. A buffer that outlives the session it was
+ *     filled for is just somebody else's data on a shared laptop.
  *
  * RLS was never involved. supabase/005 held; nothing crossed the server.
  *
@@ -119,6 +120,34 @@ export function clearScoped(base: string, who?: string | null): void {
   }
 }
 
+/**
+ * Everything this browser holds for one account, gone.
+ *
+ * ── WHY SIGNING OUT NOW WIPES, WHEN IT DELIBERATELY DID NOT BEFORE ───────────
+ *
+ * Because the account became the source of truth. When the browser held the
+ * only copy, keeping it was the whole point — wiping on sign-out would have
+ * destroyed work. It no longer holds the only copy of anything: every system is
+ * in `studio_systems`, every preference in `studio_prefs`, and signing back in
+ * fetches both. What is left behind is a stale duplicate.
+ *
+ * On a shared laptop that duplicate is the entire problem. It is unreachable
+ * through the UI — the next account reads its own namespace — but it is sitting
+ * in the browser of a machine its owner has walked away from, and "unreachable
+ * through our UI" is not the standard to hold somebody's work to.
+ *
+ * The owner MARKER is not cleared here; `setOwner(null)` does that, and doing
+ * both in one function would make the order matter.
+ */
+export function wipeScope(who: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return
+    for (const base of LEGACY) localStorage.removeItem(scopedKey(base, who))
+  } catch {
+    // A private window has nothing to wipe.
+  }
+}
+
 // ── the one-time adoption ────────────────────────────────────────────────────
 
 /**
@@ -127,6 +156,10 @@ export function clearScoped(base: string, who?: string | null): void {
  * Kept HERE rather than imported from the modules that own them, because those
  * modules import this one and the cycle would be for four string constants that
  * are frozen by definition — a legacy key never changes again.
+ *
+ * `wipeScope` iterates this too, which is the reason it is the complete list
+ * and not just the ones adoption cared about. A key added to the studio and not
+ * added here is a key that survives a sign-out.
  */
 const LEGACY = ['tf-studio:v1', 'tf-studio:guide:v1', 'tf.studio.sections', 'tf.studio.strip']
 

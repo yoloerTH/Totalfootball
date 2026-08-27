@@ -32,46 +32,119 @@ export interface CloudSystem {
 
 const TABLE = 'studio_systems'
 
-/** This coach's systems, newest first. `[]` when signed out or offline. */
-export async function listCloudSystems(): Promise<CloudSystem[]> {
+/**
+ * ── THE VERSION EACH SYSTEM WAS LOADED AT ────────────────────────────────────
+ *
+ * The account is the source of truth now, and this is what makes that
+ * enforceable rather than merely intended. Every read records the row's
+ * `updated_at`; every write sends it back, and supabase/016 refuses the write
+ * if the row has moved on since.
+ *
+ * WHY IT IS NEEDED AT ALL, given the client reads the account first. Because
+ * the browser still keeps an offline buffer, and a buffer that survives a
+ * failed fetch can always come back carrying a document older than the one on
+ * the server. Read order fixes the ordinary case; only a version token fixes
+ * the case where the ordinary path did not run.
+ *
+ * In memory and NOT in localStorage, deliberately. A version that outlived the
+ * page would let a browser claim to have seen a row it has not read this
+ * session, which is the exact assertion the guard exists to disbelieve. Lost on
+ * reload means the next save is refused once and the client re-reads, which is
+ * the safe direction to fail in.
+ */
+const versions = new Map<string, string>()
+
+/** Forget every version. Called on sign-out with everything else. */
+export function forgetVersions(): void {
+  versions.clear()
+}
+
+/**
+ * This coach's systems, newest first.
+ *
+ * `null` — NOT `[]` — when the fetch failed, because the portal has to tell an
+ * empty account from an unreachable server: one means "you have nothing yet"
+ * and the other means "fall back to the buffer". They used to be the same
+ * value and the portal had to guess.
+ */
+export async function listCloudSystems(): Promise<CloudSystem[] | null> {
   const supabase = db()
-  if (!supabase) return []
+  if (!supabase) return null
   const { data, error } = await supabase
     .from(TABLE)
     .select('id, doc, updated_at')
     .order('updated_at', { ascending: false })
-  if (error || !data) return []
-  return data.map((row) => ({
-    id: row.id as string,
-    system: migrate(row.doc as System),
-    updated: row.updated_at as string,
-  }))
+  if (error || !data) return null
+  return data.map((row) => {
+    const id = row.id as string
+    const updated = row.updated_at as string
+    versions.set(id, updated)
+    return { id, system: migrate(row.doc as System), updated }
+  })
 }
 
 export async function loadCloudSystem(id: string): Promise<System | null> {
   const supabase = db()
   if (!supabase) return null
-  const { data, error } = await supabase.from(TABLE).select('doc').eq('id', id).maybeSingle()
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('doc, updated_at')
+    .eq('id', id)
+    .maybeSingle()
   if (error || !data) return null
+  versions.set(id, data.updated_at as string)
   return migrate(data.doc as System)
 }
 
 /**
- * Write one system up. Returns whether it landed.
+ * What happened to a write. Three outcomes, and they are not interchangeable.
  *
- * `owner` is passed explicitly because it is `not null` and the client is the
- * only thing that knows the id — but the WITH CHECK half of the policy is what
- * makes it honest: a client that sent somebody else's uuid gets rejected by
- * Postgres rather than trusted.
+ * `failed` is "not yet" — offline, a 500, an expired token. The next edit
+ * retries and nothing is said to the coach.
+ *
+ * `conflict` is the opposite: the request landed and the ANSWER was no. This
+ * board is open somewhere newer, and retrying would either do nothing or, if we
+ * were careless enough to drop the guard, destroy the newer copy. It has to
+ * stop the uploads and it has to be visible.
  */
-export async function saveCloudSystem(id: string, system: System, owner: string): Promise<boolean> {
+export type SaveResult = 'saved' | 'conflict' | 'failed'
+
+/**
+ * Write one system up, refusing to trample a newer copy.
+ *
+ * `owner` is no longer sent: supabase/016 takes it from `auth.uid()` inside the
+ * transaction, which is one fewer thing a client can get wrong and removes the
+ * last place a uuid was passed across the wire for a row it did not control.
+ * The parameter is kept so call sites read the same and so the caller still has
+ * to have a signed-in user to hand.
+ *
+ * ── ON A CONFLICT THIS DOES NOT "RESOLVE" ANYTHING ───────────────────────────
+ *
+ * It reports. A coach is mid-session; pulling the server's copy down over the
+ * board in front of them would destroy the work they can see in order to save
+ * the work they cannot. See ./sync.ts for what is shown instead.
+ */
+export async function saveCloudSystem(
+  id: string,
+  system: System,
+  owner: string,
+): Promise<SaveResult> {
   const supabase = db()
-  if (!supabase) return false
-  const { error } = await supabase.from(TABLE).upsert(
-    { id, owner, doc: system },
-    { onConflict: 'owner,id' },
-  )
-  return !error
+  if (!supabase || !owner) return 'failed'
+
+  const { data, error } = await supabase.rpc('studio_systems_save', {
+    p_id: id,
+    p_doc: system,
+    // Absent for a system this session has never read — a brand new board. The
+    // function treats that as "insert if it does not exist, refuse if it does",
+    // which is the safe reading of a client that cannot name a version.
+    p_base: versions.get(id) ?? null,
+  })
+  if (error || !data) return 'failed'
+
+  const result = data as { ok?: boolean; updated_at?: string }
+  if (result.updated_at) versions.set(id, result.updated_at)
+  return result.ok ? 'saved' : 'conflict'
 }
 
 export async function deleteCloudSystem(id: string): Promise<boolean> {

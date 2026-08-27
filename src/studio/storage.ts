@@ -109,8 +109,12 @@ export function loadSystem(id: string): System | null {
 export function saveSystem(id: string, system: System): void {
   const store = read()
   store.systems[id] = { system, updated: new Date().toISOString() }
+  const moved = store.last !== id
   store.last = id
   write(store)
+  // Only when it CHANGES. This runs on every autosave — 400ms during a drag —
+  // and the board a coach is on is the same one it was 400ms ago.
+  if (moved) sink?.({ last: id })
 }
 
 export function deleteSystem(id: string): void {
@@ -385,6 +389,16 @@ export function writeSection(title: string, open: boolean): void {
 export interface Prefs {
   guide: GuideState
   view: ViewPrefs
+  /**
+   * The system to reopen. Empty for a coach who has not opened one yet.
+   *
+   * It lived in the local systems store, which made "reopen where you left off"
+   * a fact about a MACHINE. It is a fact about a coach: someone who stops on the
+   * desktop and picks up the laptop should land on the same board. The local
+   * copy is still written and is still the fallback when the account cannot be
+   * reached; it is no longer the answer. See supabase/016.
+   */
+  last: string
 }
 
 export interface ViewPrefs {
@@ -430,7 +444,7 @@ export function hasStored(): { guide: boolean; strip: boolean; sections: boolean
  * in. With nothing registered — the shoot page, a signed-out render — the local
  * write is the whole story, which is what it was before any of this.
  */
-type PrefsSink = (patch: { guide?: GuideState; view?: ViewPrefs }) => void
+type PrefsSink = (patch: { guide?: GuideState; view?: ViewPrefs; last?: string }) => void
 
 let sink: PrefsSink | null = null
 
@@ -453,6 +467,14 @@ export function applyPrefs(prefs: Partial<Prefs>): void {
     if (prefs.view) {
       localStorage.setItem(scopedKey(STRIP_KEY), prefs.view.strip)
       localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(prefs.view.sections))
+    }
+    if (prefs.last) {
+      // Through the store rather than beside it: `lastOpened()` reads this
+      // field, and a second place to keep the same fact is a second place for
+      // it to be wrong.
+      const store = read()
+      store.last = prefs.last
+      write(store)
     }
   } catch {
     // Same bargain as everywhere else in this file.

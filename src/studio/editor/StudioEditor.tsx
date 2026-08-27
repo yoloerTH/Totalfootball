@@ -2838,11 +2838,28 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {locked ? (
         <SignInPill />
       ) : (
-        (cloud === 'saving' || cloud === 'saved') && (
-          <span className="hidden shrink-0 text-[11px] font-bold text-ink-faint lg:inline">
-            {cloud === 'saving' ? 'Saving…' : 'Saved'}
-          </span>
-        )
+        <>
+          {(cloud === 'saving' || cloud === 'saved') && (
+            <span className="hidden shrink-0 text-[11px] font-bold text-ink-faint lg:inline">
+              {cloud === 'saving' ? 'Saving…' : 'Saved'}
+            </span>
+          )}
+          {/*
+            * The one sync state that is NOT quiet, and it is shown on every
+            * width rather than `lg:` only. A coach whose changes have stopped
+            * being saved has to be told on a phone as much as on a desktop —
+            * more, since the phone is the likelier second window. See the
+            * `conflict` note in ../account/sync.ts.
+            */}
+          {cloud === 'conflict' && (
+            <span
+              role="status"
+              className="shrink-0 rounded-md bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400"
+            >
+              Open in another window — reload to get the newest
+            </span>
+          )}
+        </>
       )}
 
       {/* The theme is the one setting on this bar that belongs to the READER

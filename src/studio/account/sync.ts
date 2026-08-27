@@ -28,6 +28,21 @@ export type SyncStatus =
   | 'saved'
   /** Tried and could not. Deliberately quiet — the next edit retries. */
   | 'behind'
+  /**
+   * The write LANDED and the answer was no: this board has been edited
+   * somewhere newer (supabase/016).
+   *
+   * The one status here that is not quiet, and the difference is whether the
+   * coach can do anything. 'behind' is weather — the next edit retries and a
+   * warning would be noise. A conflict is not weather: two copies of this board
+   * have diverged, every further keystroke widens the gap, and only the person
+   * who knows which window they meant can settle it.
+   *
+   * Uploading STOPS here rather than retrying. Retrying would be refused every
+   * time, and the only way to make it succeed would be to drop the guard, which
+   * is the data loss this whole change was about.
+   */
+  | 'conflict'
 
 /**
  * Two seconds, against the local autosave's 400ms.
@@ -57,12 +72,18 @@ export function useCloudSync(systemId: string, system: System, enabled = true): 
   // touched does not re-upload it, and so an idle tab is silent.
   const sent = useRef<string>('')
   const timer = useRef<number | null>(null)
+  /** Latches on a conflict. Cleared only by reloading the board. */
+  const stuck = useRef(false)
 
   useEffect(() => {
     if (!enabled || status !== 'in' || !user) {
       setSync('off')
       return
     }
+
+    // A conflict is terminal for this document in this tab. Nothing that
+    // happens next can be uploaded honestly, so nothing tries.
+    if (stuck.current) return
 
     const payload = JSON.stringify(system)
     if (payload === sent.current) return
@@ -72,10 +93,11 @@ export function useCloudSync(systemId: string, system: System, enabled = true): 
       timer.current = null
       if (!live) return
       setSync('saving')
-      const ok = await saveCloudSystem(systemId, system, user.id)
+      const result = await saveCloudSystem(systemId, system, user.id)
       if (!live) return
-      if (ok) sent.current = payload
-      setSync(ok ? 'saved' : 'behind')
+      if (result === 'saved') sent.current = payload
+      if (result === 'conflict') stuck.current = true
+      setSync(result === 'saved' ? 'saved' : result === 'conflict' ? 'conflict' : 'behind')
     }
 
     timer.current = window.setTimeout(push, DEBOUNCE_MS)

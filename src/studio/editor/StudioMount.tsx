@@ -145,10 +145,31 @@ export default function StudioMount() {
       }
 
       const id = requested ?? lastOpened() ?? newSystemId()
-      const local = loadSystem(id)
-      if (local) return { id, initial: local, copied: false }
+
+      /*
+       * ── THE ACCOUNT FIRST. THE BUFFER ONLY IF THE ACCOUNT CANNOT ANSWER ────
+       *
+       * THIS ORDER WAS THE OTHER WAY ROUND AND IT LOST WORK. localStorage was
+       * read first, so a laptop holding a week-old copy opened the week-old
+       * copy — and `useCloudSync` then uploaded it over whatever had been done
+       * on the desktop since, two seconds later, silently.
+       *
+       * The buffer is still here and still matters: it is what a coach opens
+       * when the train goes into a tunnel, and it is the only copy that exists
+       * in the seconds between a keystroke and the upload. What it is not, any
+       * more, is the thing consulted FIRST by a browser that could simply ask.
+       *
+       * `loadCloudSystem` returns null for "no such row" and for "could not
+       * ask", and the fallthrough is right for both — a new board has no row
+       * yet, and an unreachable server is exactly when the buffer earns its
+       * keep. What makes the second case safe is not this ordering but
+       * supabase/016: a stale buffer that comes back cannot overwrite a newer
+       * row, because the save carries the version it was loaded at.
+       */
       const remote = await loadCloudSystem(id)
       if (remote) return { id, initial: remote, copied: false }
+      const local = loadSystem(id)
+      if (local) return { id, initial: local, copied: false }
       // A brand new board for a coach we already know something about opens in
       // their colours and already signed. See `withProfile`.
       const profile = await loadProfile()
