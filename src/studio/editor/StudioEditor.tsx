@@ -1266,21 +1266,50 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [],
   )
 
+  /**
+   * Dragging a counter or the ball.
+   *
+   * WHERE IT WAS GRABBED IS KEPT, which is the whole of what this does beyond
+   * the obvious. It used to put the counter's CENTRE under the cursor on the
+   * way down, so grabbing a player anywhere but dead centre teleported them by
+   * the width of the grab before the drag had begun. On a board at 100% that is
+   * a counter 38px across and a jump of about 14px — irritating, easy to miss.
+   * Zoomed in it is the same jump in METRES OF GRASS, and metres of grass are
+   * screen pixels multiplied by the zoom: at 550% the counter lurches 74px out
+   * from under the finger that touched it (measured, user, 2026-08-28).
+   *
+   * Holding the offset instead means the counter goes exactly where the cursor
+   * goes, at every zoom, which is what dragging has always meant. The gear and
+   * text drags below already worked this way; this brings the counters and the
+   * ball into line with them rather than inventing a third way.
+   */
   const beginDrag = useCallback(
     (drag: { kind: 'token'; id: string } | { kind: 'ball' }, e: React.PointerEvent) => {
       const svg = svgRef.current
-      if (!svg) return
+      const source = act
+      if (!svg || !source) return
       e.stopPropagation()
       // Without this the browser starts a text selection on the way down, and
       // then paints it across the pitch for the rest of the drag.
       e.preventDefault()
+
+      // Where the thing is NOW. Read once, on the way down: reading it per move
+      // would compound the offset against a position this gesture is writing.
+      const base =
+        drag.kind === 'ball' ? source.ball : source.tokens.find((t) => t.id === drag.id)
+      if (!base) return
+
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const grab = clampToBoard(down.x, down.y)
+
       setDragging(drag)
 
       bindGesture(
         e.pointerId,
         (ev) => {
           const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
-          const p = clampToBoard(raw.x, raw.y)
+          const q = clampToBoard(raw.x, raw.y)
+          const p = clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y))
           // One label for the whole gesture: ../history.ts collapses it into a
           // single undo entry, and `seal()` on release closes it so the next
           // drag of the same counter is its own.
@@ -1297,7 +1326,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
       )
     },
-    [bindGesture, view, patchAct, markGuide, seal],
+    [act, bindGesture, view, patchAct, markGuide, seal],
   )
 
   /**
