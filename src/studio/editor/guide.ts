@@ -275,7 +275,7 @@ export const HINT = {
     'The two halves of a beat, set apart. The hold is how long a phase stands still, which is reading time. The move is how long it takes to become the next one, which is the football. Bring the hold down and stretch the move and you get the shape a coach rehearsing something familiar wants: poses they already know gone quickly, transitions they are teaching drawn out. Both belong to the system rather than to whoever is watching, so the film, the share link and Play all move together.',
 
   camera:
-    'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball pushes in on whatever each phase is about — the ball, your arrows, anyone you have given a role cue — and travels between them, the way the videos are shot. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
+    'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball frames the ball and travels with it, the way the videos are shot — it follows the ball and nothing else, so moving a player never moves the camera. A phase with no ball is framed on what you have marked on it instead, and a phase with SEVERAL balls is yours to frame: there is no one ball to follow, so the camera uses the frame you drew on that phase and stays wide if you drew none. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
 
   ball:
     'Which match ball sits on the board. Choose one for the era you are teaching: the 1974 Telstar for a Total Football session, the 2026 Trionda for anything current.',
@@ -300,7 +300,10 @@ export const HINT = {
   addPlayer:
     'Drops one more counter in the middle of the pitch, on this phase. For a twelfth man, a coach, or a shape that is not eleven a side.',
   clearPitch: 'Takes every player off this phase. The pitch, the arrows and the zones stay.',
-  ballToggle: 'Puts the ball on the pitch, or takes it off. Drag it wherever the move needs it.',
+  addBall:
+    'Puts another match ball on the pitch. Drag it wherever the drill needs it. There can be as many as you like — a ball per grid in a rondo, a rack of them beside a finishing station — and every one of them is the match ball you picked, so a board with six balls on it still looks like your session rather than like clip art.',
+  removeBall:
+    'Takes a ball off. The one you have selected, or the last one you added if none is selected. Clicking a ball on the grass selects it, and Delete takes it off too.',
 
   /**
    * The block. The old copy described the drawing; this one describes the

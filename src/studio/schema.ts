@@ -293,6 +293,38 @@ export interface TextMark {
 }
 
 /**
+ * A match ball on the grass.
+ *
+ * ── WHY THERE ARE SEVERAL, AND WHY THEY ARE ALL "THE MATCH BALL" ────────────
+ *
+ * There was one ball per phase, and for a move being taught — a switch, a
+ * rotation, a pressing trap — one is right, because the whole point is that
+ * everyone is looking at the same object. But a session is not only moves. A
+ * rondo has a ball per grid, a finishing station has a rack of them beside the
+ * cone, and a coach drawing that had to choose which one to lie about.
+ *
+ * There is no second class of ball, though, and that is deliberate: an earlier
+ * pass at this put anonymous "loose balls" in the gear picker beside the
+ * photographed match balls, which meant two vocabularies for one object and a
+ * coach who wanted a Trionda lying on the grass beside the Trionda being passed
+ * could not have one (user, 2026-08-27). Every ball here is a match ball,
+ * wearing whatever `System.matchBall` says, at the system's size and turn.
+ *
+ * ── WHAT THE ID IS FOR ──────────────────────────────────────────────────────
+ *
+ * The same thing gear ids are for: a ball matched by id across two phases LERPS
+ * between them on Play (../tween.ts), so it is that ball travelling rather than
+ * one vanishing and another appearing. It is also how ../actions.ts knows which
+ * ball a pass moved, and how ../audio.ts knows one was kicked.
+ */
+export interface BallMark {
+  id: string
+  /** Percent coords, the same space a token is stored in. */
+  x: number
+  y: number
+}
+
+/**
  * A piece of training gear standing on the grass.
  *
  * ── WHY IT IS A MARK AND NOT A TOKEN ────────────────────────────────────────
@@ -411,8 +443,26 @@ export interface Act {
    */
   shot?: Shot
   tokens: Token[]
-  /** Percent coords, or null when the act is about shape rather than the ball. */
+  /**
+   * THE LEGACY SINGLE BALL. Read `balls` instead — see `ballsOf`.
+   *
+   * Every act used to have exactly one ball or none, and this held it. It is
+   * still written, mirroring `balls[0]`, for one reason: a share link is a
+   * document in a URL, and somebody opening one in a tab that has an older
+   * bundle cached must not get a board with no ball on it. It costs two numbers
+   * per act to keep that promise.
+   *
+   * Nothing should READ it except `ballsOf`, which uses it as the answer for a
+   * document written before `balls` existed.
+   */
   ball: { x: number; y: number } | null
+  /**
+   * The match balls on this phase. See `BallMark`.
+   *
+   * Optional because every act written before this existed has none of it, and
+   * `ballsOf` reads those through `ball` above.
+   */
+  balls?: BallMark[]
   arrows: Arrow[]
   bands: Band[]
   /**
@@ -754,6 +804,53 @@ export function withoutIdentity(system: System): System {
 }
 
 export const CENTRE_SPOT = { x: 50, y: 50 }
+
+/**
+ * The balls on an act, whenever and however it was written.
+ *
+ * THE ONE WAY TO READ THEM. `Act.balls` is the truth on anything written since
+ * balls became a list; `Act.ball` is the truth on everything before it, and a
+ * document from then is a document a coach can still open from a link they sent
+ * last month. Every reader goes through here so neither of those is a special
+ * case anywhere else in the codebase.
+ */
+export function ballsOf(act: Act): BallMark[] {
+  if (act.balls) return act.balls
+  return act.ball ? [{ id: LEGACY_BALL_ID, ...act.ball }] : []
+}
+
+/**
+ * The id a document's original single ball is read back under.
+ *
+ * Stable rather than generated, so a ball that was on two phases before the
+ * list existed is still the SAME ball on both of them and still travels between
+ * them on Play. A fresh uid per act would have quietly turned every move into a
+ * ball vanishing and another one appearing.
+ */
+export const LEGACY_BALL_ID = 'ball'
+
+/**
+ * The two fields that say where the balls are, to spread into an act.
+ *
+ * FIELDS rather than a whole act, deliberately. A `withBalls(act, …)` that
+ * returned the act would have to spread `...act` inside itself, and spreading
+ * that into an object literal already halfway through rebuilding the act — as
+ * the pitch-view remap does — would quietly put the ORIGINAL tokens back over
+ * the remapped ones. Returning only what it owns cannot do that.
+ *
+ * The mirror is the reason it is a function at all: `ball` has to keep saying
+ * what the first ball is, or a share link opened against an older bundle loses
+ * its ball. See `Act.ball`.
+ */
+export function ballFields(balls: BallMark[]): Pick<Act, 'balls' | 'ball'> {
+  const first = balls[0]
+  return { balls, ball: first ? { x: first.x, y: first.y } : null }
+}
+
+/** A new ball, at a spot of your choosing. */
+export function newBall(at: { x: number; y: number } = CENTRE_SPOT): BallMark {
+  return { id: uid('ball'), x: at.x, y: at.y }
+}
 
 export function emptyAct(tokens: Token[] = [], n = 1): Act {
   return {

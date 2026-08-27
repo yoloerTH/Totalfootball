@@ -90,11 +90,13 @@ try {
   await page.waitForTimeout(350)
   check((await page.getByText('Training gear').count()) > 0, 'the Training gear panel opens')
   /*
-   * 24, not 19: the five match balls are in the picker now.
+   * Gear only. BALLS ARE NOT GEAR — they are match balls, added with "+ Ball"
+   * on the phase panel, as many as a drill needs. They were briefly in this
+   * picker as anonymous "loose balls" and were taken out again, because one
+   * object with two vocabularies is worse than either.
    *
-   * Two prefixes because a ball is served from its own folder — the gear
-   * catalogue points at ../balls' originals rather than keeping a second copy,
-   * so replacing a ball changes it in the picker and on the grass at once.
+   * Both prefixes are still watched below: nothing should be requesting a ball
+   * out of /studio/gear/ any more, and if something starts, this notices.
    */
   const thumbs = page.locator(
     'img[src^="/studio/gear/thumb/"], img[src^="/studio/balls/thumb/"]',

@@ -127,7 +127,7 @@ interface Props {
    */
   onZonePointerDown?: (id: string, part: FramePart, e: React.PointerEvent<SVGElement>) => void
   /** Passing this makes the ball draggable; without it the ball is inert. */
-  onBallPointerDown?: (e: React.PointerEvent<SVGGElement>) => void
+  onBallPointerDown?: (id: string, e: React.PointerEvent<SVGGElement>) => void
   /**
    * Pressing a piece of writing: selects it, and starts dragging it.
    *
@@ -581,23 +581,27 @@ export function Board({
           )
         })}
 
-        {act.ball && (
-          <g
-            opacity={act.ball.opacity}
-            pointerEvents={onBallPointerDown ? undefined : 'none'}
-            onPointerDown={onBallPointerDown}
-            style={{ cursor: onBallPointerDown ? cursor.token : undefined }}
-          >
-            <Ball
-              idp={idp}
-              cx={pos(act.ball.x, act.ball.y).x}
-              cy={pos(act.ball.x, act.ball.y).y}
-              href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
-              size={system.matchBallSize}
-              angle={system.matchBallAngle}
-            />
-          </g>
-        )}
+        {act.balls.map((b) => {
+          const q = pos(b.x, b.y)
+          return (
+            <g
+              key={b.id}
+              opacity={b.opacity}
+              pointerEvents={onBallPointerDown ? undefined : 'none'}
+              onPointerDown={onBallPointerDown ? (e) => onBallPointerDown(b.id, e) : undefined}
+              style={{ cursor: onBallPointerDown ? cursor.token : undefined }}
+            >
+              <Ball
+                idp={idp}
+                cx={q.x}
+                cy={q.y}
+                href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
+                size={system.matchBallSize}
+                angle={system.matchBallAngle}
+              />
+            </g>
+          )
+        })}
 
         {/*
          * Writing, over everything the coach has drawn and over the players.

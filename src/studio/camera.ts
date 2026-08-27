@@ -52,7 +52,7 @@
 
 import { PITCH, U, cropRect, toMetres, toUnits } from './board/pitch'
 import type { PitchView } from './board/pitch'
-import type { Act, Shot, System } from './schema'
+import { ballsOf, type Act, type Shot, type System } from './schema'
 
 /*
  * `Shot` itself lives in ./schema.ts, because a coach can now draw one by hand
@@ -177,6 +177,9 @@ interface Pt {
  *
  * THE BALL IS THE SUBJECT, AND WHEN THERE IS ONE IT IS THE ONLY SUBJECT.
  *
+ * ONE ball. A phase with several is handled by `shotFor` before it reaches
+ * here — there is no single subject to be had, so the camera goes manual.
+ *
  * This used to read every mark on the board — arrows, cues, writing, gear,
  * zones — and frame the box that held them all. On a phase whose marks sit
  * round the ball that gives the same answer. On a real board it does not: an
@@ -214,8 +217,9 @@ function interest(act: Act): Pt[] {
   const pts: Pt[] = []
   const at = (x: number, y: number) => pts.push({ x, y })
 
-  if (act.ball) {
-    at(act.ball.x, act.ball.y)
+  const balls = ballsOf(act)
+  if (balls.length === 1) {
+    at(balls[0].x, balls[0].y)
     return pts
   }
 
@@ -258,6 +262,22 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    */
   if (act.shot) return act.shot
 
+  /*
+   * SEVERAL BALLS MEANS THE COACH DRIVES.
+   *
+   * A camera that follows the ball needs there to be a ball to follow. Put six
+   * out for a rondo and there is no answer to "which one" that is not a guess:
+   * framing the box that holds them all is the whole pitch again, and picking
+   * one is the tool deciding what the phase is about on a phase where the coach
+   * has said it is about all of them.
+   *
+   * So it hands the frame back. `act.shot` above is the frame a coach drew, and
+   * on a multi-ball phase it is the only thing that will move the camera —
+   * which is what manual means. With none drawn the phase plays wide, and wide
+   * is the honest picture of a drill with balls all over it.
+   */
+  if (ballsOf(act).length > 1) return null
+
   const pts = interest(act)
   /*
    * A phase about shape rather than about the ball, with nothing marked on it.
@@ -268,7 +288,7 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    * whole reason a ball phase no longer needs its neighbours for scale: the
    * frame is a fixed size the coach chose, panning to wherever the ball is.
    */
-  if (pts.length < (act.ball ? 1 : 2)) return null
+  if (pts.length < (ballsOf(act).length === 1 ? 1 : 2)) return null
 
   let x0 = Infinity
   let y0 = Infinity

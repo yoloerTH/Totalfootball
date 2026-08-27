@@ -107,7 +107,10 @@ import {
   CENTRE_SPOT,
   DEFAULT_THEM,
   DEFAULT_US,
+  ballFields,
+  ballsOf,
   emptyAct,
+  newBall,
   uid,
   withoutIdentity,
   type Act,
@@ -482,7 +485,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * the moment that is the right drawing. Touching the control pins it.
    */
   const [blockClose, setBlockClose] = useState<'auto' | 'goal' | 'shape'>('auto')
-  const [dragging, setDragging] = useState<{ kind: 'token'; id: string } | { kind: 'ball' } | null>(null)
+  const [dragging, setDragging] = useState<{ kind: 'token' | 'ball'; id: string } | null>(null)
   const [pending, setPending] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null)
   /*
    * The counter an arrow end will take hold of if the coach lets go now.
@@ -1095,6 +1098,56 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     : null
 
   /** Take the selected thing off this phase. Returns whether there was one. */
+  /*
+   * ── THE BALLS ON THIS PHASE ───────────────────────────────────────────────
+   *
+   * A phase used to have a ball or not, and one button toggled it. It can now
+   * have as many as the drill needs (see `BallMark` in ../schema.ts), so the
+   * toggle became an add and a remove.
+   */
+  const ballsHere = act ? ballsOf(act) : []
+  const selectedBallId =
+    selectedMarkId && ballsHere.some((b) => b.id === selectedMarkId) ? selectedMarkId : null
+
+  /**
+   * Somewhere to put the next one.
+   *
+   * The centre spot, unless there is already a ball sitting on it — dropping a
+   * second ball exactly on top of the first looks like the button did nothing,
+   * and the coach has to drag the top one off to find out it worked. Steps down
+   * the diagonal until the spot is clear, and gives up in the middle of the
+   * board rather than walking off the pitch.
+   */
+  const nextBallSpot = (balls: { x: number; y: number }[]) => {
+    const taken = (x: number, y: number) => balls.some((b) => Math.hypot(b.x - x, b.y - y) < 3.5)
+    let { x, y } = CENTRE_SPOT
+    for (let i = 0; i < 24 && taken(x, y); i++) {
+      x = 8 + ((x - 8 + 5) % 84)
+      y = 8 + ((y - 8 + 4) % 84)
+    }
+    return { x, y }
+  }
+
+  const addBall = () => {
+    patchAct('ball-add', (a) => {
+      const balls = ballsOf(a)
+      return { ...a, ...ballFields([...balls, newBall(nextBallSpot(balls))]) }
+    })
+    seal()
+  }
+
+  /** The selected one if a ball is selected, otherwise the last one added. */
+  const removeBall = () => {
+    patchAct('ball-remove', (a) => {
+      const balls = ballsOf(a)
+      if (balls.length === 0) return a
+      const id = selectedBallId ?? balls[balls.length - 1].id
+      return { ...a, ...ballFields(balls.filter((b) => b.id !== id)) }
+    })
+    if (selectedBallId) setSelection(null)
+    seal()
+  }
+
   const deleteSelection = useCallback((): boolean => {
     if (!selection) return false
     const { kind, id } = selection
@@ -1103,6 +1156,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         ? { ...a, tokens: a.tokens.filter((t) => t.id !== id) }
         : {
             ...a,
+            ...ballFields(ballsOf(a).filter((b) => b.id !== id)),
             arrows: a.arrows.filter((x) => x.id !== id),
             bands: a.bands.filter((b) => b.id !== id),
             texts: (a.texts ?? []).filter((x) => x.id !== id),
@@ -1284,7 +1338,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * ball into line with them rather than inventing a third way.
    */
   const beginDrag = useCallback(
-    (drag: { kind: 'token'; id: string } | { kind: 'ball' }, e: React.PointerEvent) => {
+    (drag: { kind: 'token' | 'ball'; id: string }, e: React.PointerEvent) => {
       const svg = svgRef.current
       const source = act
       if (!svg || !source) return
@@ -1296,7 +1350,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       // Where the thing is NOW. Read once, on the way down: reading it per move
       // would compound the offset against a position this gesture is writing.
       const base =
-        drag.kind === 'ball' ? source.ball : source.tokens.find((t) => t.id === drag.id)
+        drag.kind === 'ball'
+          ? ballsOf(source).find((b) => b.id === drag.id)
+          : source.tokens.find((t) => t.id === drag.id)
       if (!base) return
 
       const down = clientToPercent(svg, view, e.clientX, e.clientY)
@@ -1313,9 +1369,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           // One label for the whole gesture: ../history.ts collapses it into a
           // single undo entry, and `seal()` on release closes it so the next
           // drag of the same counter is its own.
-          patchAct(`drag:${drag.kind === 'ball' ? 'ball' : drag.id}`, (a) =>
+          patchAct(`drag:${drag.id}`, (a) =>
             drag.kind === 'ball'
-              ? { ...a, ball: p }
+              ? { ...a, ...ballFields(ballsOf(a).map((b) => (b.id === drag.id ? { ...b, ...p } : b))) }
               : { ...a, tokens: a.tokens.map((t) => (t.id === drag.id ? { ...t, ...p } : t)) },
           )
         },
@@ -2275,7 +2331,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         acts: s.acts.map((a) => ({
           ...a,
           tokens: a.tokens.map((t) => ({ ...t, ...rp(t) })),
-          ball: a.ball ? rp(a.ball) : null,
+          ...ballFields(ballsOf(a).map((b) => ({ ...b, ...rp(b) }))),
           arrows: a.arrows.map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
           bands: a.bands.map((b) => {
             if (!b.rect) return b
@@ -3252,9 +3308,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         onBallPointerDown={
           playing || drawing
             ? undefined
-            : (e) => {
-                setSelection(null)
-                beginDrag({ kind: 'ball' }, e)
+            : (id, e) => {
+                setSelection({ kind: 'mark', id })
+                beginDrag({ kind: 'ball', id }, e)
               }
         }
         onBackgroundPointerDown={(e) => {
@@ -4135,15 +4191,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       >
         <Panel title={`Players on this ${PHASE.one}`}>
           <div className="flex flex-wrap gap-1.5">
-            <Tip text={HINT.ballToggle} title={act.ball ? 'Remove ball' : 'Add ball'}>
-              <Button
-                onClick={() => {
-                  patchAct('ball-on', (a) => ({ ...a, ball: a.ball ? null : { ...CENTRE_SPOT } }))
-                  seal()
-                }}
-                active={Boolean(act.ball)}
-              >
-                {act.ball ? 'Remove ball' : 'Add ball'}
+            <Tip text={HINT.addBall} title="Add a ball">
+              <Button onClick={addBall}>+ Ball</Button>
+            </Tip>
+            <Tip text={HINT.removeBall} title="Take a ball off">
+              <Button onClick={removeBall} disabled={ballsHere.length === 0}>
+                {selectedBallId ? 'Remove this ball' : 'Remove ball'}
               </Button>
             </Tip>
             <Tip text={HINT.addPlayer} title="Add a player">
@@ -5471,7 +5524,8 @@ export function newSystem(): System {
       {
         ...emptyAct(place(f, 'us', 'full', 'position', true)),
         title: `${PHASE.One} 1`,
-        ball: { ...CENTRE_SPOT },
+        // `newBall()` sits on the centre spot, so the legacy mirror agrees.
+        ...ballFields([newBall()]),
       },
     ],
   }

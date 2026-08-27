@@ -37,7 +37,7 @@
  * 0.32 and 0.58; this reads the distance off the document instead.
  */
 
-import type { System } from './schema'
+import { ballsOf, type System } from './schema'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, holdMs, moveMs } from './pace'
 
 /** Lives in public/, like the match balls. Same reasoning as ./balls.ts. */
@@ -86,13 +86,25 @@ export function kicks(system: System, hold = DEFAULT_HOLD_MS, move = DEFAULT_MOV
   const out: Kick[] = []
 
   for (let i = 0; i < system.acts.length - 1; i++) {
-    const from = system.acts[i].ball
-    const to = system.acts[i + 1].ball
-    // A ball that appears or is taken off the board did not travel. Only a ball
-    // that is on the board in both poses can have been kicked between them.
-    if (!from || !to) continue
-
-    const dist = Math.hypot(to.x - from.x, to.y - from.y)
+    /*
+     * The FURTHEST-TRAVELLED ball sets the kick, matched by id.
+     *
+     * One sound per transition, because that is what the beat is: a phase
+     * becomes the next phase and you hear the pass that did it. On a drill with
+     * six balls moving at once, the longest journey is the one the ear would
+     * have picked out anyway, and six kicks stacked on one frame is a thud.
+     *
+     * A ball that appears or is taken off the board did not travel. Only a ball
+     * on the board in both poses can have been kicked between them.
+     */
+    const fromBalls = ballsOf(system.acts[i])
+    const toBalls = ballsOf(system.acts[i + 1])
+    let dist = 0
+    for (const from of fromBalls) {
+      const to = toBalls.find((b) => b.id === from.id)
+      if (!to) continue
+      dist = Math.max(dist, Math.hypot(to.x - from.x, to.y - from.y))
+    }
     if (dist < MOVED_PCT) continue
 
     const t = Math.min(1, dist / GAIN_FULL_PCT)

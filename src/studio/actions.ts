@@ -43,8 +43,8 @@
  * the same transition rather than starting a new one.
  */
 
-import { uid } from './schema'
-import type { Act, Arrow, ArrowKind } from './schema'
+import { ballFields, ballsOf, uid } from './schema'
+import type { Act, Arrow, ArrowKind, BallMark } from './schema'
 
 export interface Pt {
   x: number
@@ -168,7 +168,30 @@ export function perform(kind: ArrowKind, cur: Act, next: Act, actorId: string, t
 
   const here: Pt = { x: actorNext.x, y: actorNext.y }
   const there = targetIn(next, target, toPtCur)
-  const ball = next.ball
+
+  /*
+   * THE BALL AT THE ACTOR'S FEET, not "the ball".
+   *
+   * A phase can have several (see `BallMark` in ./schema.ts), and a pass is
+   * played with the one the passer actually has. Nearest to them is the whole
+   * rule, and it is the same test `run` below already used to decide whether a
+   * player was carrying: on the ordinary one-ball phase it picks that ball and
+   * nothing about these actions has changed.
+   */
+  const balls = ballsOf(next)
+  const ball =
+    balls.length === 0
+      ? null
+      : balls.reduce((best, b) =>
+          Math.hypot(b.x - here.x, b.y - here.y) < Math.hypot(best.x - here.x, best.y - here.y)
+            ? b
+            : best,
+        )
+  /** Put one ball somewhere, leaving the others where they are. */
+  const moveBall = (act: Act, at: BallMark | null, to: Pt): Act =>
+    at
+      ? { ...act, ...ballFields(ballsOf(act).map((b) => (b.id === at.id ? { ...b, ...to } : b))) }
+      : act
 
   switch (kind) {
     case 'pass':
@@ -178,7 +201,7 @@ export function perform(kind: ArrowKind, cur: Act, next: Act, actorId: string, t
       // ball reads as having arrived rather than as being part of the man.
       // From the receiver, back down the pass towards whoever played it.
       const rest = target.kind === 'token' ? towards(there, here, RECEIVE_GAP_PCT) : there
-      return { arrow, next: { ...next, ball: rest }, posed: true }
+      return { arrow, next: moveBall(next, ball, rest), posed: true }
     }
 
     case 'carry': {
@@ -189,7 +212,7 @@ export function perform(kind: ArrowKind, cur: Act, next: Act, actorId: string, t
       const dy = there.y - here.y
       return {
         arrow,
-        next: { ...moved, ball: ball ? { x: ball.x + dx, y: ball.y + dy } : ball },
+        next: moveBall(moved, ball, ball ? { x: ball.x + dx, y: ball.y + dy } : here),
         posed: true,
       }
     }
@@ -202,7 +225,11 @@ export function perform(kind: ArrowKind, cur: Act, next: Act, actorId: string, t
       if (!carrying) return { arrow, next: moved, posed: true }
       const dx = there.x - here.x
       const dy = there.y - here.y
-      return { arrow, next: { ...moved, ball: { x: ball!.x + dx, y: ball!.y + dy } }, posed: true }
+      return {
+        arrow,
+        next: moveBall(moved, ball, { x: ball!.x + dx, y: ball!.y + dy }),
+        posed: true,
+      }
     }
 
     case 'press': {

@@ -18,7 +18,7 @@ import { PITCH_VIEWS, resolveViewId } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
-import type { Act, Arrow, Band, GearMark, System, TextMark, Token } from './schema'
+import { ballsOf, type Act, type Arrow, type Band, type BallMark, type GearMark, type System, type TextMark, type Token } from './schema'
 
 export interface RenderToken extends Token {
   opacity: number
@@ -71,9 +71,13 @@ export interface RenderGear extends GearMark {
   opacity: number
 }
 
+export interface RenderBall extends BallMark {
+  opacity: number
+}
+
 export interface RenderAct {
   tokens: RenderToken[]
-  ball: { x: number; y: number; opacity: number } | null
+  balls: RenderBall[]
   arrows: RenderArrow[]
   bands: RenderBand[]
   texts: RenderText[]
@@ -175,7 +179,7 @@ const span = (x: number, a: number, b: number) =>
 export function resolveAct(act: Act, system?: System): RenderAct {
   return {
     tokens: act.tokens.map((t) => ({ ...t, opacity: 1, scale: 1 })),
-    ball: act.ball ? { ...act.ball, opacity: 1 } : null,
+    balls: ballsOf(act).map((b) => ({ ...b, opacity: 1 })),
     arrows: act.arrows.map((a) => ({ ...a, opacity: 1 })),
     bands: act.bands.map((b) => ({ ...b, opacity: 1 })),
     // `?? []` and not `act.texts.map`: the field is optional and absent on every
@@ -281,33 +285,47 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
     })
   }
 
-  const ball =
-    from.ball && to.ball
-      ? (() => {
-          const move = { from: from.ball, to: to.ball }
-          /*
-           * A carrier's bow first, and by an EXACT match on the journey rather
-           * than by proximity: `perform` moves a carried ball by the player's
-           * own displacement, so the two paths are the same path to the metre.
-           * Anything looser would let a ball near a runner get dragged onto a
-           * curve it was never on.
-           */
-          const rider = carried.find(
-            (c) =>
-              Math.abs(c.to.x - c.from.x - (to.ball!.x - from.ball!.x)) < 0.05 &&
-              Math.abs(c.to.y - c.from.y - (to.ball!.y - from.ball!.y)) < 0.05,
-          )
-          const bend = rider
-            ? rider.bend
-            : bendOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
-          const at = travel(from.ball, to.ball, bend, t, view)
-          return { x: at.x, y: at.y, opacity: 1 }
-        })()
-      : from.ball
-        ? { ...from.ball, opacity: 1 - span(p, 0, 0.4) }
-        : to.ball
-          ? { ...to.ball, opacity: span(p, 0.55, 0.85) }
-          : null
+  /*
+   * The balls, matched by id — the same rule the counters and the gear are on.
+   *
+   * A ball on both phases TRAVELS; one only on the way out fades; one only on
+   * the way in fades up. Which is why the id matters: without it a rondo whose
+   * six balls all move would be six balls blinking out and six others blinking
+   * in, rather than six balls being played.
+   */
+  const fromBalls = ballsOf(from)
+  const toBalls = ballsOf(to)
+  const balls: RenderBall[] = []
+
+  for (const a of fromBalls) {
+    const b = toBalls.find((x) => x.id === a.id)
+    if (!b) {
+      balls.push({ ...a, opacity: 1 - span(p, 0, 0.4) })
+      continue
+    }
+    const move = { from: a, to: b }
+    /*
+     * A carrier's bow first, and by an EXACT match on the journey rather
+     * than by proximity: `perform` moves a carried ball by the player's
+     * own displacement, so the two paths are the same path to the metre.
+     * Anything looser would let a ball near a runner get dragged onto a
+     * curve it was never on.
+     */
+    const rider = carried.find(
+      (c) =>
+        Math.abs(c.to.x - c.from.x - (b.x - a.x)) < 0.05 &&
+        Math.abs(c.to.y - c.from.y - (b.y - a.y)) < 0.05,
+    )
+    const bend = rider
+      ? rider.bend
+      : bendOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
+    const at = travel(a, b, bend, t, view)
+    balls.push({ id: a.id, x: at.x, y: at.y, opacity: 1 })
+  }
+  for (const b of toBalls) {
+    if (fromBalls.some((x) => x.id === b.id)) continue
+    balls.push({ ...b, opacity: span(p, 0.55, 0.85) })
+  }
 
   const arrows: RenderArrow[] = [
     ...from.arrows.map((a) => ({ ...a, opacity: 1 - span(p, 0, 0.35) })),
@@ -394,7 +412,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   // the move arrive together instead of the frame chasing the ball.
   const shot = lerpShot(shotOf(system, from), shotOf(system, to), t)
 
-  return { tokens, ball, arrows, bands, texts, gear, shot }
+  return { tokens, balls, arrows, bands, texts, gear, shot }
 }
 
 /**
