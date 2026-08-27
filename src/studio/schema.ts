@@ -108,6 +108,29 @@ export interface Arrow {
    */
   bend?: number
   label?: string
+  /**
+   * How strongly it is drawn, 0..1. Undefined means 1, which is what every
+   * arrow drawn before this existed already did.
+   *
+   * WHY AN ARROW GETS TO BE INVISIBLE AT ALL
+   *
+   * A phase is not a picture, it is a beat in an explanation, and a coach
+   * explaining a pattern wants the arrows to ARRIVE — the run first, then the
+   * pass it opens. Until now the only way to stage that was to keep drawing
+   * the same arrow again on later phases, which meant redrawing it every time
+   * anything about it changed. Setting it to 0 on the early phases and back to
+   * 1 on the phase it belongs to says the same thing once.
+   *
+   * It is authored, and it is SEPARATE from the transition alpha in
+   * ../tween.ts. The two multiply: an arrow the coach has set to 40% still
+   * fades in over the beat, to 40%. See `RenderArrow`.
+   *
+   * A hidden arrow is still on the phase and still in the marks list, because
+   * hiding is a staging decision and deleting is not. It keeps its ends bound
+   * and follows its players while it is invisible, so the phase it reappears on
+   * has it in the right place with no work.
+   */
+  opacity?: number
 }
 
 /** Shaded areas: the defensive block, the danger zone, a channel to protect. */

@@ -352,6 +352,8 @@ export const HINT = {
   deleteMark: 'Removes this one mark. Everything else stays.',
   clearArrows: 'Removes every arrow from this phase.',
   clearZones: 'Removes every shaded area from this phase.',
+  hideArrows: `Hides every arrow on this ${PHASE.one} without deleting any of them. They stay in the list above, they keep hold of their players, and you bring back the one you want to talk about by selecting it and turning its Strength up.`,
+  showArrows: `Puts every arrow on this ${PHASE.one} back to fully drawn.`,
 
   phaseTitle: `A short name for this moment: "The trigger", "The switch". It shows under the board and in the strip of ${PHASE.many}.`,
   phaseCaption: 'One line explaining what is happening, in the words you would use to the group.',
@@ -362,6 +364,7 @@ export const HINT = {
     'Makes a link to the finished thing. Whoever opens it sees your board play through, on a phone or a laptop, with no account and nothing to install.',
   addPhase: `Copies this ${PHASE.one} and adds it after. Move the players on the copy, and the movement between the two becomes the animation.`,
   deletePhase: `Removes this ${PHASE.one}. The others close up around it.`,
+  copyPhase: `Makes a second copy of this ${PHASE.one} directly after it, with everything on it: the players where they stand, the arrows, the shading, the writing and the camera. Use it to keep a moment you are happy with before you change it, or to build a slow reveal out of one board.`,
   prevPhase: `Goes back to the ${PHASE.one} before this one. Nothing is changed or moved: you are just looking at a different moment.`,
   nextPhase: `Goes on to the next ${PHASE.one}. The left and right arrow keys do the same thing.`,
   movePhaseBack: `Reorders your ${PHASE.many}: this one changes places with the one before it, so it happens earlier in the move.`,
@@ -637,6 +640,13 @@ export const ARROW_MARK = {
    * takes, and the one place they will find that out is here.
    */
   bow: 'A bowed arrow is a bowed path. Whatever it describes travels along the curve you draw, on Play and in the film.',
+  /**
+   * Strength, and what it is FOR. Nobody sets an arrow to 40% for its own sake:
+   * they set it because they want the board to say one thing at a time, and
+   * the sentence has to arrive at that.
+   */
+  strength:
+    'How strongly it is drawn. Turn it to nothing and the arrow is still here, still holding its players, just not on the picture. Hide them all on the early phases and turn back the one each phase is about, and the board explains itself a step at a time.',
 } as const
 
 /**

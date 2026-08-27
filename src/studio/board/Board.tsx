@@ -519,17 +519,37 @@ export function Board({
         )
 
         const grabbable = Boolean(onArrowGripPointerDown) && activeMarkId === a.id
+        /*
+         * A HIDDEN ARROW THE COACH IS EDITING IS STILL SHOWN, FAINTLY.
+         *
+         * `opacity` here is the author's setting times the transition alpha
+         * (see ../tween.ts), so a coach who has set an arrow to 0 to stage it
+         * for a later phase has nothing left to drag an end of. The floor
+         * applies only while it is SELECTED and the board is editable —
+         * `grabbable` is false on a share link, in the video render and all
+         * through playback — so what is exported is what was asked for.
+         */
+        const shown = grabbable ? Math.max(a.opacity, 0.3) : a.opacity
+        /*
+         * And an arrow drawn at nothing stops being pickable, or it would go on
+         * swallowing presses on the grass it is invisibly lying across.
+         */
+        const pickable = onArrowPointerDown && (a.opacity > 0.02 || grabbable)
         return (
-          <g key={a.id} opacity={a.opacity}>
-            <Arrow
-              kind={a.kind}
-              a={ua}
-              b={ub}
-              bend={a.bend}
-              label={a.label}
-              active={activeMarkId === a.id}
-              onPointerDown={onArrowPointerDown ? (e) => onArrowPointerDown(a.id, e) : undefined}
-            />
+          <g key={a.id}>
+            <g opacity={shown}>
+              <Arrow
+                kind={a.kind}
+                a={ua}
+                b={ub}
+                bend={a.bend}
+                label={a.label}
+                active={activeMarkId === a.id}
+                onPointerDown={pickable ? (e) => onArrowPointerDown!(a.id, e) : undefined}
+              />
+            </g>
+            {/* Handles OUTSIDE the fade: they are chrome, not part of the
+                drawing, and a grip you cannot see is a grip you cannot use. */}
             {grabbable && (
               <ArrowGrips
                 a={ua}

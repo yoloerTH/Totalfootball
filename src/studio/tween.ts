@@ -27,8 +27,20 @@ export interface RenderToken extends Token {
 }
 
 export interface RenderArrow extends Arrow {
+  /**
+   * The transition alpha TIMES the coach's own `Arrow.opacity`.
+   *
+   * Those are two different facts — "half arrived" and "drawn faintly on
+   * purpose" — and the board only ever needs their product, so they are
+   * multiplied here rather than carried separately. An arrow the coach has
+   * hidden is 0 all the way through the beat, which is exactly right: it never
+   * flickers in during the fade.
+   */
   opacity: number
 }
+
+/** The coach's own opacity for an arrow. Undefined is a fully drawn arrow. */
+const drawnAt = (a: Arrow) => Math.min(1, Math.max(0, a.opacity ?? 1))
 
 /**
  * A band that carries an opacity for the transition system.
@@ -180,7 +192,7 @@ export function resolveAct(act: Act, system?: System): RenderAct {
   return {
     tokens: act.tokens.map((t) => ({ ...t, opacity: 1, scale: 1 })),
     balls: ballsOf(act).map((b) => ({ ...b, opacity: 1 })),
-    arrows: act.arrows.map((a) => ({ ...a, opacity: 1 })),
+    arrows: act.arrows.map((a) => ({ ...a, opacity: drawnAt(a) })),
     bands: act.bands.map((b) => ({ ...b, opacity: 1 })),
     // `?? []` and not `act.texts.map`: the field is optional and absent on every
     // act written before it existed. See `Act.texts` in ./schema.ts.
@@ -328,8 +340,8 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   }
 
   const arrows: RenderArrow[] = [
-    ...from.arrows.map((a) => ({ ...a, opacity: 1 - span(p, 0, 0.35) })),
-    ...to.arrows.map((a) => ({ ...a, opacity: span(p, 0.55, 0.9) })),
+    ...from.arrows.map((a) => ({ ...a, opacity: drawnAt(a) * (1 - span(p, 0, 0.35)) })),
+    ...to.arrows.map((a) => ({ ...a, opacity: drawnAt(a) * span(p, 0.55, 0.9) })),
   ].filter((a) => a.opacity > 0.01)
 
   // Bands animate like tokens: new ones draw in late, removed ones fade out

@@ -2754,6 +2754,46 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     setSelection(null)
   }
 
+  /**
+   * Duplicate this phase, in place, keeping what it says.
+   *
+   * WHY THIS IS NOT JUST `addAct` WITH A DIFFERENT LABEL
+   *
+   * `addAct` also copies the current phase, but it copies it as the NEXT
+   * MOMENT: it takes the number after the last one and calls itself "Phase 7",
+   * because the thing a coach does with it is move somebody and let the
+   * difference become the animation.
+   *
+   * A duplicate is a different intention. It is "keep this one as it is while I
+   * try something", or "say this again with one more arrow showing" — a slow
+   * reveal is literally the same board four times with a different arrow turned
+   * up on each. That wants the source's own title carried across, not a
+   * position in a count, so a coach can still tell at a glance which run of
+   * thumbnails belongs together.
+   *
+   * `structuredClone` and a fresh act id, but the ids INSIDE are kept: token
+   * ids are the join that makes movement work across phases (see ../tween.ts),
+   * and a copy whose players were strangers to the phase before it would
+   * animate as eleven men leaving and eleven arriving.
+   */
+  const duplicateAct = () => {
+    edit('duplicate-phase', (s) => {
+      const i = Math.min(actIndex, s.acts.length - 1)
+      const src = s.acts[i]
+      const copy: Act = {
+        ...structuredClone(src),
+        id: uid('act'),
+        title: src.title ? `${src.title} (copy)` : `${PHASE.One} ${i + 2}`,
+      }
+      const acts = [...s.acts]
+      acts.splice(i + 1, 0, copy)
+      return { ...s, acts }
+    })
+    seal()
+    setActIndex((i) => i + 1)
+    setSelection(null)
+  }
+
   const deleteAct = () => {
     if (system.acts.length <= 1) return
     edit('delete-phase', (s) => ({ ...s, acts: s.acts.filter((_, i) => i !== actIndex) }))
@@ -3726,6 +3766,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             Move ↦
           </Button>
         </Tip>
+        {/* Between reordering and deleting, because it is the same class of
+            thing they are: what this phase IS in the running order, rather
+            than what is drawn on it. */}
+        <Tip text={HINT.copyPhase} title={`Duplicate ${PHASE.one}`} side="top">
+          <Button onClick={duplicateAct} aria-label={`Make a copy of this ${PHASE.one}`} className="!px-2">
+            ⧉<span className="hidden lg:inline">Copy</span>
+          </Button>
+        </Tip>
         <Tip text={HINT.deletePhase} title={`Delete ${PHASE.one}`} side="top">
           <Button variant="danger" onClick={deleteAct} disabled={system.acts.length <= 1}>
             Delete
@@ -4451,12 +4499,22 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     name: string
     tone: string
     kind: 'arrow' | 'band' | 'text' | 'gear'
+    /**
+     * How faint it is on the board, when that is not obvious from the board.
+     *
+     * An arrow turned down to nothing is invisible there BY DESIGN, so without
+     * this the list is the only place it exists and gives no sign of it — and a
+     * coach who has hidden six arrows to stage a reveal needs to see which
+     * six. Undefined on everything that cannot be faded.
+     */
+    faded?: number
   }[] = [
     ...act.arrows.map((a) => ({
       id: a.id,
       name: TOOL_DOC[a.kind].label,
       tone: arrows[a.kind].color,
       kind: 'arrow' as const,
+      faded: (a.opacity ?? 1) < 1 ? (a.opacity ?? 1) : undefined,
     })),
     // Resolved rather than read straight off `bandStyle`, so a zone repainted
     // red shows a red dot here. A list whose swatches disagree with the board
@@ -4611,6 +4669,30 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               aria-label="How much the arrow bows"
             />
             <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{ARROW_MARK.bow}</p>
+          </Field>
+          <Field label={`Strength: ${Math.round((selectedArrow.opacity ?? 1) * 100)}%`}>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={selectedArrow.opacity ?? 1}
+              /*
+               * `|| undefined` at 1, the same policy the bend and the label are
+               * on: a document that stores `opacity: 1` on every arrow has
+               * written today's default into itself. `>= 0.999` rather than
+               * `=== 1` because a range step lands on 0.9999999 often enough.
+               */
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                patchMark({ opacity: v >= 0.999 ? undefined : v })
+              }}
+              onPointerUp={seal}
+              onKeyUp={seal}
+              className="w-full accent-ink"
+              aria-label="How strongly this arrow is drawn"
+            />
+            <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{ARROW_MARK.strength}</p>
           </Field>
           <Field label="Label (optional)">
             <TextInput
@@ -5170,6 +5252,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                       <span className="h-2 w-2 rounded-full" style={{ background: m.tone }} />
                     </span>
                     <span className="truncate text-[11px] font-bold text-ink-soft">{m.name}</span>
+                    {m.faded !== undefined && (
+                      <span className="shrink-0 rounded bg-ink-hair px-1 text-[10px] font-bold text-ink-faint">
+                        {m.faded === 0 ? 'Hidden' : `${Math.round(m.faded * 100)}%`}
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -5193,6 +5280,44 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               ))}
             </ul>
             <div className="mt-3 flex flex-wrap gap-1.5">
+              {/*
+               * HIDE, then reveal one. The pair above Clear, because they are
+               * the reversible answer to the same wish and a coach who wanted
+               * a quiet board should meet them before they meet the button
+               * that throws the work away.
+               *
+               * `undefined` rather than 1 on the way back, so the arrows come
+               * out of it storing nothing — the same policy every other
+               * house-value control on this panel is on.
+               */}
+              <Tip text={HINT.hideArrows} title="Hide arrows">
+                <Button
+                  onClick={() => {
+                    patchAct('hide-arrows', (a) => ({
+                      ...a,
+                      arrows: a.arrows.map((x) => ({ ...x, opacity: 0 })),
+                    }))
+                    seal()
+                  }}
+                  disabled={act.arrows.every((a) => (a.opacity ?? 1) === 0)}
+                >
+                  Hide all arrows
+                </Button>
+              </Tip>
+              <Tip text={HINT.showArrows} title="Show arrows">
+                <Button
+                  onClick={() => {
+                    patchAct('show-arrows', (a) => ({
+                      ...a,
+                      arrows: a.arrows.map((x) => ({ ...x, opacity: undefined })),
+                    }))
+                    seal()
+                  }}
+                  disabled={act.arrows.every((a) => (a.opacity ?? 1) === 1)}
+                >
+                  Show all arrows
+                </Button>
+              </Tip>
               <Tip text={HINT.clearArrows} title="Clear arrows">
                 <Button
                   onClick={() => {
