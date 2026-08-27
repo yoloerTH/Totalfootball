@@ -24,6 +24,8 @@
  *   --smtp      also point Supabase's mailer at ZeptoMail, after VERIFYING the
  *               credentials over a real SMTP connection
  *   --show      GET and print the project's current auth mail config
+ *   --redirects fix site_url / uri_allow_list (see the note at the call site)
+ *   --otp-exp   set the link lifetime; bare = 86400, or --otp-exp=3600
  *
  * ── WHY THE SHELL IS IMPORTED RATHER THAN COPIED ───────────────────────────
  *
@@ -261,7 +263,7 @@ async function verifySmtp({ host, port, user, pass }) {
 /* ── Entry ──────────────────────────────────────────────────────────────── */
 
 const argv = process.argv.slice(2)
-const has = (f) => argv.includes(f)
+const has = (f) => argv.some((a) => a === f || a.startsWith(f + '='))
 
 const OUT = 'content/auth-emails'
 
@@ -288,8 +290,13 @@ async function main() {
 
   // Build against the project's real expiry when we can reach it, so the copy
   // cannot claim a lifetime the project does not give the link.
-  let otpExpSeconds = 86400
-  if (process.env.SUPABASE_ACCESS_TOKEN) {
+  //
+  // When --otp-exp is setting a NEW lifetime in this same run, the copy must be
+  // built from that, not from the value being replaced. Otherwise the templates
+  // go out claiming the expiry they are in the act of changing.
+  const otpArg = argv.find((a) => a.startsWith('--otp-exp'))
+  let otpExpSeconds = otpArg ? Number(otpArg.split('=')[1] || 86400) : 86400
+  if (!otpArg && process.env.SUPABASE_ACCESS_TOKEN) {
     try {
       otpExpSeconds = (await getConfig()).mailer_otp_exp || otpExpSeconds
     } catch (err) {
@@ -328,6 +335,28 @@ async function main() {
   for (const [key, t] of Object.entries(built)) {
     body[`mailer_subjects_${key}`] = t.subject
     body[`mailer_templates_${key}_content`] = t.html
+  }
+
+  if (has('--redirects')) {
+    // site_url takes ONE url and is the fallback when a link carries no
+    // redirect_to. A glob here is not a wildcard, it is a 404: it was set to
+    // `https://totalfootball.naurra.ai/**` and that is where every confirmed
+    // signup landed. The glob belongs in uri_allow_list, which is matched
+    // per-entry, so an entry without one matches that exact url and nothing
+    // else. session.ts sends `.../studio/portal/`, which the bare origin did
+    // not match, so every link fell through to the broken site_url.
+    Object.assign(body, {
+      site_url: SITE,
+      uri_allow_list: [SITE, `${SITE}/**`, 'http://localhost:4321/**'].join(','),
+    })
+  }
+
+  if (has('--otp-exp')) {
+    // 3600 is short for a link somebody reads on their phone hours later, and
+    // an expired confirmation is a dead end: the account exists, so signing up
+    // again fails, and there is no "resend" in the UI. 86400 is Supabase's own
+    // default. Revert with --otp-exp=3600.
+    body.mailer_otp_exp = otpExpSeconds
   }
 
   if (has('--smtp')) {
