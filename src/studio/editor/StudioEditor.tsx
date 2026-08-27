@@ -436,6 +436,22 @@ interface Props {
   locked?: boolean
 }
 
+/**
+ * Keep the magnified board covering the frame it is shown in.
+ *
+ * The wrapper is transformed from its top-left corner, so at zoom `z` its
+ * content runs from `pan` to `pan + size × z`. The pan is therefore free
+ * between `size × (1 − z)` and 0 — and at 100% that range collapses to exactly
+ * one legal value, 0, which is what makes an unzoomed board unpannable without
+ * a special case for it anywhere.
+ */
+function clampPan(x: number, y: number, z: number, w: number, h: number) {
+  return {
+    x: Math.max(w * (1 - z), Math.min(0, x)),
+    y: Math.max(h * (1 - z), Math.min(0, y)),
+  }
+}
+
 export default function StudioEditor({ systemId, initial, locked = false }: Props) {
   /*
    * A locked board opens on the first phase that has anybody on it.
@@ -774,14 +790,77 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   const svgRef = useRef<SVGSVGElement | null>(null)
 
+  /*
+   * ── ZOOMING THE WORKSPACE ────────────────────────────────────────────────
+   *
+   * The zoom is a CSS transform on a wrapper around the board, so what is
+   * magnified is the one picture the board already draws — pitch, counters and
+   * marks together. Nothing downstream of a press has to know about it:
+   * `clientToPercent` goes through the SVG's own screen CTM, which carries the
+   * wrapper's transform, so a pointer lands on the same blade of grass at 600%
+   * as it does at 100% (verified in Chromium and WebKit, 2026-08-28).
+   *
+   * THE ZOOM AND THE PAN ARE ONE VALUE. They were two pieces of state, and the
+   * pan was computed inside the zoom's own updater — a state update raised
+   * during another update, which React is free to run more than once. Holding
+   * the pair in a ref and mirroring it into state means every gesture composes
+   * off the value the last one wrote, in the frame it wrote it, rather than off
+   * whatever a pending render happens to be carrying.
+   */
   const boardContainerRef = useRef<HTMLDivElement | null>(null)
   const [workspaceZoom, setWorkspaceZoom] = useState(1)
   const [workspacePan, setWorkspacePan] = useState({ x: 0, y: 0 })
+  const workspaceRef = useRef({ zoom: 1, pan: { x: 0, y: 0 } })
 
-  const zoomRef = useRef(1)
-  useEffect(() => {
-    zoomRef.current = workspaceZoom
-  }, [workspaceZoom])
+  /**
+   * Zoom to `z`, holding the board still under (cx, cy) — a point measured from
+   * the top-left of the board's frame.
+   *
+   * Pinning the point under the cursor is what makes a pinch feel like the
+   * grass is being pulled up towards the fingers, rather than the picture being
+   * swapped for a bigger one and re-centred.
+   */
+  const zoomAbout = useCallback((z: number, cx: number, cy: number) => {
+    const el = boardContainerRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    const cur = workspaceRef.current
+    const next = Math.min(10, Math.max(1, z))
+    // Where the board sits under that point now, in unmagnified board pixels.
+    const localX = (cx - cur.pan.x) / cur.zoom
+    const localY = (cy - cur.pan.y) / cur.zoom
+    const pan = clampPan(cx - localX * next, cy - localY * next, next, width, height)
+    workspaceRef.current = { zoom: next, pan }
+    setWorkspaceZoom(next)
+    setWorkspacePan(pan)
+  }, [])
+
+  /** Zoom by a factor about the middle of the frame. What the buttons do. */
+  const zoomBy = useCallback(
+    (factor: number) => {
+      const el = boardContainerRef.current
+      if (!el) return
+      const { width, height } = el.getBoundingClientRect()
+      zoomAbout(workspaceRef.current.zoom * factor, width / 2, height / 2)
+    },
+    [zoomAbout],
+  )
+
+  const resetZoom = useCallback(() => {
+    workspaceRef.current = { zoom: 1, pan: { x: 0, y: 0 } }
+    setWorkspaceZoom(1)
+    setWorkspacePan({ x: 0, y: 0 })
+  }, [])
+
+  const panBy = useCallback((dx: number, dy: number) => {
+    const el = boardContainerRef.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    const cur = workspaceRef.current
+    const pan = clampPan(cur.pan.x + dx, cur.pan.y + dy, cur.zoom, width, height)
+    workspaceRef.current = { zoom: cur.zoom, pan }
+    setWorkspacePan(pan)
+  }, [])
 
   const isPanningRef = useRef(false)
   const lastPanPointRef = useRef({ x: 0, y: 0 })
@@ -790,50 +869,30 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     const el = boardContainerRef.current
     if (!el) return
 
-    const clampPan = (targetX: number, targetY: number, z: number) => {
-      const rect = el.getBoundingClientRect()
-      const minX = rect.width * (1 - z)
-      const minY = rect.height * (1 - z)
-      return {
-        x: Math.max(minX, Math.min(0, targetX)),
-        y: Math.max(minY, Math.min(0, targetY))
-      }
-    }
-
     const handleWheel = (e: WheelEvent) => {
-      e.preventDefault()
-
+      // A trackpad pinch and ctrl+scroll arrive as the same event.
       if (e.ctrlKey) {
-        // Pinch-to-zoom or Ctrl+Scroll
-        const zoomSensitivity = 0.01
-        const delta = -e.deltaY * zoomSensitivity
-        
-        setWorkspaceZoom(prevZoom => {
-          const newZoom = Math.max(1, Math.min(prevZoom * Math.exp(delta), 10))
-          
-          // Zoom towards cursor
-          const rect = el.getBoundingClientRect()
-          const mouseX = e.clientX - rect.left
-          const mouseY = e.clientY - rect.top
-
-          setWorkspacePan(prevPan => {
-            const localX = (mouseX - prevPan.x) / prevZoom
-            const localY = (mouseY - prevPan.y) / prevZoom
-            const targetX = mouseX - localX * newZoom
-            const targetY = mouseY - localY * newZoom
-            return clampPan(targetX, targetY, newZoom)
-          })
-          
-          return newZoom
-        })
-      } else {
-        // Trackpad pan
-        setWorkspacePan(prev => clampPan(prev.x - e.deltaX, prev.y - e.deltaY, zoomRef.current))
+        e.preventDefault()
+        const rect = el.getBoundingClientRect()
+        zoomAbout(
+          workspaceRef.current.zoom * Math.exp(-e.deltaY * 0.01),
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+        )
+        return
       }
+      // An unzoomed board has nowhere to go, and swallowing the scroll there
+      // would pin the page whenever the pointer happened to rest over it.
+      if (workspaceRef.current.zoom === 1) return
+      e.preventDefault()
+      panBy(-e.deltaX, -e.deltaY)
     }
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (e.button === 1 || (e.button === 0 && e.altKey)) { // Middle click or Alt+Left click
+      // Middle click, or alt+left: the two gestures that mean "move the paper"
+      // in every drawing tool, and neither of them is a gesture the board has
+      // any other use for.
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
         e.preventDefault()
         isPanningRef.current = true
         lastPanPointRef.current = { x: e.clientX, y: e.clientY }
@@ -845,18 +904,19 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     const handlePointerMove = (e: PointerEvent) => {
       if (!isPanningRef.current) return
       e.preventDefault()
-      const dx = e.clientX - lastPanPointRef.current.x
-      const dy = e.clientY - lastPanPointRef.current.y
-      setWorkspacePan(prev => clampPan(prev.x + dx, prev.y + dy, zoomRef.current))
+      panBy(e.clientX - lastPanPointRef.current.x, e.clientY - lastPanPointRef.current.y)
       lastPanPointRef.current = { x: e.clientX, y: e.clientY }
     }
 
     const handlePointerUp = (e: PointerEvent) => {
-      if (isPanningRef.current) {
-        isPanningRef.current = false
+      if (!isPanningRef.current) return
+      isPanningRef.current = false
+      try {
         el.releasePointerCapture(e.pointerId)
-        el.style.cursor = ''
+      } catch {
+        /* the capture was never taken; the gesture is over either way */
       }
+      el.style.cursor = ''
     }
 
     el.addEventListener('wheel', handleWheel, { passive: false })
@@ -872,7 +932,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       el.removeEventListener('pointerup', handlePointerUp)
       el.removeEventListener('pointercancel', handlePointerUp)
     }
-  }, [])
+  }, [zoomAbout, panBy])
 
   /*
    * The frame currently on screen, for the drag handler to start from.
@@ -1998,8 +2058,29 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           if (isArrowTool(tool)) setSnapId(snapTarget(view, to, source.tokens))
         },
         () => {
+          /*
+           * ── CLICK OR DRAG IS A SCREEN-DISTANCE QUESTION ──────────────────
+           *
+           * This threshold is three percent of the BOARD, and a percent of the
+           * board is screen pixels divided by the workspace zoom. Left in board
+           * units it meant a coach at 250% had to pull two and a half times as
+           * far before the studio would call it a drag, and at 600% a 120-pixel
+           * pull was still read as a tap (measured, 2026-08-28).
+           *
+           * What that cost was never a missing arrow, which would at least have
+           * been legible. A tap ARMS the man under it, so the swallowed drag
+           * armed somebody and the NEXT drag fired the two-tap action instead:
+           * an arrow out of a player nobody had pointed at, and a new phase
+           * posed behind it. That is the "arrows show completely wrongly"
+           * (user, 2026-08-28).
+           *
+           * Dividing by the zoom keeps the threshold the same distance under
+           * the finger at every magnification, and leaves 100% exactly where it
+           * has always been.
+           */
+          const { zoom } = workspaceRef.current
           if (isArrowTool(tool)) {
-            const travelled = Math.hypot(to.x - from.x, to.y - from.y) > 3
+            const travelled = Math.hypot(to.x - from.x, to.y - from.y) > 3 / zoom
             if (travelled) {
               /*
                * Both ends look for a player as the arrow lands, so the common
@@ -2048,8 +2129,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               setActor(null)
             }
           } else if (isZoneTool(tool)) {
-            // A sliver of a box is a misdrag. Both sides have to be real.
-            if (Math.abs(to.x - from.x) > 4 && Math.abs(to.y - from.y) > 4) {
+            // A sliver of a box is a misdrag. Both sides have to be real —
+            // and "real" is a size on the screen, so it comes down by the zoom
+            // for the same reason the arrow's threshold above does.
+            const sliver = 4 / zoom
+            if (Math.abs(to.x - from.x) > sliver && Math.abs(to.y - from.y) > sliver) {
               patchAct('zone', (a) => ({
                 ...a,
                 bands: [...a.bands, { id: uid('bd'), kind: tool, rect: rectOf(from, to) }],
@@ -3342,11 +3426,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         style={{ opacity: playing ? 0 : 1, pointerEvents: playing ? 'none' : 'auto', zIndex: 50 }}
       >
         <button
-          onClick={() => setWorkspaceZoom(z => {
-            const next = Math.max(1, z / 1.25)
-            if (next === 1) setWorkspacePan({ x: 0, y: 0 })
-            return next
-          })}
+          onClick={() => zoomBy(1 / 1.25)}
           className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
           title="Zoom out"
         >
@@ -3356,32 +3436,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           {Math.round(workspaceZoom * 100)}%
         </span>
         <button
-          onClick={() => setWorkspaceZoom(z => {
-            // Keep the center of the zoom in the center of the screen
-            const el = boardContainerRef.current
-            if (el) {
-              const rect = el.getBoundingClientRect()
-              const cx = rect.width / 2
-              const cy = rect.height / 2
-              const next = Math.min(10, z * 1.25)
-              
-              setWorkspacePan(prev => {
-                const localX = (cx - prev.x) / z
-                const localY = (cy - prev.y) / z
-                const targetX = cx - localX * next
-                const targetY = cy - localY * next
-                
-                const minX = rect.width * (1 - next)
-                const minY = rect.height * (1 - next)
-                return {
-                  x: Math.max(minX, Math.min(0, targetX)),
-                  y: Math.max(minY, Math.min(0, targetY))
-                }
-              })
-              return next
-            }
-            return Math.min(10, z * 1.25)
-          })}
+          onClick={() => zoomBy(1.25)}
           className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
           title="Zoom in"
         >
@@ -3391,10 +3446,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           <>
             <div className="mx-1 h-4 w-px bg-white/20" />
             <button
-              onClick={() => {
-                setWorkspaceZoom(1)
-                setWorkspacePan({ x: 0, y: 0 })
-              }}
+              onClick={resetZoom}
               className="mr-0.5 flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
               title="Reset zoom"
             >
