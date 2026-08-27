@@ -72,7 +72,7 @@ export const CAMERA_MODES: { id: CameraMode; label: string; hint: string }[] = [
   {
     id: 'follow',
     label: 'Follow the ball',
-    hint: 'Pushes in on what each phase is about and travels between them, the way the videos are shot.',
+    hint: 'Pushes in on the ball and travels with it between phases, the way the videos are shot. A phase with no ball is framed on what is marked on it.',
   },
 ]
 
@@ -167,7 +167,7 @@ export function resolvePush(id: string | undefined): (typeof CAMERA_PUSHES)[numb
  */
 const WORTH_IT = 0.93
 
-/** How many players to pull in when the ball is the only thing we were told about. */
+/** How many players to pull in around the ball, to give the frame a scale. */
 const NEAREST = 5
 
 interface Pt {
@@ -178,73 +178,64 @@ interface Pt {
 /**
  * What this phase is ABOUT, in percent-of-crop.
  *
- * Not "everything on the board" — that is both teams, which is the whole pitch,
- * which is no camera at all. The coach has already said what matters here and
- * this reads it back:
+ * THE BALL IS THE SUBJECT, AND WHEN THERE IS ONE IT IS THE ONLY SUBJECT.
  *
- *  · the ball, which is the subject whenever there is one
+ * This used to read every mark on the board — arrows, cues, writing, gear,
+ * zones — and frame the box that held them all. On a phase whose marks sit
+ * round the ball that gives the same answer. On a real board it does not: an
+ * arrow drawn back to the halfway line, a ladder parked on the touchline for
+ * the next drill, a coaching point written in the corner all pull the frame off
+ * the ball and out towards the whole pitch, which is no camera at all. The mode
+ * is called Follow the ball, so it follows the ball.
+ *
+ * The nearest players still come in with it. They are not a second subject —
+ * they are what stops a single point pushing to the hard cap, and they are the
+ * ball carrier and their immediate options, which is what a camera on the ball
+ * is pointed at anyway. Dimmed players are excluded by definition: `dim` means
+ * "not part of this act's lesson" (./schema.ts), and framing on someone the
+ * coach has greyed out would contradict them on their own board.
+ *
+ * With NO ball the phase is about something else, and the marks are all there
+ * is to read — so the old behaviour stands there, unchanged:
+ *
  *  · every arrow's ends, which are their own statement of what happens next
  *  · anyone carrying a role cue, which is who has a job in this phase
+ *  · writing, which is the coach saying "read this" as plainly as the board allows
+ *  · gear, which on a session plan IS the subject
  *  · any zone or danger area, which is the space being talked about
  *
- * Dimmed players are excluded by definition — `dim` means "not part of this
- * act's lesson" (./schema.ts), and framing on someone the coach has greyed out
- * would contradict them on their own board.
+ * Text and gear count by their anchor only, never their extent: a block of
+ * words is as wide as the font makes it, which this file cannot measure and
+ * must not guess at, and the margin (see MARGIN in CAMERA_PUSHES) is wider than
+ * any single piece of gear or line of type.
  */
 function interest(act: Act): Pt[] {
   const pts: Pt[] = []
   const at = (x: number, y: number) => pts.push({ x, y })
 
-  if (act.ball) at(act.ball.x, act.ball.y)
-  for (const a of act.arrows) {
-    at(a.from.x, a.from.y)
-    at(a.to.x, a.to.y)
-  }
-  for (const t of act.tokens) if (t.cue && !t.dim) at(t.x, t.y)
-  /*
-   * Writing counts, and it has to.
-   *
-   * A coach who puts a coaching point on the grass has said, as plainly as this
-   * board allows, "read this" — and a camera that crops it out of the film has
-   * contradicted them. It is the same argument as the cues one line up: the
-   * phase's subject is whatever the coach marked, not only whatever is round
-   * the ball.
-   *
-   * Only the anchor, not the block of words. Their extent depends on the font,
-   * which this file cannot measure and must not guess at; the margin (see
-   * MARGIN in CAMERA_PUSHES) is more than a line of type wide, so anchoring is
-   * enough in every case that is not a paragraph written at XL.
-   */
-  for (const t of act.texts ?? []) if (t.text.trim()) at(t.x, t.y)
-  /*
-   * Gear counts for the same reason writing does, and more literally: on a
-   * session plan the equipment IS the subject. A phase whose content is a
-   * ladder, four cones and a mannequin has nothing else to point the camera
-   * at, and a film that framed the empty half of the pitch instead would be
-   * describing a drill that is not there.
-   *
-   * The anchor only, like a text mark — the margin is wider than any single
-   * piece, so the extent adds nothing a coach would notice.
-   */
-  for (const g of act.gear ?? []) at(g.x, g.y)
-  for (const b of act.bands) {
-    if (!b.rect) continue
-    at(b.rect.x, b.rect.y)
-    at(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
-  }
-
-  // Told only where the ball is: frame it with the players around it, which is
-  // the ball carrier and their immediate options. Without this a phase whose
-  // whole content is "the ball is here" would push in to the hard cap on a
-  // single point.
-  if (pts.length === 1 && act.ball) {
-    const ball = pts[0]
+  if (act.ball) {
+    at(act.ball.x, act.ball.y)
+    const ball = act.ball
     const near = act.tokens
       .filter((t) => !t.dim)
       .map((t) => ({ t, d: (t.x - ball.x) ** 2 + (t.y - ball.y) ** 2 }))
       .sort((a, b) => a.d - b.d)
       .slice(0, NEAREST)
     for (const n of near) at(n.t.x, n.t.y)
+    return pts
+  }
+
+  for (const a of act.arrows) {
+    at(a.from.x, a.from.y)
+    at(a.to.x, a.to.y)
+  }
+  for (const t of act.tokens) if (t.cue && !t.dim) at(t.x, t.y)
+  for (const t of act.texts ?? []) if (t.text.trim()) at(t.x, t.y)
+  for (const g of act.gear ?? []) at(g.x, g.y)
+  for (const b of act.bands) {
+    if (!b.rect) continue
+    at(b.rect.x, b.rect.y)
+    at(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
   }
 
   return pts
