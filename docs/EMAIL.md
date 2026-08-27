@@ -520,3 +520,113 @@ change:
 - **Campaigns** verifies the From address by emailing it. That mail is delivered
   to the alias, which lands in the `athanasios@` inbox, so the confirmation link
   arrives normally.
+
+---
+
+## 8 · Supabase Auth mail — the fourth sender
+
+There is a sender this document did not account for until 2026-08-28: **Supabase
+itself**. Before any code in this repo runs, Supabase sends the signup confirmation,
+the password reset, the magic link, the email-change confirmation and the invite.
+
+### 8.1 · Why it is not cosmetic
+
+`GET /auth/v1/settings` reports `mailer_autoconfirm: false`, so an email+password
+signup gets a confirmation link and no session — which is what `signUpWithPassword`
+in `src/studio/account/session.ts` reports back as `checkEmail`. That message is the
+**gate in front of everything else here**:
+
+```
+Supabase confirmation mail
+  └─ clicked → auth.users.email_confirmed_at set
+       └─ studio_welcome_webhook fires (supabase/011)
+            └─ our welcome sends (netlify/functions/studio-welcome.mts)
+       └─ address enters public.email_audience (supabase/010, confirmed only)
+            └─ newsletter can reach them
+```
+
+Unclicked, none of the rest happens. Google sign-in skips the whole chain —
+Supabase confirms those at INSERT.
+
+Left unconfigured, that message goes out from `noreply@mail.app.supabase.io` over
+Supabase's shared relay, which is documented as being for testing, is rate-limited
+to a couple of messages an hour, and on newer projects refuses to mail anyone
+outside the project's own organisation. **A signup that gets no confirmation mail
+looks identical, from our side, to a signup that ignored it.** Both are a row in
+`auth.users` with a null `email_confirmed_at` and no way to tell them apart.
+
+### 8.2 · The templates
+
+`scripts/auth-emails.mjs` builds all five from `wrapEmail` in `scripts/lib/email.mjs`
+— the same shell as the newsletter and both welcomes. There is deliberately no
+second copy of the masthead: a confirmation that looks like a different company
+from the welcome arriving ninety seconds later is the failure the comment above
+`welcomeEmail` describes.
+
+```sh
+npm run email:auth                        # render, lint, write previews, change nothing
+npm run email:auth -- --show              # what the project has live right now
+npm run email:auth -- --apply             # write the templates and subjects
+npm run email:auth -- --apply --smtp      # and point the mailer at ZeptoMail
+```
+
+Previews land in `content/auth-emails/`. The `*.preview.html` copies have the Go
+variables substituted so they can be opened in a browser; the plain `.html` files
+beside them are what is actually stored.
+
+Three things about these that are not obvious:
+
+- **No unsubscribe link.** `wrapEmail` now drops it when `unsubscribe` is omitted.
+  These are transactional: there is no list to leave, and a working unsubscribe on
+  a password reset is a way to lock somebody out of their own account. Every *bulk*
+  message still carries one, and a regression check for that is one line.
+- **`{{ .ConfirmationURL }}` must reach the stored template unescaped.** Nothing in
+  the build path may run it through `escapeHtml`.
+- **The link lifetime in the copy is read from `mailer_otp_exp`**, not typed. Copy
+  that promises 24 hours on a project set to 1 hour is worse than copy that says
+  nothing.
+
+### 8.3 · Pointing Supabase at ZeptoMail
+
+Auth mail is exactly what ZeptoMail is for — Zoho's own suspension notice on
+2026-08-22 named "welcome emails, OTP emails, account notification emails". No
+tension with the transactional-only terms, and no tension with §1 either: this is
+product mail, not broadcast.
+
+`--smtp` **verifies the credentials over a real SMTP connection before writing
+them.** Supabase accepts whatever it is given and only discovers a bad password at
+the first send, which is a signup, which is a coach in front of a "check your email"
+screen that never resolves. `nodemailer.verify()` does the AUTH handshake without
+sending, so a wrong token fails at the terminal instead.
+
+Take the SMTP host, username and password from **ZeptoMail console → Mail Agents →
+`totalfootball` → SMTP & API → SMTP**, the same rule §2.1 applies to the Campaigns
+include: the console is the authority for this account and data centre. The script
+defaults to `smtp.zeptomail.eu:587` with username `emailapikey` and the send token
+as the password, and the verify step is what proves those defaults right.
+
+Once it is on, the sender is `totalfootball@naurra.ai`, signed by the DKIM key in
+§2.2, aligned under the DMARC policy in §2.3 — so auth mail starts appearing in the
+aggregate reports as another passing source, which is part of the evidence needed
+before moving `p=none` to `p=quarantine`.
+
+### 8.4 · What needs a token, and which token
+
+Templates and SMTP live at `PATCH /v1/projects/{ref}/config/auth`, which is the
+**Management API**. That needs a personal access token (`sbp_…`) from
+supabase.com/dashboard/account/tokens, in `SUPABASE_ACCESS_TOKEN`.
+
+`SUPABASE_SERVICE_ROLE_KEY` is not that credential and returns `401` there. It is a
+data-plane key: it reads `auth.users`, runs SQL, bypasses RLS. Worth stating
+because `scripts/apply-migration.mjs` applies migrations with the service-role key
+via `rpc/execute_sql`, so it is easy to assume the project has a management token
+when it never has.
+
+### 8.5 · After applying
+
+- **Raise the rate limit.** `rate_limit_email_sent` defaults to 30/hour even with
+  custom SMTP. `--smtp` sets it to 300; `SUPABASE_EMAIL_RATE` overrides.
+- **Send yourself one of each** and read the raw headers, per §2.4. All three of
+  `spf=pass`, `dkim=pass`, `dmarc=pass`, and the `dkim` line must name `naurra.ai`.
+- **Check the backlog.** Any `auth.users` row with a null `email_confirmed_at` from
+  before the switch may never have received a mail at all.

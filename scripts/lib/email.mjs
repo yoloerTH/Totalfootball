@@ -131,11 +131,11 @@ export function unsubscribeUrl(email) {
  * leads for Word's benefit; the system faces ahead of it are what every
  * other client picks up, so Mac and iOS still render in San Francisco.
  */
-const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+export const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 
 /** Ink at opacity, pre-flattened against the surface it sits on (Word cannot do rgba). */
 const INK = '#F5F9F3'
-const INK_SOFT = '#B9D0C0' // broadcast ink at paragraph opacity, flattened
+export const INK_SOFT = '#B9D0C0' // broadcast ink at paragraph opacity, flattened
 const INK_FAINT = '#8FB39A' // broadcast ink at footer opacity, flattened
 const HAIRLINE_ON_WHITE = '#4D8C62'
 const PAPER = '#15512D' // broadcast run-off green
@@ -274,6 +274,13 @@ const heroRow = (hero, width) => `<tr><td style="font-size:0;line-height:0;">
       </a>
     </td></tr>`
 
+/**
+ * The footer. `unsubscribe` is OPTIONAL and omitting it drops the link, which
+ * is required rather than tidy: a signup confirmation or a password reset is
+ * mail the recipient asked for by acting, it has no list to leave, and an
+ * unsubscribe link on one is either a dead end or a way to lock somebody out
+ * of their own account. Every BULK message must still pass one.
+ */
 const footer = (unsubscribe, reason) => `<tr><td style="padding:22px 4px 0;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
     <td style="border-top:1px solid ${HAIRLINE_ON_WHITE};padding-top:20px;
@@ -281,9 +288,8 @@ const footer = (unsubscribe, reason) => `<tr><td style="padding:22px 4px 0;">
                color:${INK_FAINT};text-align:center;">
       NAURRA AI LTD &middot; 10 Kyriakou Matsi, Liliana Court, 4th Floor, Nicosia 1082, Cyprus<br>
       ${escapeHtml(reason)}<br>
-      <a href="${unsubscribe}" style="color:${INK_FAINT};text-decoration:underline;">Unsubscribe</a>
-      &nbsp;&middot;&nbsp;
-      <a href="${SITE}/privacy/" style="color:${INK_FAINT};text-decoration:underline;">Privacy</a>
+      ${unsubscribe ? `<a href="${unsubscribe}" style="color:${INK_FAINT};text-decoration:underline;">Unsubscribe</a>
+      &nbsp;&middot;&nbsp;` : ''}<a href="${SITE}/privacy/" style="color:${INK_FAINT};text-decoration:underline;">Privacy</a>
     </td>
   </tr></table>
 </td></tr>`
@@ -300,12 +306,12 @@ const footer = (unsubscribe, reason) => `<tr><td style="padding:22px 4px 0;">
  * company from the second.
  */
 
-const P = `margin:0 0 19px;font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};`
-const KICKER = `margin:0 0 12px;font-family:${SANS};font-size:11px;line-height:1;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7CF2B0;`
-const H1 = `margin:0 0 18px;font-family:${SANS};font-size:31px;line-height:1.12;font-weight:800;letter-spacing:-.025em;color:${INK};`
+export const P = `margin:0 0 19px;font-family:${SANS};font-size:16px;line-height:1.7;font-weight:400;color:${INK};`
+export const KICKER = `margin:0 0 12px;font-family:${SANS};font-size:11px;line-height:1;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7CF2B0;`
+export const H1 = `margin:0 0 18px;font-family:${SANS};font-size:31px;line-height:1.12;font-weight:800;letter-spacing:-.025em;color:${INK};`
 
 /** A dark button. Padding on the <td>, because Outlook drops it off an <a>. */
-const cta = (href, label) =>
+export const cta = (href, label) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;"><tr>
     <td align="center" bgcolor="${INK}" style="background-color:${INK};">
       <a href="${href}" style="display:block;padding:15px 28px;font-family:${SANS};font-size:15px;

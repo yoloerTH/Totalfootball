@@ -16,7 +16,8 @@
     "email:welcome": "node scripts/send-welcome.mjs",
     "email:newsletter": "node scripts/send-newsletter.mjs",
     "email:setup": "node scripts/setup-zeptomail.mjs",
-    "email:avatar": "node scripts/sender-avatar.mjs"
+    "email:avatar": "node scripts/sender-avatar.mjs",
+    "email:auth": "node --env-file=.env scripts/auth-emails.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",

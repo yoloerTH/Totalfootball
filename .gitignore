@@ -30,3 +30,7 @@ supabase/.temp/
 
 # Netlify CLI output, pulled down while debugging a deploy.
 netlify-logs.txt
+
+# Rendered previews of the Supabase auth templates. The real templates beside
+# them are the source; these are for looking at.
+content/auth-emails/*.preview.html
