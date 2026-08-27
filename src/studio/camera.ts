@@ -167,9 +167,6 @@ export function resolvePush(id: string | undefined): (typeof CAMERA_PUSHES)[numb
  */
 const WORTH_IT = 0.93
 
-/** How many players to pull in around the ball, to give the frame a scale. */
-const NEAREST = 5
-
 interface Pt {
   x: number
   y: number
@@ -188,12 +185,12 @@ interface Pt {
  * the ball and out towards the whole pitch, which is no camera at all. The mode
  * is called Follow the ball, so it follows the ball.
  *
- * The nearest players still come in with it. They are not a second subject —
- * they are what stops a single point pushing to the hard cap, and they are the
- * ball carrier and their immediate options, which is what a camera on the ball
- * is pointed at anyway. Dimmed players are excluded by definition: `dim` means
- * "not part of this act's lesson" (./schema.ts), and framing on someone the
- * coach has greyed out would contradict them on their own board.
+ * ONE POINT, not the ball and its neighbours. Pulling the nearest players in
+ * sized the frame to how spread out they were, which sounds adaptive and is
+ * actually a camera that moves when nobody kicked anything: drag a full-back
+ * five metres and the whole frame breathes, on a phase the coach did not touch.
+ * A camera the coach cannot predict is worse than one that is occasionally too
+ * wide. The size comes from the push setting instead — see `shotFor`.
  *
  * With NO ball the phase is about something else, and the marks are all there
  * is to read — so the old behaviour stands there, unchanged:
@@ -203,6 +200,10 @@ interface Pt {
  *  · writing, which is the coach saying "read this" as plainly as the board allows
  *  · gear, which on a session plan IS the subject
  *  · any zone or danger area, which is the space being talked about
+ *
+ * Dimmed players are excluded by definition — `dim` means "not part of this
+ * act's lesson" (./schema.ts), and framing on someone the coach has greyed out
+ * would contradict them on their own board.
  *
  * Text and gear count by their anchor only, never their extent: a block of
  * words is as wide as the font makes it, which this file cannot measure and
@@ -215,13 +216,6 @@ function interest(act: Act): Pt[] {
 
   if (act.ball) {
     at(act.ball.x, act.ball.y)
-    const ball = act.ball
-    const near = act.tokens
-      .filter((t) => !t.dim)
-      .map((t) => ({ t, d: (t.x - ball.x) ** 2 + (t.y - ball.y) ** 2 }))
-      .sort((a, b) => a.d - b.d)
-      .slice(0, NEAREST)
-    for (const n of near) at(n.t.x, n.t.y)
     return pts
   }
 
@@ -265,9 +259,16 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
   if (act.shot) return act.shot
 
   const pts = interest(act)
-  // A phase about shape rather than about the ball, with nothing marked on it.
-  // Staying wide is the honest answer; there is nothing here to point at.
-  if (pts.length < 2) return null
+  /*
+   * A phase about shape rather than about the ball, with nothing marked on it.
+   * Staying wide is the honest answer; there is nothing here to point at.
+   *
+   * One point is enough when that point is the ball — the box below is the
+   * margin, and `cameraRect` opens it out to the push's `tightest`. That is the
+   * whole reason a ball phase no longer needs its neighbours for scale: the
+   * frame is a fixed size the coach chose, panning to wherever the ball is.
+   */
+  if (pts.length < (act.ball ? 1 : 2)) return null
 
   let x0 = Infinity
   let y0 = Infinity
