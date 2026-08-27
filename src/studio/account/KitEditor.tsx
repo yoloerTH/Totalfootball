@@ -137,6 +137,32 @@ function PatternPicker({ kit, onChange }: { kit: Kit; onChange: (patch: Partial<
   const current = kit.kitPattern || 'solid'
   const hint = kit.kitAlt.trim() || kit.kitRing.trim() || DEFAULT_US.text
 
+  /**
+   * Choosing a pattern brings a second colour with it, if there is not one.
+   *
+   * ── PREVENTING THE HALF-STATE RATHER THAN COMPLAINING ABOUT IT ───────────
+   *
+   * "Stripes" with no stripe colour is a shirt nobody asked for: `Token` draws
+   * it plain, so the coach presses a pattern and the preview does not move.
+   * The first version of this answered that with a validation error at save
+   * time, which refused the WHOLE profile — bio and all — over a cosmetic
+   * choice. Filling the colour in is the better answer: the picker does
+   * something visible the moment it is pressed, and the swatch underneath is
+   * right there to change it.
+   *
+   * The trim if they set one, otherwise whatever the counter's own label is
+   * already legible in — white on a dark shirt, black on a light one. That is
+   * `readableText`, the same function the board uses, so the default is a
+   * stripe that can actually be seen against the base.
+   */
+  const pick = (id: string) => {
+    const patch: Partial<Kit> = { kitPattern: id }
+    if (id !== 'solid' && !kit.kitAlt.trim()) {
+      patch.kitAlt = kit.kitRing.trim() || readableText(kit.teamColour.trim() || DEFAULT_US.base)
+    }
+    onChange(patch)
+  }
+
   return (
     <div>
       <span className="text-[13px] font-bold text-ink">Pattern</span>
@@ -152,7 +178,7 @@ function PatternPicker({ kit, onChange }: { kit: Kit; onChange: (patch: Partial<
               key={k.id}
               type="button"
               aria-pressed={on}
-              onClick={() => onChange({ kitPattern: k.id })}
+              onClick={() => pick(k.id)}
               className={`rounded-xl border px-2 pb-1.5 pt-2 transition-colors ${
                 on
                   ? 'border-ink/40 bg-paper'

@@ -13,12 +13,21 @@
  *     and
  *   · **Your profile**, an OPTIONAL public identity.
  *
- * ── THE FOUR SECTIONS ARE ORDERED BY WHO CAN SEE THEM ────────────────────────
+ * ── THE COACH COMES FIRST, THEN THE THINGS THEY OWN ──────────────────────────
  *
- * Signing and the kit are on every board the coach makes. The squad is theirs
- * alone and stays that way — a different table, a different policy, a private
- * bucket (supabase/013). The profile is the only thing on this page anybody else
- * can ever see, and it is last, off by default, and says so.
+ * **You** — face, name, role, handle, bio, links, and the switch that decides
+ * whether any of it is visible. Then **your club**, **your kit** and **your
+ * squad**, which are things a coach owns rather than things a coach is.
+ *
+ * That order is a correction. Personal identity used to be split in two, with a
+ * name in the first section and a face, a handle and a bio in the last, six
+ * hundred pixels and two unrelated editors apart. One question deserves one
+ * answer in one place.
+ *
+ * Only the first section is ever visible to anyone else. The squad is the
+ * strictest of the rest — a different table, a different policy and a private
+ * bucket (supabase/013) — and a shared board carries the names a coach typed
+ * and never the photographs.
  *
  * ── EVERYTHING NEW IS OFF UNTIL IT IS TURNED ON ──────────────────────────────
  *
@@ -76,6 +85,92 @@ function Fault({ children }: { children?: string }) {
   return <p className="mt-1.5 text-[12px] font-bold leading-snug text-ink">{children}</p>
 }
 
+/**
+ * Which control a given fault belongs to, and what to call it.
+ *
+ * ── WHY THIS TABLE EXISTS AT ALL ─────────────────────────────────────────────
+ *
+ * The Save button used to answer a failed save with "Some of that needs fixing
+ * first. The fields are marked above." They WERE marked above — often eight
+ * hundred pixels above, past a kit editor, a squad list and a whole profile
+ * section — which is a sentence that is true and useless at the same time. A
+ * coach reads it, looks at what is on their screen, sees nothing wrong, and
+ * concludes the page is broken.
+ *
+ * So a fault now says what it is and takes you to it. `anchorOf` maps a fault
+ * key to the id of the control that owns it — several keys can share one, since
+ * every kit fault belongs to the kit editor — and `faultLabel` names it in the
+ * words on the page rather than in the words of the schema.
+ */
+const FAULT_LABEL: Record<string, string> = {
+  handle: 'Handle',
+  bio: 'Bio',
+  crest: 'Club crest',
+  avatar: 'Profile picture',
+  teamColour: 'Your kit',
+  kitRing: 'Trim',
+  kitPattern: 'Pattern',
+  kitAlt: 'Second colour',
+  links: 'Links',
+}
+
+function anchorOf(key: string): string {
+  if (key.startsWith('link')) return 'links'
+  if (key === 'teamColour' || key === 'kitRing' || key === 'kitPattern' || key === 'kitAlt') {
+    return 'kit'
+  }
+  return key
+}
+
+function faultLabel(key: string): string {
+  if (FAULT_LABEL[key]) return FAULT_LABEL[key]
+  // link0 → "Link 1". A coach counts from one.
+  const n = /^link(\d+)$/.exec(key)
+  return n ? `Link ${Number(n[1]) + 1}` : 'A field above'
+}
+
+/** Bring the control a fault belongs to onto the screen. */
+function reveal(key: string) {
+  const el = document.getElementById(`fault-${anchorOf(key)}`)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+/**
+ * Everything wrong, named, in one list, next to the button that refused.
+ *
+ * Each entry is a button rather than a line of text, because the whole failure
+ * this replaces was a coach not being able to FIND the field. Saying "Handle"
+ * is better than "above"; taking them to the handle is better than both.
+ */
+function FaultSummary({ faults }: { faults: Record<string, string> }) {
+  const keys = Object.keys(faults)
+  if (keys.length === 0) return null
+  return (
+    <div className="w-full rounded-xl border border-ink-hair bg-paper p-4">
+      <p className="text-[13px] font-bold text-ink">
+        {keys.length === 1 ? 'One thing needs fixing first.' : `${keys.length} things need fixing first.`}
+      </p>
+      <ul className="mt-2 space-y-1.5 p-0">
+        {keys.map((key) => (
+          <li key={key} className="list-none">
+            <button
+              type="button"
+              onClick={() => reveal(key)}
+              className="text-left text-[12px] leading-snug text-ink-soft transition-colors hover:text-ink"
+            >
+              <span className="font-bold text-ink underline underline-offset-4">
+                {faultLabel(key)}
+              </span>{' '}
+              — {faults[key]}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 const INPUT =
   'mt-1.5 w-full rounded-lg border border-ink-hair bg-surface px-4 py-3 text-[15px] text-ink outline-none placeholder:text-ink-faint focus:border-ink/30'
 
@@ -95,6 +190,7 @@ function Picture({
   round,
   busy,
   fault,
+  anchor,
   onPick,
   onDrop,
 }: {
@@ -104,12 +200,14 @@ function Picture({
   round?: boolean
   busy: boolean
   fault?: string
+  /** Fault key this control owns, so the summary can scroll to it. */
+  anchor?: string
   onPick: (file: File | undefined) => void
   onDrop: () => void
 }) {
   const shape = round ? 'rounded-full object-cover' : 'rounded-lg object-contain p-1'
   return (
-    <div className="mt-4">
+    <div className="mt-4" id={anchor ? `fault-${anchor}` : undefined}>
       <span className="text-[13px] font-bold text-ink">{label}</span>
       <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">{note}</p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -158,15 +256,18 @@ function Field({
   label,
   note,
   fault,
+  anchor,
   children,
 }: {
   label: string
   note?: string
   fault?: string
+  /** Fault key this field owns, so the summary can scroll to it. */
+  anchor?: string
   children: React.ReactNode
 }) {
   return (
-    <label className="mt-4 block first:mt-5">
+    <label className="mt-4 block first:mt-5" id={anchor ? `fault-${anchor}` : undefined}>
       <span className="text-[13px] font-bold text-ink">{label}</span>
       {note && <span className="mt-0.5 block text-[12px] leading-snug text-ink-faint">{note}</span>}
       {children}
@@ -176,7 +277,7 @@ function Field({
 }
 
 /**
- * The link, once there is one.
+ * The link, and — when there is not one yet — why not.
  *
  * ── IT READS THE SAVED PROFILE, NEVER THE DRAFT ──────────────────────────────
  *
@@ -186,6 +287,14 @@ function Field({
  * everybody they send it to, which is the exact failure this whole feature
  * exists to avoid. So the panel is driven by what was last loaded or last
  * saved, and it says so plainly when the two have drifted apart.
+ *
+ * ── BUT SILENCE WAS THE WRONG WAY TO SAY "NOT YET" ───────────────────────────
+ *
+ * The first version returned `null` for every state but the live one, which
+ * meant a coach who switched their profile public and could not save — because
+ * some unrelated field was refusing, off-screen — got no link, no button and no
+ * explanation. The feature simply appeared not to exist. Every state now says
+ * something: no handle, not saved yet, or here it is.
  *
  * `window.location.origin` rather than PUBLIC_SITE_URL, matching how
  * `publishSystem` takes an origin in ../share.ts: on localhost that yields a
@@ -202,8 +311,24 @@ function ShareProfile({ saved, draft }: { saved: Profile; draft: Profile }) {
     setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
 
+  // Off entirely while the profile is private. That is not a "not yet" worth
+  // narrating — the switch right above says so, in those words.
+  if (draft.visibility !== 'public') return null
+
   const live = saved.visibility === 'public' && Boolean(saved.handle)
-  if (!live) return null
+
+  if (!live) {
+    return (
+      <div className="mt-4 border-t border-ink-hair pt-4">
+        <p className="text-[13px] font-bold text-ink">Your profile link</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
+          {!draft.handle
+            ? 'Choose a handle above and press Save. Your link appears here.'
+            : `Press Save and your link — ${window.location.origin}/c/${draft.handle} — appears here.`}
+        </p>
+      </div>
+    )
+  }
 
   const url = `${window.location.origin}/c/${saved.handle}`
   const drifted = draft.handle !== saved.handle || draft.visibility !== saved.visibility
@@ -334,6 +459,35 @@ export default function Settings() {
   const set = useCallback((patch: Partial<Profile>) => {
     setProfile((p) => ({ ...p, ...patch }))
     setState('ready')
+
+    /**
+     * A field that has just been edited stops being complained about.
+     *
+     * Not re-validated — that happens on Save, where the network check for a
+     * taken handle also lives. Just silenced. Now that the fault summary is a
+     * list beside the button rather than one line of text, a stale entry is a
+     * coach being told to fix something they are looking at having fixed.
+     *
+     * Returns `f` UNCHANGED when nothing was dropped. A fresh object on every
+     * keystroke would re-render the whole page for each character typed into
+     * the bio.
+     */
+    setFaults((f) => {
+      const held = Object.keys(f)
+      if (held.length === 0) return f
+      const touched = new Set(Object.keys(patch))
+      const next = Object.fromEntries(
+        Object.entries(f).filter(([key]) => {
+          // Editing any link clears every link fault: they are one control.
+          if (key === 'links' || key.startsWith('link')) return !touched.has('links')
+          // The public-with-no-handle rule reads both fields, so flipping the
+          // switch has to clear the complaint it caused.
+          if (key === 'handle' && touched.has('visibility')) return false
+          return !touched.has(key)
+        }),
+      )
+      return Object.keys(next).length === held.length ? f : next
+    })
   }, [])
 
   const save = useCallback(async () => {
@@ -356,6 +510,11 @@ export default function Settings() {
     setFaults(found)
     if (Object.keys(found).length > 0) {
       setState('ready')
+      // Take them to the first one. The summary beside the button names all of
+      // them, but the button is at the foot of a long page and the field that
+      // refused can easily be off the top of the screen — which is exactly the
+      // failure the old "the fields are marked above" produced.
+      reveal(Object.keys(found)[0])
       return
     }
 
@@ -439,103 +598,25 @@ export default function Settings() {
         </a>
         <h1 className="mt-3 text-title font-black tracking-display text-ink">Personal settings</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          How your work is signed, what your boards are drawn in, who plays for you, and who you
-          are. Only the last of those can ever be seen by anyone else, and only if you say so.
+          Who you are, the club you sign your work with, what your boards are drawn in, and who
+          plays for you. Only the first of those can ever be seen by anyone else, and only if you
+          say so.
         </p>
       </header>
 
-      {/* ── 1. the credit bar ─────────────────────────────────────────────── */}
+      {/* ── 1. you ───────────────────────────────────────────────────────
+
+          EVERYTHING PERSONAL IS IN ONE PLACE AND IT IS FIRST. It used to be
+          split: a name in "how your work is signed" at the top, a face and a
+          handle and a bio in "your profile" at the bottom, with a kit editor and
+          a squad list in between. That is two answers to "who am I on here",
+          separated by six hundred pixels of something else. The club, the kit
+          and the squad are all things a coach OWNS; this section is the coach.
+          ─────────────────────────────────────────────────────────────────── */}
 
       <Section
-        title="How your work is signed"
-        note="What goes at the foot of every board you share, so you sign your work once instead of every time."
-      >
-        <Field label="Your name">
-          <input
-            value={profile.presenter}
-            onChange={(e) => set({ presenter: e.target.value })}
-            placeholder="Who is presenting"
-            maxLength={48}
-            className={INPUT}
-          />
-        </Field>
-
-        <Field label="Club or team">
-          <input
-            value={profile.team}
-            onChange={(e) => set({ team: e.target.value })}
-            placeholder="AEL Limassol U16"
-            maxLength={48}
-            className={INPUT}
-          />
-        </Field>
-
-        <Picture
-          label="Club crest"
-          note="PNG, JPG or WebP, up to 5 MB. A square one with a transparent background sits best."
-          url={pics.crest}
-          busy={busy === 'crest'}
-          fault={faults.crest}
-          onPick={(f) => void onPic('crest', f)}
-          onDrop={() => void dropPic('crest')}
-        />
-
-        {/* The credit bar, as it will actually read. Showing it beats describing
-            it, and it is the only thing in this section a coach can check. */}
-        <div className="mt-7 rounded-xl border border-ink-hair bg-paper p-4">
-          <p className="text-micro uppercase text-ink-faint">On every board you share</p>
-          <div className="mt-3 flex items-center justify-between gap-4 border-t border-ink-hair pt-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              {pics.crest && (
-                <img src={pics.crest} alt="" className="h-6 w-6 shrink-0 object-contain" />
-              )}
-              <p className="truncate text-[12px] font-bold leading-tight text-ink">
-                {signature || 'A tactical system'}
-              </p>
-            </div>
-            <span className="shrink-0 text-right text-[10px] font-bold uppercase leading-tight tracking-micro text-ink-soft">
-              Made with
-              <br />
-              Total Football
-            </span>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── 2. the kit ────────────────────────────────────────────────────── */}
-
-      <Section
-        title="Your kit"
-        note="The colours and the shirt a new system starts in. Systems you have already made keep the kit they were built in, so changing this never rewrites old work."
-      >
-        <div className="mt-5">
-          <KitEditor
-            kit={{
-              teamColour: profile.teamColour,
-              kitRing: profile.kitRing,
-              kitPattern: profile.kitPattern,
-              kitAlt: profile.kitAlt,
-            }}
-            onChange={set}
-          />
-        </div>
-        <Fault>{faults.teamColour ?? faults.kitRing ?? faults.kitPattern ?? faults.kitAlt}</Fault>
-      </Section>
-
-      {/* ── 3. the squad ──────────────────────────────────────────────────── */}
-
-      <Section
-        title="Your squad"
-        note="Your players, typed once. In the studio, a counter can then take a name, a number and a face in one press instead of three fields. Everything here is yours alone: a board you share carries the names you put on it and never the photographs, which stay in your account."
-      >
-        {user && <SquadEditor owner={user.id} />}
-      </Section>
-
-      {/* ── 4. the optional public profile ────────────────────────────────── */}
-
-      <Section
-        title="Your profile"
-        note="Optional, and private until you say otherwise. It is where a coach or analyst can say what they do and what they work on, for the day this becomes a place to share systems. Nothing here is shown to anyone while your profile is private."
+        title="You"
+        note="Who you are, and what you do. This is the only part of this page anybody else can ever see — and only once you turn it on at the foot of the section. Everything below is yours alone."
       >
         {/* The coach's own face, not the club's badge. Both are optional and
             neither implies the other: a badge says which club, a face says which
@@ -548,24 +629,19 @@ export default function Settings() {
           round
           busy={busy === 'avatar'}
           fault={faults.avatar}
+          anchor="avatar"
           onPick={(f) => void onPic('avatar', f)}
           onDrop={() => void dropPic('avatar')}
         />
 
-        <Field
-          label="Handle"
-          note="Your address, if you ever make your profile public. Letters, numbers and underscores."
-          fault={faults.handle}
-        >
-          <div className="mt-1.5 flex items-center rounded-lg border border-ink-hair bg-surface focus-within:border-ink/30">
-            <span className="pl-4 font-mono text-[15px] text-ink-faint">@</span>
-            <input
-              value={profile.handle}
-              onChange={(e) => set({ handle: normaliseHandle(e.target.value) })}
-              placeholder="andreas_p"
-              className="w-full bg-transparent px-2 py-3 font-mono text-[15px] text-ink outline-none placeholder:text-ink-faint"
-            />
-          </div>
+        <Field label="Your name" note="Goes at the foot of every board you share, so you sign your work once instead of every time.">
+          <input
+            value={profile.presenter}
+            onChange={(e) => set({ presenter: e.target.value })}
+            placeholder="Who is presenting"
+            maxLength={48}
+            className={INPUT}
+          />
         </Field>
 
         <Field label="What you do">
@@ -584,9 +660,27 @@ export default function Settings() {
         </Field>
 
         <Field
+          label="Handle"
+          note="Your address, if you ever make your profile public. Letters, numbers and underscores."
+          fault={faults.handle}
+          anchor="handle"
+        >
+          <div className="mt-1.5 flex items-center rounded-lg border border-ink-hair bg-surface focus-within:border-ink/30">
+            <span className="pl-4 font-mono text-[15px] text-ink-faint">@</span>
+            <input
+              value={profile.handle}
+              onChange={(e) => set({ handle: normaliseHandle(e.target.value) })}
+              placeholder="andreas_p"
+              className="w-full bg-transparent px-2 py-3 font-mono text-[15px] text-ink outline-none placeholder:text-ink-faint"
+            />
+          </div>
+        </Field>
+
+        <Field
           label="Bio"
           note={`${profile.bio.length} of ${BIO_MAX} characters.`}
           fault={faults.bio}
+          anchor="bio"
         >
           <textarea
             value={profile.bio}
@@ -598,7 +692,7 @@ export default function Settings() {
           />
         </Field>
 
-        <div className="mt-4">
+        <div className="mt-4" id="fault-links">
           <span className="text-[13px] font-bold text-ink">Links</span>
           <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">
             Up to {LINKS_MAX}. Your club, your channel, wherever your work lives.
@@ -642,6 +736,7 @@ export default function Settings() {
               </div>
             ))}
           </div>
+          <Fault>{faults.links}</Fault>
           {profile.links.length < LINKS_MAX && (
             <button
               type="button"
@@ -663,7 +758,7 @@ export default function Settings() {
               </p>
               <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
                 {isPublic
-                  ? 'Anyone with the link can see your name, club, crest, role, bio and links. Your systems stay private until you publish one.'
+                  ? 'Anyone with the link can see your name, picture, club, crest, role, bio and links. Your systems stay private until you publish one, and your squad is never shown.'
                   : 'Nobody can see any of this. Your systems are private either way, and turning this on never publishes one.'}
               </p>
             </div>
@@ -685,14 +780,86 @@ export default function Settings() {
             </button>
           </div>
 
-          {isPublic && !profile.handle && (
-            <p className="mt-3 border-t border-ink-hair pt-3 text-[12px] text-ink-faint">
-              Choose a handle above to get an address.
-            </p>
-          )}
-
           <ShareProfile saved={saved} draft={profile} />
         </div>
+      </Section>
+
+      {/* ── 2. the club, and how a board is signed ────────────────────────── */}
+
+      <Section
+        title="Your club"
+        note="The other half of the credit bar. Your name above is the person; this is the badge beside it."
+      >
+        <Field label="Club or team">
+          <input
+            value={profile.team}
+            onChange={(e) => set({ team: e.target.value })}
+            placeholder="AEL Limassol U16"
+            maxLength={48}
+            className={INPUT}
+          />
+        </Field>
+
+        <Picture
+          label="Club crest"
+          note="PNG, JPG or WebP, up to 5 MB. A square one with a transparent background sits best."
+          url={pics.crest}
+          busy={busy === 'crest'}
+          fault={faults.crest}
+          anchor="crest"
+          onPick={(f) => void onPic('crest', f)}
+          onDrop={() => void dropPic('crest')}
+        />
+
+        {/* The credit bar, as it will actually read. Showing it beats describing
+            it, and it is the only thing in this section a coach can check. */}
+        <div className="mt-7 rounded-xl border border-ink-hair bg-paper p-4">
+          <p className="text-micro uppercase text-ink-faint">On every board you share</p>
+          <div className="mt-3 flex items-center justify-between gap-4 border-t border-ink-hair pt-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {pics.crest && (
+                <img src={pics.crest} alt="" className="h-6 w-6 shrink-0 object-contain" />
+              )}
+              <p className="truncate text-[12px] font-bold leading-tight text-ink">
+                {signature || 'A tactical system'}
+              </p>
+            </div>
+            <span className="shrink-0 text-right text-[10px] font-bold uppercase leading-tight tracking-micro text-ink-soft">
+              Made with
+              <br />
+              Total Football
+            </span>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── 3. the kit ────────────────────────────────────────────────────── */}
+
+      <Section
+        title="Your kit"
+        note="The colours and the shirt a new system starts in. Systems you have already made keep the kit they were built in, so changing this never rewrites old work."
+      >
+        <div className="mt-5" id="fault-kit">
+          <KitEditor
+            kit={{
+              teamColour: profile.teamColour,
+              kitRing: profile.kitRing,
+              kitPattern: profile.kitPattern,
+              kitAlt: profile.kitAlt,
+            }}
+            onChange={set}
+          />
+        </div>
+        <Fault>{faults.teamColour ?? faults.kitRing ?? faults.kitPattern ?? faults.kitAlt}</Fault>
+      </Section>
+
+      {/* ── 4. the squad ──────────────────────────────────────────────────── */}
+
+      <Section
+        title="Your squad"
+        note="Your players, typed once. In the studio, a counter can then take a name, a number and a face in one press instead of three fields. Everything here is yours alone: a board you share carries the names you put on it and never the photographs, which stay in your account."
+      >
+        {user && <SquadEditor owner={user.id} />}
       </Section>
 
       {/* ── save ──────────────────────────────────────────────────────────── */}
@@ -711,11 +878,7 @@ export default function Settings() {
             That did not save. Check your connection and press it again.
           </p>
         )}
-        {Object.keys(faults).length > 0 && state !== 'saving' && (
-          <p className="text-[13px] font-bold text-ink">
-            Some of that needs fixing first. The fields are marked above.
-          </p>
-        )}
+        {state !== 'saving' && <FaultSummary faults={faults} />}
       </div>
 
       {/* ── account ───────────────────────────────────────────────────────── */}

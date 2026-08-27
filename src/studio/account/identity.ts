@@ -227,13 +227,14 @@ export function profileFaults(draft: ProfileDraft): Record<string, string> {
   const alt = colourFault(draft.kitAlt)
   if (alt) faults.kitAlt = alt
 
-  // A pattern with no second colour is not a fault to refuse — it is a coach
-  // who has picked stripes and not yet said what colour they are. `Token.tsx`
-  // draws a plain shirt for exactly that state, so the board is never wrong;
-  // this only says so out loud while they are still on the page.
-  if (draft.kitPattern && draft.kitPattern !== 'solid' && !draft.kitAlt) {
-    faults.kitAlt = 'Pick the second colour, or set the kit back to plain.'
-  }
+  // A PATTERN WITH NO SECOND COLOUR IS NOT A FAULT, and an earlier version of
+  // this function was wrong to make it one. It refused the whole save — the
+  // bio, the handle, everything — over a half-picked shirt that `Token.tsx`
+  // already degrades gracefully to a plain one. Nothing on a board is wrong in
+  // that state, so there is nothing to refuse.
+  //
+  // The state is now prevented rather than punished: `KitEditor` fills in a
+  // second colour when a pattern is chosen without one. See its `pick`.
 
   if (draft.links.length > LINKS_MAX) faults.links = `Up to ${LINKS_MAX} links.`
   draft.links.forEach((link, i) => {
