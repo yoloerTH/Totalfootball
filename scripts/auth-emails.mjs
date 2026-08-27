@@ -379,7 +379,11 @@ async function main() {
 
     Object.assign(body, {
       smtp_host: host,
-      smtp_port: port,
+      // A STRING. The API rejects a number here with
+      // `smtp_port: Invalid input: expected string, received number`, and it
+      // validates before it writes, so the whole PATCH is refused. Ports are
+      // numbers everywhere else in this script, including nodemailer's config.
+      smtp_port: String(port),
       smtp_user: user,
       smtp_pass: pass,
       smtp_admin_email: address,
