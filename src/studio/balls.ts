@@ -28,7 +28,7 @@
  */
 
 /** `null` src = the drawn vector ball, which needs no asset and always exports. */
-export type BallId = 'trionda' | 'al-rihla' | 'brazuca' | 'jabulani' | 'telstar' | 'classic'
+export type BallId = 'trionda' | 'al-rihla' | 'brazuca' | 'jabulani' | 'telstar' | 'spare' | 'training' | 'classic'
 
 export interface MatchBall {
   id: BallId
@@ -71,6 +71,18 @@ export const BALLS: MatchBall[] = [
     name: 'Telstar',
     story: 'World Cup 1974. The Total Football one.',
     src: '/studio/balls/telstar.png',
+  },
+  {
+    id: 'spare',
+    name: 'Spare ball',
+    story: 'Generic yellow ball for training drills.',
+    src: '/studio/gear/ball-spare.png',
+  },
+  {
+    id: 'training',
+    name: 'Training ball',
+    story: 'Standard training ball.',
+    src: '/studio/gear/ball-training.png',
   },
   {
     id: 'classic',
