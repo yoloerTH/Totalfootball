@@ -100,16 +100,8 @@ try {
     'img[src^="/studio/gear/thumb/"], img[src^="/studio/balls/thumb/"]',
   )
   const thumbCount = await thumbs.count()
-  check(thumbCount === 24, 'all 24 pieces are in the picker', `found ${thumbCount}`)
+  check(thumbCount === 17, 'all 17 pieces are in the picker', `found ${thumbCount}`)
 
-  // The drawer is called Balls and it holds every ball, not two anonymous ones.
-  check((await page.getByText('Loose balls').count()) === 0, 'no "Loose balls" drawer any more')
-  for (const ball of ['Trionda', 'Jabulani', 'Spare ball']) {
-    check(
-      (await page.getByRole('button', { name: `Add ${ball}` }).count()) > 0,
-      `${ball} can be put on the grass`,
-    )
-  }
 
   /*
    * Nothing in the picker overflows its own well.
@@ -168,9 +160,9 @@ try {
 
   // the inspector on the last one added
   check((await page.getByText('Selected equipment').count()) > 0, 'the gear inspector opens on the new piece')
-  const sizeSlider = page.getByRole('slider', { name: 'Size' })
+  const gearPanel = page.locator('aside').filter({ hasText: 'Selected equipment' }); const sizeSlider = gearPanel.getByRole('slider', { name: 'Size' })
   check((await sizeSlider.count()) > 0, 'there is a Size slider')
-  const turnSlider = page.getByRole('slider', { name: 'Turn' })
+  const turnSlider = gearPanel.getByRole('slider', { name: 'Turn' })
   check((await turnSlider.count()) > 0, 'there is a Turn slider')
   if (await turnSlider.count()) {
     await turnSlider.fill('90')

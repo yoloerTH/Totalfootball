@@ -589,6 +589,8 @@ export function Board({
               cx={pos(act.ball.x, act.ball.y).x}
               cy={pos(act.ball.x, act.ball.y).y}
               href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
+              size={system.matchBallSize}
+              angle={system.matchBallAngle}
             />
           </g>
         )}

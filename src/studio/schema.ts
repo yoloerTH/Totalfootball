@@ -490,6 +490,10 @@ export interface System {
    * — `resolveBall()` in ./balls.ts supplies the default.
    */
   matchBall?: BallId
+  /** A multiplier on the match ball's own width. */
+  matchBallSize?: number
+  /** Angle in degrees. */
+  matchBallAngle?: number
   /**
    * What the board is drawn on: paper, broadcast turf, floodlit night, slate.
    *

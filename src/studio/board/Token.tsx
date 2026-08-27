@@ -510,17 +510,21 @@ export function Ball({
   cx,
   cy,
   href,
+  size = 1,
+  angle = 0,
 }: {
   idp: string
   cx: number
   cy: number
   /** Image to draw, or undefined for the drawn vector ball. */
   href?: string
+  size?: number
+  angle?: number
 }) {
-  const r = u(BALL_R)
+  const r = u(BALL_R * size)
   const gid = `${idp}-ball`
   return (
-    <g>
+    <g transform={angle ? `rotate(${angle} ${cx} ${cy})` : undefined}>
       <defs>
         <radialGradient id={gid} cx="0.36" cy="0.3" r="0.8">
           <stop offset="0%" stopColor="#FFFFFF" />

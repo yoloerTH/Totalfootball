@@ -3718,7 +3718,45 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               items={BALLS.map((b) => ({ value: b.id, label: b.name, src: b.src }))}
             />
           </Tip>
-          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+          <div className="mt-3">
+            <Tip
+              text="Makes the match ball bigger or smaller across the whole drill."
+              title="Match ball size"
+              side="left"
+              block
+            >
+              <Slider
+                label="Size"
+                min={GEAR_SIZE_MIN}
+                max={GEAR_SIZE_MAX}
+                step={0.05}
+                value={system.matchBallSize ?? 1}
+                onChange={(v) => edit('ball:size', (s) => ({ ...s, matchBallSize: v === 1 ? undefined : v }))}
+                onCommit={seal}
+                readout={`${(system.matchBallSize ?? 1).toFixed(2)}×`}
+              />
+            </Tip>
+          </div>
+          <div className="mt-3">
+            <Tip
+              text="Spins the match ball globally."
+              title="Match ball turn"
+              side="left"
+              block
+            >
+              <Slider
+                label="Turn"
+                min={0}
+                max={355}
+                step={5}
+                value={system.matchBallAngle ?? 0}
+                onChange={(v) => edit('ball:angle', (s) => ({ ...s, matchBallAngle: v === 0 ? undefined : v }))}
+                onCommit={seal}
+                readout={`${system.matchBallAngle ?? 0}°`}
+              />
+            </Tip>
+          </div>
+          <p className="mt-3 text-[11px] leading-snug text-ink-faint border-t border-ink-hair pt-3">
             <span className="font-bold text-ink-soft">{ball.name}.</span> {ball.story}
           </p>
         </Panel>

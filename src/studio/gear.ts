@@ -82,26 +82,12 @@ export const GEAR_GROUPS: { id: GearGroupId; label: string }[] = [
   { id: 'markers', label: 'Cones and markers' },
   { id: 'agility', label: 'Hurdles and ladders' },
   { id: 'targets', label: 'Goals and mannequins' },
-  { id: 'balls', label: 'Balls' },
   { id: 'strength', label: 'Strength and balance' },
 ]
 
 const asset = (id: string) => ({
   src: `/studio/gear/${id}.png`,
   thumb: `/studio/gear/thumb/${id}.webp`,
-})
-
-/**
- * A match ball, borrowed into the gear catalogue.
- *
- * The SAME files ../balls.ts serves — trimmed to the ball's alpha bounds and
- * padded back to a square, which is why they are all `aspect: 1`. Pointing at
- * the originals rather than copying them into `gear/` is the point: replace
- * a ball once and it changes in the picker, on the grass and in every export.
- */
-const ball = (id: string) => ({
-  src: `/studio/balls/${id}.png`,
-  thumb: `/studio/balls/thumb/${id}.webp`,
 })
 
 export const GEAR: GearPiece[] = [
@@ -122,27 +108,6 @@ export const GEAR: GearPiece[] = [
   { id: 'dummy-mannequin', name: 'Mannequin', group: 'targets', h: 4.2, aspect: 0.26, ...asset('dummy-mannequin') },
   { id: 'dummy-inflatable', name: 'Inflatable defender', group: 'targets', h: 4.3, aspect: 0.278, ...asset('dummy-inflatable') },
   { id: 'pole', name: 'Training pole', group: 'targets', h: 4, aspect: 0.262, ...asset('pole') },
-
-  // ── balls ────────────────────────────────────────────────────────────────
-  //
-  // ONE VOCABULARY OF BALLS, not two. The drawer used to be called "Loose
-  // balls" and held two anonymous ones, while the five photographed match balls
-  // lived in a picker of their own — which meant a coach who wanted a Trionda
-  // lying on the grass beside the Trionda being passed could not have one
-  // (user, 2026-08-27). A ball is a ball; every one of them is here.
-  //
-  // What the MATCH ball still is: the single object per system that the move is
-  // about, the one that travels along the passes, chosen in the panel above.
-  // These are balls a coach PUTS somewhere — spares in a rondo, a rack beside a
-  // finishing station — and there can be as many of them as the drill needs.
-  // Every one takes the size and turn controls, like any other piece of gear.
-  { id: 'ball-trionda', name: 'Trionda', group: 'balls', w: 2.4, aspect: 1, ...ball('trionda') },
-  { id: 'ball-al-rihla', name: 'Al Rihla', group: 'balls', w: 2.4, aspect: 1, ...ball('al-rihla') },
-  { id: 'ball-brazuca', name: 'Brazuca', group: 'balls', w: 2.4, aspect: 1, ...ball('brazuca') },
-  { id: 'ball-jabulani', name: 'Jabulani', group: 'balls', w: 2.4, aspect: 1, ...ball('jabulani') },
-  { id: 'ball-telstar', name: 'Telstar', group: 'balls', w: 2.4, aspect: 1, ...ball('telstar') },
-  { id: 'ball-spare', name: 'Spare ball', group: 'balls', w: 2.4, aspect: 1.001, ...asset('ball-spare') },
-  { id: 'ball-training', name: 'Training ball', group: 'balls', w: 2.4, aspect: 1.004, ...asset('ball-training') },
 
   // ── strength ─────────────────────────────────────────────────────────────
   { id: 'bosu', name: 'Bosu ball', group: 'strength', w: 3, aspect: 1, ...asset('bosu') },
