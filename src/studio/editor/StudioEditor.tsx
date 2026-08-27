@@ -767,6 +767,107 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const move = moveMs(system)
 
   const svgRef = useRef<SVGSVGElement | null>(null)
+
+  const boardContainerRef = useRef<HTMLDivElement | null>(null)
+  const [workspaceZoom, setWorkspaceZoom] = useState(1)
+  const [workspacePan, setWorkspacePan] = useState({ x: 0, y: 0 })
+
+  const zoomRef = useRef(1)
+  useEffect(() => {
+    zoomRef.current = workspaceZoom
+  }, [workspaceZoom])
+
+  const isPanningRef = useRef(false)
+  const lastPanPointRef = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const el = boardContainerRef.current
+    if (!el) return
+
+    const clampPan = (targetX: number, targetY: number, z: number) => {
+      const rect = el.getBoundingClientRect()
+      const minX = rect.width * (1 - z)
+      const minY = rect.height * (1 - z)
+      return {
+        x: Math.max(minX, Math.min(0, targetX)),
+        y: Math.max(minY, Math.min(0, targetY))
+      }
+    }
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+
+      if (e.ctrlKey) {
+        // Pinch-to-zoom or Ctrl+Scroll
+        const zoomSensitivity = 0.01
+        const delta = -e.deltaY * zoomSensitivity
+        
+        setWorkspaceZoom(prevZoom => {
+          const newZoom = Math.max(1, Math.min(prevZoom * Math.exp(delta), 10))
+          
+          // Zoom towards cursor
+          const rect = el.getBoundingClientRect()
+          const mouseX = e.clientX - rect.left
+          const mouseY = e.clientY - rect.top
+
+          setWorkspacePan(prevPan => {
+            const localX = (mouseX - prevPan.x) / prevZoom
+            const localY = (mouseY - prevPan.y) / prevZoom
+            const targetX = mouseX - localX * newZoom
+            const targetY = mouseY - localY * newZoom
+            return clampPan(targetX, targetY, newZoom)
+          })
+          
+          return newZoom
+        })
+      } else {
+        // Trackpad pan
+        setWorkspacePan(prev => clampPan(prev.x - e.deltaX, prev.y - e.deltaY, zoomRef.current))
+      }
+    }
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) { // Middle click or Alt+Left click
+        e.preventDefault()
+        isPanningRef.current = true
+        lastPanPointRef.current = { x: e.clientX, y: e.clientY }
+        el.setPointerCapture(e.pointerId)
+        el.style.cursor = 'grabbing'
+      }
+    }
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isPanningRef.current) return
+      e.preventDefault()
+      const dx = e.clientX - lastPanPointRef.current.x
+      const dy = e.clientY - lastPanPointRef.current.y
+      setWorkspacePan(prev => clampPan(prev.x + dx, prev.y + dy, zoomRef.current))
+      lastPanPointRef.current = { x: e.clientX, y: e.clientY }
+    }
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (isPanningRef.current) {
+        isPanningRef.current = false
+        el.releasePointerCapture(e.pointerId)
+        el.style.cursor = ''
+      }
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    el.addEventListener('pointerdown', handlePointerDown)
+    el.addEventListener('pointermove', handlePointerMove)
+    el.addEventListener('pointerup', handlePointerUp)
+    el.addEventListener('pointercancel', handlePointerUp)
+
+    return () => {
+      el.removeEventListener('wheel', handleWheel)
+      el.removeEventListener('pointerdown', handlePointerDown)
+      el.removeEventListener('pointermove', handlePointerMove)
+      el.removeEventListener('pointerup', handlePointerUp)
+      el.removeEventListener('pointercancel', handlePointerUp)
+    }
+  }, [])
+
   /*
    * The frame currently on screen, for the drag handler to start from.
    *
@@ -1271,6 +1372,40 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           patchAct(`text:${id}:move`, (a) => ({
             ...a,
             texts: (a.texts ?? []).map((x) => (x.id === id ? { ...x, ...at } : x)),
+          }))
+        },
+        () => seal(),
+      )
+
+    },
+    [act, bindGesture, view, patchAct, seal],
+  )
+
+  const beginTextScale = useCallback(
+    (id: string, e: React.PointerEvent<SVGElement>) => {
+      const svg = svgRef.current
+      const source = act
+      if (!svg || !source) return
+      e.stopPropagation()
+      e.preventDefault()
+
+      const base = (source.texts ?? []).find((x) => x.id === id)
+      if (!base) return
+
+      const down = clientToPercent(svg, view, e.clientX, e.clientY)
+      const d0 = Math.hypot(down.x - base.x, down.y - base.y) || 1
+      const initialScale = base.scale ?? 1
+
+      bindGesture(
+        e.pointerId,
+        (ev) => {
+          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          const p = clampToBoard(raw.x, raw.y)
+          const d1 = Math.hypot(p.x - base.x, p.y - base.y)
+          const newScale = Math.max(0.1, Math.min(5, initialScale * (d1 / d0)))
+          patchAct(`text:${id}:scale`, (a) => ({
+            ...a,
+            texts: (a.texts ?? []).map((x) => (x.id === id ? { ...x, scale: newScale } : x)),
           }))
         },
         () => seal(),
@@ -2926,10 +3061,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const boardStage = (
     <div
-      className="tf-board min-h-0 max-h-full max-w-full overflow-hidden rounded-xl shadow-lift"
+      ref={boardContainerRef}
+      className="tf-board relative min-h-0 max-h-full max-w-full overflow-hidden rounded-xl shadow-lift"
       style={{ aspectRatio: aspect(view), height: '100%' }}
       {...inert}
     >
+      <div 
+        style={{
+          transform: `translate(${workspacePan.x}px, ${workspacePan.y}px) scale(${workspaceZoom})`,
+          transformOrigin: '0 0',
+          width: '100%',
+          height: '100%',
+          willChange: 'transform',
+        }}
+      >
       <Board
         svgRef={svgRef}
         system={system}
@@ -2953,6 +3098,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           (dragging && dragging.kind === 'token' ? dragging.id : (selectedToken?.id ?? null))
         }
         activeMarkId={selectedMarkId}
+        onTextChange={(id, text) => { if (selectedMarkId === id) patchText({ text }) }}
+        onTextScaleDown={beginTextScale}
         /* Counters stay live while the Block tool is armed — that tool IS
            clicking counters — and a click on one picks it for the line instead
            of starting a drag. Every other drawing tool takes them away. */
@@ -3062,6 +3209,75 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           beginDraw(e)
         }}
       />
+      </div>
+
+      {/* Zoom UI Overlay */}
+      <div 
+        className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg bg-ink/90 p-1 text-paper shadow backdrop-blur-sm transition-opacity"
+        style={{ opacity: playing ? 0 : 1, pointerEvents: playing ? 'none' : 'auto', zIndex: 50 }}
+      >
+        <button
+          onClick={() => setWorkspaceZoom(z => {
+            const next = Math.max(1, z / 1.25)
+            if (next === 1) setWorkspacePan({ x: 0, y: 0 })
+            return next
+          })}
+          className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
+          title="Zoom out"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/></svg>
+        </button>
+        <span className="w-12 text-center text-[11px] font-bold tracking-wider">
+          {Math.round(workspaceZoom * 100)}%
+        </span>
+        <button
+          onClick={() => setWorkspaceZoom(z => {
+            // Keep the center of the zoom in the center of the screen
+            const el = boardContainerRef.current
+            if (el) {
+              const rect = el.getBoundingClientRect()
+              const cx = rect.width / 2
+              const cy = rect.height / 2
+              const next = Math.min(10, z * 1.25)
+              
+              setWorkspacePan(prev => {
+                const localX = (cx - prev.x) / z
+                const localY = (cy - prev.y) / z
+                const targetX = cx - localX * next
+                const targetY = cy - localY * next
+                
+                const minX = rect.width * (1 - next)
+                const minY = rect.height * (1 - next)
+                return {
+                  x: Math.max(minX, Math.min(0, targetX)),
+                  y: Math.max(minY, Math.min(0, targetY))
+                }
+              })
+              return next
+            }
+            return Math.min(10, z * 1.25)
+          })}
+          className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
+          title="Zoom in"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14m-7-7h14"/></svg>
+        </button>
+        {workspaceZoom !== 1 && (
+          <>
+            <div className="mx-1 h-4 w-px bg-white/20" />
+            <button
+              onClick={() => {
+                setWorkspaceZoom(1)
+                setWorkspacePan({ x: 0, y: 0 })
+              }}
+              className="mr-0.5 flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
+              title="Reset zoom"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 3v5h5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 
@@ -3698,6 +3914,25 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               ]}
             />
           </Tip>
+          <div className="mt-3">
+            <Tip
+              text="Makes all player counters universally larger or smaller."
+              title="Counter size"
+              side="left"
+              block
+            >
+              <Slider
+                label="Size"
+                min={0.5}
+                max={2.0}
+                step={0.05}
+                value={system.tokenSize ?? 1}
+                onChange={(v) => edit('token:size', (s) => ({ ...s, tokenSize: v === 1 ? undefined : v }))}
+                onCommit={seal}
+                readout={`${(system.tokenSize ?? 1).toFixed(2)}×`}
+              />
+            </Tip>
+          </div>
         </Panel>
       </Section>
 

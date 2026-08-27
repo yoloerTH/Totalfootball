@@ -270,6 +270,8 @@ export interface TextMark {
   text: string
   /** 'xs' | 's' | 'm' | 'l' | 'xl'. See TEXT_SIZES: the number is METRES. */
   size?: string
+  /** Arbitrary continuous scale multiplier. */
+  scale?: number
   /** 'halo' | 'plate' | 'bare'. How it holds its edge against the board. */
   look?: string
   /** 'regular' | 'bold' | 'black'. */
@@ -494,6 +496,8 @@ export interface System {
   matchBallSize?: number
   /** Angle in degrees. */
   matchBallAngle?: number
+  /** A universal multiplier for player counter sizes across the board. */
+  tokenSize?: number
   /**
    * What the board is drawn on: paper, broadcast turf, floodlit night, slate.
    *

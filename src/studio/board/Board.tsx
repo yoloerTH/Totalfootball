@@ -71,6 +71,8 @@ interface Props {
    * coords are measured against `x0..x1`, so moving those moves the players.
    */
   view?: PitchView
+  onTextChange?: (id: string, text: string) => void
+  onTextScaleDown?: (id: string, e: React.PointerEvent<SVGElement>) => void
   /** Paper grain. Off while editing (it is a per-frame filter), on for export. */
   texture?: boolean
   /**
@@ -287,6 +289,8 @@ export function Board({
   onArrowGripPointerDown,
   onBandPointerDown,
   onTextPointerDown,
+  onTextChange,
+  onTextScaleDown,
   onGearPointerDown,
   gearHrefs,
   onZonePointerDown,
@@ -570,7 +574,7 @@ export function Board({
                 photoHref={t.photo ? photoHrefs?.[t.photo] : undefined}
                 cue={t.cue}
                 dim={t.dim}
-                scale={t.scale}
+                scale={(t.scale ?? 1) * (system.tokenSize ?? 1)}
                 active={activeTokenId === t.id}
               />
             </g>
@@ -616,6 +620,8 @@ export function Board({
                 onPointerDown={
                   onTextPointerDown ? (e) => onTextPointerDown(t.id, e) : undefined
                 }
+                onChange={onTextChange ? (text) => onTextChange(t.id, text) : undefined}
+                onScaleDown={onTextScaleDown ? (e) => onTextScaleDown(t.id, e) : undefined}
               />
             </g>
           )

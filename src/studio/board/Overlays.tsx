@@ -661,6 +661,8 @@ interface TextNoteProps {
   cy: number
   active?: boolean
   onPointerDown?: (e: React.PointerEvent<SVGElement>) => void
+  onChange?: (text: string) => void
+  onScaleDown?: (e: React.PointerEvent<SVGElement>) => void
 }
 
 /**
@@ -686,10 +688,10 @@ interface TextNoteProps {
  * The rotation is applied to the group about the anchor, so `angle` turns the
  * words without moving where the coach put them.
  */
-export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNoteProps) {
+export function TextNote({ mark, cx, cy, active = false, onPointerDown, onChange, onScaleDown }: TextNoteProps) {
   const p = useSurface()
   const s = resolveTextStyle(p, mark)
-  const size = u(s.metres)
+  const size = u(s.metres) * (mark.scale ?? 1)
   const step = size * LINE
 
   // An empty mark still has to be findable and hittable — it is a mark a coach
@@ -772,7 +774,6 @@ export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNo
         </>
       )}
 
-      {/* Selected: the same gold outline every other selected mark wears. */}
       {active && (
         <rect
           x={boxX - size * 0.16}
@@ -780,11 +781,11 @@ export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNo
           width={boxW + size * 0.32}
           height={boxH + size * 0.32}
           rx={size * 0.3}
-          fill="none"
+          fill="transparent"
           stroke={p.gold}
           strokeWidth={size * 0.09}
           strokeDasharray={`${size * 0.34} ${size * 0.26}`}
-          pointerEvents="none"
+          style={{ cursor: 'move' }}
         />
       )}
 
@@ -800,7 +801,50 @@ export function TextNote({ mark, cx, cy, active = false, onPointerDown }: TextNo
           }),
         )}
 
-      {lines.map((_, i) => body(i, `ink-${i}`, { fill, pointerEvents: 'none' }))}
+      {active && onChange ? (
+        <foreignObject x={boxX} y={boxY} width={boxW} height={boxH}>
+          <textarea
+            value={mark.text}
+            onChange={(e) => onChange(e.target.value)}
+            autoFocus
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              padding: `${padY}px ${padX}px`,
+              margin: 0,
+              fontFamily: 'Inter Variable, Inter, system-ui, sans-serif',
+              fontWeight: s.weight,
+              fontSize: size,
+              lineHeight: `${step}px`,
+              letterSpacing: size * -0.012,
+              textAlign: s.anchor === 'middle' ? 'center' : s.anchor === 'end' ? 'right' : 'left',
+              color: fill,
+              overflow: 'hidden',
+              whiteSpace: 'pre-wrap',
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+        </foreignObject>
+      ) : (
+        lines.map((_, i) => body(i, `ink-${i}`, { fill, pointerEvents: 'none' }))
+      )}
+      
+      {active && onScaleDown && (
+        <circle
+          cx={boxX + boxW}
+          cy={boxY + boxH}
+          r={size * 0.25}
+          fill={p.gold}
+          stroke={p.halo}
+          strokeWidth={size * 0.05}
+          style={{ cursor: 'nwse-resize' }}
+          onPointerDown={onScaleDown}
+        />
+      )}
     </g>
   )
 }
