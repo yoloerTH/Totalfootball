@@ -291,9 +291,16 @@ export function Segmented<T extends string>({
      * its own word, so a three-option control in a 256px panel — Left · Centre ·
      * Right — pushed itself wider than the panel and the last option wrapped
      * out from under the other two (user, 2026-08-27). Without the second, they
-     * shrink by breaking the words instead, which is not better. Together they
-     * mean the padding gives way first, and a control that still cannot fit is
-     * one to lay out down the panel rather than across it.
+     * shrink by breaking the words instead, which is not better.
+     *
+     * And `overflow-hidden text-ellipsis` because the pair above is not enough
+     * on its own: a button narrower than its label lets the label hang out over
+     * its neighbour, so Regular · Bold · Heavy in half a column came out as one
+     * unreadable overlap rather than as three cramped buttons. Truncating is
+     * the honest failure — you can see at a glance that the control has been
+     * given too little room, which is the cue to lay it out down the panel
+     * rather than across it. There is no arrangement of CSS that fits three
+     * words into 116 points, and this is what asking for one looks like.
      */
     <div className="flex gap-1 rounded-lg bg-paper p-1" role="tablist" aria-label={label}>
       {options.map((o) => (
@@ -303,7 +310,7 @@ export function Segmented<T extends string>({
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`min-w-0 flex-1 whitespace-nowrap rounded-md px-1.5 py-1.5 text-xs font-bold transition-colors ${
+          className={`min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-md px-1.5 py-1.5 text-xs font-bold transition-colors ${
             value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-ink-soft'
           }`}
         >
@@ -646,13 +653,27 @@ export function Toggle({
   checked,
   onChange,
   label,
+  /**
+   * Off, and not the coach's to turn on right now.
+   *
+   * For a switch whose answer is decided by another switch — see the lockup in
+   * ./ExportDialog.tsx. It is a real `disabled` on the input rather than a
+   * grey wrapper and a swallowed handler, so a keyboard skips it and a screen
+   * reader says so; the caller supplies the sentence explaining why.
+   */
+  disabled = false,
 }: {
   checked: boolean
   onChange: (v: boolean) => void
   label: string
+  disabled?: boolean
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 py-1">
+    <label
+      className={`flex items-center justify-between gap-3 py-1 ${
+        disabled ? 'cursor-default opacity-50' : 'cursor-pointer'
+      }`}
+    >
       <span className="text-xs font-bold text-ink-soft">{label}</span>
       <span
         className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
@@ -662,8 +683,9 @@ export function Toggle({
         <input
           type="checkbox"
           checked={checked}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
         />
         <span
           className={`pointer-events-none absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-sm transition-all ${

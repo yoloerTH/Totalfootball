@@ -42,21 +42,12 @@
  * exporter must await it before serialising. See ../board/Board.tsx's header.
  */
 
-export interface GearPiece {
+interface GearBase {
   id: string
   /** How a coach would ask for it. */
   name: string
   /** Which drawer of the picker it lives in. */
   group: GearGroupId
-  /** Width on the board at 1×, in metres. See the note above. */
-  w: number
-  /**
-   * Height on the board at 1×, in metres, for a piece that STANDS UP.
-   *
-   * Optional and mutually exclusive with `w` in practice: when it is set it
-   * wins and the width comes off the aspect. See the header.
-   */
-  h?: number
   /** The asset's own width ÷ height, from scripts/gear-assets.mjs. */
   aspect: number
   /** Board asset, 320px on its long edge. */
@@ -64,6 +55,20 @@ export interface GearPiece {
   /** Picker asset, 96px. Small enough that a whole drawer costs nothing. */
   thumb: string
 }
+
+/**
+ * A piece gives ONE of its two dimensions and the other falls out of `aspect`.
+ *
+ * Written as a union rather than as two optional fields so the compiler is the
+ * thing that enforces it. A piece with both would be a piece whose numbers can
+ * contradict its own artwork, and a piece with neither would draw at nothing —
+ * both are the sort of mistake that only shows up as a squashed cone on a board
+ * somebody has already shared.
+ *
+ * `w` for a piece that lies on the grass, `h` for one that stands up.
+ */
+export type GearPiece = GearBase &
+  ({ w: number; h?: undefined } | { h: number; w?: undefined })
 
 export type GearGroupId = 'markers' | 'agility' | 'targets' | 'balls' | 'strength'
 
@@ -114,9 +119,9 @@ export const GEAR: GearPiece[] = [
   { id: 'mini-goal', name: 'Mini goal', group: 'targets', w: 7, aspect: 2.663, ...asset('mini-goal') },
   // The three that stand up. Sized by HEIGHT — see the header for why, and
   // for the mini goal above them, which is the scale they are held to.
-  { id: 'dummy-mannequin', name: 'Mannequin', group: 'targets', w: 0, h: 4.2, aspect: 0.26, ...asset('dummy-mannequin') },
-  { id: 'dummy-inflatable', name: 'Inflatable defender', group: 'targets', w: 0, h: 4.3, aspect: 0.278, ...asset('dummy-inflatable') },
-  { id: 'pole', name: 'Training pole', group: 'targets', w: 0, h: 4, aspect: 0.262, ...asset('pole') },
+  { id: 'dummy-mannequin', name: 'Mannequin', group: 'targets', h: 4.2, aspect: 0.26, ...asset('dummy-mannequin') },
+  { id: 'dummy-inflatable', name: 'Inflatable defender', group: 'targets', h: 4.3, aspect: 0.278, ...asset('dummy-inflatable') },
+  { id: 'pole', name: 'Training pole', group: 'targets', h: 4, aspect: 0.262, ...asset('pole') },
 
   // ── balls ────────────────────────────────────────────────────────────────
   //
@@ -173,7 +178,7 @@ export function resolveGear(kind: string): GearPiece | null {
  */
 export function gearSize(piece: GearPiece, size?: number): { w: number; h: number } {
   const s = size && size > 0 ? size : 1
-  if (piece.h) {
+  if (piece.h !== undefined) {
     const h = piece.h * s
     return { w: h * piece.aspect, h }
   }

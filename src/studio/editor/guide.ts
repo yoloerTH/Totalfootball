@@ -497,8 +497,22 @@ export const EXPORT = {
   size: 'How big',
   which: 'Which phases',
   chrome: 'Put the words on the picture',
-  chromeOn: 'The title, the caption and your credit line, over the board.',
+  chromeOn: 'Pick which of them below.',
   chromeOff: 'The board and nothing else. For dropping into your own slide, under your own title.',
+
+  /* Each one names what a coach would look at on the picture, not what the
+     renderer calls it. "Head" and "lockup" are our words for our own layout. */
+  partHead: 'The system’s name',
+  partHeadNote: 'Top left, with the phase count opposite it.',
+  partWords: `The ${PHASE.one}’s title and caption`,
+  partWordsNote: 'The words you wrote under this board.',
+  partCredit: 'Your name and club',
+  partCreditNote: 'Bottom left, with your note. The credit line off your shared boards.',
+  partLockup: 'Made with Total Football',
+  partLockupNote: 'Our mark, bottom right, beside your name.',
+  /* Shown in place of the note above once the coach has taken their own name
+     off. The policy, said plainly rather than enforced silently. */
+  partLockupTied: 'Off, because your name is off. Ours never goes on a board on its own.',
   date: 'Show the date',
   making: 'Drawing…',
   saving: 'Saving them one at a time — your browser will ask about multiple files.',

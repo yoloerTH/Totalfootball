@@ -87,10 +87,13 @@ import {
   type VideoOptions,
 } from './video'
 import {
+  CHROME_PARTS_ALL,
   imageSize,
   imagesSupported,
   resolveImageShape,
   resolveImageSize,
+  resolveParts,
+  type ChromeParts,
   type ImageFile,
   type ImageOptions,
 } from './image'
@@ -518,6 +521,21 @@ function phaseWords(tl: Timeline, system: System, rise: number): Words {
  * changed is only the manners of it: the mark instead of a second line of bold
  * type, the coach's own words held at full strength and ours set quietly beside
  * them at small-caps weight.
+ *
+ * ── AND IT DRAWS AS MUCH OF THAT AS IT IS ASKED FOR ──────────────────────────
+ *
+ * `parts` says which of the four groups go on. It always arrives as a whole
+ * `ChromeParts`: the callers run it through `resolveParts`, which fills in the
+ * defaults and applies the one rule the coach does not get a vote on — ours is
+ * never drawn without theirs. That argument is in ../image.ts, beside the type.
+ * The film passes all four; only the stills dialog has reason to ask for fewer.
+ *
+ * The layout does NOT reflow around a missing part, and that is deliberate. The
+ * head sits at the top and the credit at the foot; dropping either leaves the
+ * board where it was rather than sliding the other into the space. So a coach
+ * who turns the head off gets the picture they were already looking at with the
+ * words lifted off it, and a set of exports made at different settings still
+ * line up with one another.
  */
 function drawChrome(
   ctx: CanvasRenderingContext2D,
@@ -528,6 +546,7 @@ function drawChrome(
   mark: HTMLCanvasElement | null,
   showDate: boolean,
   p: BoardPalette,
+  parts: ChromeParts,
 ): void {
   const max = l.w - l.left * 2
 
@@ -537,25 +556,33 @@ function drawChrome(
   // ── top left: the standing head ────────────────────────────────────────────
 
   let y = l.top
-  ctx.fillStyle = p.goldDeep
-  glow(ctx, p, l.rule.h * 2, () => ctx.fillRect(l.left, y, l.rule.w, l.rule.h))
+  if (parts.head) {
+    ctx.fillStyle = p.goldDeep
+    glow(ctx, p, l.rule.h * 2, () => ctx.fillRect(l.left, y, l.rule.w, l.rule.h))
+  }
+  // Advanced whether or not the rule was drawn, so the phase's words below sit
+  // at the same height either way. See the note about not reflowing.
   y += l.rule.h + Math.round(l.eyebrowSize * 1.6)
 
   ctx.font = `800 ${l.eyebrowSize}px ${FACE}`
   ctx.fillStyle = p.inkSoft
 
-  const counter = system.acts.length > 1
+  // The phase count belongs to the head, not to the phase's own words: it says
+  // where you are in the system, which is the standing head's job.
+  const counter = parts.head && system.acts.length > 1
     ? `${pad2(words.index + 1)} / ${pad2(system.acts.length)}`
     : ''
   const counterW = counter ? trackedWidth(ctx, counter, l.track) : 0
 
-  const eyebrow = fitText(
-    ctx,
-    (system.title || 'A tactical system').toUpperCase(),
-    max - (counterW ? counterW + l.left : 0),
-    l.track,
-  )
-  glow(ctx, p, l.eyebrowSize, () => drawTracked(ctx, eyebrow, l.left, y, l.track))
+  if (parts.head) {
+    const eyebrow = fitText(
+      ctx,
+      (system.title || 'A tactical system').toUpperCase(),
+      max - (counterW ? counterW + l.left : 0),
+      l.track,
+    )
+    glow(ctx, p, l.eyebrowSize, () => drawTracked(ctx, eyebrow, l.left, y, l.track))
+  }
 
   // ── the phase's own words, which are the part that changes ─────────────────
 
@@ -568,7 +595,9 @@ function drawChrome(
     glow(ctx, p, l.eyebrowSize, () => drawTracked(ctx, counter, l.w - l.left - counterW, cy, l.track))
   }
 
-  const act = system.acts[words.index]
+  // An empty phase and a phase whose words are switched off draw identically,
+  // so there is one path through the wrapping below rather than two.
+  const act = parts.words ? system.acts[words.index] : { title: '', caption: '' }
   ctx.textAlign = 'left'
 
   if (act.title) {
@@ -613,14 +642,20 @@ function drawChrome(
   const lineTwo = base
   const lineOne = base - Math.round(l.microSize * 1.5)
 
-  ctx.fillStyle = p.inkSoft
-  glow(ctx, p, l.microSize, () =>
-    drawTracked(ctx, 'MADE WITH', lockLeft + (textW - madeW), lineOne, lockTrack))
-  ctx.fillStyle = p.ink
-  glow(ctx, p, l.microSize, () =>
-    drawTracked(ctx, 'TOTAL FOOTBALL', lockLeft + (textW - tfW), lineTwo, lockTrack))
+  // Measured above unconditionally, because the coach's line is sized against
+  // the room OURS would take whether or not ours is drawn — a credit that got
+  // wider when the lockup came off would make two exports of the same board
+  // set their title at two different sizes.
+  if (parts.lockup) {
+    ctx.fillStyle = p.inkSoft
+    glow(ctx, p, l.microSize, () =>
+      drawTracked(ctx, 'MADE WITH', lockLeft + (textW - madeW), lineOne, lockTrack))
+    ctx.fillStyle = p.ink
+    glow(ctx, p, l.microSize, () =>
+      drawTracked(ctx, 'TOTAL FOOTBALL', lockLeft + (textW - tfW), lineTwo, lockTrack))
+  }
 
-  if (mark) {
+  if (mark && parts.lockup) {
     // Centred on the two lines rather than sat on the baseline of the lower one.
     const top = lineOne - l.microSize
     const bottom = lineTwo + l.microSize * 0.12
@@ -639,18 +674,20 @@ function drawChrome(
   const under = [note, date].filter(Boolean).join(' · ')
   const theirMax = lockLeft - l.left - l.left * 0.8
 
-  ctx.textAlign = 'left'
-  ctx.font = `800 ${l.creditSize}px ${FACE}`
-  ctx.fillStyle = p.ink
-  const line = fitText(ctx, theirs || system.title || 'A tactical system', theirMax)
-  const lineY = under ? base - Math.round(l.noteSize * 1.55) : base
-  glow(ctx, p, l.creditSize, () => ctx.fillText(line, l.left, lineY))
+  if (parts.credit) {
+    ctx.textAlign = 'left'
+    ctx.font = `800 ${l.creditSize}px ${FACE}`
+    ctx.fillStyle = p.ink
+    const line = fitText(ctx, theirs || system.title || 'A tactical system', theirMax)
+    const lineY = under ? base - Math.round(l.noteSize * 1.55) : base
+    glow(ctx, p, l.creditSize, () => ctx.fillText(line, l.left, lineY))
 
-  if (under) {
-    ctx.font = `500 ${l.noteSize}px ${FACE}`
-    ctx.fillStyle = p.inkSoft
-    const text = fitText(ctx, under, theirMax)
-    glow(ctx, p, l.noteSize, () => ctx.fillText(text, l.left, base))
+    if (under) {
+      ctx.font = `500 ${l.noteSize}px ${FACE}`
+      ctx.fillStyle = p.inkSoft
+      const text = fitText(ctx, under, theirMax)
+      glow(ctx, p, l.noteSize, () => ctx.fillText(text, l.left, base))
+    }
   }
 
   // ── the film's own clock ───────────────────────────────────────────────────
@@ -895,6 +932,10 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
         mark,
         Boolean(opts.date),
         p,
+        // A film gets the whole chrome. The parts exist for a still going into
+        // somebody's own slide; a video travels furthest from the person who
+        // made it, which is the export that most needs to say whose it is.
+        CHROME_PARTS_ALL,
       )
 
       await source.add(i / fps, 1 / fps)
@@ -965,6 +1006,7 @@ export async function renderStills(
   const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
   const l = layout(frame)
   const chrome = opts.chrome !== false
+  const parts = resolveParts(opts.parts)
 
   /*
    * Which phases, sanitised rather than trusted. This is reachable from a
@@ -989,7 +1031,7 @@ export async function renderStills(
   await document.fonts.ready
 
   const p = resolveSurface(system.surface).palette
-  const mark = chrome ? await rasterMark(l.markSize, p.ink) : null
+  const mark = chrome && parts.lockup ? await rasterMark(l.markSize, p.ink) : null
 
   // A ball that could not be inlined becomes the drawn vector ball, rather than
   // an <image> pointing at a path the canvas will not follow. Same call as the
@@ -1031,6 +1073,7 @@ export async function renderStills(
         mark,
         Boolean(opts.date),
         p,
+        parts,
       )
     }
 

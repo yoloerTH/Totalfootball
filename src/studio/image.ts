@@ -116,6 +116,52 @@ export function imageSize(shape: ImageShape, size: ImageSize): { w: number; h: n
   return shape.upright ? { w: short, h: long } : { w: long, h: short }
 }
 
+/**
+ * ── WHAT GOES ON THE PICTURE, IN PARTS ───────────────────────────────────────
+ *
+ * `chrome` was one switch: the standing head, the phase's words, the credit
+ * line and our lockup, all on or all off. That is two answers to a question
+ * coaches keep asking a third of — a session plan wants the caption and not the
+ * system's name; a slide wants the board and the coach's own credit and nothing
+ * else; a picture for a group chat wants everything (user, 2026-08-27).
+ *
+ * So: four parts, each with a switch, and `chrome` still the master. Turning
+ * `chrome` off is the same answer it always was and does not need any of these.
+ *
+ * ── THE ONE RULE THAT IS NOT THE COACH'S TO SET ──────────────────────────────
+ *
+ * `lockup` cannot be on when `credit` is off. The watermark policy in
+ * ../viewer/CreditBar.tsx is that ours is never drawn without theirs — a corner
+ * logo alone on somebody else's work reads as a tax, and a credit line reads as
+ * authorship. Their name without our mark is fine and always has been; our mark
+ * without their name is the thing the policy exists to prevent. `resolveParts`
+ * enforces it so no caller has to remember, and so no future dialog can offer
+ * the combination by accident.
+ */
+export interface ChromeParts {
+  /** Top left: the gold rule, the system's name, the phase count opposite. */
+  head: boolean
+  /** Top left, under the head: this phase's own title and caption. */
+  words: boolean
+  /** Bottom left: their name, their club, their note and the date. */
+  credit: boolean
+  /** Bottom right: "Made with Total Football" and the mark. */
+  lockup: boolean
+}
+
+export const CHROME_PARTS_ALL: ChromeParts = {
+  head: true,
+  words: true,
+  credit: true,
+  lockup: true,
+}
+
+/** Fill in what was not asked about, and apply the watermark rule. */
+export function resolveParts(parts?: Partial<ChromeParts>): ChromeParts {
+  const p = { ...CHROME_PARTS_ALL, ...parts }
+  return { ...p, lockup: p.lockup && p.credit }
+}
+
 export interface ImageFile {
   blob: Blob
   filename: string
@@ -139,6 +185,13 @@ export interface ImageOptions {
    * two documents. That is a legitimate errand and this is how you ask for it.
    */
   chrome?: boolean
+  /**
+   * Which PARTS of the chrome, for a coach who wants some of it.
+   *
+   * Absent means all of them, which is what `chrome: true` has always meant.
+   * See `ChromeParts` below for why this is four switches and not one.
+   */
+  parts?: Partial<ChromeParts>
   /** Stamp the shared-on date into the credit line. See `VideoOptions.date`. */
   date?: boolean
   /**

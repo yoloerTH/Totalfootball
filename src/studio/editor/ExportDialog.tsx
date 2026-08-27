@@ -39,7 +39,9 @@ import {
   imagesSupported,
   resolveImageShape,
   resolveImageSize,
+  resolveParts,
   saveImages,
+  type ChromeParts,
   type ImageShape,
   type ImageSize,
 } from '../image'
@@ -71,6 +73,31 @@ export function ExportDialog({
    */
   const [which, setWhich] = useState<Which>('this')
   const [chrome, setChrome] = useState(true)
+  /*
+   * ── WHICH OF THE WORDS ───────────────────────────────────────────────────
+   *
+   * All on, which is what the single `chrome` switch used to mean and is still
+   * what most coaches want. `chrome` stays as the master: turning it off takes
+   * everything off in one press, which is the common shape of the "I am putting
+   * this in my own deck" errand and should not cost four presses.
+   *
+   * Held as the whole record rather than four booleans so the tie between the
+   * credit and our lockup can be applied in one place, by `resolveParts` — the
+   * same function the renderer runs its own options through, so what the dialog
+   * shows and what the PNG gets cannot disagree.
+   *
+   * WHAT THE COACH SET, AND WHAT THAT COMES TO, are two values and not one.
+   * `asked` is every switch as they left it; `parts` is that with the watermark
+   * rule applied. Folding the rule back into the state would mean taking your
+   * own name off dropped our mark — correct — and putting your name back on
+   * left our mark off, which nobody asked for and which reads as the dialog
+   * having forgotten. Deriving instead makes the tie a view of the choice
+   * rather than an edit to it.
+   */
+  const [asked, setAsked] = useState<ChromeParts>(() => resolveParts())
+  const parts = resolveParts(asked)
+  const setPart = (k: keyof ChromeParts, on: boolean) =>
+    setAsked((prev) => ({ ...prev, [k]: on }))
   const [date, setDate] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const [progress, setProgress] = useState(0)
@@ -113,6 +140,7 @@ export function ExportDialog({
         shape,
         size,
         chrome,
+        parts,
         date,
         phases: everything ? undefined : [actIndex],
         signal: controller.signal,
@@ -135,7 +163,7 @@ export function ExportDialog({
     } finally {
       abort.current = null
     }
-  }, [system, shape, size, chrome, date, everything, actIndex, onSaved])
+  }, [system, shape, size, chrome, parts, date, everything, actIndex, onSaved])
 
   const stop = useCallback(() => {
     abort.current?.abort()
@@ -186,7 +214,7 @@ export function ExportDialog({
                 {IMAGE_SHAPES.find((s) => s.id === shape)?.note}
               </p>
 
-              <div className={`mt-3 grid gap-3 ${multi ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <div className="mt-3 flex flex-col gap-3">
                 <Field label={EXPORT.size}>
                   <Segmented
                     label={EXPORT.size}
@@ -220,11 +248,50 @@ export function ExportDialog({
                 </p>
               </div>
 
-              {/* Only when there is a date to show, and only when the words are
-                  going on at all — it lives IN the credit line. */}
-              {chrome && system.credit?.sharedOn && (
-                <div className="mt-3 border-t border-ink-hair pt-2">
-                  <Toggle checked={date} onChange={setDate} label={EXPORT.date} />
+              {/*
+                ── AND WHICH OF THEM ──────────────────────────────────────────
+                Indented under the master and only there when it is on, so the
+                dialog reads as one question with a follow-up rather than five
+                switches of equal weight. Nothing here is reachable while the
+                words are off, which is why they are hidden and not greyed: four
+                dead rows would make the "no words" answer look like the broken
+                one.
+              */}
+              {chrome && (
+                <div className="mt-2 space-y-2 border-l-2 border-ink-hair pl-3">
+                  <Part
+                    on={parts.head}
+                    onChange={(v) => setPart('head', v)}
+                    label={EXPORT.partHead}
+                    note={EXPORT.partHeadNote}
+                  />
+                  <Part
+                    on={parts.words}
+                    onChange={(v) => setPart('words', v)}
+                    label={EXPORT.partWords}
+                    note={EXPORT.partWordsNote}
+                  />
+                  <Part
+                    on={parts.credit}
+                    onChange={(v) => setPart('credit', v)}
+                    label={EXPORT.partCredit}
+                    note={EXPORT.partCreditNote}
+                  />
+                  <Part
+                    on={parts.lockup}
+                    onChange={(v) => setPart('lockup', v)}
+                    disabled={!parts.credit}
+                    label={EXPORT.partLockup}
+                    note={parts.credit ? EXPORT.partLockupNote : EXPORT.partLockupTied}
+                  />
+
+                  {/* Only when there is a date to show, and only when the line
+                      it lives IN is going on. */}
+                  {parts.credit && system.credit?.sharedOn && (
+                    <div className="border-t border-ink-hair pt-2">
+                      <Toggle checked={date} onChange={setDate} label={EXPORT.date} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -296,5 +363,36 @@ export function ExportDialog({
         <p className="mt-2 text-[11px] leading-snug text-ink-faint">{EXPORT.pdfNote}</p>
       </>
     </Modal>
+  )
+}
+
+/**
+ * One switch and the line that says what it puts on the picture.
+ *
+ * `disabled` greys rather than hides, and it is the one place in this dialog
+ * that greys: the coach has not made a mistake, they have made a choice with a
+ * consequence, and the consequence is worth being able to read. The note under
+ * it changes to say so.
+ */
+function Part({
+  on,
+  onChange,
+  label,
+  note,
+  disabled = false,
+}: {
+  on: boolean
+  onChange: (v: boolean) => void
+  label: string
+  note: string
+  disabled?: boolean
+}) {
+  return (
+    <div>
+      <Toggle checked={on} onChange={onChange} label={label} disabled={disabled} />
+      <p className={`mt-0.5 text-[11px] leading-snug text-ink-faint ${disabled ? 'opacity-70' : ''}`}>
+        {note}
+      </p>
+    </div>
   )
 }

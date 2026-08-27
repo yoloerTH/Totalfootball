@@ -128,7 +128,18 @@ import { GEAR, GEAR_GROUPS, GEAR_SIZE_MAX, GEAR_SIZE_MIN, gearSize, resolveGear 
 import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
 import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
-import { readGuide, saveSystem, writeGuide, type GuideState } from '../storage'
+import {
+  readGuide,
+  readStripSize,
+  saveSystem,
+  writeGuide,
+  writeStripSize,
+  STRIP_HEIGHTS,
+  STRIP_LABELS,
+  STRIP_SIZES,
+  type GuideState,
+  type StripSize,
+} from '../storage'
 import { useCloudSync } from '../account/sync'
 import { loadProfile, withProfile, type Profile } from '../account/cloud'
 import { imageUrl } from '../account/images'
@@ -582,6 +593,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   // ── what the coach has been taught ─────────────────────────────────────────
   const [guide, setGuide] = useState<GuideState>(() => readGuide())
+  /*
+   * How tall the phase strip's thumbnails are. A view preference in its own
+   * corner of localStorage rather than in the guide, because it has to be
+   * writable on a locked board — see `readStripSize` in ../storage.ts.
+   */
+  const [stripSize, setStripSize] = useState<StripSize>(readStripSize)
   const [walkthrough, setWalkthrough] = useState(false)
   const [news, setNews] = useState(false)
   /**
@@ -3164,6 +3181,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * pair is unlabelled chevrons where a carousel would put them, and the
    * reordering pair says the word "Move".
    */
+  const stripHeight = STRIP_HEIGHTS[stripSize][stacked ? 'stacked' : 'wide']
+  /** What that height comes out as across, on this pitch. Decides the caption. */
+  const thumbWidth = stripHeight * aspect(view)
+
+  const cycleStrip = () => {
+    const next = STRIP_SIZES[(STRIP_SIZES.indexOf(stripSize) + 1) % STRIP_SIZES.length]
+    setStripSize(next)
+    writeStripSize(next)
+  }
+
   const phaseStrip = (
     <footer className="flex shrink-0 select-none items-center gap-2 border-t border-ink-hair bg-surface px-2 py-2 lg:gap-3 lg:px-4 lg:py-3">
       <Tip text={HINT.prevPhase} title={`Previous ${PHASE.one}`} side="top">
@@ -3186,7 +3213,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             className={`group relative shrink-0 overflow-hidden rounded-md border-2 bg-paper transition ${
               i === (timeline?.index ?? actIndex) ? 'border-gold' : 'border-ink-hair hover:border-ink-faint'
             }`}
-            style={{ width: stacked ? 72 : 96, aspectRatio: aspect(view) }}
+            /*
+             * HEIGHT, and the width follows the pitch's aspect.
+             *
+             * Sizing by width made the strip's height a function of the pitch
+             * view: about 62px on a landscape board and about 148px on the
+             * upright one, so the view that most needs vertical room for the
+             * board was the one the strip took most of it from (user,
+             * 2026-08-27). Fixing the height instead costs the same footer on
+             * every view, and the upright thumbnails simply get narrow — which
+             * is what an upright pitch looks like.
+             */
+            style={{ height: stripHeight, aspectRatio: aspect(view) }}
             title={`${PHASE.One} ${i + 1}${a.title ? `: ${a.title}` : ''}`}
           >
             {/* No system, so no camera: a thumbnail is for finding a phase by
@@ -3197,8 +3235,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               idp={`thumb-${a.id}`}
               photoHrefs={photoHrefs}
             />
-            <span className="absolute bottom-0 left-0 right-0 bg-ink/75 px-1 py-0.5 text-[10px] font-bold text-paper">
-              {i + 1}. {a.title}
+            {/*
+              The number always; the title only when there is width for a
+              readable amount of it.
+
+              It used to be `{i + 1}. {a.title}` unconstrained, which wrapped to
+              three or four lines and covered half the picture it was labelling
+              — and the picture is the whole reason a coach looks at this strip.
+              An upright thumbnail is about 50 points wide, where two truncated
+              words are worse than none: the `title` attribute and the line
+              under the board both carry the full text.
+            */}
+            <span className="absolute bottom-0 left-0 right-0 truncate bg-ink/75 px-1 py-0.5 text-[10px] font-bold leading-tight text-paper">
+              {i + 1}
+              {a.title && thumbWidth >= 96 ? `. ${a.title}` : ''}
             </span>
           </button>
         ))}
@@ -3219,6 +3269,31 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           aria-label={`Go to the next ${PHASE.one}`}
         >
           <Chevron dir="right" />
+        </Button>
+      </Tip>
+
+      {/*
+        How big the strip is, and it is OUTSIDE `inert`.
+
+        Changing it changes nothing about the system — it is the same decision
+        as scrolling — so it stays pressable on a locked board, and it is the
+        one control down here a stranger on a phone has as much use for as the
+        author does. One button that cycles rather than three that do not fit:
+        the strip's whole complaint is that it is taking room from the board,
+        and answering it with 70 points of segmented control would be a joke.
+      */}
+      <Tip
+        text="How tall the row of phases is. Smaller gives the board more room, which is worth having on the upright pitch. It is remembered for every board you open."
+        title="Strip size"
+        side="top"
+      >
+        <Button
+          onClick={cycleStrip}
+          className="!px-2"
+          aria-label={`The row of phases is ${STRIP_LABELS[stripSize].toLowerCase()}. Press to change it.`}
+        >
+          <StripGlyph size={stripSize} />
+          <span className="hidden lg:inline">{STRIP_LABELS[stripSize]}</span>
         </Button>
       </Tip>
 
@@ -3658,12 +3733,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
        * Pressing a piece adds one. It is not a mode — see `addGear` — so four
        * presses of the cone is four cones, which is what laying out a gate
        * actually is.
+       *
+       * AND THE BALLS DRAWER NOW HOLDS EVERY BALL. It used to be two anonymous
+       * ones under the heading "Loose balls", separate from the five
+       * photographed match balls in the panel above — a split with nothing
+       * behind it, since a ball is a ball (user, 2026-08-27). The one real
+       * distinction is what a ball is FOR, and it is stated below rather than
+       * enforced by keeping two catalogues.
        */}
       <Panel title="Training gear">
         <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
           Press a piece to put one on the board. It lands in the middle, already picked up — drag it where you want
           it, then use the panel on the right to size it or turn it. Gear belongs to this {PHASE.one}, and it moves
           between {PHASE.many} on Play exactly like a player does.
+        </p>
+        <p className="mb-2.5 text-[11px] leading-snug text-ink-faint">
+          <span className="font-bold text-ink-soft">Balls are in here too.</span> All of them, the same ones as
+          above. The ball you pick above is the one the move is about — it travels along the passes. These are balls
+          you PUT somewhere, as many as you like, and each one sizes and turns like any other piece.
         </p>
         <GearPicker
           onAdd={addGear}
@@ -4333,7 +4420,23 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             Every line you type is a line on the board. Drag the words to move them.
           </p>
 
-          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-ink-hair pt-3">
+          {/*
+           * ── EVERY CONTROL IN THIS PANEL GETS THE WHOLE COLUMN ─────────────
+           *
+           * Size, Weight, Aligned: all three were laid out two to a row, which
+           * in a 256pt panel is about 116pt each. Size has FIVE options and
+           * Weight has three whole words, so the two of them shared a row that
+           * could hold neither — XS S M L XL ran together and Regular · Bold ·
+           * Heavy overlapped into an unreadable smear (user, 2026-08-27).
+           *
+           * The arithmetic, once, so nobody pairs them up again: a `Segmented`
+           * spends 8pt of its own padding plus 3pt of gap per option, and a
+           * 12px bold label needs about 9pt a character. Five options need
+           * ~150pt; "Regular" alone needs ~55pt, so three of them need ~185pt.
+           * Neither goes in 116. One per row it is, and the panel is a column
+           * you scroll anyway.
+           */}
+          <div className="mt-3 border-t border-ink-hair pt-3">
             <Field label="Size">
               <Segmented
                 label="Size"
@@ -4392,7 +4495,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </p>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          {/* Aligned and Angle, one per row, for the reason set out above the
+              Size control. The slider was the worse half of that pairing: about
+              70 points of track and a readout beside it, which is not a control
+              anybody can set an angle with. */}
+          <div className="mt-3">
             <Field label="Aligned">
               <Segmented
                 label="Aligned"
@@ -4403,26 +4510,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 options={TEXT_ALIGNS.map((t) => ({ value: t.id, label: t.label }))}
               />
             </Field>
-            <Field label="Angle">
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min={-90}
-                  max={90}
-                  step={5}
-                  value={selectedText.angle ?? 0}
-                  onChange={(e) => patchText({ angle: Number(e.target.value) || undefined })}
-                  onPointerUp={seal}
-                  className="w-full accent-ink"
-                  aria-label="How far the writing is turned"
-                />
-                <span className="w-10 shrink-0 text-right text-[11px] font-bold tabular-nums text-ink-soft">
-                  {selectedText.angle ?? 0}°
-                </span>
-              </div>
-            </Field>
+            {/* The same `Slider` every other panel uses, rather than a bare
+                range input with a readout bolted to its side. Full width, and
+                the number sits over the track where the gear panel puts it. */}
+            <Slider
+              label="Angle"
+              min={-90}
+              max={90}
+              step={5}
+              value={selectedText.angle ?? 0}
+              onChange={(v) => patchText({ angle: v || undefined })}
+              onCommit={seal}
+              readout={`${selectedText.angle ?? 0}°`}
+            />
           </div>
-          <p className="-mt-1 text-[11px] leading-snug text-ink-faint">
+          {/* `mt-2`, not the `-mt-1` the other notes use: those follow a `Field`,
+              which carries its own bottom margin, and this one follows a
+              `Slider`, which does not. */}
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
             Turn it to write along a touchline or up a channel. Level reads best for everything else.
           </p>
 
@@ -4438,11 +4543,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         /*
          * ── SELECTED GEAR ────────────────────────────────────────────────
          *
-         * Three controls, and they are the three the coach asked for: how big,
-         * which way round, and which way it faces. Position is not among them
+         * Two controls: how big, and which way round. Position is not among them
          * because position is the drag — putting x and y in a panel as numbers
          * would be offering a worse way to do the thing the board already does
-         * better.
+         * better. A third, "Mirror it", was here and has gone; the note further
+         * down says why.
          *
          * The picture is at the top and it is the real asset rather than a
          * name, for the same reason the picker is pictures: on a phase with
@@ -4451,11 +4556,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
          */
         <Panel title="Selected equipment">
           <div className="mb-3 flex items-center gap-2.5">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-ink-hair bg-paper p-1">
+            <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-ink-hair bg-paper p-1">
+              {/* `max-h-full max-w-full`, for the reason set out on the same
+                  line of GearPicker in ./ui.tsx: `h-full` needs a definite box
+                  to resolve against and does not get one here, so a 1:4 asset
+                  took its width from the well and its height from itself and
+                  hung out of the bottom of the panel (user, 2026-08-27). */}
               <img
                 src={resolveGear(selectedGear.kind)?.thumb}
                 alt=""
-                className="h-full w-full object-contain"
+                className="max-h-full max-w-full object-contain"
               />
             </span>
             <span className="min-w-0">
@@ -4513,21 +4623,22 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </Tip>
           </div>
 
-          <Tip
-            text="Mirrors it left to right. Between this and the turn there is no way round a mini goal or a mannequin cannot be put."
-            title="Mirror it"
-            side="left"
-            block
-          >
-            <Toggle
-              checked={Boolean(selectedGear.flip)}
-              onChange={(on) => {
-                patchGear({ flip: on || undefined }, 'gear:flip')
-                seal()
-              }}
-              label="Mirror it"
-            />
-          </Tip>
+          {/*
+           * ── THERE IS NO "MIRROR IT" HERE ANY MORE ──────────────────────────
+           *
+           * There was, and it did nothing you could see on any piece in the
+           * catalogue (user, 2026-08-27). Not a bug in the transform — the flip
+           * in ../board/Overlays.tsx is a correct reflection about the piece's
+           * own middle — but a control with no subject: a cone, a ball, a
+           * hurdle, a ladder, a bosu, a mini goal, a mannequin and a pole are
+           * all bilaterally symmetric, so their reflection is the drawing they
+           * already were. What is left over is the turn, which reaches every
+           * orientation the artwork actually has.
+           *
+           * `flip` STAYS in the schema and stays honoured by the renderer, so a
+           * document saved by an older build still draws exactly as its author
+           * left it. What has gone is the offer to set it.
+           */}
 
           {/* Back to square. Only offered once it is not — a button that says
               "reset" on a piece nobody has touched is a control asking to be
@@ -4535,7 +4646,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           {(selectedGear.size ?? 1) !== 1 || selectedGear.angle || selectedGear.flip ? (
             <div className="mt-3">
               <Tip
-                text="Puts it back to its own size, square to the pitch and unmirrored. It stays exactly where it is."
+                text="Puts it back to its own size and square to the pitch. It stays exactly where it is."
                 title="Back to square"
               >
                 <Button
@@ -4922,6 +5033,24 @@ function ToolText({ id }: { id: ToolId }) {
         <span className="font-bold uppercase tracking-micro text-[9px]">When</span> {TOOL_DOC[id].when}
       </span>
     </>
+  )
+}
+
+/**
+ * Three thumbnails at the height the strip is currently set to.
+ *
+ * Draws the SETTING rather than the gesture. An up-down arrow would say that
+ * something changes; this says what the strip is now, which is the half a coach
+ * cannot otherwise read off a button.
+ */
+function StripGlyph({ size }: { size: StripSize }) {
+  const h = size === 'small' ? 4 : size === 'medium' ? 7 : 10
+  return (
+    <svg viewBox="0 0 16 12" className="h-4 w-4" aria-hidden="true">
+      {[1, 6, 11].map((x) => (
+        <rect key={x} x={x} y={11 - h} width="4" height={h} rx="1" fill="currentColor" />
+      ))}
+    </svg>
   )
 }
 
