@@ -26,6 +26,7 @@
  * the decoder never has to guess what it is holding.
  */
 
+import { db } from './account/client'
 import type { System } from './schema'
 
 /** `#s=<tag>.<payload>`. The tag says how the payload was packed. */
@@ -137,11 +138,27 @@ export interface Published {
  *
  * Throws on failure, deliberately: the caller falls back to `longUrl`, and a
  * silent null would make that decision impossible to see.
+ *
+ * ── IT SENDS THE SESSION, AND THE SERVER REQUIRES IT ─────────────────────────
+ *
+ * Publishing used to be unauthenticated, and since the share id travels in the
+ * public URL that meant anyone holding a link could POST it back with a
+ * document of their own and replace the board behind it. Reproduced against
+ * production on 2026-08-27; see the head of netlify/functions/share.mts.
+ *
+ * The token goes in an Authorization header rather than in the body, so it is
+ * never at risk of being written into the row alongside the document. Reading a
+ * share stays anonymous — `fetchShared` sends nothing, because a link that
+ * needed an account would not be a link.
  */
 export async function publishSystem(system: System, origin: string): Promise<Published> {
+  const { data } = (await db()?.auth.getSession()) ?? { data: { session: null } }
+  const token = data.session?.access_token
+  if (!token) throw new Error('Sign in to publish a board.')
+
   const res = await fetch('/api/share', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ id: system.shareId, doc: system }),
   })
   if (!res.ok) {
