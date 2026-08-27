@@ -508,10 +508,17 @@ export const EXPORT = {
   partWordsNote: 'The words you wrote under this board.',
   partCredit: 'Your name and club',
   partCreditNote: 'Bottom left, with your note. The credit line off your shared boards.',
+  /* Not a switch any more (user, 2026-08-28). A line under the three that are
+     the coach's, saying what is going on the picture regardless — because a
+     coach who finds our mark on an export they thought they had stripped bare
+     should have read it here first.
+
+     `partLockup`, `partLockupNote` and `partLockupTied` were the switch's own
+     words and are kept, unused, against the switch coming back. See
+     `resolveParts` in ../image.ts. */
+  partLockupAlways: 'Made with Total Football goes bottom right, beside your name.',
   partLockup: 'Made with Total Football',
   partLockupNote: 'Our mark, bottom right, beside your name.',
-  /* Shown in place of the note above once the coach has taken their own name
-     off. The policy, said plainly rather than enforced silently. */
   partLockupTied: 'Off, because your name is off. Ours never goes on a board on its own.',
   date: 'Show the date',
   making: 'Drawing…',

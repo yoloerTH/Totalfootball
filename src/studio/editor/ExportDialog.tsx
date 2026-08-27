@@ -265,7 +265,7 @@ export function ExportDialog({
               </p>
 
               {/* ABOVE the layout switches, because it is a different KIND of
-                  question. The four below are about what a picture looks like;
+                  question. The three below are about what a picture looks like;
                   this one is about what leaves the building with it. */}
               <div className="mt-3 border-t border-ink-hair pt-3">
                 <IdentityToggle
@@ -286,11 +286,11 @@ export function ExportDialog({
               {/*
                 ── AND WHICH OF THEM ──────────────────────────────────────────
                 Indented under the master and only there when it is on, so the
-                dialog reads as one question with a follow-up rather than five
+                dialog reads as one question with a follow-up rather than four
                 switches of equal weight. Nothing here is reachable while the
-                words are off, which is why they are hidden and not greyed: four
-                dead rows would make the "no words" answer look like the broken
-                one.
+                words are off, which is why they are hidden and not greyed:
+                three dead rows would make the "no words" answer look like the
+                broken one.
               */}
               {chrome && (
                 <div className="mt-2 space-y-2 border-l-2 border-ink-hair pl-3">
@@ -312,13 +312,15 @@ export function ExportDialog({
                     label={EXPORT.partCredit}
                     note={EXPORT.partCreditNote}
                   />
-                  <Part
-                    on={parts.lockup}
-                    onChange={(v) => setPart('lockup', v)}
-                    disabled={!parts.credit}
-                    label={EXPORT.partLockup}
-                    note={parts.credit ? EXPORT.partLockupNote : EXPORT.partLockupTied}
-                  />
+                  {/* OUR MARK HAS NO SWITCH. It is not shown here as a
+                      disabled row either: a greyed control is still a control,
+                      and a coach reading four rows where one can never be
+                      pressed spends the rest of the dialog wondering what they
+                      did wrong. It is stated once, plainly, below the three
+                      that are theirs. See `resolveParts` in ../image.ts. */}
+                  <p className="pt-1 text-[11px] leading-snug text-ink-faint">
+                    {EXPORT.partLockupAlways}
+                  </p>
 
                   {/* Only when there is a date to show, and only when the line
                       it lives IN is going on. */}

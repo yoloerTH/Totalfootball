@@ -345,12 +345,19 @@ Two decisions worth not relitigating:
    the public row behind a flag the viewer is trusted to honour. They were never
    sent. The long-URL fallback gets the same copy, which is the half that is
    easy to forget.
-2. **Our mark stays when their name goes.** `resolveParts` still refuses to draw
-   the lockup with `parts.credit` off, and that rule is untouched — but hiding
-   an identity does not turn that part off. The credit line falls back to the
-   system's own title, or "A tactical system", which is what the viewer has
-   always shown for an unsigned board. The alternative was a coach losing our
-   attribution on precisely the exports that travel furthest.
+2. **Our mark is always drawn, and has no switch.** `resolveParts` forces
+   `lockup: true` and ignores a caller that asks otherwise (user, 2026-08-28).
+   This reverses the old rule, which tied our lockup off whenever the credit was
+   off on the argument that a corner logo alone on somebody else's work reads as
+   a tax. That rule was defending against an empty left-hand side, and there is
+   no longer one: the credit line falls back to the system's own title, or to
+   "A tactical system", which is what the viewer has always shown for an
+   unsigned board. So there is always something of theirs for ours to sit beside.
+   The `lockup` field stays in `ChromeParts` and every drawing site still reads
+   it, so restoring the switch is a dialog change and nothing more.
+   One loophole, named rather than hidden: `chrome: false` is still "the board
+   and nothing else", mark included. That is the "under my own title in my own
+   deck" errand and it costs the head, the caption and the credit too.
 
 Also in `017`: `VideoOptions.parts`. A film used to be hardcoded to the whole
 chrome on the argument that it travels furthest and most needs to say whose it

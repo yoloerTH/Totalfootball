@@ -125,18 +125,37 @@ export function imageSize(shape: ImageShape, size: ImageSize): { w: number; h: n
  * system's name; a slide wants the board and the coach's own credit and nothing
  * else; a picture for a group chat wants everything (user, 2026-08-27).
  *
- * So: four parts, each with a switch, and `chrome` still the master. Turning
- * `chrome` off is the same answer it always was and does not need any of these.
+ * So: four parts, three of them with a switch, and `chrome` still the master.
+ * Turning `chrome` off is the same answer it always was and does not need any
+ * of these.
  *
- * ── THE ONE RULE THAT IS NOT THE COACH'S TO SET ──────────────────────────────
+ * ── THE ONE PART THAT IS NOT THE COACH'S TO SET ──────────────────────────────
  *
- * `lockup` cannot be on when `credit` is off. The watermark policy in
- * ../viewer/CreditBar.tsx is that ours is never drawn without theirs — a corner
- * logo alone on somebody else's work reads as a tax, and a credit line reads as
- * authorship. Their name without our mark is fine and always has been; our mark
- * without their name is the thing the policy exists to prevent. `resolveParts`
- * enforces it so no caller has to remember, and so no future dialog can offer
- * the combination by accident.
+ * `lockup` IS ALWAYS ON. It has no switch in any dialog and `resolveParts`
+ * forces it, so a caller that passes `lockup: false` is ignored rather than
+ * obeyed (user, 2026-08-28).
+ *
+ * This reverses a rule rather than adding one, and the old rule is worth
+ * recording because it was not silly. It was: ours is never drawn without
+ * theirs, because a corner logo alone on somebody else's work reads as a tax
+ * and a credit line reads as authorship. So `lockup` was tied off whenever
+ * `credit` was, and taking your own name off took our mark with it.
+ *
+ * What changed is that the credit line stopped being able to be EMPTY. It falls
+ * back to the system's own title, or to "A tactical system" — see
+ * `withoutIdentity` in ./schema.ts and the credit line in ./videoRender.ts — so
+ * the case the old rule was defending against, our mark floating alone over an
+ * otherwise unattributed board, is not a case any more. There is always a line
+ * on the left for ours to sit beside.
+ *
+ * THE FIELD STAYS. It is not folded into a constant, the renderers still read
+ * it, and every drawing site is still guarded by it, so putting the switch back
+ * is a dialog change and nothing more.
+ *
+ * One loophole, named rather than hidden: `chrome: false` draws the board and
+ * nothing else, mark included. That is not a way of removing the watermark, it
+ * is the "I am putting this under my own title in my own deck" errand, and it
+ * removes the head, the caption and the credit along with it.
  */
 export interface ChromeParts {
   /** Top left: the gold rule, the system's name, the phase count opposite. */
@@ -145,7 +164,13 @@ export interface ChromeParts {
   words: boolean
   /** Bottom left: their name, their club, their note and the date. */
   credit: boolean
-  /** Bottom right: "Made with Total Football" and the mark. */
+  /**
+   * Bottom right: "Made with Total Football" and the mark.
+   *
+   * ALWAYS TRUE out of `resolveParts`. Kept as a field, and kept read at every
+   * drawing site, so that restoring the switch is a change to a dialog rather
+   * than a change to four renderers. See the note above.
+   */
   lockup: boolean
 }
 
@@ -156,10 +181,16 @@ export const CHROME_PARTS_ALL: ChromeParts = {
   lockup: true,
 }
 
-/** Fill in what was not asked about, and apply the watermark rule. */
+/**
+ * Fill in what was not asked about, and force the lockup on.
+ *
+ * The forcing is here, in the one function every renderer and every dialog runs
+ * its options through, rather than in each of them. A caller cannot turn our
+ * mark off by not knowing the rule, and a new export route gets it for free.
+ */
 export function resolveParts(parts?: Partial<ChromeParts>): ChromeParts {
   const p = { ...CHROME_PARTS_ALL, ...parts }
-  return { ...p, lockup: p.lockup && p.credit }
+  return { ...p, lockup: true }
 }
 
 export interface ImageFile {
