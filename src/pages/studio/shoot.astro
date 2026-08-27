@@ -58,6 +58,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
   // the editor is worth deferring, and it is deferred below.
   import { PITCH_VIEWS, toUnits, viewBox as viewBoxOf } from '../../studio/board/pitch'
   import { NEWEST_NEWS_ID } from '../../data/whatsnew'
+  import { GUEST, scopedKey } from '../../studio/scope'
 
   declare global {
     interface Window {
@@ -90,8 +91,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
     guide?: Partial<GuideState>
   }
 
-  /** Must match GUIDE_KEY in ../../studio/storage.ts. */
-  const GUIDE_KEY = 'tf-studio:guide:v1'
+  /*
+   * Must match the bases in ../../studio/storage.ts, and must be SCOPED.
+   *
+   * Every studio key is namespaced by account now (../../studio/scope.ts), and
+   * this page signs nobody in — so the editor it mounts reads the GUEST scope,
+   * and seeding the bare key would write somewhere nothing ever looks. A shoot
+   * that silently stopped honouring `opts.guide` would film the walkthrough
+   * over every beat.
+   */
+  const GUIDE_KEY = scopedKey('tf-studio:guide:v1', GUEST)
+  const SYSTEMS_KEY = scopedKey('tf-studio:v1', GUEST)
 
   /** The live root, kept so a second beat can tear the first one down. */
   let root: import('react-dom/client').Root | null = null
@@ -144,7 +154,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
     }
     // Autosave writes the edited document under this id; clearing it stops one
     // beat's edits reaching the next through localStorage as well.
-    localStorage.removeItem('tf-studio:v1')
+    localStorage.removeItem(SYSTEMS_KEY)
 
     root = createRoot(host)
     root.render(createElement(StudioEditor, { systemId: 'shoot', initial: system }))

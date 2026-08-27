@@ -19,8 +19,20 @@
  */
 
 import { resolveViewId } from './board/pitch'
+import { clearScoped, scopedKey } from './scope'
 import type { System } from './schema'
 
+/**
+ * ── EVERY KEY BELOW IS A BASE, NOT A KEY ─────────────────────────────────────
+ *
+ * They are namespaced per signed-in account on the way to `localStorage` — see
+ * ./scope.ts for what went wrong when they were not. Nothing in this file may
+ * call `localStorage` with a bare base name again; that is the whole bug.
+ *
+ * The optional `who` on the read paths is not a convenience. `claimLocalSystems`
+ * has to reach the GUEST scope specifically, from inside an account, and that
+ * is the only legitimate reason to read a scope that is not the current one.
+ */
 const KEY = 'tf-studio:v1'
 
 /**
@@ -56,10 +68,10 @@ interface Store {
   last?: string
 }
 
-function read(): Store {
+function read(who?: string | null): Store {
   if (typeof localStorage === 'undefined') return { systems: {} }
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(scopedKey(KEY, who))
     if (!raw) return { systems: {} }
     const parsed = JSON.parse(raw) as Store
     // A hand-edited or half-written entry should cost one system, not the studio.
@@ -75,15 +87,15 @@ function read(): Store {
 function write(store: Store): void {
   if (typeof localStorage === 'undefined') return
   try {
-    localStorage.setItem(KEY, JSON.stringify(store))
+    localStorage.setItem(scopedKey(KEY), JSON.stringify(store))
   } catch {
     // Quota exceeded, or Safari private mode. Losing the autosave is survivable;
     // taking the editor down with an uncaught throw mid-drag is not.
   }
 }
 
-export function listSystems(): { id: string; system: System; updated: string }[] {
-  const store = read()
+export function listSystems(who?: string | null): { id: string; system: System; updated: string }[] {
+  const store = read(who)
   return Object.entries(store.systems)
     .map(([id, v]) => ({ id, ...v, system: migrate(v.system) }))
     .sort((a, b) => b.updated.localeCompare(a.updated))
@@ -106,6 +118,18 @@ export function deleteSystem(id: string): void {
   delete store.systems[id]
   if (store.last === id) delete store.last
   write(store)
+}
+
+/**
+ * Throw away one scope's systems wholesale.
+ *
+ * Exists for one caller: `claimLocalSystems` retiring the GUEST scope once its
+ * contents are safely in an account. Guest work that is left behind is work the
+ * NEXT account to sign in on this browser will claim, which is the leak this
+ * whole change is about.
+ */
+export function clearSystems(who?: string | null): void {
+  clearScoped(KEY, who)
 }
 
 export function lastOpened(): string | null {
@@ -231,7 +255,7 @@ const GUIDE_DEFAULTS: GuideState = {
 export function readGuide(): GuideState {
   if (typeof localStorage === 'undefined') return { ...GUIDE_DEFAULTS }
   try {
-    const raw = localStorage.getItem(GUIDE_KEY)
+    const raw = localStorage.getItem(scopedKey(GUIDE_KEY))
     if (!raw) return { ...GUIDE_DEFAULTS }
     // Spread over the defaults so a flag added in a later build reads as
     // "not done yet" rather than as undefined.
@@ -245,10 +269,192 @@ export function writeGuide(patch: Partial<GuideState>): GuideState {
   const next = { ...readGuide(), ...patch }
   if (typeof localStorage !== 'undefined') {
     try {
-      localStorage.setItem(GUIDE_KEY, JSON.stringify(next))
+      localStorage.setItem(scopedKey(GUIDE_KEY), JSON.stringify(next))
     } catch {
       // Same reasoning as the autosave: losing the teaching state is survivable.
     }
   }
+  sink?.({ guide: next })
   return next
+}
+
+/**
+ * ── HOW BIG THE PHASE STRIP IS ───────────────────────────────────────────────
+ *
+ * A view preference, and the only one down here that is NOT part of the guide.
+ *
+ * It is kept out of `GuideState` for one concrete reason: `markGuide` refuses
+ * to write on a locked board, because a stranger reading somebody else's system
+ * must not be marked as having been taught anything. That rule is right for
+ * teaching and wrong for furniture — a stranger on a phone looking at an
+ * upright board has exactly the same reason to want the strip smaller as its
+ * author does, and their choice should stick for the next link they open.
+ *
+ * WHY IT EXISTS AT ALL. The strip used to size its thumbnails by WIDTH, which
+ * meant its height was whatever the pitch's aspect made it: about 62px on a
+ * landscape board and about 148px on the upright one. So the pitch view that
+ * needs the most vertical room on screen was the one that got the least, and
+ * the board a coach is editing was squeezed into what the strip left (user,
+ * 2026-08-27). The strip is now sized by HEIGHT, so it costs the same whatever
+ * the pitch, and this is the coach's say in what that height is.
+ */
+export type StripSize = 'small' | 'medium' | 'large'
+
+/** Thumbnail height in CSS pixels, wide screen and stacked. */
+export const STRIP_HEIGHTS: Record<StripSize, { wide: number; stacked: number }> = {
+  small: { wide: 54, stacked: 46 },
+  medium: { wide: 76, stacked: 62 },
+  large: { wide: 104, stacked: 84 },
+}
+
+export const STRIP_LABELS: Record<StripSize, string> = {
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+}
+
+/** In the order the cycle button steps through them. */
+export const STRIP_SIZES: StripSize[] = ['small', 'medium', 'large']
+
+export const DEFAULT_STRIP_SIZE: StripSize = 'medium'
+
+const STRIP_KEY = 'tf.studio.strip'
+
+export function readStripSize(): StripSize {
+  if (typeof localStorage === 'undefined') return DEFAULT_STRIP_SIZE
+  try {
+    const raw = localStorage.getItem(scopedKey(STRIP_KEY))
+    return STRIP_SIZES.includes(raw as StripSize) ? (raw as StripSize) : DEFAULT_STRIP_SIZE
+  } catch {
+    return DEFAULT_STRIP_SIZE
+  }
+}
+
+export function writeStripSize(size: StripSize): void {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(scopedKey(STRIP_KEY), size)
+    } catch {
+      // Same bargain as the autosave: losing a view preference is survivable.
+    }
+  }
+  sink?.({ view: readView() })
+}
+
+// ── which drawers are open ──────────────────────────────────────────
+
+/**
+ * The rail's open/shut state, per section name.
+ *
+ * It lived in ./editor/ui.tsx, reading and writing a bare `tf.studio.sections`
+ * of its own. It is here now for one reason: this file is where key namespacing
+ * happens, and a second module touching `localStorage` directly is a second
+ * module that can forget to. See ./scope.ts.
+ */
+const SECTIONS_KEY = 'tf.studio.sections'
+
+export function readSections(): Record<string, boolean> {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(scopedKey(SECTIONS_KEY))
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, boolean>) : {}
+  } catch {
+    // A private window. The drawer still opens; it just will not be remembered.
+    return {}
+  }
+}
+
+export function writeSection(title: string, open: boolean): void {
+  const next = { ...readSections(), [title]: open }
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(next))
+    } catch {
+      // As above.
+    }
+  }
+  sink?.({ view: { strip: readStripSize(), sections: next } })
+}
+
+// ── the way up to the account ──────────────────────────────────────
+
+/**
+ * What a coach's preferences look like on the wire. See ./account/prefs.ts.
+ */
+export interface Prefs {
+  guide: GuideState
+  view: ViewPrefs
+}
+
+export interface ViewPrefs {
+  strip: StripSize
+  sections: Record<string, boolean>
+}
+
+export function readView(): ViewPrefs {
+  return { strip: readStripSize(), sections: readSections() }
+}
+
+/**
+ * Which preferences this browser has actually written for the current account.
+ *
+ * Hydration needs it to answer one question honestly: on a device a coach has
+ * used before, THEIR last choice here wins; on a device they have never opened,
+ * there is no choice to defend and the account's copy should simply arrive. A
+ * default is indistinguishable from a decision without this — read the strip
+ * size on a fresh machine and it says 'medium' either way. See ./account/prefs.ts.
+ */
+export function hasStored(): { guide: boolean; strip: boolean; sections: boolean } {
+  const has = (base: string) => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem(scopedKey(base)) !== null
+    } catch {
+      return false
+    }
+  }
+  return { guide: has(GUIDE_KEY), strip: has(STRIP_KEY), sections: has(SECTIONS_KEY) }
+}
+
+/**
+ * ── WHY A SINK AND NOT AN IMPORT ─────────────────────────────────────────────
+ *
+ * The preferences above now mirror to Supabase so they follow a coach to their
+ * next machine, and the module that does that (./account/prefs.ts) already
+ * imports this one — ./account/cloud.ts does too. Importing it back from here
+ * is a cycle, and a cycle in a module that runs inside a `useState` initialiser
+ * is a half-initialised export at exactly the wrong moment.
+ *
+ * So the account layer registers itself, and this file stays the bottom of the
+ * stack: it knows how to persist locally and knows nothing about who is signed
+ * in. With nothing registered — the shoot page, a signed-out render — the local
+ * write is the whole story, which is what it was before any of this.
+ */
+type PrefsSink = (patch: { guide?: GuideState; view?: ViewPrefs }) => void
+
+let sink: PrefsSink | null = null
+
+export function setPrefsSink(fn: PrefsSink | null): void {
+  sink = fn
+}
+
+/**
+ * Overwrite local preferences wholesale, WITHOUT sending them back up.
+ *
+ * For hydration only: the merged answer has just come down from the server, and
+ * echoing it straight back would be a write loop between two tabs.
+ */
+export function applyPrefs(prefs: Partial<Prefs>): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    if (prefs.guide) {
+      localStorage.setItem(scopedKey(GUIDE_KEY), JSON.stringify(prefs.guide))
+    }
+    if (prefs.view) {
+      localStorage.setItem(scopedKey(STRIP_KEY), prefs.view.strip)
+      localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(prefs.view.sections))
+    }
+  } catch {
+    // Same bargain as everywhere else in this file.
+  }
 }

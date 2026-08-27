@@ -36,6 +36,7 @@ import { STUDIO_EVENTS, track } from '../track'
 import { TEMPLATES, type Template } from '../templates'
 import { resolveAct } from '../tween'
 import { Mark } from '../viewer/Mark'
+import { hydratePrefs } from './prefs'
 import { useSession, signOut } from './session'
 import { loadProfile } from './cloud'
 import { profileCompletion, shouldNudge, type Completion } from './completion'
@@ -84,6 +85,12 @@ export default function Portal() {
   }, [status])
 
   const refresh = useCallback(async (owner: string, claim: boolean) => {
+    // Before the claim and before the nudge: the cadence in ./completion.ts
+    // reads counters that may only exist on the account, and asking a coach to
+    // finish their profile for the fourth time because this laptop had never
+    // heard of the first three is the exact failure the cadence is there to
+    // prevent. See ./prefs.ts.
+    await hydratePrefs(owner)
     if (claim) {
       const n = await claimLocalSystems(owner)
       if (n) setClaimed(n)

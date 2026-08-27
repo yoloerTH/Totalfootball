@@ -19,7 +19,8 @@
 import { darken, readableText } from '../board/palette'
 import type { System, TeamStyle } from '../schema'
 import type { ProfileLink, Visibility } from './identity'
-import { listSystems, migrate } from '../storage'
+import { clearSystems, listSystems, migrate } from '../storage'
+import { GUEST } from '../scope'
 import { db } from './client'
 
 export interface CloudSystem {
@@ -95,19 +96,49 @@ export async function deleteCloudSystem(id: string): Promise<boolean> {
  * Local ids are preserved rather than reissued, which is what the composite
  * primary key in 005 is for.
  *
+ * ── IT READS THE GUEST SCOPE, AND ONLY THE GUEST SCOPE ───────────────────────
+ *
+ * THIS IS THE FUNCTION THAT LEAKED. It used to call a bare `listSystems()`,
+ * which read one browser-global key that every account shared. So a second
+ * coach signing in on a machine the first had used found the first one's boards
+ * sitting in "their" local store — and the `select('id')` above is RLS-filtered
+ * to the NEW owner, so every one of those boards came back as unknown and was
+ * upserted into an account that had nothing to do with them, credit line, club
+ * and kit colours included (user, 2026-08-27).
+ *
+ * A claim is now a statement about ownerless work, so it names the scope that
+ * holds ownerless work. Signing in cannot reach another account's namespace,
+ * because it does not ask for it.
+ *
+ * ── AND IT RETIRES THE SCOPE IT CLAIMED ──────────────────────────────────────
+ *
+ * Cleared on success, including the no-op case where everything was already
+ * known. Guest work left in place is work the NEXT account to sign in on this
+ * browser would claim in turn, which is the same leak wearing a different hat.
+ * The cloud copy is authoritative from here and ../editor/StudioMount.tsx falls
+ * through to it, so nothing is lost by letting the local guest copy go.
+ *
  * Returns how many were newly claimed, so the portal can say so once.
  */
 export async function claimLocalSystems(owner: string): Promise<number> {
   const supabase = db()
   if (!supabase) return 0
 
-  const local = listSystems()
+  const local = listSystems(GUEST)
   if (local.length === 0) return 0
 
-  const { data: existing } = await supabase.from(TABLE).select('id')
+  const { data: existing, error: readError } = await supabase.from(TABLE).select('id')
+  // A failed read must not be mistaken for an empty account: claiming against
+  // an empty `known` set is safe (ignoreDuplicates), but CLEARING the guest
+  // scope on the back of a request that never landed is not.
+  if (readError) return 0
+
   const known = new Set((existing ?? []).map((r) => r.id as string))
   const fresh = local.filter((l) => !known.has(l.id))
-  if (fresh.length === 0) return 0
+  if (fresh.length === 0) {
+    clearSystems(GUEST)
+    return 0
+  }
 
   const { error } = await supabase
     .from(TABLE)
@@ -115,7 +146,9 @@ export async function claimLocalSystems(owner: string): Promise<number> {
       fresh.map((l) => ({ id: l.id, owner, doc: l.system })),
       { onConflict: 'owner,id', ignoreDuplicates: true },
     )
-  return error ? 0 : fresh.length
+  if (error) return 0
+  clearSystems(GUEST)
+  return fresh.length
 }
 
 // ── the profile ──────────────────────────────────────────────────────────────

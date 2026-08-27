@@ -43,11 +43,12 @@ import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, loadSystem, newSystemId } from '../storage'
 import { creditOnly, loadCloudSystem, loadProfile, withProfile } from '../account/cloud'
+import { hydratePrefs } from '../account/prefs'
 import { useSession } from '../account/session'
 import type { System } from '../schema'
 
 export default function StudioMount() {
-  const { status } = useSession()
+  const { status, user } = useSession()
   const [state, setState] = useState<{ id: string; initial: System } | null>(null)
 
   /*
@@ -71,7 +72,7 @@ export default function StudioMount() {
 
   useEffect(() => {
     // Hold until we know whether there is an account to ask. See above.
-    if (status !== 'in') return
+    if (status !== 'in' || !user) return
 
     let live = true
     const params = new URLSearchParams(window.location.search)
@@ -86,6 +87,24 @@ export default function StudioMount() {
      * even when the coach arrived with one in the address bar.
      */
     const open = async (): Promise<{ id: string; initial: System; copied: boolean }> => {
+      /*
+       * ── FIRST, AND ABOVE THE `?t=` BRANCH THAT RETURNS EARLY ───────────────
+       *
+       * Preferences down from the account BEFORE the editor exists.
+       *
+       * `StudioEditor` reads the guide in a `useState` initialiser, so anything
+       * that arrives after it mounts arrives too late to be state, and shows up
+       * as a walkthrough opening over a board a coach was already working on.
+       * This is the one place that can wait for it: nothing is on screen yet
+       * but "Opening the board…". See ../account/prefs.ts.
+       *
+       * It has to be the FIRST line of this function rather than a line near
+       * the id, because the template branch below returns without ever
+       * reaching that far — and a coach starting from a worked example is
+       * exactly the coach most likely to be new here.
+       */
+      await hydratePrefs(user.id)
+
       /*
        * "Open one of ours."
        *
@@ -157,7 +176,7 @@ export default function StudioMount() {
     return () => {
       live = false
     }
-  }, [status])
+  }, [status, user])
 
   if (!state) {
     return (

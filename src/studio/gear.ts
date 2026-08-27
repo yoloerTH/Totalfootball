@@ -17,11 +17,21 @@
  * visual register as the players it is being laid out around. The rule is
  * consistency with the counter and the ball, not fidelity to a catalogue.
  *
- * `w` is the piece's width at 1× and `aspect` is its own width ÷ height, so the
- * height falls out of the asset rather than being a second number to keep in
- * step. Both come from scripts/gear-assets.mjs, which trims each source to its
- * own alpha bounds and prints the ratio — re-run it after replacing an asset,
- * or a cone will draw squashed.
+ * `aspect` is the asset's own width ÷ height, from scripts/gear-assets.mjs,
+ * which trims each source to its alpha bounds and prints the ratio — re-run it
+ * after replacing an asset, or a cone will draw squashed. The other dimension
+ * is given ONCE and the second falls out of the aspect, so the two can never
+ * drift: `w` for a piece that lies on the grass, `h` for one that stands up.
+ *
+ * ── WHY A STANDING PIECE IS SIZED BY ITS HEIGHT ──────────────────────────────
+ *
+ * A mannequin's asset is 83 × 320 — an aspect of 0.26. Giving that piece a
+ * width of 2m made it 7.7m TALL, a mannequin nearly twice as tall as a player
+ * counter is wide, and the pole and the inflatable defender were the same
+ * (user, 2026-08-27). The number a coach can reason about on a narrow object is
+ * its height, not its width, so the three standing pieces declare `h` and let
+ * the width follow. The scale to hold them to is the mini goal: 7m for a real
+ * 3m goal, so about 2.3× life size, which puts a 1.8m mannequin at 4.2m.
  *
  * ── THE EXPORT CATCH ─────────────────────────────────────────────────────────
  *
@@ -40,6 +50,13 @@ export interface GearPiece {
   group: GearGroupId
   /** Width on the board at 1×, in metres. See the note above. */
   w: number
+  /**
+   * Height on the board at 1×, in metres, for a piece that STANDS UP.
+   *
+   * Optional and mutually exclusive with `w` in practice: when it is set it
+   * wins and the width comes off the aspect. See the header.
+   */
+  h?: number
   /** The asset's own width ÷ height, from scripts/gear-assets.mjs. */
   aspect: number
   /** Board asset, 320px on its long edge. */
@@ -60,13 +77,26 @@ export const GEAR_GROUPS: { id: GearGroupId; label: string }[] = [
   { id: 'markers', label: 'Cones and markers' },
   { id: 'agility', label: 'Hurdles and ladders' },
   { id: 'targets', label: 'Goals and mannequins' },
-  { id: 'balls', label: 'Loose balls' },
+  { id: 'balls', label: 'Balls' },
   { id: 'strength', label: 'Strength and balance' },
 ]
 
 const asset = (id: string) => ({
   src: `/studio/gear/${id}.png`,
   thumb: `/studio/gear/thumb/${id}.webp`,
+})
+
+/**
+ * A match ball, borrowed into the gear catalogue.
+ *
+ * The SAME files ../balls.ts serves — trimmed to the ball's alpha bounds and
+ * padded back to a square, which is why they are all `aspect: 1`. Pointing at
+ * the originals rather than copying them into `gear/` is the point: replace
+ * a ball once and it changes in the picker, on the grass and in every export.
+ */
+const ball = (id: string) => ({
+  src: `/studio/balls/${id}.png`,
+  thumb: `/studio/balls/thumb/${id}.webp`,
 })
 
 export const GEAR: GearPiece[] = [
@@ -82,15 +112,30 @@ export const GEAR: GearPiece[] = [
 
   // ── targets ──────────────────────────────────────────────────────────────
   { id: 'mini-goal', name: 'Mini goal', group: 'targets', w: 7, aspect: 2.663, ...asset('mini-goal') },
-  { id: 'dummy-mannequin', name: 'Mannequin', group: 'targets', w: 2, aspect: 0.26, ...asset('dummy-mannequin') },
-  { id: 'dummy-inflatable', name: 'Inflatable defender', group: 'targets', w: 2, aspect: 0.278, ...asset('dummy-inflatable') },
-  { id: 'pole', name: 'Training pole', group: 'targets', w: 1.6, aspect: 0.262, ...asset('pole') },
+  // The three that stand up. Sized by HEIGHT — see the header for why, and
+  // for the mini goal above them, which is the scale they are held to.
+  { id: 'dummy-mannequin', name: 'Mannequin', group: 'targets', w: 0, h: 4.2, aspect: 0.26, ...asset('dummy-mannequin') },
+  { id: 'dummy-inflatable', name: 'Inflatable defender', group: 'targets', w: 0, h: 4.3, aspect: 0.278, ...asset('dummy-inflatable') },
+  { id: 'pole', name: 'Training pole', group: 'targets', w: 0, h: 4, aspect: 0.262, ...asset('pole') },
 
   // ── balls ────────────────────────────────────────────────────────────────
-  // Not the MATCH ball. That one is a single object per system, it is the thing
-  // the move is about, and it is chosen in the panel above this one. These are
-  // spare balls lying on the grass at the start of a drill, and there can be
-  // as many of them as the drill needs.
+  //
+  // ONE VOCABULARY OF BALLS, not two. The drawer used to be called "Loose
+  // balls" and held two anonymous ones, while the five photographed match balls
+  // lived in a picker of their own — which meant a coach who wanted a Trionda
+  // lying on the grass beside the Trionda being passed could not have one
+  // (user, 2026-08-27). A ball is a ball; every one of them is here.
+  //
+  // What the MATCH ball still is: the single object per system that the move is
+  // about, the one that travels along the passes, chosen in the panel above.
+  // These are balls a coach PUTS somewhere — spares in a rondo, a rack beside a
+  // finishing station — and there can be as many of them as the drill needs.
+  // Every one takes the size and turn controls, like any other piece of gear.
+  { id: 'ball-trionda', name: 'Trionda', group: 'balls', w: 2.4, aspect: 1, ...ball('trionda') },
+  { id: 'ball-al-rihla', name: 'Al Rihla', group: 'balls', w: 2.4, aspect: 1, ...ball('al-rihla') },
+  { id: 'ball-brazuca', name: 'Brazuca', group: 'balls', w: 2.4, aspect: 1, ...ball('brazuca') },
+  { id: 'ball-jabulani', name: 'Jabulani', group: 'balls', w: 2.4, aspect: 1, ...ball('jabulani') },
+  { id: 'ball-telstar', name: 'Telstar', group: 'balls', w: 2.4, aspect: 1, ...ball('telstar') },
   { id: 'ball-spare', name: 'Spare ball', group: 'balls', w: 2.4, aspect: 1.001, ...asset('ball-spare') },
   { id: 'ball-training', name: 'Training ball', group: 'balls', w: 2.4, aspect: 1.004, ...asset('ball-training') },
 
@@ -119,9 +164,19 @@ export function resolveGear(kind: string): GearPiece | null {
   return GEAR_BY_ID.get(kind) ?? null
 }
 
-/** How wide and tall a placed piece draws, in metres, at its own scale. */
+/**
+ * How wide and tall a placed piece draws, in metres, at its own scale.
+ *
+ * Whichever dimension the piece declares is the one multiplied; the other is
+ * derived from the aspect, so a piece can never be given two numbers that
+ * disagree with its own artwork.
+ */
 export function gearSize(piece: GearPiece, size?: number): { w: number; h: number } {
   const s = size && size > 0 ? size : 1
+  if (piece.h) {
+    const h = piece.h * s
+    return { w: h * piece.aspect, h }
+  }
   const w = piece.w * s
   return { w, h: w / piece.aspect }
 }

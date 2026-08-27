@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react'
 import type React from 'react'
 import type { BoardPalette } from '../board/surfaces'
+import { readSections, writeSection } from '../storage'
 
 /**
  * A drawer in the left rail.
@@ -40,21 +41,16 @@ import type { BoardPalette } from '../board/surfaces'
  * In `localStorage`, per section, keyed by name. A coach who works with
  * Equipment open and Camera shut wants that on Tuesday as well, and re-shutting
  * four drawers on every page load is a tax on the person who bothered to tidy.
- * Stored under one key so clearing it is one line. It fails soft in a private
- * window, where reading it throws: the defaults are good, and a rail that
- * refuses to render because a browser will not remember a boolean is worse than
- * a rail that forgets.
+ * It fails soft in a private window, where reading it throws: the defaults are
+ * good, and a rail that refuses to render because a browser will not remember a
+ * boolean is worse than a rail that forgets.
+ *
+ * The key itself moved to ../storage.ts, which is where every studio key now
+ * lives so that every one of them gets namespaced by account. This module used
+ * to hold its own `tf.studio.sections`, and a second account signing in on the
+ * same browser inherited the first one's open drawers along with everything
+ * else (user, 2026-08-27). See ../scope.ts.
  */
-const OPEN_KEY = 'tf.studio.sections'
-
-function readOpen(): Record<string, boolean> {
-  try {
-    const raw = localStorage.getItem(OPEN_KEY)
-    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
-  } catch {
-    return {}
-  }
-}
 
 export function Section({
   title,
@@ -77,19 +73,14 @@ export function Section({
   // rendering this on the server, and a first paint that disagreed with the
   // stored state would flash every drawer open before shutting them.
   useEffect(() => {
-    const stored = readOpen()[title]
+    const stored = readSections()[title]
     if (typeof stored === 'boolean') setOpen(stored)
   }, [title])
 
   const toggle = () => {
     const next = !open
     setOpen(next)
-    try {
-      localStorage.setItem(OPEN_KEY, JSON.stringify({ ...readOpen(), [title]: next }))
-    } catch {
-      // A private window. The drawer still opens; it just will not be
-      // remembered, which is the right thing to lose.
-    }
+    writeSection(title, next)
   }
 
   return (
@@ -293,6 +284,17 @@ export function Segmented<T extends string>({
   label: string
 }) {
   return (
+    /*
+     * `min-w-0` on the buttons and `whitespace-nowrap` on the label.
+     *
+     * Without the first, `flex-1` will not shrink a button below the width of
+     * its own word, so a three-option control in a 256px panel — Left · Centre ·
+     * Right — pushed itself wider than the panel and the last option wrapped
+     * out from under the other two (user, 2026-08-27). Without the second, they
+     * shrink by breaking the words instead, which is not better. Together they
+     * mean the padding gives way first, and a control that still cannot fit is
+     * one to lay out down the panel rather than across it.
+     */
     <div className="flex gap-1 rounded-lg bg-paper p-1" role="tablist" aria-label={label}>
       {options.map((o) => (
         <button
@@ -301,7 +303,7 @@ export function Segmented<T extends string>({
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-md px-2 py-1.5 text-xs font-bold transition-colors ${
+          className={`min-w-0 flex-1 whitespace-nowrap rounded-md px-1.5 py-1.5 text-xs font-bold transition-colors ${
             value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-ink-soft'
           }`}
         >
@@ -808,11 +810,18 @@ export function GearPicker({
                 aria-label={`Add ${it.name}`}
                 className="group flex h-14 w-14 items-center justify-center rounded-lg border border-ink-hair bg-paper p-1.5 transition hover:border-gold hover:bg-surface"
               >
+                {/* `max-h-full max-w-full` and NOT `h-full w-full`. The second
+                    pair only contains a picture whose box has a definite height
+                    to resolve 100% against; in this flex well the mannequin,
+                    the pole and the inflatable defender — all about 1:4 —
+                    took their width from it and their height from the asset,
+                    and grew straight out of the bottom (user, 2026-08-27).
+                    A max-constraint needs no definite box to work. */}
                 <img
                   src={it.thumb}
                   alt=""
                   loading="lazy"
-                  className="h-full w-full object-contain transition-transform group-hover:scale-110"
+                  className="max-h-full max-w-full object-contain transition-transform group-hover:scale-110"
                 />
               </button>
             ))}

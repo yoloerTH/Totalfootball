@@ -18,6 +18,8 @@
 import { useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { accountsEnabled, db } from './client'
+import { setOwner } from '../scope'
+import { stopPrefs } from './prefs'
 
 export type SessionStatus = 'unknown' | 'in' | 'out'
 
@@ -43,6 +45,17 @@ export function useSession(): SessionState {
     let live = true
     const settle = (session: Session | null) => {
       if (!live) return
+      /*
+       * BEFORE the setState, and outside the `live` guard's spirit on purpose.
+       *
+       * This is the line that tells ../storage.ts whose keys to read. Every
+       * consumer of those keys is gated behind `status === 'in'`, so setting the
+       * owner first means no component can ever render against the previous
+       * account's namespace — which is what a new coach signing in on a browser
+       * that had already been used got instead of a welcome walkthrough
+       * (user, 2026-08-27). See ../scope.ts.
+       */
+      setOwner(session?.user.id ?? null)
       setState({ status: session ? 'in' : 'out', session, user: session?.user ?? null })
     }
 
@@ -154,6 +167,21 @@ export async function signUpWithPassword(
   return { ok: true, checkEmail: !data.session }
 }
 
+/**
+ * Sign out, and stop this browser reading as the coach who just left.
+ *
+ * `onAuthStateChange` would clear the owner marker a moment later anyway, but
+ * both call sites follow this with `window.location.replace`, and a navigation
+ * that beats the event leaves the marker set — so the next account to sign in
+ * on this machine would spend its first render inside a stranger's namespace.
+ * Clearing it here makes that ordering irrelevant.
+ *
+ * The departing coach's namespaced keys are LEFT ALONE. They are unreachable
+ * from any other account now, and signing back in should find your work where
+ * you left it rather than an empty studio. See ../scope.ts.
+ */
 export async function signOut(): Promise<void> {
   await db()?.auth.signOut()
+  stopPrefs()
+  setOwner(null)
 }

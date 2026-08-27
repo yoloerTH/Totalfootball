@@ -542,6 +542,53 @@ service-role key stays server-side forever.
 
 ---
 
+## 3g. Preferences belong to the coach, not to the browser
+
+`src/studio/scope.ts`, `src/studio/account/prefs.ts`,
+`supabase/014_studio_prefs.sql`.
+
+**The bug, so nobody reintroduces it.** Every studio key in `localStorage` was
+global to the browser: `tf-studio:v1` (the systems), `tf-studio:guide:v1` (the
+guidance state), `tf.studio.sections`, `tf.studio.strip`. On 2026-08-27 a brand
+new account signed in on a browser that had already been used and got the
+previous coach's state — no welcome walkthrough, no what's-new panel, their last
+board reopened with somebody else's name and kit on it.
+
+The board leak was the worse half and ran the other way. `claimLocalSystems`
+read that same global key, and the `select('id')` it diffs against is
+RLS-filtered to the **new** owner — so the previous coach's boards came back as
+unclaimed and were upserted into a stranger's account permanently.
+
+RLS was never involved. `005` held; nothing crossed the server boundary.
+
+**The three rules that came out of it:**
+
+1. **No module calls `localStorage` with a bare studio key.** `storage.ts` owns
+   every one of them and namespaces it `::<user id>` via `scope.ts`. `ui.tsx`
+   used to keep its own `tf.studio.sections`; that is why it does not any more.
+2. **A claim reads the `GUEST` scope and only the `GUEST` scope**, and clears it
+   on success. Claiming is a statement about ownerless work, so it names the
+   place ownerless work lives.
+3. **Sign-out clears the owner marker, not the namespace.** Signing back in
+   should find your work; another account must not be able to name it.
+
+**`studio_prefs` is the second half.** One private row per account, `authenticated`
+only, anon revoked — deliberately *not* columns on `studio_profiles`, which `012`
+says in capitals has a public SELECT policy and must hold nothing private.
+Preferences follow a coach to their next machine, and a new account is provably
+clean because the server has no row for it.
+
+Writes go through the `studio_prefs_merge` RPC and never through a PATCH. It is
+one round trip that reads, creates and merges, so two open tabs cannot lose each
+other's updates to a read-modify-write; and `jsonb_merge_deep` means a drawer
+opened on the laptop survives a drawer opened on the desktop. Latches (`seen`,
+`drew`, `wins`) are merged client-side before they are sent, in `latchGuide` —
+every field of `GuideState` is monotone, which is why none of this needs clocks.
+
+`tf_theme` is deliberately NOT in any of this. It is a device preference shared
+with the whole marketing site, like the OS dark-mode setting, and it belongs to
+the screen rather than to the account.
+
 ## 6. Gotchas — every one of these was a real bug, found by looking
 
 **If the studio renders but nothing responds, it is the Vite cache.**
