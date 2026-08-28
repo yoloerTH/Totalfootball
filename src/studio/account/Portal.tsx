@@ -187,13 +187,31 @@ export default function Portal() {
   useEffect(() => {
     if (status !== 'in' || load === 'working' || !user) return
     let live = true
-    // Through the shared store (./profile.ts), so this is the same single read
-    // the editor and the settings page use rather than a fourth request for one
-    // row. A 'none' or an 'error' both land as null here, and both mean the
-    // same thing to a prompt: say nothing.
-    void hydrateProfile(user.id).then(({ profile }) => {
-      if (!live || !profile) return
-      const completion = profileCompletion(profile)
+    /*
+     * Through the shared store (./profile.ts), so this is the same single read
+     * the editor and the settings page use rather than a fourth request for one
+     * row.
+     *
+     * 'NONE' AND 'ERROR' ARE NOT THE SAME ANSWER, and reading them as one was
+     * why neither the count nor the prompt ever appeared for the coach they
+     * were written for (user, 2026-08-28). Both arrive here with a null
+     * `profile`, so testing the row was testing the wrong thing:
+     *
+     *   'error' -> we could not ask. Nothing is known, so say nothing: a count
+     *              of seven guessed off a failed fetch is a lie on a link.
+     *   'none'  -> we asked, and this account has never saved a profile. That
+     *              is not an absence of information, it is the fullest answer
+     *              the question has — every step is unfinished — and it is
+     *              exactly the state a brand new account is in. `Settings.tsx`
+     *              has always read it that way; this had not.
+     *
+     * So 'none' becomes EMPTY_PROFILE and goes through the same arithmetic as a
+     * real row, which is honest, because a row of empty strings and no row at
+     * all describe the identical coach.
+     */
+    void hydrateProfile(user.id).then(({ status: read, profile }) => {
+      if (!live || read === 'loading' || read === 'error') return
+      const completion = profileCompletion(profile ?? EMPTY_PROFILE)
       setCompletion(completion)
       // The oldest thing on the shelf, as a timestamp. `updated` is an ISO
       // string off the row; an unparseable one becomes 0, which reads as "no
