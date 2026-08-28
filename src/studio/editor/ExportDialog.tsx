@@ -69,6 +69,7 @@ export function ExportDialog({
   onIdentity,
   /** True while `identity` is still the account default and not a choice. */
   identityIsDefault,
+  unsigned,
   onSaved,
   onClose,
 }: {
@@ -77,6 +78,8 @@ export function ExportDialog({
   identity: boolean
   onIdentity: (next: boolean) => void
   identityIsDefault: boolean
+  /** The system carries no name or club. See ./IdentityToggle.tsx. */
+  unsigned: boolean
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
   onClose: () => void
@@ -269,6 +272,7 @@ export function ExportDialog({
                   this one is about what leaves the building with it. */}
               <div className="mt-3 border-t border-ink-hair pt-3">
                 <IdentityToggle
+                  unsigned={unsigned}
                   on={identity}
                   onChange={onIdentity}
                   what="this picture and the printout"

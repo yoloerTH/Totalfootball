@@ -75,9 +75,20 @@ interface Props {
   side?: Side
   /** Wrapper display. Selects and text fields need `block` to keep their width. */
   block?: boolean
+  /**
+   * An address for the help panel, if this control is one somebody might ask
+   * for by name. It becomes `data-help` on the wrapper, and ./guide.ts targets
+   * it by that string.
+   *
+   * OPTIONAL, and most tips will never set it. Panels and drawers get theirs
+   * for free from their own headings (./ui.tsx); this is for the controls that
+   * are neither — the buttons along the top bar and the strip under the board,
+   * which have no heading to be addressed by.
+   */
+  help?: string
 }
 
-export function Tip({ text, title, children, side = 'right', block = false }: Props) {
+export function Tip({ text, title, children, side = 'right', block = false, help }: Props) {
   const anchorRef = useRef<HTMLSpanElement>(null)
   const bubbleRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -114,6 +125,7 @@ export function Tip({ text, title, children, side = 'right', block = false }: Pr
   return (
     <span
       ref={anchorRef}
+      data-help={help}
       className={block ? 'block' : 'inline-flex'}
       onPointerEnter={(e) => e.pointerType !== 'touch' && show()}
       onPointerLeave={hide}

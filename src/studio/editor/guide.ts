@@ -93,7 +93,7 @@ export const WALKTHROUGH: WalkStep[] = [
     title: 'It saves itself',
     body: [
       'Every change is kept on this computer as you make it. You can close the tab and come back to it.',
-      'The step-by-step list on the right walks you through your first system. You can reopen this guide any time from the ? button at the top.',
+      'The step-by-step list on the right walks you through your first system. And if you ever cannot find something, press ? at the top and type what you are after: it will take you to it.',
     ],
   },
 ]
@@ -259,7 +259,7 @@ export const HINT = {
   video: 'Saves the whole thing as a video file you can post. Made here on your machine, so nothing is uploaded.',
   export:
     'Saves a picture of any phase, or a PDF with one phase a page. For a slide, a session plan, or a printout to take out to the grass.',
-  help: 'Reopen the welcome guide.',
+  help: 'Ask the studio anything: type what you are trying to do and it takes you to the control that does it. The welcome guide is in there too.',
   news: 'Everything that has been added to the studio, newest first. It opens on its own when there is something on it you have not seen.',
 
   undo: 'Takes back the last thing you changed. Nothing you do here is permanent: move things, try it, take it back.',
@@ -565,6 +565,19 @@ export const IDENTITY = {
   /* Shown under the switch when the coach has not set a default. Points at the
      setting rather than making them find it. */
   fromSettings: 'Your default, from your settings.',
+  /*
+   * The switch is ON and there is nothing to put on it.
+   *
+   * The one moment in the studio where an unfinished profile has a visible,
+   * immediate cost, which is the only moment it is fair to raise it. A coach
+   * about to hand a film to their assistant is not being nagged about a form —
+   * they are being told, at the last second it is still free to fix, that the
+   * film is going out with nobody's name on it. Nothing is blocked: the word is
+   * "goes out", not "cannot go out".
+   */
+  unsigned: (what: string) =>
+    `There is no name on this system yet, so ${what} goes out unsigned.`,
+  unsignedCta: 'Add your name',
 } as const
 
 export const NEWS = {
@@ -754,3 +767,495 @@ export const SMALL = {
   /** Shown once they are in on a small screen. The one tip that actually helps. */
   phoneTip: 'On a phone, pick the upright pitch: it is the view the videos use for this shape of screen.',
 } as const
+
+// ── the help panel ───────────────────────────────────────────────────────────
+
+/**
+ * The names on the six drawers in the left rail.
+ *
+ * Here rather than inline in StudioEditor.tsx because the help panel has to be
+ * able to OPEN one. A drawer unmounts its contents when it is shut (../ui.tsx),
+ * so "show me the camera control" cannot be a query for something in the DOM —
+ * the control is not there until the drawer holding it is open. The panel opens
+ * the drawer by name, waits for the control to mount, and then rings it, and
+ * the name it opens by has to be the same string the drawer renders under.
+ *
+ * It is also the localStorage key `Section` remembers itself by, so these
+ * strings are load-bearing twice over and must not be edited casually.
+ */
+export const DRAWER = {
+  board: 'The board',
+  teams: 'Teams and kit',
+  equipment: 'Equipment',
+  phase: `On this ${PHASE.one}`,
+  film: 'The film',
+  system: 'This system',
+} as const
+
+export type HelpGroupId = 'board' | 'marks' | 'phases' | 'kit' | 'share' | 'new'
+
+export interface HelpGroup {
+  id: HelpGroupId
+  label: string
+  /** One line under the heading, so a group is chosen rather than guessed. */
+  blurb: string
+}
+
+/**
+ * Six groups, in the order a system gets built.
+ *
+ * The order is the point. Somebody who opens this panel without a word in mind
+ * is lost, and a list that runs board → marks → phases → kit → sharing is a
+ * description of the job as well as a menu. What's new is last because it is
+ * the only group that is not about doing something.
+ */
+export const HELP_GROUPS: HelpGroup[] = [
+  { id: 'board', label: 'The board', blurb: 'The pitch, what it is drawn on, and how the film is shot.' },
+  { id: 'marks', label: 'Marks', blurb: 'Passes, runs, blocks, shaded areas and writing.' },
+  { id: 'phases', label: 'Phases', blurb: `Building the move out of ${PHASE.many}, and how fast it runs.` },
+  { id: 'kit', label: 'Kit and squad', blurb: 'Your colours, your crest, your players and your name.' },
+  { id: 'share', label: 'Sharing', blurb: 'The link, the video file, the pictures and the PDF.' },
+  { id: 'new', label: 'What is new', blurb: 'Everything added lately, and the tour of the basics.' },
+]
+
+export interface HelpTarget {
+  /** The drawer that owns it, by its heading. Opened before anything is rung. */
+  drawer?: string
+  /** The `data-help` value on the thing to ring. */
+  anchor: string
+  /** What to call it while the ring is up. A coach's word, not a selector. */
+  name: string
+}
+
+export interface HelpTopic {
+  id: string
+  group: HelpGroupId
+  /** The heading, and the first thing searched. */
+  label: string
+  /**
+   * The words a coach would type looking for this.
+   *
+   * WRITE THE WORDS THEY HAVE, NOT THE ONES WE USE. A coach hunting for the
+   * dashed line types "run" and "off the ball", never "arrow kind". A coach who
+   * wants their badge on the board types "badge" and "logo" long before
+   * "crest". Every wrong guess here is a coach who concludes the studio cannot
+   * do the thing it has done since March.
+   *
+   * The label is searched separately, so there is no need to repeat it.
+   */
+  terms: string[]
+  /** The answer. Reuses the constants above wherever one already says it. */
+  body: string[]
+  /** Where the control is, if it is a control. */
+  target?: HelpTarget
+  /** Instead of a target: something the panel can do. */
+  action?: 'walkthrough' | 'news' | 'settings'
+  /**
+   * Where to send somebody when the target is not on the board to be rung.
+   *
+   * A few controls in the rail only exist once the account has something to put
+   * in them: the Your club panel is not drawn at all until a kit or a crest has
+   * been saved, because a panel offering to apply nothing is worse than no
+   * panel. So a coach asking "how do I get my badge on the board" — which is
+   * exactly the coach who has not saved one — asks the one question the rail
+   * cannot answer by pointing.
+   *
+   * Without this they got a shrug. With it they get the page that fixes the
+   * reason the control was missing, which is the answer they were owed. It is
+   * only ever reached when the anchor genuinely is not there: a coach who HAS
+   * saved a crest still gets the ring, in the rail, where they will find it
+   * again unaided next month.
+   */
+  fallback?: 'settings'
+}
+
+/**
+ * The five arrow tools, straight out of TOOL_DOC.
+ *
+ * Generated rather than transcribed, because the copy for a pass already exists
+ * and a second copy of it is a second copy to keep true. Only the search terms
+ * are new, and they are the half TOOL_DOC does not have.
+ */
+const ARROW_TERMS: Record<(typeof ARROW_TOOL_IDS)[number], string[]> = {
+  pass: ['ball', 'played', 'give', 'lay off', 'through ball', 'line', 'arrow', 'combination'],
+  run: ['off the ball', 'overlap', 'underlap', 'in behind', 'dashed', 'movement', 'third man'],
+  carry: ['dribble', 'drive', 'travel', 'take on', 'squiggle', 'step in', 'on the ball'],
+  press: ['pressure', 'closing down', 'press trigger', 'hunt', 'out of possession', 'jump'],
+  switch: ['long ball', 'cross field', 'diagonal', 'change the point', 'far side', 'wide'],
+}
+
+const TOOL_TOPICS: HelpTopic[] = ARROW_TOOL_IDS.map((id) => ({
+  id: `tool-${id}`,
+  group: 'marks' as const,
+  label: TOOL_DOC[id].label,
+  terms: ARROW_TERMS[id],
+  body: [TOOL_DOC[id].what, TOOL_DOC[id].when, TOOL_DOC[id].drag],
+  target: { anchor: `tool:${id}`, name: `the ${TOOL_DOC[id].label} tool` },
+}))
+
+/**
+ * Everything the ? button can find, in browse order within each group.
+ *
+ * THE RULE FOR ADDING ONE: it needs a place to send somebody. A topic with no
+ * `target` and no `action` is an article, and an article in a tool is a thing
+ * nobody reads. If a change is worth explaining and has no control, it is a
+ * what's-new entry (../../data/whatsnew.ts), not a topic.
+ */
+export const HELP_TOPICS: HelpTopic[] = [
+  // ── the board ──────────────────────────────────────────────────────────────
+  {
+    id: 'pitch-view',
+    group: 'board',
+    label: 'How much of the pitch you see',
+    terms: ['pitch', 'view', 'half', 'third', 'final third', 'box', 'penalty area', 'full pitch', 'upright', 'zoom out', 'wider', 'closer'],
+    body: [HINT.pitchView, HINT.pitchFit],
+    target: { drawer: DRAWER.board, anchor: 'Pitch view', name: 'Pitch view' },
+  },
+  {
+    id: 'surface',
+    group: 'board',
+    label: 'What the pitch is drawn on',
+    terms: ['grass', 'surface', 'green', 'paper', 'broadcast', 'night', 'stripes', 'mown', 'background', 'skin', 'look'],
+    body: [HINT.surface],
+    target: { drawer: DRAWER.board, anchor: 'Pitch', name: 'Pitch' },
+  },
+  {
+    id: 'camera',
+    group: 'board',
+    label: 'How the film is shot',
+    terms: ['camera', 'follow the ball', 'fixed', 'zoom', 'framing', 'frame it yourself', 'shot', 'close up', 'pan'],
+    body: [HINT.camera],
+    target: { drawer: DRAWER.board, anchor: 'Camera', name: 'Camera' },
+  },
+  {
+    id: 'theme',
+    group: 'board',
+    label: 'Day, night and the room you work in',
+    terms: ['dark', 'light', 'theme', 'night', 'day', 'lights', 'bright', 'colour of the panels'],
+    body: [HINT.theme],
+    target: { anchor: 'theme', name: 'the theme button' },
+  },
+  {
+    id: 'zoom',
+    group: 'board',
+    label: 'Working in close on the board',
+    terms: ['zoom', 'magnify', 'bigger', 'closer', 'scale', 'fiddly', 'precise', 'reset zoom'],
+    body: [
+      'Zoom in when the counters are too close together to pick the one you want. It magnifies the board you are working on and changes nothing about the system: not the pitch view, not the film, not what anybody you send it to sees.',
+      'Drag with the middle of a phase at any zoom and the counter stays under your cursor. Reset zoom puts it back.',
+    ],
+    target: { anchor: 'zoom', name: 'the zoom controls' },
+  },
+
+  // ── marks ──────────────────────────────────────────────────────────────────
+  ...TOOL_TOPICS,
+  {
+    id: 'arrow-moves-them',
+    group: 'marks',
+    label: 'Let an arrow make the move for you',
+    terms: ['move the player', 'automatic', 'follow', 'attached', 'ends', 'stick', 'joined', 'does it for me'],
+    body: [
+      `Draw a pass or a run from one counter to another and the arrow holds on to both of them. Add a ${PHASE.one} and the player it is about walks the arrow: you do not have to drag them there yourself.`,
+      ARROW_MARK.adjust,
+      ARROW_MARK.bow,
+    ],
+    target: { anchor: 'tool:pass', name: 'the Pass tool' },
+  },
+  {
+    id: 'arrow-strength',
+    group: 'marks',
+    label: 'Reveal your marks one at a time',
+    terms: ['hide', 'fade', 'strength', 'invisible', 'build up', 'step by step', 'reveal', 'too busy'],
+    body: [ARROW_MARK.strength, HINT.hideArrows],
+    target: { anchor: `Marks on this ${PHASE.one}`, name: 'the list of marks' },
+  },
+  {
+    id: 'block',
+    group: 'marks',
+    label: 'Shading a block',
+    terms: ['block', 'back four', 'low block', 'defensive line', 'unit', 'screen', 'shape', 'space behind', 'protect'],
+    body: [HINT.block, HINT.blockDraw, HINT.blockClose],
+    target: { drawer: DRAWER.phase, anchor: 'Shaded areas', name: 'Shaded areas' },
+  },
+  {
+    id: 'areas',
+    group: 'marks',
+    label: 'Shading a space',
+    terms: ['zone', 'danger area', 'highlight', 'shade', 'space', 'pocket', 'cutback', 'channel', 'trap', 'colour', 'box'],
+    body: [TOOL_DOC.danger.when, HINT.bandTone, HINT.bandShape],
+    target: { drawer: DRAWER.phase, anchor: 'Shaded areas', name: 'Shaded areas' },
+  },
+  {
+    id: 'text',
+    group: 'marks',
+    label: 'Writing on the grass',
+    terms: ['text', 'write', 'words', 'label', 'title', 'caption on the board', 'type', 'annotate', 'note'],
+    body: [TOOL_DOC.text.what, TOOL_DOC.text.when, TOOL_DOC.text.drag],
+    target: { drawer: DRAWER.phase, anchor: 'Writing', name: 'Writing' },
+  },
+  {
+    id: 'gear',
+    group: 'marks',
+    label: 'Cones, mannequins and training gear',
+    terms: ['cone', 'ladder', 'mannequin', 'hurdle', 'pole', 'mini goal', 'session', 'drill', 'equipment', 'gate', 'rondo'],
+    body: [
+      'Nineteen pieces of training kit you can put on the grass: marker cones, hurdles, an agility ladder, mini goals, mannequins, poles and the strength gear.',
+      `Press one to put it down, drag it where you want it, then size it and turn it. Gear belongs to a ${PHASE.one} and moves between ${PHASE.many} on Play, so widening a gate is something you show rather than cut to.`,
+    ],
+    target: { drawer: DRAWER.equipment, anchor: 'Training gear', name: 'Training gear' },
+  },
+  {
+    id: 'balls',
+    group: 'marks',
+    label: 'The match ball, and having more than one',
+    terms: ['ball', 'match ball', 'telstar', 'trionda', 'several balls', 'more balls', 'rondo', 'station', 'era'],
+    body: [HINT.ball, HINT.addBall],
+    target: { drawer: DRAWER.equipment, anchor: 'Match ball', name: 'Match ball' },
+  },
+  {
+    id: 'delete-mark',
+    group: 'marks',
+    label: 'Taking something off',
+    terms: ['delete', 'remove', 'undo', 'rubber', 'erase', 'get rid', 'clear', 'mistake'],
+    body: [HINT.marks, HINT.deleteMark, HINT.undo],
+    target: { anchor: `Marks on this ${PHASE.one}`, name: 'the list of marks' },
+  },
+
+  // ── phases ─────────────────────────────────────────────────────────────────
+  {
+    id: 'add-phase',
+    group: 'phases',
+    label: 'Making it move',
+    terms: ['animate', 'movement', 'moving', 'animation', 'next', 'second board', 'slide', 'step', 'nothing moves'],
+    body: [
+      `You never draw the movement. You build the same board twice and we work the animation out from the difference.`,
+      HINT.addPhase,
+      HINT.play,
+    ],
+    target: { anchor: 'addPhase', name: `the Add ${PHASE.one} button` },
+  },
+  {
+    id: 'reorder-phase',
+    group: 'phases',
+    label: `Reordering and copying ${PHASE.many}`,
+    terms: ['reorder', 'move earlier', 'move later', 'swap', 'duplicate', 'copy', 'wrong order', 'rearrange'],
+    body: [HINT.movePhaseBack, HINT.copyPhase, HINT.deletePhase],
+    target: { anchor: 'phaseStrip', name: `the strip of ${PHASE.many}` },
+  },
+  {
+    id: 'pace',
+    group: 'phases',
+    label: 'How fast it runs',
+    terms: ['speed', 'slow', 'quick', 'timing', 'duration', 'length', 'hold', 'too fast', 'seconds', 'pace'],
+    body: [HINT.pace, PACE.moveEven],
+    target: { drawer: DRAWER.film, anchor: 'Pace', name: 'Pace' },
+  },
+  {
+    id: 'phase-words',
+    group: 'phases',
+    label: `Titles, captions and notes on a ${PHASE.one}`,
+    terms: ['title', 'caption', 'notes', 'description', 'coaching points', 'explain', 'words under the board'],
+    body: [HINT.phaseTitle, HINT.phaseCaption, HINT.phaseNotes],
+    target: { anchor: 'phaseWords', name: `the ${PHASE.one} title` },
+  },
+  {
+    id: 'play',
+    group: 'phases',
+    label: 'Watching it back',
+    terms: ['play', 'preview', 'watch', 'run it', 'see it move', 'test'],
+    body: [HINT.play, HINT.stop],
+    target: { anchor: 'play', name: 'Play' },
+  },
+
+  // ── kit and squad ──────────────────────────────────────────────────────────
+  {
+    id: 'my-kit',
+    group: 'kit',
+    label: 'Putting your own kit on the board',
+    terms: ['kit', 'colours', 'shirt', 'strip', 'my club', 'our colours', 'house colours', 'change colour'],
+    body: [
+      HINT.colourUs,
+      'Use my kit brings the colours you saved in Personal settings onto a board you have already started. House colours puts it back to the studio green.',
+    ],
+    target: { drawer: DRAWER.teams, anchor: 'Your club', name: 'Your club' },
+    // The panel is only drawn once a kit is saved. See `fallback` above.
+    fallback: 'settings',
+  },
+  {
+    id: 'crest',
+    group: 'kit',
+    label: 'Your crest on the board',
+    terms: ['crest', 'badge', 'logo', 'club badge', 'emblem', 'branding', 'corner'],
+    body: [
+      'Your crest sits in the corner of the board, and travels with it into share links, PDFs and films. Upload it once in Personal settings and Show my crest turns it on for a system.',
+    ],
+    target: { drawer: DRAWER.teams, anchor: 'Your club', name: 'Your club' },
+    fallback: 'settings',
+  },
+  {
+    id: 'shapes',
+    group: 'kit',
+    label: 'Formations, and the opposition',
+    terms: ['formation', 'shape', '4-3-3', 'line up', 'eleven', 'opposition', 'them', 'against', 'other team'],
+    body: [HINT.formationUs, HINT.opposition, HINT.keepShape],
+    target: { drawer: DRAWER.teams, anchor: 'Our shape', name: 'Our shape' },
+  },
+  {
+    id: 'counters',
+    group: 'kit',
+    label: 'Names, numbers and faces on the counters',
+    terms: ['name', 'number', 'position', 'photo', 'picture', 'headshot', 'face', 'squad', 'players', 'label'],
+    body: [HINT.labels, HINT.namePlace, HINT.photoPlace],
+    target: { drawer: DRAWER.teams, anchor: 'Counters', name: 'Counters' },
+  },
+  {
+    id: 'squad-list',
+    group: 'kit',
+    label: 'Typing your squad in once',
+    terms: ['squad', 'my players', 'team sheet', 'roster', 'names once', 'photographs', 'faces'],
+    body: [
+      'Type your players once in Personal settings and a counter can then take a name, a number and a face in one press instead of three fields.',
+      'Everything there is yours alone: a board you share carries the names you put on it and never the photographs, which stay in your account.',
+    ],
+    action: 'settings',
+  },
+  {
+    id: 'signing',
+    group: 'kit',
+    label: 'Putting your name on your work',
+    terms: ['my name', 'credit', 'signature', 'who made this', 'author', 'anonymous', 'byline', 'presenter'],
+    body: [
+      'Your name and your club sign every board you share, every page you print and every film you export. Without them a system you send to your assistant arrives anonymous.',
+      'Both are set once, in Personal settings, and every system you make afterwards carries them.',
+    ],
+    action: 'settings',
+  },
+
+  // ── sharing ────────────────────────────────────────────────────────────────
+  {
+    id: 'share-link',
+    group: 'share',
+    label: 'Sending it to someone',
+    terms: ['share', 'link', 'send', 'url', 'whatsapp', 'assistant', 'players', 'phone', 'show someone'],
+    body: [HINT.share],
+    target: { anchor: 'share', name: 'Share' },
+  },
+  {
+    id: 'video',
+    group: 'share',
+    label: 'Getting a video file',
+    terms: ['video', 'mp4', 'film', 'post', 'instagram', 'tiktok', 'youtube', 'download', 'export video', 'render'],
+    body: [HINT.video],
+    target: { anchor: 'video', name: 'Video' },
+  },
+  {
+    id: 'export',
+    group: 'share',
+    label: 'Pictures and a PDF',
+    terms: ['pdf', 'print', 'picture', 'image', 'png', 'slide', 'session plan', 'printout', 'paper', 'deck'],
+    body: [HINT.export],
+    target: { anchor: 'export', name: 'Images and PDF' },
+  },
+  {
+    id: 'saving',
+    group: 'share',
+    label: 'Where your work is kept',
+    terms: ['save', 'saved', 'lost', 'autosave', 'close the tab', 'come back', 'my systems', 'shelf', 'account'],
+    body: [
+      'Every change is kept as you make it, on the machine you are working on. You can close the tab and come back to it.',
+      'Signed in, your systems are on your account as well, so the shelf you see is the same on any computer you sign in to.',
+    ],
+    target: { anchor: 'title', name: 'the name of this system' },
+  },
+
+  // ── what is new ────────────────────────────────────────────────────────────
+  {
+    id: 'whats-new',
+    group: 'new',
+    label: 'Everything added lately',
+    terms: ['new', 'changed', 'update', 'changelog', 'latest', 'recently', 'what is new'],
+    body: [HINT.news],
+    action: 'news',
+  },
+  {
+    id: 'walkthrough',
+    group: 'new',
+    label: 'Show me round again',
+    terms: ['tour', 'guide', 'walkthrough', 'start', 'beginner', 'first time', 'basics', 'lost', 'how does this work'],
+    body: [
+      'The five screens you were shown the first time: the board, how a move is built, what the marks are for, Play, and where your work is kept.',
+    ],
+    action: 'walkthrough',
+  },
+]
+
+// ── searching it ─────────────────────────────────────────────────────────────
+
+const NOISE = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'can', 'do', 'does', 'for', 'from',
+  'how', 'i', 'in', 'is', 'it', 'its', 'me', 'my', 'of', 'on', 'or', 'the',
+  'this', 'to', 'what', 'where', 'with', 'you', 'your',
+])
+
+/**
+ * Words worth matching on, out of whatever somebody typed.
+ *
+ * The noise list is not an optimisation. A coach types "how do i make it move",
+ * and without this the query is six words of which four match nearly every
+ * topic in the file, so the ranking is decided by "how" and "do" rather than by
+ * "move" and the right answer comes fourth. Strip them and one word is left,
+ * which is the word they meant.
+ *
+ * If EVERY word is noise the query is handed back whole rather than emptied —
+ * somebody who typed only "how" gets a weak result, which beats a blank panel.
+ */
+export function queryWords(query: string): string[] {
+  const all = query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  const kept = all.filter((w) => !NOISE.has(w))
+  return kept.length ? kept : all
+}
+
+/**
+ * How well one topic answers one query. 0 means it does not.
+ *
+ * EVERY WORD HAS TO LAND SOMEWHERE. "arrow colour" must not return every topic
+ * that mentions an arrow, because a coach who typed two words has told us both
+ * of them matter — an OR here turns a narrowing query into a widening one,
+ * which is the failure people mean when they say a search box is useless.
+ *
+ * Weighting is by where the word was found, which is a rough proxy for what the
+ * topic is ABOUT: a heading is the subject, a search term is a synonym for the
+ * subject, and the body is merely somewhere the word appears. Prefixes count so
+ * that "press" finds "pressing" and "colour" finds "colours".
+ */
+export function topicScore(topic: HelpTopic, words: string[]): number {
+  if (!words.length) return 0
+  const label = topic.label.toLowerCase()
+  const terms = topic.terms.join(' ').toLowerCase()
+  const body = topic.body.join(' ').toLowerCase()
+  let total = 0
+  for (const word of words) {
+    const hit = label.includes(word) ? 6 : terms.includes(word) ? 4 : body.includes(word) ? 1 : 0
+    if (!hit) return 0
+    total += hit
+  }
+  return total
+}
+
+/** The topics that answer a query, best first. Empty query, empty result. */
+export function searchTopics(query: string): HelpTopic[] {
+  const words = queryWords(query)
+  if (!words.length) return []
+  return HELP_TOPICS.map((topic) => ({ topic, score: topicScore(topic, words) }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((r) => r.topic)
+}
+
+export function topicsInGroup(group: HelpGroupId): HelpTopic[] {
+  return HELP_TOPICS.filter((t) => t.group === group)
+}

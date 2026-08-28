@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import type React from 'react'
 import type { BoardPalette } from '../board/surfaces'
 import { readSections, writeSection } from '../storage'
+import { OPEN_DRAWER } from './spotlight'
 
 /**
  * A drawer in the left rail.
@@ -77,6 +78,28 @@ export function Section({
     if (typeof stored === 'boolean') setOpen(stored)
   }, [title])
 
+  /*
+   * Opened from outside, by name.
+   *
+   * The help panel answers "where is the camera control" by ringing the
+   * control, and it cannot ring one that is not in the document — the drawer
+   * below unmounts its contents when it is shut, so half the targets in
+   * ./guide.ts do not exist at the moment somebody asks for them. This is how
+   * the drawer holding one gets opened first. See ./spotlight.ts.
+   *
+   * It does NOT write the open state back to `localStorage`. Being shown a
+   * control once is not a decision to keep that drawer open forever, and a
+   * coach who has tidied their rail should find it tidy on Tuesday. Opening it
+   * themselves still persists, because that one IS a decision.
+   */
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      if ((e as CustomEvent<string>).detail === title) setOpen(true)
+    }
+    window.addEventListener(OPEN_DRAWER, onOpen)
+    return () => window.removeEventListener(OPEN_DRAWER, onOpen)
+  }, [title])
+
   const toggle = () => {
     const next = !open
     setOpen(next)
@@ -84,7 +107,10 @@ export function Section({
   }
 
   return (
-    <section className="border-b border-ink-hair">
+    /* `data-help` is how the help panel finds this drawer to scroll to it. The
+       value is the heading, which is the word a coach reads and the word
+       ./guide.ts targets it by. See DRAWER there. */
+    <section className="border-b border-ink-hair" data-help={title}>
       <h2>
         <button
           type="button"
@@ -149,7 +175,12 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={`border-b border-ink-hair px-4 py-4 last:border-b-0 ${className}`}>
+    <section
+      className={`border-b border-ink-hair px-4 py-4 last:border-b-0 ${className}`}
+      /* Same as `Section` above: the panel's own heading is its address for the
+         help panel, so "show me the match ball" needs nothing added here. */
+      data-help={title}
+    >
       {title && <h3 className="mb-3 text-micro uppercase text-ink-faint">{title}</h3>}
       {children}
     </section>

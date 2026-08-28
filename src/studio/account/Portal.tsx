@@ -76,6 +76,21 @@ export default function Portal() {
    * about. See ./completion.ts for the cadence.
    */
   const [nudge, setNudge] = useState<Completion | null>(null)
+  /*
+   * How finished the profile is, whatever the prompt is doing.
+   *
+   * Held apart from `nudge` because the two are answering different questions.
+   * `nudge` is "is it fair to interrupt this coach today", and its answer is no
+   * on most days by design. This one is "is there anything left", and its answer
+   * is allowed to be visible every single day, because what it drives is a
+   * count on a link that was already in the header — something a coach reads if
+   * they look at it and never has to dismiss.
+   *
+   * That split is what let the prompt's cadence be tightened without it becoming
+   * an advert: the persistent, silent surface carries the reminding, and the
+   * panel goes back to being an offer. See GAPS in ./completion.ts.
+   */
+  const [completion, setCompletion] = useState<Completion | null>(null)
 
   // Signed out: go and sign in, and come back here afterwards.
   useEffect(() => {
@@ -149,6 +164,7 @@ export default function Portal() {
     void hydrateProfile(user.id).then(({ profile }) => {
       if (!live || !profile) return
       const completion = profileCompletion(profile)
+      setCompletion(completion)
       // The oldest thing on the shelf, as a timestamp. `updated` is an ISO
       // string off the row; an unparseable one becomes 0, which reads as "no
       // history" and holds the prompt back rather than firing it wrongly.
@@ -280,13 +296,37 @@ export default function Portal() {
             */}
             <a
               href="/studio/settings/"
-              className={`${QUIET} ${
+              className={`${QUIET} inline-flex items-center gap-2 ${
                 nudge
                   ? 'relative bg-ink-hair text-ink ring-2 ring-inset ring-ink/20 motion-safe:animate-pulse'
                   : ''
               }`}
             >
               Personal settings
+              {/*
+                A count, and nothing else.
+                
+                Not a red dot, not an exclamation mark, not the word "incomplete".
+                Nothing has gone wrong and nobody is late — a coach does not owe
+                us a filled-in profile, and a badge that implies a fault is how a
+                reminder turns into a telling-off. A number on a link says there
+                are things behind this door, which is true, and says it every
+                visit without ever asking to be dealt with.
+                
+                Gone entirely once the profile is done, rather than turning into
+                a tick. A tick is a reward for finishing a form, and this was
+                never a form: the seven things are worth doing because of what
+                each one changes, and when they are done the right amount of
+                chrome to spend on saying so is none.
+              */}
+              {completion && !completion.complete && (
+                <span
+                  className="rounded-full bg-ink-hair px-2 py-0.5 text-[11px] font-bold tabular-nums text-ink-soft"
+                  title={`${completion.total - completion.done} things on your profile are not filled in yet`}
+                >
+                  {completion.total - completion.done}
+                </span>
+              )}
             </a>
             <button
               type="button"

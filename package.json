@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro check && astro build",
+    "build": "node scripts/check-help.mjs && astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "check:help": "node scripts/check-help.mjs",
     "db:apply": "node scripts/apply-migration.mjs",
     "systems:list": "node scripts/pull-system.mjs --list",
     "systems:pull": "node scripts/pull-system.mjs",

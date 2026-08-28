@@ -31,11 +31,21 @@ export function IdentityToggle({
   what,
   /** Whether the state shown is the account default rather than a choice. */
   fromDefault = false,
+  /**
+   * The switch is on and the document carries no name or club to honour it.
+   *
+   * Read off the SYSTEM by the caller, not off the profile, for the same reason
+   * `signed` is in ./ShareDialog.tsx: a board signed by hand for one assistant
+   * is signed, whatever the account says, and telling that coach their work is
+   * anonymous would be false.
+   */
+  unsigned = false,
 }: {
   on: boolean
   onChange: (next: boolean) => void
   what: string
   fromDefault?: boolean
+  unsigned?: boolean
 }) {
   return (
     <div>
@@ -44,6 +54,21 @@ export function IdentityToggle({
         {on ? IDENTITY.on : IDENTITY.off(what)}
         {fromDefault && <span className="text-ink-faint"> {IDENTITY.fromSettings}</span>}
       </p>
+      {/* Only when the switch is ON. With it off, going out unnamed is what the
+          coach just asked for, and pointing at the settings page would be the
+          dialog arguing with a decision it invited. */}
+      {on && unsigned && (
+        <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+          {IDENTITY.unsigned(what)}{' '}
+          <a
+            href="/studio/settings/#you"
+            className="font-bold text-ink underline underline-offset-2"
+          >
+            {IDENTITY.unsignedCta}
+          </a>
+          {' '}and every system you make afterwards carries it.
+        </p>
+      )}
     </div>
   )
 }

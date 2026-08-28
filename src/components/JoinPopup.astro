@@ -41,15 +41,39 @@
 import NewsletterForm from './NewsletterForm.astro'
 
 /**
- * Pages where a third offer is noise rather than an offer. `/course/` already
- * IS the early-access pitch, and the two studio entry points are the moment
- * someone is signing in — interrupting either one is pure friction.
- * (Bare pages — the editor, the render surfaces — never mount this at all;
- * BaseLayout only renders it with the rest of the chrome.)
+ * Pages where a third offer is noise rather than an offer.
+ *
+ * `/course/` already IS the early-access pitch, so a card offering the course
+ * on top of the course is an advert for the page it is covering.
+ *
+ * ── AND EVERYTHING BEHIND THE STUDIO DOOR ────────────────────────────────────
+ *
+ * `/studio/` itself stays, because that page is the pitch, addressed to
+ * somebody who has not come in yet. Everything UNDER it is muted, and that is
+ * the rule rather than a list: two of the three slides here invite a reader to
+ * join the studio and subscribe, and a coach reading them on their own settings
+ * page has already done both. It is not merely noise at that point, it is the
+ * product failing to recognise its own user.
+ *
+ * It used to be a list of pages, and the list was missing `/studio/settings/`,
+ * so the one page a signed-in coach visits most often outside the editor was
+ * also the one page still selling them the studio (user, 2026-08-28). A prefix
+ * is the honest shape of the rule: any page that needs an account is a page
+ * where this has nothing to say, and a new one added next month is covered by
+ * having been put in the right place rather than by somebody remembering.
+ *
+ * (Bare pages — the editor, the viewer, the render surfaces — never mount this
+ * at all; BaseLayout only renders it with the rest of the chrome.)
  */
-const MUTED = ['/course/', '/studio/portal/', '/studio/login/']
+const MUTED = ['/course/']
+
+/** Under the studio door. `/studio/` itself is the pitch and keeps the card. */
+const SIGNED_IN = '/studio/'
+
 const here = Astro.url.pathname
-const muted = MUTED.some((p) => here === p || here.startsWith(p))
+const muted =
+  MUTED.some((p) => here === p || here.startsWith(p)) ||
+  (here.startsWith(SIGNED_IN) && here !== SIGNED_IN)
 
 /**
  * Balls are assigned, not picked at random: the house default for the house

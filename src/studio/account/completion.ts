@@ -147,16 +147,32 @@ export function profileCompletion(profile: Profile): Completion {
  *
  * ESCALATING, and that is the whole cadence. Somebody who has ignored this
  * three times has told us something, and the honest reading of it is "not now"
- * rather than "you have not seen it yet". Four asks spread over about seven
+ * rather than "you have not seen it yet". Five asks spread over about eight
  * weeks, and then it stops on its own without the coach ever having to find the
  * button that turns it off.
  *
- * Two days before the first one, not zero: a coach who has just signed up is
+ * A day before the first one, not zero: a coach who has just signed up is
  * looking at an empty shelf and wants to build something, not fill in a form.
- * The prompt is for their second or third visit, when they have a system worth
- * signing.
+ * The prompt is for their second visit, when they have a system worth signing.
+ *
+ * ── WHY THESE NUMBERS AND NOT THE ORIGINAL [2, 6, 18, 40] ────────────────────
+ *
+ * They were widened on the reasoning that a prompt which appears often becomes
+ * an advert, which is true and is still the reason this escalates at all. What
+ * they got wrong is that in practice the gaps were long enough that most coaches
+ * met this once, in their first fortnight, and then never again — so a profile
+ * left unfinished on day three stayed unfinished, and the prompt's restraint
+ * was costing exactly the coaches it was written for (user, 2026-08-28).
+ *
+ * The answer is not to ask harder here. It is that this panel is no longer the
+ * only place the studio mentions it: the portal header carries a permanent,
+ * silent count of what is left (../account/Portal.tsx), the settings page opens
+ * with the same list (./Settings.tsx), and the export dialogs say so at the one
+ * moment it actually costs something (../editor/IdentityToggle.tsx). Those are
+ * always there and interrupt nobody, which lets THIS stay a prompt rather than
+ * becoming the product's main way of asking.
  */
-const GAPS = [2, 6, 18, 40]
+const GAPS = [1, 3, 7, 14, 30]
 
 /**
  * Should the portal offer to help finish the profile right now?

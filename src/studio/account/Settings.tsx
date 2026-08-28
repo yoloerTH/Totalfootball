@@ -52,6 +52,7 @@ import { IMAGE_ACCEPT, bust, imageUrl, removeImage, uploadImage, type ImageKind 
 import { BIO_MAX, LINKS_MAX, ROLES, normaliseHandle, profileFaults } from './identity'
 import KitEditor from './KitEditor'
 import SquadEditor from './SquadEditor'
+import { profileCompletion, type Completion } from './completion'
 
 /**
  * 'unreadable' IS A STATE OF THE PAGE AND NOT OF THE SAVE, and it is new.
@@ -147,6 +148,89 @@ function Section({
       <h2 className="text-micro uppercase text-ink-faint">{title}</h2>
       {note && <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-ink-soft">{note}</p>}
       {children}
+    </section>
+  )
+}
+
+/**
+ * What is still worth filling in, at the top of the page that fills it in.
+ *
+ * ── WHY THE SAME LIST TWICE ──────────────────────────────────────────────────
+ *
+ * The portal's prompt (./ProfileNudge.tsx) already lists three of these. This is
+ * not that list moved; it is that list ARRIVED. The prompt's job is to get
+ * somebody here, and the moment they land it stops being visible — so a coach
+ * who came for "your kit colour" is standing on eight hundred pixels of form
+ * with the reason they came already gone from the screen. Showing it here is
+ * how the trip survives the click.
+ *
+ * ── AND WHY IT IS COMPUTED FROM THE DRAFT ────────────────────────────────────
+ *
+ * `profile`, not `saved`. It counts down as the coach types, before anything is
+ * written, and an item leaves the list the moment its field has something in it.
+ * That is the entire difference between a progress bar and a scoreboard: one is
+ * responding to the person, the other is grading them afterwards.
+ *
+ * Every line is the `why` from ./completion.ts — what finishing it CHANGES,
+ * somewhere the coach can see. Never a percentage on its own. A coach does not
+ * owe us a complete profile, and the only honest reason to list anything here is
+ * that each one buys them something.
+ */
+function ProfileProgress({ completion }: { completion: Completion }) {
+  if (completion.complete) return null
+  const left = completion.total - completion.done
+
+  return (
+    <section
+      aria-label="What is left on your profile"
+      className="mt-8 rounded-2xl border border-ink-hair bg-paper p-5"
+    >
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-[15px] font-black tracking-display text-ink">
+          {completion.done === 0
+            ? 'Nothing here is filled in yet'
+            : `${left} ${left === 1 ? 'thing' : 'things'} left`}
+        </h2>
+        <span className="shrink-0 text-[11px] font-bold tabular-nums text-ink-faint">
+          {completion.done}/{completion.total}
+        </span>
+      </div>
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-hair">
+        <div
+          className="h-full rounded-full bg-ink transition-[width] duration-500"
+          style={{ width: `${Math.round(completion.fraction * 100)}%` }}
+        />
+      </div>
+
+      {/* All of them, not three. The prompt in the portal shows three because a
+          list of seven reads as a chore in the corner of a page somebody came to
+          do something else on. Here they have come to do this, and the honest
+          thing is to show the whole of it rather than make them find the rest. */}
+      <ul className="mt-4 list-none space-y-2 p-0">
+        {completion.missing.map((step) => (
+          <li key={step.id}>
+            <a
+              href={`#${step.anchor}`}
+              className="group flex gap-2.5 rounded-lg -mx-2 px-2 py-1.5 no-underline transition-colors hover:bg-surface"
+            >
+              <span
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-[4px] border-2 border-ink-hair transition-colors group-hover:border-ink-faint"
+                aria-hidden="true"
+              />
+              <span className="min-w-0">
+                <span className="block text-[12px] font-bold text-ink">{step.label}</span>
+                <span className="block text-[11px] leading-snug text-ink-faint">{step.why}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 text-[11px] leading-relaxed text-ink-faint">
+        None of it is required. Everything here is off by default and stays that way until you turn it
+        on at the foot of the section it belongs to.
+      </p>
     </section>
   )
 }
@@ -511,6 +595,42 @@ export default function Settings() {
     window.location.replace('/studio/login/?next=%2Fstudio%2Fsettings%2F')
   }, [status])
 
+  /*
+   * Mark the section somebody was SENT to.
+   *
+   * Three things link into the middle of this page — the portal's prompt, the
+   * progress list above, and the unsigned line in the export dialogs — and all
+   * of them land on an anchor. The browser scrolls, which is most of the job and
+   * not all of it: a coach who arrives two thirds of the way down a long form
+   * has no way to tell which of the four headings now on their screen is the one
+   * they were sent to, and the field they came for is usually not the first one
+   * under it.
+   *
+   * A ring that fades says which. It is deliberately temporary — a permanent
+   * `:target` highlight would still be sitting there in ten minutes marking a
+   * trip the coach finished long ago — and it is deliberately not a scroll of
+   * its own: the browser has already done that, better, and racing it just moves
+   * the page twice.
+   *
+   * Runs on `state` rather than on mount, because at mount the sections do not
+   * exist yet: the page renders a loading view until the profile arrives, so
+   * `getElementById` on the first pass finds nothing at all.
+   */
+  useEffect(() => {
+    if (state === 'loading') return
+    const id = window.location.hash.slice(1)
+    if (!id) return
+    const el = document.getElementById(id)
+    if (!el) return
+    const ring = ['ring-2', 'ring-ink/15', 'rounded-2xl', 'transition-shadow', 'duration-700']
+    el.classList.add(...ring)
+    const t = setTimeout(() => el.classList.remove(...ring), 2600)
+    return () => {
+      clearTimeout(t)
+      el.classList.remove(...ring)
+    }
+  }, [state])
+
   /**
    * The read, through the shared store, so this page and an open studio tab
    * are looking at one copy of one row. See ./profile.ts.
@@ -739,6 +859,10 @@ export default function Settings() {
           say so.
         </p>
       </header>
+
+      {/* Counted off the DRAFT, so the list shrinks as they type. See the
+          component. */}
+      <ProfileProgress completion={profileCompletion(profile)} />
 
       {/* ── 1. you ───────────────────────────────────────────────────────
 

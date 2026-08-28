@@ -56,6 +56,22 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'ask-the-studio',
+    date: '2026-08-28',
+    kind: 'new',
+    title: 'Ask the studio where something is',
+    body: 'The ? button is a search box now. Type what you are trying to do in your own words — pass, badge, cones, too fast, my name is not on it — and it finds the control, opens the drawer it lives in and puts a ring round it. Everything is still there to browse if you have no word for it, grouped by the part of the studio it belongs to.',
+    where: 'The ? at the top right',
+  },
+  {
+    id: 'unsigned-warning',
+    date: '2026-08-28',
+    kind: 'better',
+    title: 'A film no longer goes out unsigned by accident',
+    body: 'Put my name on it does nothing if there is no name on your account, and until now nothing said so — the film simply arrived anonymous. Video and Images now tell you before you export, with a link to set it once. Your name and club sign everything you make afterwards.',
+    where: 'Video or Images and PDF, under Put my name on it',
+  },
+  {
     id: 'training-gear',
     date: '2026-08-27',
     kind: 'new',

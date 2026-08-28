@@ -96,9 +96,10 @@ export function ProfileNudge({
        * Bottom-right is the Naurra badge's corner — it is docked there on every
        * page by ../../layouts/BaseLayout.astro — and this card was landing on
        * top of it (user, 2026-08-27). Left is the free corner on this page:
-       * ../../components/JoinPopup.astro owns it site-wide but names
-       * `/studio/portal/` in its own MUTED list, so it never opens here. Two
-       * things in one corner is a stack; this way each corner has one.
+       * ../../components/JoinPopup.astro owns it site-wide, and mutes itself
+       * everywhere under `/studio/` that is not the studio's own front page, so
+       * it never opens here. Two things in one corner is a stack; this way each
+       * corner has one.
        */
       className={`fixed bottom-4 left-4 z-[70] w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-ink-hair bg-surface p-5 shadow-lift transition-all duration-300 ${
         shown ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'

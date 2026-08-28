@@ -113,6 +113,19 @@ export const STUDIO_EVENTS = {
   /** Somebody pressed a sign-in button. The attempt, not the outcome: the
       outcome is a redirect to Google and back, on a different page load. */
   signIn: 'studio:sign-in',
+  /**
+   * The help panel: which topic was opened, or which group was browsed.
+   *
+   * The most useful counter in this file, because it is the only one that
+   * reports what a coach could not find on their own. A topic at the top of
+   * this list is not a popular article — it is a control that is in the wrong
+   * place, or named the wrong thing, and the fix is usually in the studio
+   * rather than in the copy. A SEARCH that returns nothing is worth more still,
+   * which is why the miss is counted separately.
+   */
+  help: 'studio:help',
+  /** A search with no answer, with what was typed. See `help` above. */
+  helpMiss: 'studio:help-miss',
 } as const
 
 type StudioEvent = (typeof STUDIO_EVENTS)[keyof typeof STUDIO_EVENTS]

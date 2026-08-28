@@ -157,6 +157,7 @@ import {
   ACTION,
   ARROW_MARK,
   ARROW_TOOL_IDS,
+  DRAWER,
   TEXT_TOOL_ID,
   HINT,
   NEWS,
@@ -176,6 +177,8 @@ import { VideoDialog } from './VideoDialog'
 import { ExportDialog } from './ExportDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
+import { HelpPanel } from './HelpPanel'
+import { HelpRing } from './HelpRing'
 import { FeedbackDialog } from './FeedbackDialog'
 import { PrintSheet } from '../viewer/PrintSheet'
 import { PaceField } from './PaceField'
@@ -624,6 +627,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const [stripSize, setStripSize] = useState<StripSize>(readStripSize)
   const [walkthrough, setWalkthrough] = useState(false)
+  /*
+   * The help panel, which is what the ? button opens now.
+   *
+   * Separate from `walkthrough` rather than a mode of it. They answer opposite
+   * questions: the walkthrough is for somebody with no idea what this is and
+   * runs once, the panel is for somebody with a specific thing they cannot find
+   * and is opened for years afterwards. Folding the second into the first would
+   * mean paging through five screens about counters to be told where the crest
+   * setting is. The panel offers the tour as one of its entries, which is the
+   * right relationship between them.
+   */
+  const [help, setHelp] = useState(false)
   const [news, setNews] = useState(false)
   /**
    * Which what's-new entries carry a "not read yet" marker, decided once on
@@ -1065,6 +1080,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       return Object.keys(wants).length ? { ...sys, credit: { ...c, ...wants } } : sys
     })
   }, [profile, locked, replace])
+
+  /*
+   * Whether this system would go out with nobody's name on it.
+   *
+   * Off the DOCUMENT, not off the profile, and that distinction is the whole
+   * value of the line it drives (./IdentityToggle.tsx): a board signed by hand
+   * for one assistant is signed, and telling that coach their film is anonymous
+   * because their account page is empty would be false. The effect above signs
+   * the board from the profile where there is one, so in the ordinary case this
+   * is the profile's answer arriving by the honest route.
+   */
+  const unsigned = !(system.credit?.presenter?.trim() || system.credit?.team?.trim())
 
   const myCrest = profile?.crestPath ? imageUrl(profile.crestPath) : ''
   const myKit = profile?.teamColour.trim() ?? ''
@@ -2331,6 +2358,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     makingVideo ||
     exporting ||
     walkthrough ||
+    help ||
     news ||
     tooSmall ||
     feedback !== null
@@ -3093,7 +3121,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         {locked ? (
           <h1 className="truncate text-sm font-black tracking-display text-ink">{system.title}</h1>
         ) : (
-          <Tip text={HINT.title} title="Name of this system" side="bottom">
+          <Tip text={HINT.title} title="Name of this system" side="bottom" help="title">
             <input
               value={system.title}
               onChange={(e) => edit('title', (s) => ({ ...s, title: e.target.value }))}
@@ -3151,7 +3179,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         {...inert}
       >
         {(['select', ...ARROW_TOOL_IDS] as Tool[]).map((id) => (
-          <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom">
+          <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom" help={`tool:${id}`}>
             <Button active={tool === id} onClick={() => setTool(id)} className="!px-2 lg:!px-2.5">
               {TOOL_DOC[id].label}
             </Button>
@@ -3164,7 +3192,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             two points, and this is words at one. It also has a door in the
             panel — see the Writing panel in `setupPanel`. */}
         <span className="mx-0.5 h-5 w-px shrink-0 bg-ink-hair" aria-hidden="true" />
-        <Tip text={<ToolText id={TEXT_TOOL_ID} />} title={TOOL_DOC[TEXT_TOOL_ID].label} side="bottom">
+        <Tip text={<ToolText id={TEXT_TOOL_ID} />} title={TOOL_DOC[TEXT_TOOL_ID].label} side="bottom" help={`tool:${TEXT_TOOL_ID}`}>
           <Button
             active={tool === TEXT_TOOL_ID}
             onClick={() => setTool(TEXT_TOOL_ID)}
@@ -3197,6 +3225,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         }
         title={playing ? 'Stop' : 'Play'}
         side="bottom"
+        help="play"
       >
         <Button
           variant="solid"
@@ -3213,18 +3242,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       {/* Share and Video say what a coach walks out of here with: a link, and
           a film. Both greyed, both doors. */}
       <div className="flex shrink-0 items-center gap-2 lg:gap-3" {...inert}>
-        <Tip text={HINT.share} title="Share" side="bottom">
+        <Tip text={HINT.share} title="Share" side="bottom" help="share">
           <Button onClick={openShare}>Share</Button>
         </Tip>
 
-        <Tip text={HINT.video} title="Video" side="bottom">
+        <Tip text={HINT.video} title="Video" side="bottom" help="video">
           <Button onClick={() => setMakingVideo(true)}>Video</Button>
         </Tip>
 
         {/* Images and the PDF. Up here with Share and Video rather than down a
             panel, because it is the third thing a coach walks out of here with
             and it was the one you could not reach without publishing first. */}
-        <Tip text={HINT.export} title="Images and PDF" side="bottom">
+        <Tip text={HINT.export} title="Images and PDF" side="bottom" help="export">
           <Button onClick={() => setExporting(true)}>Export</Button>
         </Tip>
       </div>
@@ -3269,7 +3298,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           rather than to the document, so it stays live on a locked board.
           Somebody watching a system on a bright train platform is allowed to
           turn the lights on. */}
-      <ThemeToggle />
+      {/* Wrapped only to give the help panel something to ring: this button is
+          the one control on the bar with no Tip round it, because what it does
+          is visible the instant it is pressed. */}
+      <span data-help="theme" className="inline-flex">
+        <ThemeToggle />
+      </span>
 
       {/* Both of these are about a coach's own history with the studio: what
           has changed since they were last here, and a tour of controls that are
@@ -3285,8 +3319,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             />
           </Tip>
 
-          <Tip text={HINT.help} title="Guide" side="bottom">
-            <Button onClick={() => setWalkthrough(true)} className="!px-2" aria-label="Reopen the guide">
+          <Tip text={HINT.help} title="Help" side="bottom" help="help">
+            <Button
+              onClick={() => setHelp((open) => !open)}
+              active={help}
+              className="!px-2"
+              aria-label="Search the studio for help"
+              aria-expanded={help}
+            >
               ?
             </Button>
           </Tip>
@@ -3464,6 +3504,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       {/* Zoom UI Overlay */}
       <div 
+        data-help="zoom"
         className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg bg-ink/90 p-1 text-paper shadow backdrop-blur-sm transition-opacity"
         style={{ opacity: playing ? 0 : 1, pointerEvents: playing ? 'none' : 'auto', zIndex: 50 }}
       >
@@ -3627,7 +3668,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   }
 
   const phaseStrip = (
-    <footer className="flex shrink-0 select-none items-center gap-2 border-t border-ink-hair bg-surface px-2 py-2 lg:gap-3 lg:px-4 lg:py-3">
+    <footer
+      data-help="phaseStrip"
+      className="flex shrink-0 select-none items-center gap-2 border-t border-ink-hair bg-surface px-2 py-2 lg:gap-3 lg:px-4 lg:py-3"
+    >
       <Tip text={HINT.prevPhase} title={`Previous ${PHASE.one}`} side="top">
         <Button
           onClick={() => goToPhase(actIndex - 1)}
@@ -3688,7 +3732,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           </button>
         ))}
         <span {...inert}>
-          <Tip text={HINT.addPhase} title={`Add ${PHASE.one}`} side="top">
+          <Tip text={HINT.addPhase} title={`Add ${PHASE.one}`} side="top" help="addPhase">
             <Button onClick={addAct} variant={system.acts.length < 2 ? 'solid' : 'ghost'}>
               + Add {PHASE.one}
             </Button>
@@ -3804,7 +3848,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       */}
 
       <Section
-        title="The board"
+        title={DRAWER.board}
         hint="Pitch view, surface, camera"
         defaultOpen
         badge={view.label}
@@ -3953,7 +3997,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       </Section>
 
       <Section
-        title="Teams and kit"
+        title={DRAWER.teams}
         hint="Shapes, colours, what is on the counters"
         defaultOpen
         badge={themHere ? 'Both' : 'Us'}
@@ -4205,7 +4249,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       </Section>
 
       <Section
-        title="Equipment"
+        title={DRAWER.equipment}
         hint="The match ball, and the gear on the grass"
         badge={gearHere > 0 ? String(gearHere) : undefined}
       >
@@ -4327,7 +4371,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       </Section>
 
       <Section
-        title={`On this ${PHASE.one}`}
+        title={DRAWER.phase}
         hint="Players, shaded areas, writing"
         defaultOpen
         badge={String(act.tokens.length)}
@@ -4499,7 +4543,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       </Panel>
       </Section>
 
-      <Section title="The film" hint={`How long each ${PHASE.one} holds`}>
+      <Section title={DRAWER.film} hint={`How long each ${PHASE.one} holds`}>
         <Panel title="Pace">
           <Tip text={HINT.pace} title="The hold and the move" block>
             <PaceField
@@ -4512,7 +4556,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </Panel>
       </Section>
 
-      <Section title="This system" hint="Start over">
+      <Section title={DRAWER.system} hint="Start over">
         <Panel title="This system">
           <Tip text={HINT.reset} title="Start over">
             <ConfirmButton confirm="Yes, start over" onConfirm={startOver}>
@@ -4592,7 +4636,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     <>
       <Panel title={`${PHASE.One} ${actIndex + 1} of ${system.acts.length}`}>
         <Field label="Title">
-          <Tip text={HINT.phaseTitle} title="Title" side="left" block>
+          <Tip text={HINT.phaseTitle} title="Title" side="left" block help="phaseWords">
             <TextInput
               value={act.title}
               onChange={(v) => patchAct('phase-title', (a) => ({ ...a, title: v }))}
@@ -5415,6 +5459,27 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   const overlays = (
     <>
+      {/*
+        Outside `walkthrough`'s branch and outside every dialog, because the
+        ring it leaves has to survive the panel closing — Show me shuts the
+        panel first so it stops covering the rail it is pointing into, and a
+        highlight mounted inside the thing that just unmounted would never be
+        seen. See ./HelpRing.tsx.
+      */}
+      <HelpRing />
+      {help && (
+        <HelpPanel
+          onClose={() => setHelp(false)}
+          onWalkthrough={() => {
+            setHelp(false)
+            setWalkthrough(true)
+          }}
+          onNews={() => {
+            setHelp(false)
+            openNews()
+          }}
+        />
+      )}
       {walkthrough && (
         <Walkthrough
           onClose={() => {
@@ -5450,6 +5515,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           identity={identity}
           onIdentity={setIdentityChoice}
           identityIsDefault={identityChoice === null}
+          unsigned={unsigned}
           onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
           onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
           onPaceCommit={seal}
@@ -5464,6 +5530,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           identity={identity}
           onIdentity={setIdentityChoice}
           identityIsDefault={identityChoice === null}
+          unsigned={unsigned}
           onSaved={() => recordWin('images')}
           onClose={closeExport}
         />

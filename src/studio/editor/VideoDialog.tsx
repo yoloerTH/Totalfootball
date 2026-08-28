@@ -42,6 +42,7 @@ export function VideoDialog({
   identity,
   onIdentity,
   identityIsDefault,
+  unsigned,
   onHold,
   onMove,
   onPaceCommit,
@@ -54,6 +55,8 @@ export function VideoDialog({
   onIdentity: (next: boolean) => void
   /** True while `identity` is still the account default and not a choice. */
   identityIsDefault: boolean
+  /** The system carries no name or club. See ./IdentityToggle.tsx. */
+  unsigned: boolean
   /**
    * Pace edits the DOCUMENT from inside an export dialog, which looks like a
    * layering mistake and is not. A coach only discovers a film is too slow by
@@ -274,6 +277,7 @@ export function VideoDialog({
 
               <div className="mt-3 border-t border-ink-hair pt-3">
                 <IdentityToggle
+                  unsigned={unsigned}
                   on={identity}
                   onChange={onIdentity}
                   what="this film"

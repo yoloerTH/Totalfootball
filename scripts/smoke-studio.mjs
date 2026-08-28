@@ -293,26 +293,34 @@ try {
   console.log('\nthe export dialog')
   await page.getByRole('button', { name: 'Export', exact: true }).click()
   await page.waitForTimeout(600)
-  for (const part of ['The system’s name', 'Your name and club', 'Made with Total Football']) {
+  for (const part of ['The system’s name', 'Your name and club']) {
     check((await page.getByText(part, { exact: true }).count()) > 0, `"${part}" can be turned off`)
   }
 
   /*
-   * The one combination that is not the coach's to pick. Ours is never drawn
-   * without theirs — the policy is in src/studio/viewer/CreditBar.tsx — so
-   * taking their own name off takes our mark off with it, and says why.
+   * Our mark is NOT a switch, and this is the check that it has not quietly
+   * become one again.
+   *
+   * It used to be, tied to the coach's own credit so that ours could never be
+   * drawn on a board without theirs. It came off on 2026-08-28 and is now a
+   * line of text: it goes on the picture whatever else the coach turns off, and
+   * saying so plainly beats a disabled checkbox that says the same thing in
+   * three interactions. This block asserted the old behaviour and went on
+   * asserting it after the change, which is how it was still failing when the
+   * help panel's checks were added below.
    */
-  const lockup = page.getByRole('checkbox', { name: 'Made with Total Football' })
-  check(await lockup.isChecked(), 'our mark starts on')
-  await page.getByRole('checkbox', { name: 'Your name and club' }).uncheck()
+  check((await page.getByRole('checkbox', { name: 'Made with Total Football' }).count()) === 0,
+    'our mark is not a switch the coach has to reason about')
+  check((await page.getByText(/Made with Total Football goes bottom right/).count()) > 0,
+    'the dialog says where it goes instead')
+
+  const credit = page.getByRole('checkbox', { name: 'Your name and club' })
+  check(await credit.isChecked(), 'their credit starts on')
+  await credit.uncheck()
   await page.waitForTimeout(300)
-  check(!(await lockup.isChecked()) && (await lockup.isDisabled()),
-    'taking their name off takes our mark off and locks it')
-  check((await page.getByText(/never goes on a board on its own/).count()) > 0,
-    'and the dialog says why')
-  await page.getByRole('checkbox', { name: 'Your name and club' }).check()
+  check(!(await credit.isChecked()), 'and it is theirs to turn off')
+  await credit.check()
   await page.waitForTimeout(300)
-  check(await lockup.isChecked(), 'putting their name back restores our mark')
   await shot('07-export-dialog')
   await page.getByRole('button', { name: 'Done' }).click()
   await page.waitForTimeout(400)
@@ -340,6 +348,112 @@ try {
   await page.getByRole('button', { name: 'Play', exact: true }).click()
   await page.waitForTimeout(900)
   check(fails.filter((f) => f.startsWith('page error')).length === 0, 'no page errors during playback')
+  await page.waitForTimeout(600)
+
+  /* ── the help panel ────────────────────────────────────────────────────────
+   *
+   * The one part of the studio whose whole promise is about the DOM: Show me
+   * claims it will open the right drawer and put a ring on the right control,
+   * and neither half of that can be checked anywhere but in a browser.
+   * scripts/check-help.mjs proves every topic names an address that exists in
+   * the source; this proves pressing the button actually gets you there.
+   */
+  console.log('\nthe help panel')
+  const helpBtn = page.getByRole('button', { name: /search the studio for help/i })
+  await helpBtn.click()
+  await page.waitForTimeout(400)
+  const helpBox = page.getByRole('dialog', { name: 'Help' })
+  check(await helpBox.isVisible(), 'the ? button opens the help panel')
+
+  const helpSearch = page.getByPlaceholder('What do you want to do?')
+  check(await helpSearch.isVisible(), 'it opens on a search box')
+
+  // A coach's word for a thing the studio calls something else. This is the
+  // whole point of the terms list in guide.ts, so it is the thing to test.
+  await helpSearch.fill('cones')
+  await page.waitForTimeout(300)
+  check((await page.getByText('Cones, mannequins and training gear').count()) > 0,
+    '"cones" finds the training gear topic')
+  const showMe = page.getByRole('button', { name: 'Show me', exact: true })
+  check((await showMe.count()) > 0, 'a search opens its best answer rather than asking for a second press')
+
+  await showMe.first().click()
+  await page.waitForTimeout(1200)
+  check(!(await helpBox.isVisible().catch(() => false)),
+    'Show me closes the panel so it stops covering the rail')
+  const equipmentOpen = await page
+    .locator('[data-help="Equipment"] button[aria-expanded="true"]')
+    .count()
+  check(equipmentOpen > 0, 'it opens the drawer the control lives in')
+  check(await page.locator('[data-help="Training gear"]').isVisible(),
+    'and the panel it pointed at is on screen')
+  check((await page.getByRole('status').filter({ hasText: 'Training gear' }).count()) > 0,
+    'the ring says what it found')
+  await shot('08-help-spotlight')
+
+  // The ring must not become furniture: the next press takes it away, and that
+  // press still reaches whatever was under it.
+  await page.mouse.click(720, 460)
+  await page.waitForTimeout(400)
+  check((await page.getByRole('status').filter({ hasText: 'Here it is' }).count()) === 0,
+    'the ring goes on the next press')
+
+  // A target in the top toolbar rather than in a drawer: no drawer to open,
+  // and a different anchoring path through Tip's `help` prop.
+  await helpBtn.click()
+  await page.getByPlaceholder('What do you want to do?').fill('long ball')
+  await page.waitForTimeout(300)
+  check((await page.getByRole('button', { name: 'Getting a video file' }).count()) === 0,
+    'a two-result search still opens its best answer')
+  // Exact, because the panel's footer also offers "Show me round again" and a
+  // loose match would take the tour instead of the topic.
+  await page.getByRole('button', { name: 'Show me', exact: true }).first().click()
+  await page.waitForTimeout(900)
+  check((await page.getByRole('status').filter({ hasText: 'the Switch tool' }).count()) > 0,
+    '"long ball" finds and rings the Switch tool in the toolbar')
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(200)
+
+  // Browsing, for the coach who has no word for it.
+  await helpBtn.click()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Sharing' }).first().click()
+  await page.waitForTimeout(300)
+  check((await page.getByRole('button', { name: 'Getting a video file' }).count()) > 0,
+    'a group can be browsed with nothing typed')
+
+  await page.getByPlaceholder('What do you want to do?').fill('zzzqq')
+  await page.waitForTimeout(300)
+  check((await page.getByText('Nothing matches that').count()) > 0,
+    'a search with no answer says so rather than showing an empty panel')
+
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(300)
+  check((await page.getByRole('dialog', { name: 'Help' }).count()) === 0, 'Escape closes it')
+
+  /*
+   * A control that is conditionally absent sends the coach somewhere useful.
+   *
+   * The Your club panel is not drawn until a kit or a crest has been saved, and
+   * this harness mounts the editor with no account at all — so "Your crest on
+   * the board" is exactly the question the rail cannot answer by pointing, from
+   * exactly the coach who most needs an answer. It must land on the settings
+   * page rather than shrugging. See `fallback` in src/studio/editor/guide.ts.
+   *
+   * Last in this block on purpose: it navigates off the editor, so nothing that
+   * needs the board can run after it.
+   */
+  await helpBtn.click()
+  await page.getByPlaceholder('What do you want to do?').fill('badge')
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Show me', exact: true }).first().click()
+  const landed = await page
+    .waitForURL(/\/studio\/settings\//, { timeout: 8000 })
+    .then(() => true)
+    .catch(() => false)
+  check(landed, 'a topic whose control is not on the board falls back to Personal settings',
+    `ended at ${page.url()}`)
+
 } finally {
   await browser.close()
   await server.stop()
