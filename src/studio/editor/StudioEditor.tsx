@@ -123,6 +123,8 @@ import {
   type Cue,
   type Shot,
   type GearMark,
+  type NamePlace,
+  type PhotoPlace,
   type Side,
   type System,
   type TextMark,
@@ -4158,6 +4160,47 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               />
             </Tip>
           </div>
+          <div className="mt-3">
+            <Tip text={HINT.namePlace} title="Player names" side="left" block>
+              <Select
+                value={system.namePlace ?? 'above'}
+                onChange={(v) => {
+                  edit('token:namePlace', (s) => ({
+                    ...s,
+                    namePlace: v === 'above' ? undefined : (v as NamePlace),
+                  }))
+                  seal()
+                }}
+                options={[
+                  { value: 'above', label: 'Names above the counter' },
+                  { value: 'below', label: 'Names below the counter' },
+                ]}
+              />
+            </Tip>
+          </div>
+          <div className="mt-3">
+            <Tip text={HINT.photoPlace} title="Player photos" side="left" block>
+              <Select
+                value={system.photoPlace ?? 'above'}
+                onChange={(v) => {
+                  edit('token:photoPlace', (s) => ({
+                    ...s,
+                    photoPlace: v === 'above' ? undefined : (v as PhotoPlace),
+                  }))
+                  seal()
+                }}
+                options={[
+                  { value: 'above', label: 'Photos above the counter' },
+                  { value: 'inside', label: 'Photos in the counter' },
+                ]}
+              />
+            </Tip>
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {system.photoPlace === 'inside'
+              ? 'A photographed player wears their face on the counter, and their number sits in front of their name.'
+              : 'A photographed player wears their face above the counter, over the name.'}
+          </p>
         </Panel>
       </Section>
 

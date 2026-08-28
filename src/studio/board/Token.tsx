@@ -16,7 +16,7 @@
 import { darken } from './palette'
 import { U } from './pitch'
 import { cueColor, useSurface } from './surfaces'
-import type { KitPattern, Side, TeamStyle } from '../schema'
+import type { KitPattern, NamePlace, PhotoPlace, Side, TeamStyle } from '../schema'
 
 const u = (m: number) => m * U
 
@@ -81,6 +81,10 @@ interface TokenProps {
    * the whole render rather than once per frame. Same contract as `ballHref`.
    */
   photoHref?: string
+  /** Where the name sits: over the counter, or under it. */
+  namePlace?: NamePlace
+  /** Where the photograph sits: over the counter, or in it. */
+  photoPlace?: PhotoPlace
   cue?: string
   dim?: boolean
   /** Multiplier on TOKEN_R, for emphasis. */
@@ -98,6 +102,8 @@ export function Token({
   style,
   name,
   photoHref,
+  namePlace = 'above',
+  photoPlace = 'above',
   cue,
   dim = false,
   scale = 1,
@@ -127,6 +133,35 @@ export function Token({
    * reason: it depends on nothing outside this element.
    */
   const clip = `${idp}-clip-${Math.round(cx)}-${Math.round(cy)}-${Math.round(r)}`
+
+  /*
+   * ── THE TWO PLACEMENTS, AND WHAT EACH ONE MOVES ──────────────────────────
+   *
+   * Both are properties of the SYSTEM, not of a player: a board where some
+   * names are above and some below is a board a room has to read twice. They
+   * are settled here, once, and everything under them is arithmetic.
+   *
+   *   · A name UNDER the counter frees the air above it, so a headshot that is
+   *     still above drops from 3.44r to 2.6r — it is no longer clearing type
+   *     that is not there. The cue chip, which lives under the counter, moves
+   *     down by the name's own height to make room.
+   *
+   *   · A photo IN the counter takes the middle, which is where the number
+   *     was. Nothing is allowed to be lost, so the number (or the position —
+   *     whatever `label` holds) goes out and rides in front of the name. That
+   *     is the whole of the trade: the face is bigger and reads at a glance,
+   *     the identity is still on the board, one line instead of two objects.
+   *     The kit keeps a ring of itself around the face so eleven of these
+   *     still sort into two teams from across a room.
+   */
+  const nameBelow = namePlace === 'below'
+  const insidePhoto = Boolean(photoHref) && photoPlace === 'inside'
+  const abovePhoto = Boolean(photoHref) && !insidePhoto
+  /** Face radius when the photo is IN the counter, as a fraction of `r`. */
+  const FACE_IN = 0.86
+  /** The counter's own number, when the face has taken its seat. */
+  const badge = insidePhoto ? label : ''
+  const caption = Boolean(name) || Boolean(badge)
 
   /**
    * The headshot: above the name, above the counter.
@@ -191,8 +226,10 @@ export function Token({
    * of it counts rather than half of it) and a hair of air above that:
    * 1.78 + 1.18 × 1.15 + 0.3 ≈ 3.44. Without a name it only has to clear the
    * counter's rim at cy - r, on the same arithmetic: 1 + 1.357 + 0.24 ≈ 2.6.
+   * A name sent BELOW the counter is the second case: there is nothing over
+   * the rim any more, so the face drops the 0.84r it was holding for type.
    */
-  const pcy = cy - r * (name ? 3.44 : 2.6)
+  const pcy = cy - r * (name && !nameBelow ? 3.44 : 2.6)
   const pclip = `${clip}-face`
   const isPress = cue === 'PRESS'
   const cueCol = cue ? (cueColor(p)[cue] ?? p.ink) : p.ink
@@ -203,6 +240,14 @@ export function Token({
   // Estimated, because SVG cannot size a rect to its text. Inter's caps run
   // about 0.62em wide; the padding is generous enough that the estimate being
   // a little off never clips.
+  /*
+   * Where the chip's top edge sits, in radii. 1.24 clears the rim; with the
+   * name under the counter it clears the CAPTION, whose descenders bottom out
+   * at about 1.97r (baseline 1.86r plus 0.22 of a 0.5r size), plus a hair.
+   * `caption` and not `name`, because a photographed player with no name still
+   * has a number down there and the chip would land on it.
+   */
+  const cueTop = nameBelow && caption ? 2.12 : 1.24
   const cueSize = r * 0.62
   const cueW = (cue?.length ?? 0) * cueSize * 0.66 + cueSize * 1.4
   const cueH = cueSize * 1.85
@@ -230,9 +275,14 @@ export function Token({
             </clipPath>
           </>
         )}
-        {photoHref && (
+        {abovePhoto && (
           <clipPath id={pclip}>
             <circle cx={cx} cy={pcy} r={pr} />
+          </clipPath>
+        )}
+        {insidePhoto && (
+          <clipPath id={`${clip}-in`}>
+            <circle cx={cx} cy={cy} r={r * FACE_IN} />
           </clipPath>
         )}
         <radialGradient id={`${gid}-gloss`} cx="0.5" cy="0.5" r="0.5">
@@ -304,6 +354,37 @@ export function Token({
         </g>
       )}
 
+      {/* The face, when it lives IN the counter.
+          Over the dome and its bands, under the shade, the rim and the
+          highlight — the same order the pattern is drawn in, and for the same
+          reason: it is printed ON the object rather than laid over it. It stops
+          at FACE_IN so a band of kit survives all the way round, which is what
+          keeps a photographed team a team. */}
+      {insidePhoto && (
+        <g>
+          <image
+            href={photoHref}
+            x={cx - r * FACE_IN}
+            y={cy - r * FACE_IN}
+            width={r * FACE_IN * 2}
+            height={r * FACE_IN * 2}
+            preserveAspectRatio="xMidYMid slice"
+            clipPath={`url(#${clip}-in)`}
+          />
+          {/* The face's own edge, so a pale crop does not bleed into a pale
+              kit. Half the width of the one the raised headshot wears, because
+              here there is a whole shirt behind it doing the same job. */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r * FACE_IN}
+            fill="none"
+            stroke="rgba(0,0,0,0.18)"
+            strokeWidth={r * 0.045}
+          />
+        </g>
+      )}
+
       {/* inner shade, standing in for the DOM version's inset shadow */}
       <circle
         cx={cx}
@@ -319,31 +400,36 @@ export function Token({
         <circle cx={cx} cy={cy} r={r * 1.08} fill="none" stroke={style.ring} strokeWidth={r * 0.1} />
       )}
 
-      {/* the highlight, up and to the left like the light on the stage */}
+      {/* the highlight, up and to the left like the light on the stage.
+          Held back over a face: at full strength it stops reading as light on a
+          dome and starts reading as glare on the print. */}
       <ellipse
         cx={cx - r * 0.22}
         cy={cy - r * 0.34}
         rx={r * 0.46}
         ry={r * 0.3}
         fill={`url(#${gid}-gloss)`}
+        opacity={insidePhoto ? 0.42 : 1}
       />
 
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontFamily="Inter Variable, Inter, system-ui, sans-serif"
-        fontWeight={900}
-        fontSize={r * 0.82}
-        letterSpacing={r * -0.016}
-        fill={style.text}
-        style={{ userSelect: 'none' }}
-      >
-        {label}
-      </text>
+      {!insidePhoto && (
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontFamily="Inter Variable, Inter, system-ui, sans-serif"
+          fontWeight={900}
+          fontSize={r * 0.82}
+          letterSpacing={r * -0.016}
+          fill={style.text}
+          style={{ userSelect: 'none' }}
+        >
+          {label}
+        </text>
+      )}
 
-      {photoHref && (
+      {abovePhoto && (
         <g>
           {/* The seat. Painted before the photo so it only ever shows as the
               ring of it that the photo does not cover — which now means the
@@ -421,10 +507,33 @@ export function Token({
         </g>
       )}
 
-      {name && (
+      {/*
+        The caption: the name, and in front of it the number when the face has
+        taken the counter.
+
+        ONE text element, not two, and that is the point of it. Two elements
+        would each be centred on cx and would have to be measured against each
+        other to sit side by side — and SVG cannot measure its own type, which
+        is why the cue chip further down has to estimate its width. A single
+        centred line with the number as its first run needs no measurement at
+        all: the browser lays it out and the pair is centred as one object,
+        exactly as it would be in a sentence.
+
+        BASELINES. Above: cy - 1.42r, clear of the rim at r and of the press
+        ring at 1.2r. Below: 1.86r, which is the same 0.42r of air under the
+        rim once the caps have been paid for (Inter's reach about 0.36 of the
+        size, and the size is 0.5r) — so a name under a counter sits off it by
+        eye the same distance as a name over one.
+
+        The number is 900 where the name is 800. It is the same separation the
+        counter's own label has from everything else on the board, and it does
+        the work without a second colour that would have to survive four
+        surfaces and any kit a coach picks.
+      */}
+      {caption && (
         <text
           x={cx}
-          y={cy - r * 1.42}
+          y={nameBelow ? cy + r * 1.86 : cy - r * 1.42}
           textAnchor="middle"
           fontFamily="Inter Variable, Inter, system-ui, sans-serif"
           fontWeight={800}
@@ -435,6 +544,15 @@ export function Token({
           paintOrder="stroke"
           style={{ userSelect: 'none' }}
         >
+          {badge && (
+            <tspan fontWeight={900} letterSpacing={r * 0.008}>
+              {badge}
+            </tspan>
+          )}
+          {/* A thin space, U+2009, and not a plain one: XML collapses runs of
+              ordinary whitespace between runs, and this pair wants a hair of
+              air rather than a word gap anyway. */}
+          {badge && name ? '\u2009\u2009' : ''}
           {name}
         </text>
       )}
@@ -443,7 +561,7 @@ export function Token({
         <g>
           <rect
             x={cx - cueW / 2}
-            y={cy + r * 1.24}
+            y={cy + r * cueTop}
             width={cueW}
             height={cueH}
             rx={cueH * 0.28}
@@ -451,7 +569,7 @@ export function Token({
           />
           <text
             x={cx}
-            y={cy + r * 1.24 + cueH / 2}
+            y={cy + r * cueTop + cueH / 2}
             textAnchor="middle"
             dominantBaseline="central"
             fontFamily="Inter Variable, Inter, system-ui, sans-serif"

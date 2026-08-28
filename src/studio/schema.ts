@@ -39,7 +39,7 @@ export interface Token {
   /** What is printed on the counter — a number ("6") or a position ("LB"). */
   label: string
   side: Side
-  /** Optional player name, printed above the counter. */
+  /** Optional player name, printed with the counter — see `System.namePlace`. */
   name?: string
   /**
    * Object path of the player's photograph, in the private `players` bucket.
@@ -550,6 +550,26 @@ export interface TeamStyle {
   alt?: string
 }
 
+/**
+ * Where a player's name sits relative to their counter.
+ *
+ * 'above' is the original and the default. 'below' is for a board whose room is
+ * above the players — a full-pitch view where the names collided with the title
+ * plate, or a system whose photographs are raised and want the air.
+ */
+export type NamePlace = 'above' | 'below'
+
+/**
+ * Where a player's photograph sits.
+ *
+ * 'above' raises it over the counter, which keeps the kit, the pattern and the
+ * number all readable at once — see the long note in ./board/Token.tsx.
+ * 'inside' puts the face in the counter itself and sends the number out to ride
+ * in front of the name. It is the stronger picture of ONE player, which is what
+ * a coach wants when the board is a starting eleven rather than a movement.
+ */
+export type PhotoPlace = 'above' | 'inside'
+
 export interface System {
   /** Schema version, so stored documents can be migrated in place. */
   v: 1
@@ -571,6 +591,20 @@ export interface System {
   matchBallAngle?: number
   /** A universal multiplier for player counter sizes across the board. */
   tokenSize?: number
+  /**
+   * Where a player's name is printed, and where their photograph goes.
+   *
+   * On the SYSTEM and never on a player, for the same reason the surface is:
+   * a board with three names above, two below and one face in a counter is a
+   * board a room has to learn before it can read. One choice, twenty-two
+   * counters, and it travels into every export, print and share link.
+   *
+   * Undefined is the way the board has always drawn — name above the counter,
+   * photograph above the name — so every document written before this reads
+   * back exactly as it was filmed.
+   */
+  namePlace?: NamePlace
+  photoPlace?: PhotoPlace
   /**
    * What the board is drawn on: paper, broadcast turf, floodlit night, slate.
    *

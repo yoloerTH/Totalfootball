@@ -297,6 +297,11 @@ export const HINT = {
 
   labels: 'What is printed on the counters: the position they play, or their shirt number.',
 
+  namePlace:
+    'Where a player\'s name is printed. Above the counter is how the board has always drawn. Below is for a board that needs the air above it, for a title plate, for raised headshots, or simply because the names read better under the shape.',
+  photoPlace:
+    'Where a player\'s photograph goes. Above the counter keeps the kit, the stripes and the number all readable at once, which is what you want when the board is about a movement. In the counter makes the face the counter, and the number moves out to sit in front of the name, which is what you want when the board is a starting eleven. Players with no photograph are unchanged either way.',
+
   addPlayer:
     'Drops one more counter in the middle of the pitch, on this phase. For a twelfth man, a coach, or a shape that is not eleven a side.',
   clearPitch: 'Takes every player off this phase. The pitch, the arrows and the zones stay.',
