@@ -182,6 +182,7 @@ import { VideoDialog } from './VideoDialog'
 import { ExportDialog } from './ExportDialog'
 import { Tip } from './Tip'
 import { Walkthrough } from './Walkthrough'
+import { UpgradesWalkthrough } from './UpgradesWalkthrough'
 import { HelpPanel } from './HelpPanel'
 import { HelpRing } from './HelpRing'
 import { FeedbackDialog } from './FeedbackDialog'
@@ -651,6 +652,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const [stripSize, setStripSize] = useState<StripSize>(readStripSize)
   const [walkthrough, setWalkthrough] = useState(false)
+  const [upgradesWalkthrough, setUpgradesWalkthrough] = useState(false)
   /*
    * The help panel, which is what the ? button opens now.
    *
@@ -785,6 +787,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     if (locked) return
     if (isSmallScreen() && !guideRef.current.smallOk) setTooSmall(true)
     else if (!guideRef.current.seen) setWalkthrough(true)
+    else if (!guideRef.current.upgradesSeen) setUpgradesWalkthrough(true)
     else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
   }, [openNews, locked])
 
@@ -3165,6 +3168,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           // Picks the chain back up where it left off, so a coach who came in
           // through the door still gets whichever of the two was owed to them.
           if (!guideRef.current.seen) setWalkthrough(true)
+          else if (!guideRef.current.upgradesSeen) setUpgradesWalkthrough(true)
           else if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
         }}
       />
@@ -5596,6 +5600,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             // a list of six things they have never not had is a worse welcome
             // than no list at all.
             markGuide({ seen: true, newsSeen: NEWEST_NEWS_ID })
+          }}
+        />
+      )}
+      {upgradesWalkthrough && (
+        <UpgradesWalkthrough
+          onClose={() => {
+            setUpgradesWalkthrough(false)
+            markGuide({ upgradesSeen: true })
+            if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
           }}
         />
       )}

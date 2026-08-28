@@ -98,6 +98,43 @@ export const WALKTHROUGH: WalkStep[] = [
   },
 ]
 
+// ── the returning visitor walkthrough ────────────────────────────────────────
+
+export const UPGRADES_WALKTHROUGH: WalkStep[] = [
+  {
+    id: 'gear',
+    title: 'Training gear is here',
+    body: [
+      'You can now drop cones, ladders, hurdles and mannequins directly onto the grass.',
+      'Drop them to build a drill or map out a session. Like everything else, they stay where you put them and they look right from any angle.',
+    ],
+  },
+  {
+    id: 'names',
+    title: 'Names and faces',
+    body: [
+      'Your players are no longer just numbers. You can now put names above them, or wrap their actual photos inside the counters.',
+      'It’s built for starting elevens, squad announcements, or any time the person matters as much as the position.',
+    ],
+  },
+  {
+    id: 'profile',
+    title: 'Your own defaults',
+    body: [
+      'Set up how your players should look in your Profile settings.',
+      'When you add your own name and club, it goes on every board you share, making sure your work stays yours.',
+    ],
+  },
+  {
+    id: 'ask',
+    title: 'Ask the studio',
+    body: [
+      'The ? button is a search box now. Type what you are trying to do in your own words.',
+      'It finds the control, opens the drawer it lives in and puts a ring round it.',
+    ],
+  },
+]
+
 // ── the step-by-step rail ────────────────────────────────────────────────────
 
 export interface RailStep {

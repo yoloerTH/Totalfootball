@@ -236,6 +236,8 @@ export interface GuideState {
   profileNudgedAt: number
   profileNudges: number
   profileNudgeOff: boolean
+  /** Has seen the upgrades walkthrough (2nd+ visit) */
+  upgradesSeen: boolean
 }
 
 const GUIDE_DEFAULTS: GuideState = {
@@ -254,6 +256,7 @@ const GUIDE_DEFAULTS: GuideState = {
   profileNudgedAt: 0,
   profileNudges: 0,
   profileNudgeOff: false,
+  upgradesSeen: false,
 }
 
 export function readGuide(): GuideState {
