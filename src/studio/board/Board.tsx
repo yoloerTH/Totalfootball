@@ -594,6 +594,7 @@ export function Board({
                 photoHref={t.photo ? photoHrefs?.[t.photo] : undefined}
                 namePlace={system.namePlace}
                 photoPlace={system.photoPlace}
+                photoAngle={system.photoAngle}
                 cue={t.cue}
                 dim={t.dim}
                 scale={(t.scale ?? 1) * (system.tokenSize ?? 1)}

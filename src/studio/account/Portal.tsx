@@ -48,8 +48,11 @@ import {
   deleteCloudSystem,
   listCloudSystems,
   saveCloudSystem,
+  saveProfile,
   type CloudSystem,
 } from './cloud'
+import { Modal, Button } from '../editor/ui'
+import { useProfile, putProfile } from './profile'
 
 type Load = 'working' | 'ready' | 'local-only'
 
@@ -65,6 +68,8 @@ export default function Portal() {
   const [systems, setSystems] = useState<CloudSystem[]>([])
   const [load, setLoad] = useState<Load>('working')
   const [claimed, setClaimed] = useState(0)
+  const [folderSystem, setFolderSystem] = useState<CloudSystem | null>(null)
+  const { profile } = useProfile(user?.id)
 
   /*
    * ── FINISHING THE PROFILE ────────────────────────────────────────────────
@@ -287,6 +292,17 @@ export default function Portal() {
     [user],
   )
 
+  const move = useCallback(
+    async (row: CloudSystem, folder: string) => {
+      if (!user) return
+      const next = { ...row.system, folder }
+      setSystems((s) => s.map((r) => (r.id === row.id ? { ...r, system: next } : r)))
+      saveSystem(row.id, next)
+      await saveCloudSystem(row.id, next, user.id)
+    },
+    [user],
+  )
+
   const remove = useCallback(
     async (row: CloudSystem) => {
       if (!user) return
@@ -422,23 +438,73 @@ export default function Portal() {
       ) : systems.length === 0 ? (
         <Empty onNew={create} />
       ) : (
-        <ul className="mt-8 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {/* First in the grid, not only in the header: on a shelf you have
-              scrolled halfway down, the way to add one should be in the shelf. */}
-          <NewTile onClick={create} />
-          {systems.map((row) => (
-            <Card
-              key={row.id}
-              row={row}
-              onDuplicate={() => void duplicate(row)}
-              onRename={(t) => void rename(row, t)}
-              onDelete={() => void remove(row)}
-            />
-          ))}
-        </ul>
+        <>
+          {(() => {
+            const folders = Array.from(new Set(systems.map((s) => s.system.folder).filter(Boolean))) as string[]
+            folders.sort()
+            return (
+              <div className="mt-8 flex flex-col gap-12">
+                {folders.map((f) => (
+                  <div key={f}>
+                    <h3 className="mb-4 text-xl font-bold text-ink">{f}</h3>
+                    <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                      {systems
+                        .filter((s) => s.system.folder === f)
+                        .map((row) => (
+                          <Card
+                            key={row.id}
+                            row={row}
+                            onDuplicate={() => void duplicate(row)}
+                            onRename={(t) => void rename(row, t)}
+                            onFolderClick={() => setFolderSystem(row)}
+                            onDelete={() => void remove(row)}
+                          />
+                        ))}
+                    </ul>
+                  </div>
+                ))}
+                <div>
+                  {folders.length > 0 && <h3 className="mb-4 text-xl font-bold text-ink">Uncategorised</h3>}
+                  <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                    <NewTile onClick={create} />
+                    {systems
+                      .filter((s) => !s.system.folder)
+                      .map((row) => (
+                        <Card
+                          key={row.id}
+                          row={row}
+                          onDuplicate={() => void duplicate(row)}
+                          onRename={(t) => void rename(row, t)}
+                          onFolderClick={() => setFolderSystem(row)}
+                          onDelete={() => void remove(row)}
+                        />
+                      ))}
+                  </ul>
+                </div>
+              </div>
+            )
+          })()}
+        </>
       )}
 
       <OursToStartFrom />
+
+      {folderSystem && (
+        <FolderModal
+          currentFolder={folderSystem.system.folder || ''}
+          existingFolders={Array.from(new Set([...(profile?.folders || []), ...systems.map(s => s.system.folder).filter(Boolean)])) as string[]}
+          onClose={() => setFolderSystem(null)}
+          onMove={(f) => {
+            void move(folderSystem, f)
+            setFolderSystem(null)
+            if (f && user && profile && !profile.folders.includes(f)) {
+              const next = { ...profile, folders: [...profile.folders, f] }
+              putProfile(next)
+              void saveProfile(next, user.id)
+            }
+          }}
+        />
+      )}
 
       {nudge && (
         <ProfileNudge
@@ -833,17 +899,95 @@ function Tally({ systems, phases, shared }: { systems: number; phases: number; s
   )
 }
 
+function FolderModal({
+  currentFolder,
+  existingFolders,
+  onClose,
+  onMove,
+}: {
+  currentFolder: string
+  existingFolders: string[]
+  onClose: () => void
+  onMove: (folder: string) => void
+}) {
+  const [draft, setDraft] = useState(currentFolder)
+
+  return (
+    <Modal title="Move to folder" onClose={onClose}>
+      <div className="flex flex-col gap-4 p-6 pt-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-bold text-ink-soft">New or existing folder</span>
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                onMove(draft.trim())
+              }
+            }}
+            placeholder="e.g. Attacking, Defending..."
+            className="w-full rounded-md border border-ink-hair bg-paper px-3 py-2 text-[15px] font-bold text-ink outline-none focus:border-ink/25"
+          />
+        </label>
+        
+        {existingFolders.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] font-bold text-ink-soft">Your folders</span>
+            <div className="flex flex-wrap gap-2">
+              {existingFolders.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => {
+                    setDraft(f)
+                    onMove(f)
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-sm font-bold transition-colors ${
+                    draft.trim() === f
+                      ? 'bg-ink text-paper'
+                      : 'bg-ink-hair text-ink-soft hover:text-ink'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-ink-hair bg-surface p-4 sm:rounded-b-2xl">
+        <Button variant="danger" onClick={() => onMove('')}>
+          Remove from folder
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="solid" onClick={() => onMove(draft.trim())}>
+            Move
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ── one system ───────────────────────────────────────────────────────────────
 
 function Card({
   row,
   onDuplicate,
   onRename,
+  onFolderClick,
   onDelete,
 }: {
   row: CloudSystem
   onDuplicate: () => void
   onRename: (title: string) => void
+  onFolderClick: (current: string) => void
   onDelete: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -943,6 +1087,9 @@ function Card({
         */}
         <div className="mt-3 flex items-center gap-1 pt-1 text-ink-faint transition-colors group-focus-within:text-ink-soft group-hover:text-ink-soft">
           <Small onClick={() => setEditing(true)}>Rename</Small>
+          <Small onClick={() => onFolderClick(row.system.folder || '')}>
+            Folder
+          </Small>
           <Small onClick={onDuplicate}>Duplicate</Small>
           {confirming ? (
             <Small danger onClick={onDelete}>

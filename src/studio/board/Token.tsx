@@ -85,6 +85,7 @@ interface TokenProps {
   namePlace?: NamePlace
   /** Where the photograph sits: over the counter, or in it. */
   photoPlace?: PhotoPlace
+  photoAngle?: number
   cue?: string
   dim?: boolean
   /** Multiplier on TOKEN_R, for emphasis. */
@@ -104,6 +105,7 @@ export function Token({
   photoHref,
   namePlace = 'above',
   photoPlace = 'above',
+  photoAngle = 0,
   cue,
   dim = false,
   scale = 1,
@@ -361,7 +363,7 @@ export function Token({
           at FACE_IN so a band of kit survives all the way round, which is what
           keeps a photographed team a team. */}
       {insidePhoto && (
-        <g>
+        <g transform={photoAngle ? `rotate(${photoAngle} ${cx} ${cy})` : undefined}>
           <image
             href={photoHref}
             x={cx - r * FACE_IN}
@@ -424,13 +426,14 @@ export function Token({
           letterSpacing={r * -0.016}
           fill={style.text}
           style={{ userSelect: 'none' }}
+          transform={photoAngle ? `rotate(${photoAngle} ${cx} ${cy})` : undefined}
         >
           {label}
         </text>
       )}
 
       {abovePhoto && (
-        <g>
+        <g transform={photoAngle ? `rotate(${photoAngle} ${cx} ${cy})` : undefined}>
           {/* The seat. Painted before the photo so it only ever shows as the
               ring of it that the photo does not cover — which now means the
               ring outside the rim, since the rim no longer covers any face. */}
@@ -543,6 +546,7 @@ export function Token({
           strokeWidth={r * 0.12}
           paintOrder="stroke"
           style={{ userSelect: 'none' }}
+          transform={photoAngle ? `rotate(${photoAngle} ${cx} ${cy})` : undefined}
         >
           {badge && (
             <tspan fontWeight={900} letterSpacing={r * 0.008}>
@@ -558,7 +562,7 @@ export function Token({
       )}
 
       {cue && (
-        <g>
+        <g transform={photoAngle ? `rotate(${photoAngle} ${cx} ${cy})` : undefined}>
           <rect
             x={cx - cueW / 2}
             y={cy + r * cueTop}

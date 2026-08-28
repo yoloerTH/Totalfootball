@@ -558,6 +558,7 @@ const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] 
   // BEFORE the quarter turn (see board/pitch.ts `metresToUnits`), so a shape
   // laid out for the full pitch lands correctly here without its own numbers.
   'full-vertical': { us: [3, 48], them: [52, 97] },
+  'two-thirds': { us: [3, 47], them: [53, 97] },
   'attacking-half': { us: [3, 47], them: [53, 97] },
   'defending-half': { us: [3, 47], them: [53, 97] },
   'attacking-box': { us: [3, 47], them: [53, 97] },
@@ -574,6 +575,7 @@ const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] 
 const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
   full: [3, 74],
   'full-vertical': [3, 74],
+  'two-thirds': [3, 80],
   'attacking-half': [3, 88],
   'defending-half': [3, 88],
   'attacking-box': [3, 88],
@@ -658,6 +660,7 @@ export function mirrorBand(xs: number[]): [number, number] | null {
 const CAST: Record<PitchViewId, { us: number; them: number }> = {
   full: { us: 11, them: 11 },
   'full-vertical': { us: 11, them: 11 },
+  'two-thirds': { us: 11, them: 11 },
   // Their half: our GK is a pitch away. Their side is the one defending it, so
   // they keep the goalkeeper and give up the forwards.
   'attacking-half': { us: 10, them: 8 },

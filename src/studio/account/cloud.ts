@@ -290,6 +290,11 @@ export interface Profile {
   kitAlt: string
   visibility: Visibility
   links: ProfileLink[]
+  /** 
+   * Explicit list of folders created by the user. 
+   * This ensures folders persist even if they are empty, satisfying structural DB requirements.
+   */
+  folders: string[]
   /**
    * Whether the coach's name, club and squad travel with their work.
    *
@@ -316,13 +321,14 @@ export const EMPTY_PROFILE: Profile = {
   kitAlt: '',
   visibility: 'private',
   links: [],
+  folders: [],
   // Signing your own work is the behaviour that shipped and the one the
   // watermark policy is built on. This field exists to let a coach say no.
   showIdentity: true,
 }
 
 const PROFILE_COLUMNS =
-  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links, show_identity'
+  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links, folders, show_identity'
 
 /**
  * What a read of the profile actually found. THREE ANSWERS, NOT TWO.
@@ -411,6 +417,9 @@ export async function loadProfile(uid: string): Promise<ProfileRead> {
       ? (row.links as ProfileLink[])
           .filter((l) => l && typeof l.label === 'string' && typeof l.url === 'string')
           .slice(0, 5)
+      : [],
+    folders: Array.isArray(row.folders)
+      ? (row.folders as string[]).filter((f) => typeof f === 'string')
       : [],
     // Absent on a row written before supabase/017, which is every existing row.
     // Missing must read as ON: the column's default is true and so is the
@@ -539,6 +548,7 @@ export async function saveProfile(profile: Profile, id: string): Promise<boolean
       // an absence the default might fill in differently later.
       visibility: profile.visibility === 'public' ? 'public' : 'private',
       links: profile.links.filter((l) => l.label.trim() && l.url.trim()).slice(0, 5),
+      folders: profile.folders.map(f => f.trim()).filter(Boolean),
       // `not null default true`, and read back the same way: a boolean has no
       // "unset" worth preserving, so it goes up as itself every time.
       show_identity: profile.showIdentity !== false,

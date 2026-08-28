@@ -3971,6 +3971,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </button>
           </>
         )}
+        <div className="mx-1 h-4 w-px bg-white/20" />
+        <button
+          onClick={() => {
+            if (!document.fullscreenElement) {
+              boardContainerRef.current?.requestFullscreen?.();
+            } else {
+              document.exitFullscreen?.();
+            }
+          }}
+          className="mr-0.5 flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"
+          title="Toggle full screen"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
       </div>
     </div>
   )
@@ -4744,6 +4758,26 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 options={[
                   { value: 'above', label: 'Photos above the counter' },
                   { value: 'inside', label: 'Photos in the counter' },
+                ]}
+              />
+            </Tip>
+          </div>
+          <div className="mt-3">
+            <Tip text="Rotate player photos if they appear sideways on the board." title="Photo rotation" side="left" block>
+              <Select
+                value={String(system.photoAngle ?? 0)}
+                onChange={(v) => {
+                  edit('token:photoAngle', (s) => ({
+                    ...s,
+                    photoAngle: v === '0' ? undefined : Number(v),
+                  }))
+                  seal()
+                }}
+                options={[
+                  { value: '0', label: 'Upright (0°)' },
+                  { value: '90', label: 'Rotated right (90°)' },
+                  { value: '180', label: 'Upside down (180°)' },
+                  { value: '270', label: 'Rotated left (270°)' },
                 ]}
               />
             </Tip>

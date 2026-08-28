@@ -51,6 +51,7 @@ export const MARK = {
 export type PitchViewId =
   | 'full'
   | 'full-vertical'
+  | 'two-thirds'
   | 'attacking-half'
   | 'defending-half'
   | 'attacking-box'
@@ -136,6 +137,16 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
     y1: 68,
     vertical: true,
   },
+  'two-thirds': {
+    id: 'two-thirds',
+    label: 'Two thirds',
+    hint: 'Defensive third to their goal.',
+    useFor: 'Playing out from the back, building through the middle third.',
+    x0: 35,
+    x1: 105,
+    y0: 0,
+    y1: 68,
+  },
   'attacking-half': {
     id: 'attacking-half',
     label: 'Their half',
@@ -171,6 +182,7 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
 export const PITCH_VIEW_LIST: PitchView[] = [
   PITCH_VIEWS.full,
   PITCH_VIEWS['full-vertical'],
+  PITCH_VIEWS['two-thirds'],
   PITCH_VIEWS['attacking-half'],
   PITCH_VIEWS['defending-half'],
   PITCH_VIEWS['attacking-box'],

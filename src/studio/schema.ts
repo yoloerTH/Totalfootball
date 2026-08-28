@@ -675,6 +675,8 @@ export interface System {
   title: string
   /** Optional subtitle for the title slide. */
   subtitle?: string
+  /** Optional folder to organise the system. */
+  folder?: string
   pitch: PitchViewId
   /**
    * Which match ball is on the board. A property of the whole presentation, not
@@ -704,6 +706,8 @@ export interface System {
    */
   namePlace?: NamePlace
   photoPlace?: PhotoPlace
+  /** Optional rotation for all player photos (0, 90, 180, 270) */
+  photoAngle?: number
   /**
    * What the board is drawn on: paper, broadcast turf, floodlit night, slate.
    *
