@@ -14,7 +14,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import { Board } from '../../studio/board/Board'
 import { PITCH_VIEWS, PITCH_VIEW_LIST, aspect } from '../../studio/board/pitch'
 import { FORMATIONS, FORMATION_BY_ID, place } from '../../studio/formations'
-import { DEFAULT_THEM, DEFAULT_US, emptyAct, type Act, type System } from '../../studio/schema'
+import { darken, readableText } from '../../studio/board/palette'
+import { DEFAULT_THEM, DEFAULT_US, emptyAct, type Act, type Bib, type System } from '../../studio/schema'
 import { resolveAct, tweenActs } from '../../studio/tween'
 
 const teams = { us: DEFAULT_US, them: DEFAULT_THEM }
@@ -80,6 +81,39 @@ const sinkAct: Act = {
     { id: 'b2', kind: 'danger', rect: { x: 0, y: 30, w: 22, h: 40 }, label: 'DANGER ZONE' },
   ],
 }
+
+/**
+ * Bibs, which is the one thing on the board that can override a side's colour.
+ *
+ * The claim being proved is that `kitFor` is the only question asked: a counter
+ * in a bib is drawn in the bib, a counter in no bib is drawn in its side's kit,
+ * and both are the same glossy object with the same rim, shade and readable
+ * label. The keeper's bib is nearly white, which is the case that catches a
+ * label colour that does not flip.
+ */
+const bib = (id: string, name: string, base: string): Bib => ({
+  id,
+  name,
+  base,
+  deep: darken(base),
+  text: readableText(base),
+})
+const bibsSystem: System = {
+  v: 1,
+  title: 'Bibs',
+  pitch: 'full',
+  teams: { us: DEFAULT_US, them: null },
+  bibs: [bib('y', 'Yellows', '#F2C230'), bib('b', 'Blues', '#2F6FE0'), bib('k', 'Keeper', '#F1F0EA')],
+  acts: [],
+}
+const bibsAct = emptyAct(
+  place(FORMATION_BY_ID.get('4-3-3')!, 'us', 'full').map((t, i) => {
+    if (t.id === 'us-GK') return { ...t, bib: 'k' }
+    if (i % 3 === 1) return { ...t, bib: 'y' }
+    if (i % 3 === 2) return { ...t, bib: 'b' }
+    return t
+  }),
+)
 
 /**
  * The tween, sampled. Act 1 is a mid-block; act 2 slides it across and hands
@@ -187,6 +221,21 @@ const upAct: Act = {
       <figure class="mt-8 flex flex-col items-center rounded-lg bg-surface p-4 shadow-paper">
         <div style={`height:560px;aspect-ratio:${aspect(PITCH_VIEWS[kitchenSink.pitch])};max-width:100%`}>
           <Board system={kitchenSink} act={resolveAct(sinkAct)} idp="sink" texture />
+        </div>
+      </figure>
+    </section>
+
+    <section class="mt-20">
+      <h2 class="text-section font-black tracking-display text-ink">Bibs</h2>
+      <p class="mt-2 max-w-prose text-sm text-ink-soft">
+        One side, four colours. The keeper is in a bib of their own, six outfielders are split
+        between two more, and the four with no bib are still in the team kit. Check that a bib is
+        the same object as a kit — same rim, same shaded underside, same highlight — and that the
+        label on the near-white keeper's bib has flipped to ink.
+      </p>
+      <figure class="mt-8 flex flex-col items-center rounded-lg bg-surface p-4 shadow-paper">
+        <div style={`height:520px;aspect-ratio:${aspect(PITCH_VIEWS[bibsSystem.pitch])};max-width:100%`}>
+          <Board system={bibsSystem} act={resolveAct(bibsAct)} idp="bibs" texture />
         </div>
       </figure>
     </section>

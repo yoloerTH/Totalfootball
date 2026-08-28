@@ -55,7 +55,8 @@ import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
 import { resolveGear } from '../gear'
 import { arrowEnds } from '../arrows'
-import type { System, TeamStyle } from '../schema'
+import { kitFor } from '../schema'
+import type { System } from '../schema'
 import type { RenderAct, RenderBand } from '../tween'
 
 interface Props {
@@ -344,9 +345,6 @@ export function Board({
   const surface = resolveSurface(system.surface)
   const cursor = CURSOR[mode]
 
-  const styleFor = (side: 'us' | 'them'): TeamStyle =>
-    side === 'us' ? system.teams.us : (system.teams.them ?? system.teams.us)
-
   return (
     <SurfaceContext.Provider value={surface.palette}>
     <svg
@@ -589,7 +587,9 @@ export function Board({
                 cy={p.y}
                 label={t.label}
                 side={t.side}
-                style={styleFor(t.side)}
+                // Their bib if they are in one, their side's kit if they
+                // are not. One question, one answer — see ../schema.ts.
+                style={kitFor(system, t)}
                 name={t.name}
                 photoHref={t.photo ? photoHrefs?.[t.photo] : undefined}
                 namePlace={system.namePlace}

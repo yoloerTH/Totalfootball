@@ -350,13 +350,17 @@ export const HINT = {
     'What the pitch is drawn on. Paper is what the videos use and what prints best. Broadcast and Night look like a match on television, which reads well on a screen in a dark room. This travels with the system, so everyone you send it to sees the pitch you chose.',
 
   formationUs:
-    'Lines your eleven up in this shape. It replaces where they are standing right now, so pick the shape before you start moving people.',
+    'Lines your eleven up in this shape. It replaces where they are standing, so it asks first whenever there is anything to lose, and lets you say whether the new shape lands on this phase alone or on every phase. Names, faces, cues, fades and bibs are kept either way, and Undo puts it all back.',
   formationThem:
     'The shape you are playing against. Useful when the lesson is about where their players are, rather than only where yours are.',
   replace:
     'Puts everybody back on their formation position, on this phase only. Your names, cues and fades are kept.',
   colourUs: 'Your kit colour. The counter labels switch between white and black on their own so they stay readable.',
   colourThem: 'Their kit colour. Pick something well clear of yours.',
+  bibs:
+    'Bibs, for a session that is not simply two teams. Add a colour here and you can put it on any player, on either side: three-colour training, seven against seven plus seven, a group of neutrals, or a keeper who should not be in the outfield shirt. A bib is a colour with a name, so the seven yellows are all the same yellow and you can recolour the whole group in one place.',
+  bib:
+    'What this player is wearing. Kit is their team colour. Any bib on the board can go on them instead, and the plus makes a new bib in a colour you choose and puts them straight in it. A bib holds across every phase, because it is what they are wearing for the session rather than what they are doing on this beat.',
   opposition:
     'Puts eleven opposition players on THIS phase, and only this one. Build your shape across as many phases as you like, then bring them on for the phase where the point is made — they fade in and out as the move plays.',
   keepShape:
@@ -1184,6 +1188,29 @@ export const HELP_TOPICS: HelpTopic[] = [
     terms: ['formation', 'shape', '4-3-3', 'line up', 'eleven', 'opposition', 'them', 'against', 'other team'],
     body: [HINT.formationUs, HINT.opposition, HINT.keepShape],
     target: { drawer: DRAWER.teams, anchor: 'Our shape', name: 'Our shape' },
+  },
+  {
+    id: 'bibs',
+    group: 'kit',
+    label: 'Bibs: three colours, neutrals, a keeper in a different shirt',
+    terms: [
+      'bib',
+      'bibs',
+      'colour one player',
+      'different colour player',
+      'three colour',
+      '3 colour',
+      'neutrals',
+      'jokers',
+      'keeper colour',
+      'goalkeeper colour',
+      '7v7',
+      'plus seven',
+      'groups',
+      'rondo colours',
+    ],
+    body: [HINT.bibs, HINT.bib],
+    target: { drawer: DRAWER.teams, anchor: 'Bibs', name: 'Bibs' },
   },
   {
     id: 'counters',

@@ -60,6 +60,25 @@ export interface Token {
   cue?: Cue
   /** Greyed back, for players who are not part of this act's lesson. */
   dim?: boolean
+  /**
+   * The bib this player is wearing, as a `Bib.id`. Absent is the side's own
+   * kit, which is every player on every board built before bibs existed.
+   *
+   * A `string` and not a union, the same call `Band`'s appearance fields make:
+   * a document has to stay readable by code that has never heard of this
+   * particular bib. An id that names nothing draws in the side's colour rather
+   * than nothing at all, so deleting a bib cannot make a counter disappear.
+   *
+   * ── IT IS SET ON EVERY PHASE AT ONCE, unlike `cue` and `dim` beside it ─────
+   *
+   * Those two are what a player is DOING on this beat, and they are meant to
+   * change from pose to pose. A bib is what they are WEARING for the session. A
+   * player who changed shirt between two poses of the same move would read as a
+   * different player arriving, which is the one thing the stable id exists to
+   * prevent. So `assignBib` in ../editor/StudioEditor.tsx writes it across every
+   * act. It is stored per-token per-act anyway, because that is what an act is.
+   */
+  bib?: string
 }
 
 /**
@@ -585,6 +604,52 @@ export interface TeamStyle {
 }
 
 /**
+ * A training bib: a colour worn by a player, over whatever their side is in.
+ *
+ * Coaches asked for three things and they are one thing (2026-08-28): a keeper
+ * who is not in the outfield shirt, three-colour training, and seven against
+ * seven plus seven.
+ *
+ * ── WHY THIS IS NOT A THIRD `Side` ──────────────────────────────────────────
+ *
+ * Seven plus seven has three groups on the grass, so the obvious model is a
+ * third side. It is the wrong one. `side` is TACTICS: it decides which way a
+ * formation faces, which goal a block shades back to, which half of the board a
+ * shape is laid into and what "Keep my shape" mirrors — see ./formations.ts.
+ * None of those has an answer for a group of neutrals, and a third side would
+ * mean teaching every one of them a case they have no opinion about.
+ *
+ * A bib is PAINT. The plus-seven are still on a side for the geometry; they are
+ * just not drawn in that side's colour. Which is also what happens on the
+ * grass, where the neutrals join whichever team has the ball.
+ *
+ * ── WHY IT IS A NAMED LIST AND NOT A COLOUR PER PLAYER ──────────────────────
+ *
+ * It is both, through one mechanism. A bib worn by one player IS a per-player
+ * colour, and that is how the keeper gets a different shirt: the picker makes
+ * one for you when you choose a colour instead of a swatch. What the list buys
+ * is the case they actually asked about. Three-colour training is three
+ * swatches and twenty-one clicks rather than twenty-one colour pickers, the
+ * seven yellows are the SAME yellow, and "the neutrals" is a thing with a name
+ * that can be counted, recoloured in one place, and printed in a legend later.
+ *
+ * ── IT IS A `TeamStyle`, AND THAT IS THE WHOLE IMPLEMENTATION ───────────────
+ *
+ * Not a hex string. `Token` already knows how to dress a counter from one of
+ * these — the dome, the shaded underside, the trim ring, the pattern and its
+ * second colour, the label colour that flips to stay readable — so a bib that
+ * was a bare colour would be a second and poorer way of doing what the board
+ * already does. Bibs can therefore have hoops, and no drawing code was added
+ * for any of this: `kitFor` below hands one to the same component that is
+ * handed `teams.us`, and the video exporter, the print sheet and every share
+ * link are pure SVG off that single call.
+ */
+export interface Bib extends TeamStyle {
+  /** Referenced by `Token.bib`. */
+  id: string
+}
+
+/**
  * Where a player's name sits relative to their counter.
  *
  * 'above' is the original and the default. 'below' is for a board whose room is
@@ -783,6 +848,21 @@ export interface System {
     /** null = no opposition on the board. */
     them: TeamStyle | null
   }
+  /**
+   * The bibs this board has, if any. See `Bib`.
+   *
+   * Absent or empty is a board with nobody in a bib, which is every board built
+   * before they existed and most boards after — a tactics presentation is two
+   * teams and wants none of this. Nothing about bibs is drawn until a coach
+   * makes one.
+   *
+   * On the SYSTEM and beside `teams`, rather than on the coach's profile. The
+   * groups are part of what this session IS: a share link, a printed page and a
+   * film all have to open on the same three colours the coach assigned, where a
+   * profile setting would draw one link two ways for two viewers. Same call the
+   * surface and the camera make.
+   */
+  bibs?: Bib[]
   acts: Act[]
   /**
    * Who is presenting this, filled in when it is shared.
@@ -833,6 +913,26 @@ export const DEFAULT_THEM: TeamStyle = {
   base: '#E2473B',
   deep: '#B5392F',
   text: '#FFFFFF',
+}
+
+/**
+ * What one counter is drawn in: their bib if they are wearing one, their side's
+ * kit if they are not.
+ *
+ * THE ONE WAY TO ASK, for the reason `ballsOf` is the one way to read a phase's
+ * balls. Every surface that draws a player goes through ./board/Board.tsx,
+ * which goes through here, so there is no renderer that can be left painting a
+ * neutral in the home shirt.
+ *
+ * A bib id that names nothing resolves to the side. That covers a bib the coach
+ * deleted and a document written by a build that has bibs this one has never
+ * heard of: the board comes up in the wrong colour, which is recoverable, and
+ * never with holes in it, which is not.
+ */
+export function kitFor(system: System, token: Pick<Token, 'side' | 'bib'>): TeamStyle {
+  const bib = token.bib ? system.bibs?.find((b) => b.id === token.bib) : undefined
+  if (bib) return bib
+  return token.side === 'us' ? system.teams.us : (system.teams.them ?? system.teams.us)
 }
 
 /**

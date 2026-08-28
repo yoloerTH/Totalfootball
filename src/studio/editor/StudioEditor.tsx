@@ -96,6 +96,7 @@ import {
   type CameraPush,
 } from '../camera'
 import {
+  FORMATIONS,
   FORMATION_BY_ID,
   castFor,
   formationsByFamily,
@@ -120,6 +121,7 @@ import {
   type Arrow,
   type ArrowKind,
   type Band,
+  type Bib,
   type BandKind,
   type BandShape,
   type Credit,
@@ -317,13 +319,121 @@ function bandSide(band: Band, act: Act): Side {
  * re-placement entirely — which means adding a field to the schema and not to
  * this line silently drops it the next time a coach changes formation. `photo`
  * was the first one to prove it.
+ *
+ * `keepLabel` IS OFF WHEN THE SHAPE ITSELF CHANGES, and that is the one field
+ * that cannot be carried blind. Re-placing a 4-3-3 as a 4-3-3 should keep the
+ * label a coach retyped, because the man is still playing that position. Laying
+ * a 4-2-3-1 over it should not: `us-LCM` exists in both and means something
+ * different in each, so carrying the old label would leave a counter announcing
+ * a position nobody on the board is playing. `place` has already written the
+ * right one for the new shape, so the honest move is to let it stand.
  */
-function withEdits(placed: Token[], previous: Token[]): Token[] {
+function withEdits(placed: Token[], previous: Token[], keepLabel = true): Token[] {
   const prev = new Map(previous.map((t) => [t.id, t]))
   return placed.map((t) => {
     const p = prev.get(t.id)
-    return p ? { ...t, label: p.label, name: p.name, photo: p.photo, cue: p.cue, dim: p.dim } : t
+    if (!p) return t
+    return {
+      ...t,
+      label: keepLabel ? p.label : t.label,
+      name: p.name,
+      photo: p.photo,
+      cue: p.cue,
+      dim: p.dim,
+      // The bib is the one thing here that is not per-phase editing at all: it
+      // is what the player is wearing, and a re-place is not a change of shirt.
+      bib: p.bib,
+    }
   })
+}
+
+/**
+ * The bib colours the button hands out, in order, and what they are called.
+ *
+ * Real bib colours, and picked to sit clear of BOTH default kits and of the
+ * grass: the studio's green and the house red are already on the board, so a
+ * bib that is nearly either of them tells a room nothing. Yellow first, because
+ * a yellow bib is what is in every kit bag in the world.
+ *
+ * A coach who wants a colour that is not here picks one, and gets a bib in that
+ * colour with a name they can change. This list only decides what they get when
+ * they do not choose.
+ */
+const BIB_SEEDS: { name: string; base: string }[] = [
+  { name: 'Yellows', base: '#F2C230' },
+  { name: 'Blues', base: '#2F6FE0' },
+  { name: 'Oranges', base: '#E8722C' },
+  { name: 'Whites', base: '#F1F0EA' },
+  { name: 'Pinks', base: '#E0569F' },
+  { name: 'Blacks', base: '#2B2F36' },
+]
+
+/**
+ * The bib picker on a selected player: no bib, then one swatch per bib on the
+ * board, then a colour well that makes a new one.
+ *
+ * THE LAST SWATCH IS THE WHOLE ANSWER to "can I not just colour this one
+ * player". It is a native colour input wearing a plus, and choosing a colour in
+ * it makes a bib of that colour and puts this player in it. So a coach who
+ * wants the keeper in yellow gets the keeper in yellow without ever meeting the
+ * idea of a group, and a coach running three-colour training gets the group
+ * they need, off one mechanism and one stored field. Two ways to colour a
+ * counter would have meant two answers to "what colour is this man", which is
+ * the thing `kitFor` exists to prevent.
+ */
+function BibSwatches({
+  bibs,
+  worn,
+  onWear,
+  onCreate,
+  seed,
+}: {
+  bibs: Bib[]
+  worn?: string
+  onWear: (id: string | undefined) => void
+  onCreate: (hex: string) => void
+  /** What the colour well opens on: the next bib colour nobody has taken. */
+  seed: string
+}) {
+  const swatch = (on: boolean) =>
+    `flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${
+      on ? 'border-ink ring-2 ring-ink/25' : 'border-ink-hair hover:border-ink-faint'
+    }`
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onWear(undefined)}
+        aria-pressed={!worn}
+        title="No bib. This player wears the team kit."
+        className={`${swatch(!worn)} border-dashed text-[9px] uppercase text-ink-faint`}
+      >
+        Kit
+      </button>
+      {bibs.map((b) => (
+        <button
+          key={b.id}
+          type="button"
+          onClick={() => onWear(b.id)}
+          aria-pressed={worn === b.id}
+          title={b.name}
+          className={swatch(worn === b.id)}
+          style={{ background: b.base }}
+        />
+      ))}
+      <span className={`${swatch(false)} relative overflow-hidden`} title="A colour of your own">
+        <span className="pointer-events-none text-sm leading-none text-ink-faint">+</span>
+        <input
+          type="color"
+          value={seed}
+          onChange={(e) => onCreate(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label="Make a bib in a colour of your own"
+        />
+      </span>
+    </div>
+  )
 }
 
 /**
@@ -553,6 +663,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const [labels, setLabels] = useState<LabelMode>('position')
   const [usFormation, setUsFormation] = useState('4-3-3')
   const [themFormation, setThemFormation] = useState('4-4-2')
+  /**
+   * The shape a coach has asked for and not yet been given.
+   *
+   * Held here rather than applied on the spot because re-placing a shape throws
+   * away every position posed by hand on the phases it lands on, and coaches
+   * were finding that out afterwards (2026-08-28). The pickers stay on the
+   * shape that is actually on the board while this is set, so cancelling needs
+   * nothing put back.
+   */
+  const [shapePrompt, setShapePrompt] = useState<{ side: Side; formationId: string } | null>(null)
   const [panelTab, setPanelTab] = useState<'setup' | 'phase'>('setup')
 
   // The phase on screen travels with an undo entry: taking back a change made
@@ -2454,27 +2574,147 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           : 'move'
 
   // ── team + shape actions ───────────────────────────────────────────────────
-  const applyFormation = (side: Side, formationId: string) => {
+
+  /**
+   * Whether anybody has been moved off their formation position on this phase.
+   *
+   * This is the question the shape picker has to answer before it re-places
+   * anyone, because the positions are the ONLY thing a re-place destroys:
+   * names, faces, cues, fades and bibs all survive it now (`withEdits`), and
+   * arrows are left alone and follow whoever they are bound to.
+   *
+   * IT ASKS EVERY FORMATION, not the one the picker is showing. `usFormation`
+   * is editor state that starts at 4-3-3 and is not read back off a document,
+   * so a system reopened tomorrow would have a picker that disagrees with the
+   * board, and testing against it would call a pristine phase hand-posed. A
+   * phase that matches ANY shape's placement exactly is a phase nobody has
+   * touched, whatever the picker happens to say. Thirty formations by eleven
+   * players is nothing, and it only runs on a click.
+   *
+   * When it is wrong it is wrong towards warning, which is the right direction:
+   * the cost of a needless prompt is a click, and the cost of a missed one is a
+   * phase of somebody's work.
+   */
+  const posedByHand = (side: Side, a: Act): boolean => {
+    const here = a.tokens.filter((t) => t.side === side)
+    if (here.length === 0) return false
+    const keep = Boolean(system.keepShape)
+    const wide = side === 'us' && (keep || !a.tokens.some((t) => t.side === 'them'))
+    const band = keep && side === 'them' ? oppositionBand(a.tokens) : undefined
+    const at = new Map(here.map((t) => [t.id, t]))
+    return !FORMATIONS.some((f) => {
+      const placed = place(f, side, system.pitch, labels, wide, band)
+      if (placed.length !== here.length) return false
+      return placed.every((q) => {
+        const t = at.get(q.id)
+        // `place` rounds to a tenth, so anything inside that is the same spot.
+        return Boolean(t) && Math.abs(t!.x - q.x) < 0.15 && Math.abs(t!.y - q.y) < 0.15
+      })
+    })
+  }
+
+  /**
+   * Lay a shape down, on this phase or on all of them.
+   *
+   * `scope` is the half of this that was missing. A coach on phase 3 who picked
+   * a back three got it on phase 3 and nowhere else, which reads as the studio
+   * having reverted them to phase 1 rather than as the change landing on one
+   * phase (2026-08-28). Both answers are legitimate, so the prompt asks.
+   */
+  const applyFormation = (side: Side, formationId: string, scope: 'phase' | 'all' = 'phase') => {
     const f = FORMATION_BY_ID.get(formationId)
     if (!f) return
     const keep = Boolean(system.keepShape)
-    patchAct('formation', (a) => {
+    const lay = (a: Act): Act => {
       // Whether our shape gets the wide band is asked of THIS phase, because
       // an opposition is something a phase has or does not have. With "Keep my
       // shape" on the answer is always wide, and a new opposition shape is
       // fitted to the mirror of what is already on the pitch.
       const wide = side === 'us' && (keep || !a.tokens.some((t) => t.side === 'them'))
+      const band = keep && side === 'them' ? oppositionBand(a.tokens) : undefined
       return {
         ...a,
         tokens: [
           ...a.tokens.filter((t) => t.side !== side),
-          ...place(f, side, system.pitch, labels, wide, keep && side === 'them' ? oppositionBand(a.tokens) : undefined),
+          // Everything the coach typed, picked or assigned rides across; only
+          // the positions and the position labels come from the new shape.
+          ...withEdits(place(f, side, system.pitch, labels, wide, band), a.tokens, false),
         ],
       }
-    })
+    }
+    if (scope === 'all') {
+      // A phase that has none of this side is LEFT ALONE. "Every phase" is a
+      // scope, not an instruction to conjure an opposition onto phases the
+      // coach deliberately left them off.
+      edit('formation', (sys) => ({
+        ...sys,
+        acts: sys.acts.map((a) => (a.tokens.some((t) => t.side === side) ? lay(a) : a)),
+      }))
+    } else {
+      patchAct('formation', lay)
+    }
     seal()
     if (side === 'us') setUsFormation(formationId)
     else setThemFormation(formationId)
+  }
+
+  /**
+   * A coach picked a shape. Whether they are asked anything first.
+   *
+   * Silent on the one case where there is genuinely nothing to say: a single
+   * phase with nobody moved off their marks, which is a coach trying shapes on
+   * before they start work. Every other case has a real question in it, either
+   * "this will cost you the positions on phase 2 and 3" or, on a system with
+   * several phases and nothing posed yet, simply "which phases did you mean".
+   */
+  const chooseFormation = (side: Side, formationId: string) => {
+    const posed = system.acts.some((a) => posedByHand(side, a))
+    if (!posed && system.acts.length === 1) applyFormation(side, formationId)
+    else setShapePrompt({ side, formationId })
+  }
+
+  /**
+   * The question a shape picker asks before it re-places anybody.
+   *
+   * Under the picker that asked it, and not in a modal over the board. The
+   * coach is looking at the control they just used, the thing they are being
+   * asked about is the board behind it, and a dialog that blanks the board to
+   * ask "are you sure" hides the only evidence they have.
+   */
+  const shapePromptFor = (side: Side) => {
+    if (shapePrompt?.side !== side) return null
+    const f = FORMATION_BY_ID.get(shapePrompt.formationId)
+    const posed = system.acts.map((a, i) => (posedByHand(side, a) ? i + 1 : 0)).filter(Boolean)
+    const many = system.acts.length > 1
+    const list =
+      posed.length > 1 ? `${posed.slice(0, -1).join(', ')} and ${posed[posed.length - 1]}` : String(posed[0])
+    const go = (scope: 'phase' | 'all') => {
+      applyFormation(side, shapePrompt.formationId, scope)
+      setShapePrompt(null)
+    }
+    return (
+      <div className="mt-3 rounded border border-ink-hair bg-ink/5 p-3">
+        <p className="text-[11px] font-medium leading-snug text-ink-soft">
+          {f?.name ?? 'That shape'} puts {side === 'us' ? 'your' : 'their'} players back on formation positions.
+        </p>
+        <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
+          {posed.length === 0
+            ? `Nobody has been moved off their marks yet, so nothing is lost. Choose which ${PHASE.many} it lands on.`
+            : `${posed.length > 1 ? PHASE.Many : PHASE.One} ${list} ${
+                posed.length > 1 ? 'have' : 'has'
+              } positions you posed by hand, and re-placing loses them. Names, faces, cues, fades and bibs are kept, and Undo puts it all back.`}
+        </p>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <Button variant="solid" onClick={() => go('phase')}>
+            {many ? `This ${PHASE.one} only` : 'Change the shape'}
+          </Button>
+          {many && <Button onClick={() => go('all')}>Every {PHASE.one}</Button>}
+          <Button variant="ghost" onClick={() => setShapePrompt(null)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   /**
@@ -2671,6 +2911,112 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
       },
     }))
+  }
+
+  // ── bibs ───────────────────────────────────────────────────────────────────
+
+  /** Every bib on this board. Empty on a board that has never had one. */
+  const bibs = system.bibs ?? []
+
+  /** How many players on this phase are in a given bib. */
+  const bibWorn = (id: string) => act.tokens.filter((t) => t.bib === id).length
+
+  /** The next seed colour nobody on this board has taken. */
+  const nextBib = () =>
+    BIB_SEEDS.find((b) => !bibs.some((x) => x.base.toUpperCase() === b.base.toUpperCase())) ?? BIB_SEEDS[0]
+
+  /**
+   * Put a bib on a player, or take theirs off. ON EVERY PHASE.
+   *
+   * Which is the whole difference between this and `patchToken` beside it. A
+   * cue and a fade are per-phase because they are what somebody is doing on
+   * this beat. A bib is what they are wearing for the session, and a player who
+   * changed shirt halfway through a move would read as a substitution. See
+   * `Token.bib` in ../schema.ts.
+   */
+  const assignBib = (tokenId: string, bib: string | undefined) => {
+    edit('bib:wear', (s) => ({
+      ...s,
+      acts: s.acts.map((a) => ({
+        ...a,
+        tokens: a.tokens.map((t) => (t.id === tokenId ? { ...t, bib } : t)),
+      })),
+    }))
+    seal()
+  }
+
+  /**
+   * A new bib.
+   *
+   * `base` is a colour the coach picked for themselves, off the plus on the
+   * player panel; without one it takes the next off BIB_SEEDS. `wearer` puts it
+   * straight onto somebody, so choosing a colour for one player is one gesture
+   * rather than make-a-bib-then-assign-it.
+   */
+  const addBib = (base?: string, wearer?: string) => {
+    const seed = nextBib()
+    const hex = base ?? seed.base
+    const bib: Bib = {
+      id: uid('bib'),
+      name: base ? `Bib ${bibs.length + 1}` : seed.name,
+      base: hex,
+      deep: darken(hex),
+      text: readableText(hex),
+    }
+    edit('bib:add', (s) => ({
+      ...s,
+      bibs: [...(s.bibs ?? []), bib],
+      acts: wearer
+        ? s.acts.map((a) => ({
+            ...a,
+            tokens: a.tokens.map((t) => (t.id === wearer ? { ...t, bib: bib.id } : t)),
+          }))
+        : s.acts,
+    }))
+    seal()
+  }
+
+  /**
+   * Recolour a bib. `deep` and the label colour are derived here for the same
+   * reason `setTeamColor` derives them: they are the same fact twice, and a
+   * stored copy is the one that goes stale.
+   */
+  const setBibColour = (id: string, base: string) => {
+    edit(`bib:colour:${id}`, (s) => ({
+      ...s,
+      bibs: (s.bibs ?? []).map((b) =>
+        b.id === id ? { ...b, base, deep: darken(base), text: readableText(base) } : b,
+      ),
+    }))
+  }
+
+  const renameBib = (id: string, name: string) => {
+    edit(`bib:name:${id}`, (s) => ({
+      ...s,
+      bibs: (s.bibs ?? []).map((b) => (b.id === id ? { ...b, name } : b)),
+    }))
+  }
+
+  /**
+   * Take a bib off the board. Everybody in it goes back to their side's kit, on
+   * every phase.
+   *
+   * `kitFor` would draw them that way anyway, since an id naming nothing falls
+   * back to the side. Clearing it is about the document rather than the picture:
+   * a counter carrying the id of a bib that no longer exists is a counter
+   * claiming something untrue, and it is the kind of thing that comes back as a
+   * bug the day anything else learns to read the field.
+   */
+  const removeBib = (id: string) => {
+    edit('bib:remove', (s) => ({
+      ...s,
+      bibs: (s.bibs ?? []).filter((b) => b.id !== id),
+      acts: s.acts.map((a) => ({
+        ...a,
+        tokens: a.tokens.map((t) => (t.bib === id ? { ...t, bib: undefined } : t)),
+      })),
+    }))
+    seal()
   }
 
   /**
@@ -4111,9 +4457,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       >
         <Panel title="Our shape">
           <Tip text={HINT.formationUs} title="Our shape" block>
-            <Select value={usFormation} onChange={(v) => applyFormation('us', v)} groups={formationGroups} />
+            <Select value={usFormation} onChange={(v) => chooseFormation('us', v)} groups={formationGroups} />
           </Tip>
           <p className="mt-2 text-[11px] leading-snug text-ink-faint">{FORMATION_BY_ID.get(usFormation)?.hint}</p>
+          {shapePromptFor('us')}
           <div className="mt-3">
             <Tip text={HINT.colourUs} title="Our colour" block>
               <ColorWell value={system.teams.us.base} onChange={(c) => setTeamColor('us', c)} label="Our colour" />
@@ -4266,8 +4613,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           {system.teams.them && (
             <div className="mt-3">
               <Tip text={HINT.formationThem} title="Their shape" block>
-                <Select value={themFormation} onChange={(v) => applyFormation('them', v)} groups={formationGroups} />
+                <Select value={themFormation} onChange={(v) => chooseFormation('them', v)} groups={formationGroups} />
               </Tip>
+              {shapePromptFor('them')}
               <div className="mt-3">
                 <Tip text={HINT.colourThem} title="Their colour" block>
                   <ColorWell
@@ -4279,6 +4627,59 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               </div>
             </div>
           )}
+        </Panel>
+
+        {/*
+         * ── BIBS ─────────────────────────────────────────────────────────────
+         *
+         * Below the two shapes, because that is the order the question arrives
+         * in: a coach lays out who is on the pitch and then decides what they
+         * are wearing. It is a full panel rather than a row inside Our shape
+         * because a bib belongs to neither side, which is the whole idea of one.
+         *
+         * On a board with no bibs this is one sentence and one button. Nothing
+         * about bibs appears on the player panel until a bib exists, so the
+         * ordinary two-team board is exactly the board it was.
+         */}
+        <Panel title="Bibs">
+          <p className="text-[11px] leading-snug text-ink-faint">
+            {bibs.length === 0
+              ? 'For a session that is not two teams: three-colour training, seven against seven plus seven, or a keeper in a different shirt. Add a colour, then put it on players from Selected player.'
+              : `Pick a player on the board to put one of these on them. A bib holds across every ${PHASE.one}.`}
+          </p>
+          {bibs.map((b) => (
+            <div key={b.id} className="mt-3 flex items-center gap-2">
+              <span
+                className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border border-ink-hair"
+                style={{ background: b.base }}
+              >
+                <input
+                  type="color"
+                  value={b.base}
+                  onChange={(e) => setBibColour(b.id, e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label={`${b.name} colour`}
+                />
+              </span>
+              <TextInput value={b.name} onChange={(v) => renameBib(b.id, v)} maxLength={14} />
+              <span className="w-8 shrink-0 text-right text-[11px] tabular-nums text-ink-faint">
+                {bibWorn(b.id)}
+              </span>
+              <Button
+                variant="ghost"
+                className="!px-2"
+                onClick={() => removeBib(b.id)}
+                aria-label={`Remove ${b.name}`}
+              >
+                ×
+              </Button>
+            </div>
+          ))}
+          <div className="mt-3">
+            <Tip text={HINT.bibs} title="Bibs" block>
+              <Button onClick={() => addBib()}>{bibs.length === 0 ? 'Add a bib colour' : 'Add another'}</Button>
+            </Tip>
+          </div>
         </Panel>
 
         <Panel title="Counters">
@@ -4824,6 +5225,22 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               />
             </Tip>
           </Field>
+          {/* Only once there is a bib to wear. A board that is two teams stays
+              a board that is two teams, and the way in is the Bibs panel under
+              Teams and kit, where a coach already goes for colour. */}
+          {bibs.length > 0 && (
+            <Field label="Bib">
+              <Tip text={HINT.bib} title="Bib" side="left" block>
+                <BibSwatches
+                  bibs={bibs}
+                  worn={selectedToken.bib}
+                  onWear={(id) => assignBib(selectedToken.id, id)}
+                  onCreate={(hex) => addBib(hex, selectedToken.id)}
+                  seed={nextBib().base}
+                />
+              </Tip>
+            </Field>
+          )}
           <Tip text={HINT.playerDim} title="Fade back" side="left" block>
             <Toggle
               checked={Boolean(selectedToken.dim)}

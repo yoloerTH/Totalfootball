@@ -56,6 +56,22 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'bibs',
+    date: '2026-08-28',
+    kind: 'new',
+    title: 'Players can wear bibs',
+    body: 'A bib is a colour you can put on any player, on either side, over whatever their team is drawn in. Add one under Teams and kit and it appears as a swatch on every player you select. It is for the sessions that are not two teams: three-colour training, seven against seven plus seven, a group of neutrals, or a keeper who should not be in the outfield shirt. The plus beside the swatches makes a bib in a colour of your own and puts that player straight in it, so colouring one man is one gesture. A bib holds across every phase and travels into films, PDFs and share links.',
+    where: 'Bibs, under Teams and kit',
+  },
+  {
+    id: 'shape-scope',
+    date: '2026-08-28',
+    kind: 'better',
+    title: 'Changing shape asks before it moves anybody',
+    body: 'Picking a new formation re-places everyone on their formation positions, which used to happen silently and only on the phase you were looking at. Now it tells you which phases have positions you posed by hand, and lets you choose whether the new shape lands on this phase alone or on every one of them. Names, faces, cues, fades and bibs survive the change, which they did not before.',
+    where: 'Our shape, under Teams and kit',
+  },
+  {
     id: 'pitch-grid',
     date: '2026-08-28',
     kind: 'new',
