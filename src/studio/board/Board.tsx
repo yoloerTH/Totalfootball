@@ -400,7 +400,7 @@ export function Board({
          * cue chips and arrow captions stand upright on an upright board.
          */}
         <g transform={boardTransform(view)}>
-          <Pitch idp={idp} texture={texture} />
+          <Pitch idp={idp} texture={texture} grid={system.grid} turned={Boolean(view.vertical)} />
         </g>
 
       {/* bands first: they are the ground the idea sits on */}

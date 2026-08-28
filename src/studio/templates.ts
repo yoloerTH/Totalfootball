@@ -10,7 +10,7 @@
  * did not ask for". Both then linked to `/library/`, which is an article. This
  * is the door those two sentences were describing.
  *
- * WHY THESE FIVE AND NOT THE 123 PUBLISHED SHORTS
+ * WHY THESE AND NOT THE 123 PUBLISHED SHORTS
  *
  * A library system's phases are PNGs rendered out of Remotion, and a picture of
  * a board is not a board: the token positions that would have to be recovered
@@ -18,8 +18,9 @@
  * each short defines its own local pitch and coordinate helpers, so it is 123
  * separate readings rather than one loop.
  *
- * These five needed none of that, because they are already studio documents.
- * They were authored for the promo films and they live in content/systems/, and
+ * These needed none of that, because they are already studio documents. They
+ * were authored for the promo films, or built in the studio and pulled down by
+ * scripts/pull-system.mjs, and they live in content/systems/ — and
  * `scripts/render-video.mjs` and `scripts/shoot-studio.mjs` have been rendering
  * them for weeks — which means every one of them is known to open, pose, tween
  * and export. A worked example that has never been opened is a liability; these
@@ -43,21 +44,35 @@
  *
  * ── THE OFFICIAL ONES ───────────────────────────────────────────────────────
  *
- * The five below were authored as files, for the promo films. The ones marked
- * `official` were not: they are the systems that went out as videos on the
- * Total Football channels, built in the studio on the account where the films
- * get made, and brought down here by `scripts/pull-system.mjs`.
+ * The five starters below were authored as files, for the promo films. The ones
+ * marked `official` were not: they are the systems that went out as videos on
+ * the Total Football channels, built in the studio on the account where the
+ * films get made, and brought down here by `scripts/pull-system.mjs`.
  *
  * That is the only difference that matters to a coach, and it is worth a badge
  * because it is the strongest thing this page can say: the board you are about
  * to open is not a demo of the board, it is the actual document the video was
  * rendered from. `watch` is where they can go and check that claim.
  *
- * They are UPRIGHT (`pitch: 'full-vertical'`), because they were made for a
- * phone screen. That is not a detail the portal can ignore — see the note on
- * the two grids in Portal.tsx. A board must be given a container of its own
- * `aspect(view)` or it renders through the letterbox (Board.tsx), so an upright
- * system cannot share a row with a landscape one.
+ * Marking one `official` is the whole registration: it decides which of the two
+ * grids the card lands in (Portal.tsx), and it is also what builds the public
+ * `/o/<id>/` page and its sitemap entry (../pages/o/[slug].astro,
+ * ../pages/sitemap.xml.ts). Nothing else has to be told.
+ *
+ * THEY ARE TALLER THAN WIDE, which is the constraint the portal's layout is
+ * built round. A board must be given a container of its own `aspect(view)` or
+ * it renders through the letterbox (Board.tsx), and the five starters are
+ * landscape — `full` is 1.49 wide to 1 tall against 0.67 for the upright views
+ * the films are shot in, which is a 520px card beside a 230px one. So the
+ * official ones cannot share a grid with the starters. See the note on the two
+ * grids in Portal.tsx.
+ *
+ * They are not all the SAME portrait, and that is fine rather than sloppy: the
+ * two films are `full-vertical` (0.67) and the Y drill is `defending-half`
+ * (0.80), which is about 90px of board height apart on a 380px card. The card
+ * lets the `teaches` line take up the slack — it is `flex-1` — so the phase
+ * count and the call to action still line up across the row. A THIRD aspect in
+ * that grid is the point at which to stop and lay it out properly.
  */
 
 import type { System } from './schema'
@@ -68,6 +83,7 @@ import overloadToIsolate from '../../content/systems/overload-to-isolate.json'
 import theFalseNine from '../../content/systems/the-false-nine.json'
 import thePress4141 from '../../content/systems/the-4-1-4-1-press.json'
 import theThirdManRun from '../../content/systems/the-third-man-run.json'
+import theYPassingDrill from '../../content/systems/the-y-passing-drill-in-3-levels.json'
 import whyTheLineStepsUp from '../../content/systems/why-the-line-steps-up.json'
 
 /** Where a published system can be watched. Both, when it went out on both. */
@@ -106,13 +122,24 @@ export interface Template {
  *
  * A JSON import widens `v: 1` to `number` and every union down the document to
  * its base type, so the compiler cannot see these as `System` on its own. They
- * are checked by something better than a cast, though: all five are rendered
- * end to end by scripts/render-video.mjs, and a malformed one fails there long
- * before it reaches a coach.
+ * are checked by something better than a cast, though: every one of them is
+ * rendered end to end by scripts/render-video.mjs, and a malformed one fails
+ * there long before it reaches a coach.
  */
 const doc = (json: unknown): System => json as System
 
 export const TEMPLATES: Template[] = [
+  {
+    id: 'y-passing-drill',
+    teaches:
+      'A five-player passing pattern in cones, poles and mini-goals, built three times over: beginner, intermediate, professional. The same Y, asking more of them each level.',
+    official: true,
+    watch: {
+      instagram: 'https://www.instagram.com/reel/DckJuXBoNtp/',
+      facebook: 'https://www.facebook.com/reel/1376067451381072',
+    },
+    system: doc(theYPassingDrill),
+  },
   {
     id: 'press-4141',
     teaches:

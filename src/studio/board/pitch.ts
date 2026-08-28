@@ -383,3 +383,168 @@ export function penaltyArcHalfHeight(): number {
   const dx = MARK.penDepth - MARK.penSpot
   return Math.sqrt(MARK.circle * MARK.circle - dx * dx)
 }
+
+/* ── MARKED-UP PITCHES ──────────────────────────────────────────────────────
+ *
+ * A coach who works in corridors should not have to draw the corridors. He
+ * asked for the board to be "a regular field AND a drawn field with lines,
+ * zones and sectors", and the honest reading of that is a pitch that already
+ * carries the grid he coaches in — not a pitch he re-rules by hand at the top
+ * of every session, at slightly the wrong spacing each time.
+ *
+ * So markings are FURNITURE, not marks. They live on the system beside the
+ * surface (../schema.ts `grid`), they are drawn into the pitch under every
+ * counter and arrow, and they cannot be selected, dragged or deleted, because
+ * there is nothing about them to edit: the numbers are the ones the game uses.
+ *
+ * They are NOT a sixth pitch view. The view is the crop — what the system is
+ * about, and the space every mark is stored in. The grid is what is ruled onto
+ * whatever the crop shows, so the two multiply instead of competing: their half
+ * in five channels, the full pitch in eighteen zones.
+ *
+ * WHY THESE NUMBERS AND NOT EYEBALLED ONES. The five channels are the ones the
+ * positional game is actually played in: the wide channels end where the
+ * penalty area ends (40.32 m), and the centre is the width of the six-yard box
+ * (18.32 m). That is why a full-back overlapping "outside the box line" and a
+ * striker "in the middle corridor" mean something you can see from the touch
+ * line. The eighteen zones are the classic grid the phrase "zone 14" comes
+ * from: six bands along the length, three across the width, numbered from the
+ * defending end, which puts 14 dead centre outside their box.
+ */
+
+export type PitchGridId = 'none' | 'thirds' | 'channels' | 'sectors' | 'zones'
+
+/** A ruled line across the pitch, in metres. */
+export interface GridLine {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+/** A numbered cell of a grid: where the number goes, and what it says. */
+export interface GridCell {
+  x: number
+  y: number
+  label: string
+}
+
+export interface PitchGrid {
+  id: PitchGridId
+  /** How a coach would ask for it. */
+  label: string
+  /** One line under the picker, in their language rather than ours. */
+  hint: string
+  /** What it is for, in the same voice as a pitch view's. */
+  useFor: string
+  lines: GridLine[]
+  /** Numbers printed in the cells. Empty on the grids nobody numbers. */
+  cells: GridCell[]
+}
+
+const L = PITCH.length
+const W = PITCH.width
+
+/** A line along the length of the pitch, at some distance across it. */
+const along = (y: number): GridLine => ({ x1: 0, y1: y, x2: L, y2: y })
+/** A line across the pitch, at some distance along it. */
+const across = (x: number): GridLine => ({ x1: x, y1: 0, x2: x, y2: W })
+
+/** The four channel edges: the penalty area's width, then the six-yard box's. */
+const CHANNEL_Y = [
+  W / 2 - MARK.penWidth / 2,
+  W / 2 - MARK.sixWidth / 2,
+  W / 2 + MARK.sixWidth / 2,
+  W / 2 + MARK.penWidth / 2,
+]
+
+/** The two lines that cut the pitch into thirds. */
+const THIRD_X = [L / 3, (L * 2) / 3]
+
+/** Six bands along the length and three across the width, numbered 1–18. */
+function zoneGrid(): { lines: GridLine[]; cells: GridCell[] } {
+  const bands = 6
+  const rows = 3
+  const bw = L / bands
+  const rh = W / rows
+  const lines: GridLine[] = []
+  for (let b = 1; b < bands; b++) lines.push(across(b * bw))
+  for (let r = 1; r < rows; r++) lines.push(along(r * rh))
+  const cells: GridCell[] = []
+  for (let b = 0; b < bands; b++) {
+    for (let r = 0; r < rows; r++) {
+      cells.push({
+        x: (b + 0.5) * bw,
+        y: (r + 0.5) * rh,
+        label: String(b * rows + r + 1),
+      })
+    }
+  }
+  return { lines, cells }
+}
+
+const ZONES = zoneGrid()
+
+export const PITCH_GRIDS: Record<PitchGridId, PitchGrid> = {
+  none: {
+    id: 'none',
+    label: 'Plain pitch',
+    hint: 'The markings a referee needs and nothing else.',
+    useFor: 'Anything where the shape itself is the point.',
+    lines: [],
+    cells: [],
+  },
+  thirds: {
+    id: 'thirds',
+    label: 'Thirds',
+    hint: 'Defensive, middle, final.',
+    useFor: 'Where the press starts, where the ball has to be won, when to go long.',
+    lines: THIRD_X.map(across),
+    cells: [],
+  },
+  channels: {
+    id: 'channels',
+    label: 'Five channels',
+    hint: 'Wide, half-space, centre, half-space, wide.',
+    useFor: 'Positional play: who holds the touch line, who lives in the half-space.',
+    lines: CHANNEL_Y.map(along),
+    cells: [],
+  },
+  sectors: {
+    id: 'sectors',
+    label: 'Channels and thirds',
+    hint: 'The five channels, cut into fifteen sectors.',
+    useFor: 'Naming a sector out loud: this man, this corridor, this third.',
+    lines: [...CHANNEL_Y.map(along), ...THIRD_X.map(across)],
+    cells: [],
+  },
+  zones: {
+    id: 'zones',
+    label: '18 zones (numbered)',
+    hint: 'Six bands by three, numbered from our goal. 14 is outside their box.',
+    useFor: 'Coaching by zone number, and the shooting statistics that go with it.',
+    lines: ZONES.lines,
+    cells: ZONES.cells,
+  },
+}
+
+export const PITCH_GRID_LIST: PitchGrid[] = [
+  PITCH_GRIDS.none,
+  PITCH_GRIDS.thirds,
+  PITCH_GRIDS.channels,
+  PITCH_GRIDS.sectors,
+  PITCH_GRIDS.zones,
+]
+
+/**
+ * Coerce any stored grid id to a live one.
+ *
+ * Stored loose on the document for the same reason a band's appearance is: a
+ * grid we add next year must not make this year's build unable to open the
+ * file. An unknown id draws the plain pitch, which is what every system written
+ * before grids existed already had.
+ */
+export function resolveGrid(id: string | undefined): PitchGrid {
+  if (id && id in PITCH_GRIDS) return PITCH_GRIDS[id as PitchGridId]
+  return PITCH_GRIDS.none
+}

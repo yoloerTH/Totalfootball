@@ -567,8 +567,10 @@ function drawChrome(
   ctx.fillStyle = p.inkSoft
 
   // The phase count belongs to the head, not to the phase's own words: it says
-  // where you are in the system, which is the standing head's job.
-  const counter = parts.head && system.acts.length > 1
+  // where you are in the system, which is the standing head's job. It also has
+  // its own switch, because a film does not want it — see `counter` on
+  // `ChromeParts` in ./image.ts.
+  const counter = parts.head && parts.counter && system.acts.length > 1
     ? `${pad2(words.index + 1)} / ${pad2(system.acts.length)}`
     : ''
   const counterW = counter ? trackedWidth(ctx, counter, l.track) : 0
@@ -787,9 +789,19 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // harness and from a script, so an unrecognised number becomes the house rate
   // rather than a frameRate the muxer will reject after a minute of encoding.
   const fps = resolveFps(opts.fps)
-  // Absent means all four, and the watermark tie is applied here rather than
-  // trusted to the dialog. See `resolveParts` in ./image.ts.
-  const parts = resolveParts(opts.parts)
+  /*
+   * Absent means all of it, and the watermark tie is applied here rather than
+   * trusted to the dialog. See `resolveParts` in ./image.ts.
+   *
+   * `counter` IS FORCED OFF, after `resolveParts` rather than through it: a
+   * film has a progress bar along the bottom of every frame and does not need
+   * "05 / 36" in the corner saying the same thing in a form that reads as how
+   * much is left to sit through (user, 2026-08-28). Forced here and not in
+   * `resolveParts` because that function serves the stills as well, and a
+   * still — handed round on its own, out of order, printed into a pack — is
+   * the one thing that genuinely cannot say which phase it is any other way.
+   */
+  const parts: ChromeParts = { ...resolveParts(opts.parts), counter: false }
   const frame = frameSize(shape, quality)
   const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
   const l = layout(frame)

@@ -77,6 +77,86 @@ try {
   check(openNow >= 3, 'three drawers start open', `${openNow} open`)
   await shot('01-rail')
 
+  /* ── THE PITCH COMES MARKED UP ─────────────────────────────────────────────
+   *
+   * Counted off a `data-grid` hook rather than looked for by colour, because
+   * "some faint lines appeared" is not the claim. The claim is that Thirds
+   * rules exactly two lines and no numbers, and the eighteen zones rule seven
+   * lines and print eighteen numbers — a grid that draws the right number of
+   * the wrong thing is the failure this catches.
+   */
+  console.log('\npitch markings')
+  const gridSelect = page.locator('select:has(option:text-is("18 zones (numbered)"))').first()
+  check((await gridSelect.count()) > 0, 'the Markings picker is under The board')
+
+  const ruled = () =>
+    page.evaluate(() => {
+      const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+      const main = svgs.sort(
+        (a, b) =>
+          b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+          a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+      )[0]
+      const g = main && main.querySelector('[data-grid]')
+      if (!g) return { id: null, lines: 0, numbers: 0 }
+      return {
+        id: g.getAttribute('data-grid'),
+        lines: g.querySelectorAll('line').length,
+        numbers: g.querySelectorAll('text').length,
+      }
+    })
+
+  check((await ruled()).id === null, 'a system that asked for nothing gets a plain pitch')
+
+  for (const [label, id, lines, numbers] of [
+    ['Thirds', 'thirds', 2, 0],
+    ['Five channels', 'channels', 4, 0],
+    ['Channels and thirds', 'sectors', 6, 0],
+    ['18 zones (numbered)', 'zones', 7, 18],
+  ]) {
+    await gridSelect.selectOption({ label })
+    await page.waitForTimeout(350)
+    const r = await ruled()
+    check(r.id === id, `"${label}" rules the ${id} grid onto the pitch`, `got ${r.id}`)
+    check(r.lines === lines, `and it draws ${lines} lines`, `${r.lines} found`)
+    check(r.numbers === numbers, `and prints ${numbers} numbers`, `${r.numbers} found`)
+  }
+
+  /*
+   * 14 is the zone the phrase is about, and it has to be in the middle of the
+   * band outside their goal-end box or the numbering is upside down or turned
+   * on its side. Read off the board rather than off the source: the point is
+   * where the coach sees it, and this view is cropped to the attacking half.
+   */
+  const fourteen = await page.evaluate(() => {
+    const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+    const main = svgs.sort(
+      (a, b) =>
+        b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+        a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+    )[0]
+    const g = main.querySelector('[data-grid]')
+    const at = (n) => {
+      const t = [...g.querySelectorAll('text')].find((e) => e.textContent.trim() === n)
+      return t ? { x: Number(t.getAttribute('x')), y: Number(t.getAttribute('y')) } : null
+    }
+    return { z14: at('14'), z13: at('13'), z15: at('15'), z17: at('17') }
+  })
+  check(
+    fourteen.z14 && fourteen.z13 && fourteen.z15 &&
+      Math.abs(fourteen.z14.y - (fourteen.z13.y + fourteen.z15.y) / 2) < 1,
+    '14 sits centrally between 13 and 15',
+  )
+  check(
+    fourteen.z14 && fourteen.z17 && fourteen.z17.x > fourteen.z14.x,
+    'and 17 is nearer their goal than 14 is',
+  )
+
+  await shot('01b-markings')
+  await gridSelect.selectOption({ label: 'Plain pitch' })
+  await page.waitForTimeout(300)
+  check((await ruled()).id === null, 'and Plain pitch takes them all away again')
+
   // ── the text tool is reachable ────────────────────────────────────────────
   console.log('\nwriting')
   const railText = page.getByRole('button', { name: 'Text', exact: true })
@@ -288,6 +368,343 @@ try {
   })
   check(overflow <= 0, 'the panel does not scroll sideways', `${overflow}px over`)
   await shot('06-writing-panel')
+
+  /*
+   * ── THE LINE, THE TWO NEW SHAPES, AND THE TITLE THAT CARRIES ──────────────
+   *
+   * All three are things only a browser can answer. The line's whole point is
+   * what it does NOT do — no arrowhead, no new phase — and neither absence is
+   * visible to a type checker. The shapes are geometry that is correct in the
+   * source and wrong on the grass if the label lands outside the outline. And
+   * the title rule is about what one control does to another one, two phases
+   * later.
+   */
+  const pitchSvg = () => page.locator('svg[aria-label$="tactical board"]').first()
+  // Fractions of the board, so this survives the strip resize above changing
+  // how much of the window the board has.
+  const pull = async (x0, y0, x1, y1) => {
+    const r = await pitchSvg().boundingBox()
+    await page.mouse.move(r.x + r.width * x0, r.y + r.height * y0)
+    await page.mouse.down()
+    await page.mouse.move(r.x + r.width * ((x0 + x1) / 2), r.y + r.height * ((y0 + y1) / 2), { steps: 8 })
+    await page.mouse.move(r.x + r.width * x1, r.y + r.height * y1, { steps: 8 })
+    await page.mouse.up()
+    await page.waitForTimeout(300)
+  }
+  /*
+   * Filled arrowheads on the board, counted.
+   *
+   * Every headed kind draws its head as a closed path — `d` ending in Z — with
+   * a real fill. Nothing else on the board matches that: the shafts are
+   * `fill="none"` and the pitch furniture is rects and circles. Counted rather
+   * than looked for, because the only honest form of "the line has no head" is
+   * that the number does not move when a line is drawn and does move when a
+   * pass is.
+   */
+  const heads = () =>
+    page.evaluate(() => {
+      const svg = document.querySelector('svg[aria-label$="tactical board"]')
+      return [...svg.querySelectorAll('path')].filter((n) => {
+        const f = n.getAttribute('fill')
+        return /Z\s*$/.test(n.getAttribute('d') || '') && f && f !== 'none'
+      }).length
+    })
+  const phaseCount = () => page.locator('button[title^="Phase "]').count()
+  const markRow = (name) => page.locator('li').filter({ hasText: new RegExp(`^${name}`) })
+
+  // ── the line tool ─────────────────────────────────────────────────────────
+  console.log('\nthe line tool')
+  const lineTool = page.getByRole('button', { name: 'Line', exact: true }).first()
+  check((await lineTool.count()) > 0, 'Line is in the top rail')
+  check(await lineTool.isVisible(), 'and it is visible without scrolling the rail')
+
+  const phasesBefore = await phaseCount()
+  const headsBefore = await heads()
+  await lineTool.click()
+  await page.waitForTimeout(200)
+  check(
+    (await page.locator('body').innerText()).includes('Drag from one side to the other'),
+    'the sentence under the board is the line’s own, not the two-tap one',
+  )
+
+  await pull(0.24, 0.34, 0.78, 0.34)
+  check((await markRow('Line').count()) > 0, 'the drag leaves a Line in the marks list')
+  const headsAfterLine = await heads()
+  check(headsAfterLine === headsBefore, 'and it draws no arrowhead',
+    `${headsBefore} → ${headsAfterLine}`)
+  /*
+   * The one that matters most. A line is not an action: it must not create the
+   * phase that a pass's two taps create, or a coach ruling an offside line
+   * across a finished deck would silently add a phase to it.
+   */
+  check((await phaseCount()) === phasesBefore, 'and it poses no new phase',
+    `${phasesBefore} → ${await phaseCount()}`)
+
+  // The comparison, so the count above is evidence rather than a guess about
+  // what else happened to be on this board.
+  await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
+  await pull(0.28, 0.58, 0.68, 0.58)
+  check((await heads()) === headsAfterLine + 1, 'a pass drawn the same way DOES add one',
+    `${headsAfterLine} → ${await heads()}`)
+
+  /*
+   * A click that never travels. On an arrow tool it arms the man under it and
+   * waits for a second tap; on the line there is no second tap that could mean
+   * anything, so it must arm nobody. If it armed him, the NEXT drag would fire
+   * his action instead and pose a phase.
+   */
+  const phasesArmed = await phaseCount()
+  await lineTool.click()
+  const centre = await pitchSvg().boundingBox()
+  await page.mouse.click(centre.x + centre.width * 0.5, centre.y + centre.height * 0.5)
+  await page.waitForTimeout(250)
+  check((await phaseCount()) === phasesArmed, 'a tap with Line armed arms nobody',
+    `${phasesArmed} → ${await phaseCount()}`)
+  await shot('07-line-tool')
+
+  // ── the shapes a drawn area can take ──────────────────────────────────────
+  console.log('\nshaded area shapes')
+  const phaseDrawer = page.getByRole('button', { name: /^On this phase/i }).first()
+  if ((await phaseDrawer.getAttribute('aria-expanded')) !== 'true') await phaseDrawer.click()
+  await page.waitForTimeout(400)
+  const zoneTool = page.getByRole('button', { name: 'Zone', exact: true }).first()
+  await zoneTool.scrollIntoViewIfNeeded()
+  await zoneTool.click()
+  await pull(0.34, 0.12, 0.6, 0.46)
+  check((await markRow('Zone').count()) > 0, 'the drag leaves a Zone in the marks list')
+
+  // Drawing does not select. The marks list is how a coach reaches it, and it
+  // is the reliable way in here for the same reason it is there.
+  await markRow('Zone').last().getByRole('button').first().click()
+  await page.waitForTimeout(350)
+  const shapes = page.getByRole('tablist', { name: 'Shape' }).first()
+  check((await shapes.count()) === 1, 'the Shape picker is on the selected area')
+  const offered = await shapes.locator('[role="tab"]').allInnerTexts()
+  check(
+    JSON.stringify(offered) === JSON.stringify(['Box', 'Rounded', 'Oval', 'Triangle', 'Diamond']),
+    'it offers all five, in order',
+    JSON.stringify(offered),
+  )
+
+  /*
+   * Each one draws the element it claims to, with the corners it claims to.
+   * `polygon` twice with a different corner count is the check that catches the
+   * copy-paste where a diamond is drawn as a triangle — which looks like a
+   * shape and is the wrong one.
+   */
+  const corners = () =>
+    page.evaluate(() => {
+      const n = document.querySelector('svg[aria-label$="tactical board"] polygon')
+      return n ? (n.getAttribute('points') || '').trim().split(/\s+/).length : 0
+    })
+  for (const [name, tag, want] of [['Triangle', 'polygon', 3], ['Diamond', 'polygon', 4], ['Oval', 'ellipse', 0]]) {
+    await shapes.locator('[role="tab"]', { hasText: new RegExp(`^${name}$`) }).first().click()
+    await page.waitForTimeout(300)
+    const drawn = await page.evaluate(
+      (t) => document.querySelectorAll(`svg[aria-label$="tactical board"] ${t}`).length,
+      tag,
+    )
+    check(drawn > 0, `${name} draws a <${tag}>`, `${drawn} found`)
+    if (want) check((await corners()) === want, `and it has ${want} corners`, `${await corners()} found`)
+  }
+  await shot('08-area-shapes')
+
+  /* ── HATCHED IS A PATTERN, NOT A PALER WASH ────────────────────────────────
+   *
+   * The failure worth catching is the quiet one: a fill value the drawing code
+   * does not know about falls back to the house treatment, which is a shade, so
+   * a broken Hatched looks exactly like Shaded and nobody notices for a month.
+   * So this asks the DOM two questions — is there a pattern, and is the shape
+   * actually painted with it — and then asks them again after switching back,
+   * because a pattern that never goes away is the other half of the same bug.
+   */
+  console.log('\nhatched areas')
+  const inside = page.getByRole('tablist', { name: 'Inside it' }).first()
+  const insideOptions = await inside.locator('[role="tab"]').allInnerTexts()
+  check(insideOptions.includes('Hatched'), 'Hatched is offered on a drawn area',
+    JSON.stringify(insideOptions))
+  check(!insideOptions.includes('Line only'), 'and "Line only" still is not, on an area',
+    JSON.stringify(insideOptions))
+
+  const hatching = () =>
+    page.evaluate(() => {
+      const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+      const main = svgs.sort(
+        (a, b) =>
+          b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+          a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+      )[0]
+      const patterns = main.querySelectorAll('pattern[id$="-hatch"]').length
+      const painted = [...main.querySelectorAll('rect, polygon, ellipse, path')].filter((n) =>
+        (n.getAttribute('fill') || '').includes('-hatch)'),
+      ).length
+      const rules = main.querySelectorAll('pattern[id$="-hatch"] line').length
+      return { patterns, painted, rules }
+    })
+
+  await inside.locator('[role="tab"]', { hasText: /^Hatched$/ }).first().click()
+  await page.waitForTimeout(350)
+  const hatched = await hatching()
+  check(hatched.patterns > 0, 'choosing Hatched puts a pattern in the board', `${hatched.patterns} found`)
+  check(hatched.painted > 0, 'and the area is actually painted with it', `${hatched.painted} shapes`)
+  check(hatched.rules > 0, 'and the pattern has a rule in it to draw', `${hatched.rules} found`)
+  await shot('08b-hatched')
+
+  await inside.locator('[role="tab"]', { hasText: /^Shaded$/ }).first().click()
+  await page.waitForTimeout(350)
+  const unhatched = await hatching()
+  check(unhatched.painted === 0, 'and switching back to Shaded stops using it',
+    `${unhatched.painted} shapes still hatched`)
+
+  /* ── SHIFT KEEPS IT STRAIGHT ───────────────────────────────────────────────
+   *
+   * Measured on the mark itself, not on the mouse: the drag below is pulled
+   * deliberately off level, so a path that comes out flat can only have been
+   * straightened. The comparison drag afterwards is what makes that evidence —
+   * without it, a board that flattened EVERY line would pass.
+   */
+  console.log('\nshift keeps it straight')
+  const shafts = () =>
+    page.evaluate(() => {
+      const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+      const main = svgs.sort(
+        (a, b) =>
+          b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+          a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+      )[0]
+      return [...main.querySelectorAll('path')].map((n) => n.getAttribute('d'))
+    })
+  /** The box of whatever path appeared that was not there before the drag. */
+  const drawnBox = (before) =>
+    page.evaluate((seen) => {
+      const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+      const main = svgs.sort(
+        (a, b) =>
+          b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+          a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+      )[0]
+      const fresh = [...main.querySelectorAll('path')].filter(
+        (n) => !seen.includes(n.getAttribute('d')),
+      )
+      if (!fresh.length) return null
+      // The shaft is the long one. A head, if there were one, is a few metres.
+      const boxes = fresh.map((n) => n.getBBox()).sort((a, b) => b.width - a.width)
+      return { w: boxes[0].width, h: boxes[0].height }
+    }, before)
+
+  const lineAgain = page.getByRole('button', { name: 'Line', exact: true }).first()
+  await lineAgain.click()
+  const beforeStraight = await shafts()
+  await page.keyboard.down('Shift')
+  await pull(0.22, 0.26, 0.82, 0.34)
+  await page.keyboard.up('Shift')
+  const straight = await drawnBox(beforeStraight)
+  check(straight !== null, 'the shift-drag leaves a mark on the board')
+  if (straight) {
+    check(straight.h <= straight.w * 0.02, 'and it comes out level despite an off-level drag',
+      `${straight.w.toFixed(0)} × ${straight.h.toFixed(0)} units`)
+  }
+
+  await lineAgain.click()
+  const beforeSlanted = await shafts()
+  await pull(0.22, 0.68, 0.82, 0.76)
+  const slanted = await drawnBox(beforeSlanted)
+  check(slanted !== null, 'the same drag without Shift leaves a mark too')
+  if (slanted && straight) {
+    check(slanted.h > straight.h + 1, 'and that one keeps the slant it was drawn with',
+      `${slanted.h.toFixed(0)} units of drop vs ${straight.h.toFixed(0)}`)
+  }
+  await shot('08c-shift-straight')
+
+  // ── the title a new phase starts with ─────────────────────────────────────
+  console.log('\nthe phase title')
+  const titleBox = () => page.getByRole('textbox', { name: /^Title$/i }).last()
+  const addPhase = page.getByRole('button', { name: /Add phase/i }).first()
+
+  await titleBox().fill('Pressing trap')
+  await page.waitForTimeout(300)
+  await addPhase.click()
+  await page.waitForTimeout(450)
+  const carried = await titleBox().inputValue()
+  check(carried === 'Pressing trap', 'a new phase keeps the title of the one it followed',
+    `got "${carried}"`)
+
+  // The other half of the rule, and the half a "carry it forward" change breaks
+  // by accident: empty has to stay empty rather than falling back to a number.
+  await titleBox().fill('')
+  await page.waitForTimeout(300)
+  await addPhase.click()
+  await page.waitForTimeout(450)
+  const stayed = await titleBox().inputValue()
+  check(stayed === '', 'and an empty one stays empty instead of becoming a count',
+    `got "${stayed}"`)
+
+  /* ── A LINE SURVIVES THE PHASE A PASS CREATES ─────────────────────────────
+   *
+   * Two taps on two players draw the pass AND pose the phase after it, and that
+   * new phase arrives with the arrows cleared, which is right: an arrow
+   * describes the move that has just happened. It arrived with the LINES
+   * cleared too, which is wrong — a line is furniture, and a coach who ruled a
+   * sector grid out of lines lost the whole grid the moment they tapped out a
+   * pass. "+ Add phase" never had the bug, because it clones everything.
+   *
+   * Driven through the two taps rather than through the state, because the two
+   * taps are the path that was broken.
+   */
+  console.log('\nlines carry forward')
+  const counterAt = (label) =>
+    page.evaluate((l) => {
+      const svgs = [...document.querySelectorAll('svg[aria-label$="tactical board"]')]
+      const main = svgs.sort(
+        (a, b) =>
+          b.getBoundingClientRect().width * b.getBoundingClientRect().height -
+          a.getBoundingClientRect().width * a.getBoundingClientRect().height,
+      )[0]
+      const t = [...main.querySelectorAll('text')].find((n) => n.textContent.trim() === l)
+      if (!t) return null
+      const r = t.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+    }, label)
+
+  /*
+   * ON THE LAST PHASE, deliberately. An action only CREATES a phase when there
+   * is not already one after it — otherwise it poses the phase that is there,
+   * which is a different path and not the one that was clearing lines. Landing
+   * this test in the middle of the deck by accident is how it silently starts
+   * proving nothing.
+   */
+  await page.locator('button[title^="Phase "]').last().click()
+  await page.waitForTimeout(400)
+  await page.getByRole('button', { name: 'Line', exact: true }).first().click()
+  await pull(0.2, 0.22, 0.8, 0.22)
+  check((await markRow('Line').count()) > 0, 'there is a line on the phase to lose')
+
+  const lw = await counterAt('LW')
+  const rw = await counterAt('RW')
+  check(lw !== null && rw !== null, 'both counters are findable on the board')
+  if (lw && rw) {
+    const phasesBeforeTap = await phaseCount()
+    await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
+    await page.waitForTimeout(200)
+    await page.mouse.click(lw.x, lw.y)
+    await page.waitForTimeout(300)
+    await page.mouse.click(rw.x, rw.y)
+    await page.waitForTimeout(600)
+    const phasesAfterTap = await phaseCount()
+    check(phasesAfterTap === phasesBeforeTap + 1, 'the two taps pose the phase after it',
+      `${phasesBeforeTap} → ${phasesAfterTap}`)
+
+    // The action leaves the coach where they were, so step onto the phase it
+    // made — that is the board the grid went missing from.
+    await page.locator('button[title^="Phase "]').nth(phasesAfterTap - 1).click()
+    await page.waitForTimeout(500)
+    check((await markRow('Line').count()) > 0,
+      'the line is still there on the phase the pass created')
+    check((await markRow('Pass').count()) === 0,
+      'and the pass itself stayed behind on the phase it was drawn on',
+      `${await markRow('Pass').count()} found`)
+  }
+  await shot('08d-lines-carry')
 
   // ── the export dialog's toggles ───────────────────────────────────────────
   console.log('\nthe export dialog')

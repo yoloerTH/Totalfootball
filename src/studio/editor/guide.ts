@@ -204,6 +204,12 @@ export const TOOL_DOC = {
     when: 'Save it for the one ball that moves the whole opposition. If every pass is a switch, none of them reads as one.',
     drag: 'Tap the player switching it, then tap who receives it on the far side. Or drag to draw the line.',
   },
+  line: {
+    label: 'Line',
+    what: 'A plain line across the board, with no arrowhead on it. It divides; it does not move.',
+    when: 'Use it for the heights and the edges: the line of confrontation, an offside line, the halfway split between who presses and who holds, the point past which you do not follow. Anything an arrow would be lying about, because an arrow says somebody is going there.',
+    drag: 'Drag from one side to the other. Hold Shift and it comes out straight. Drop an end on a player to tie it to him.',
+  },
   block: {
     label: 'Block',
     what: 'Threads a line through the players you pick and shades their space: back to the goal they are defending, or closed around the players themselves.',
@@ -214,7 +220,7 @@ export const TOOL_DOC = {
     label: 'Danger area',
     what: 'Shades an area in gold: the space the move is trying to reach.',
     when: 'Use it for the space you want attacked: the cutback zone, the pocket in front of their back four, the far post.',
-    drag: 'Drag a box around the area you want to talk about.',
+    drag: 'Drag a box around the area you want to talk about. Hold Shift to keep it square.',
   },
   text: {
     label: 'Text',
@@ -232,9 +238,31 @@ export const TOOL_DOC = {
 
 export type ToolId = keyof typeof TOOL_DOC
 
-/** The arrow tools, in toolbar order. The two shaded areas live with the block. */
+/**
+ * The arrow tools, in toolbar order. The two shaded areas live with the block.
+ *
+ * THE LINE IS NOT IN HERE, and that is the whole reason this list still earns
+ * its name. Membership of it means "two taps draw this AND pose the next
+ * phase" — every consumer treats it that way, `ACTION.arm`/`.aim` are keyed on
+ * it, and `perform` in ../actions.ts has a case for each one. A line poses
+ * nothing, so putting it in this list to save a line of code in the toolbar
+ * would have handed it to the two-tap path, where it has no case and no
+ * meaning.
+ */
 export const ARROW_TOOL_IDS = ['pass', 'run', 'carry', 'press', 'switch'] as const
 export const ZONE_TOOL_IDS = ['danger', 'zone'] as const
+
+/**
+ * The line tool. Drawn like an arrow, does none of an arrow's work.
+ *
+ * On its own for the reason above, and sat next to the arrows in the toolbar
+ * anyway: a coach reaching for it is reaching for "draw between two points",
+ * which is the shelf the arrows are on.
+ */
+export const LINE_TOOL_ID = 'line' as const
+
+/** Everything drawn by pulling between two points, in toolbar order. */
+export const TWO_POINT_TOOL_IDS = [...ARROW_TOOL_IDS, LINE_TOOL_ID] as const
 
 /**
  * The text tool. On its own and not in either list above, because it is neither
@@ -269,6 +297,8 @@ export const HINT = {
 
   pitchView:
     'How much of the pitch you are looking at. Changing it does not move anybody: everyone stays on the same patch of grass, you just see more or less of it.',
+  pitchGrid:
+    'Rules the grid you coach in onto the pitch itself: thirds, the five channels, or the eighteen numbered zones. The lines are drawn at the real numbers, not by eye — the channels are set by the width of the penalty area and the six-yard box, which is why "outside the box line" and "in the half-space" mean the same thing to everyone looking at the board. They sit under every counter and arrow, they are on every phase and every export, and there is nothing to drag or delete: this is the pitch, not something drawn on it. Put your own names on the sectors with the Text tool.',
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
   pace:
@@ -340,11 +370,11 @@ export const HINT = {
   bandStrength:
     'How heavily it is laid down. Soft for an area you are only gesturing at, strong for the one thing the phase is about. Every shading stays see-through: the players underneath always read.',
   bandShape:
-    'A box for a space with edges, a rounded box for one in open play, an oval for a pocket. Coaches draw pockets as circles on a whiteboard, so an oval reads as one instantly.',
+    'A box for a space with edges, a rounded box for one in open play, an oval for a pocket — coaches draw pockets as circles on a whiteboard, so an oval reads as one instantly. A triangle for a space that funnels, like a trap closing towards the touchline, and a diamond for the pocket between four players. The shape is only how it looks: you can change it as often as you like without redrawing it.',
   bandEdge:
     'The line round it. Dashed says "this region, roughly". Solid says the edge is real: a zone that stops where the six-yard box stops. None takes the line away and leaves the shading to say it, which reads better over a busy part of the pitch.',
   bandFill:
-    'Shaded fills the area in. Outline leaves the grass showing and draws only the border round it. Line only removes the border and the shading entirely, leaving just the line threaded through the players — best when the line itself is the point. You can still click anywhere inside to pick it up.',
+    'Shaded fills the area in. Hatched rules it diagonally instead — the same ink, laid on as lines, so the grass and the players standing on it still show through, and it survives being printed in black and white. Outline leaves the grass showing and draws only the border round it. Line only removes the border and the shading entirely, leaving just the line threaded through the players — best when the line itself is the point. You can still click anywhere inside to pick it up.',
   bandString:
     'The thick line threaded through the players a block runs through. It is what says they are one unit rather than several men who happen to be near each other. Turn it off when the space is the point and the line is in the way.',
   bandCorner:
@@ -870,21 +900,31 @@ export interface HelpTopic {
 }
 
 /**
- * The five arrow tools, straight out of TOOL_DOC.
+ * The six two-point tools, straight out of TOOL_DOC.
  *
  * Generated rather than transcribed, because the copy for a pass already exists
  * and a second copy of it is a second copy to keep true. Only the search terms
  * are new, and they are the half TOOL_DOC does not have.
  */
-const ARROW_TERMS: Record<(typeof ARROW_TOOL_IDS)[number], string[]> = {
-  pass: ['ball', 'played', 'give', 'lay off', 'through ball', 'line', 'arrow', 'combination'],
+const ARROW_TERMS: Record<(typeof TWO_POINT_TOOL_IDS)[number], string[]> = {
+  pass: ['ball', 'played', 'give', 'lay off', 'through ball', 'arrow', 'combination'],
   run: ['off the ball', 'overlap', 'underlap', 'in behind', 'dashed', 'movement', 'third man'],
   carry: ['dribble', 'drive', 'travel', 'take on', 'squiggle', 'step in', 'on the ball'],
   press: ['pressure', 'closing down', 'press trigger', 'hunt', 'out of possession', 'jump'],
   switch: ['long ball', 'cross field', 'diagonal', 'change the point', 'far side', 'wide'],
+  /*
+   * "no arrowhead" and "plain line" are in here because that is what a coach
+   * types when they have tried Pass and got a head they did not want. The
+   * search has to answer the wrong guess as well as the right word.
+   */
+  line: [
+    'line', 'straight line', 'plain line', 'no arrowhead', 'no head', 'divide', 'divider',
+    'offside line', 'line of confrontation', 'line of engagement', 'press height', 'defensive line',
+    'halfway', 'split', 'edge', 'boundary', 'trigger line', 'rule',
+  ],
 }
 
-const TOOL_TOPICS: HelpTopic[] = ARROW_TOOL_IDS.map((id) => ({
+const TOOL_TOPICS: HelpTopic[] = TWO_POINT_TOOL_IDS.map((id) => ({
   id: `tool-${id}`,
   group: 'marks' as const,
   label: TOOL_DOC[id].label,
@@ -910,6 +950,14 @@ export const HELP_TOPICS: HelpTopic[] = [
     terms: ['pitch', 'view', 'half', 'third', 'final third', 'box', 'penalty area', 'full pitch', 'upright', 'zoom out', 'wider', 'closer'],
     body: [HINT.pitchView, HINT.pitchFit],
     target: { drawer: DRAWER.board, anchor: 'Pitch view', name: 'Pitch view' },
+  },
+  {
+    id: 'pitch-grid',
+    group: 'board',
+    label: 'Thirds, channels and numbered zones',
+    terms: ['grid', 'zones', 'zone 14', 'channels', 'half space', 'halfspace', 'corridor', 'corridors', 'sectors', 'thirds', 'markings', 'lines', 'positional play', 'juego de posicion', 'marked pitch', 'drawn field'],
+    body: [HINT.pitchGrid],
+    target: { drawer: DRAWER.board, anchor: 'Markings', name: 'Markings' },
   },
   {
     id: 'surface',

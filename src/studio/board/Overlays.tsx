@@ -170,7 +170,10 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
   const s = arrowStyle(p)[kind]
   const { c, mid, len } = arrowGeometry(a, b, bend)
   const w = u(s.width)
-  const head = w * 3.1
+  // A headless kind still needs the tip vectors below computed, so this is a
+  // size of zero rather than a branch: `end` falls back to `b` on its own and
+  // the polygon collapses to a point that is never drawn.
+  const head = s.head ? w * 3.1 : 0
 
   // Stop the shaft short of the tip so the stroke does not thicken the head.
   const tipDx = b.x - c.x
@@ -229,7 +232,7 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
         strokeLinecap="round"
         strokeDasharray={s.dash ? `${u(s.dash[0])} ${u(s.dash[1])}` : undefined}
       />
-      <path d={`M ${headPts} Z`} fill={active ? p.goldDeep : s.color} />
+      {s.head && <path d={`M ${headPts} Z`} fill={active ? p.goldDeep : s.color} />}
 
       {onPointerDown && (
         <path
@@ -247,7 +250,7 @@ export function Arrow({ kind, a, b, bend = 0, label, active = false, onPointerDo
       {label && (
         <text
           x={mid.x}
-          y={mid.y - w * 1.6}
+          y={mid.y - Math.max(w, u(0.42)) * 1.6}
           textAnchor="middle"
           fontFamily="Inter Variable, Inter, system-ui, sans-serif"
           fontWeight={800}
@@ -458,10 +461,11 @@ export function BlockBand({ idp, kind, pts, close, label, active, band, onPointe
           <stop offset="0%" stopColor={s.tone} stopOpacity={s.fill} />
           <stop offset="100%" stopColor={s.tone} stopOpacity={s.fill * (shape ? 0.45 : 0.27)} />
         </linearGradient>
+        {s.hatch && <Hatch id={`${gid}-hatch`} tone={s.tone} ink={s.fill} />}
       </defs>
       <path
         d={fill}
-        fill={`url(#${gid})`}
+        fill={`url(#${gid}${s.hatch ? '-hatch' : ''})`}
         stroke={active ? p.goldDeep : s.tone}
         strokeOpacity={active ? 0.9 : s.edge}
         strokeWidth={active ? u(0.5) : u(0.26)}
@@ -547,19 +551,114 @@ interface ZoneProps {
 }
 
 /**
+ * Where a shaded area's name sits, as a fraction of its own height.
+ *
+ * A box takes the label just inside its top edge, which is where a coach writes
+ * on a whiteboard. Every other outline has to come down, and each for its own
+ * reason: the corner of an ellipse's bounding box is empty grass, a diamond's
+ * top is a single point, and a triangle drawn apex-up is at its narrowest
+ * exactly where a box is at its widest. Set at the top of the file rather than
+ * inline, because these five numbers are the only thing that stops a label
+ * being drawn outside the shape it names.
+ */
+/**
+ * How far apart the rules of a hatched area sit, in metres, and how heavy they
+ * are drawn.
+ *
+ * In METRES because everything on this board is: a channel hatched at 2.2m is
+ * ruled the same on a full pitch and in the final third, where a pattern set in
+ * pixels would come out as a fine screen on one view and as barcode on the
+ * other. 2.2m is a little over a counter's width, which is what keeps a player
+ * standing on hatched grass readable — the rules pass either side of them
+ * rather than across the face.
+ */
+const HATCH_PITCH = 2.2
+const HATCH_RULE = 0.4
+
+/**
+ * The ruled fill, as a pattern, for an area whose coach asked for hatching
+ * instead of a wash.
+ *
+ * Same ink as the wash and the same strength control — `ink` is the very same
+ * `fill` opacity a shaded area would have used. That is the whole design of it:
+ * Shaded and Hatched are two ways of drawing one decision ("this space is
+ * treated differently"), not two different marks, so moving between them never
+ * changes what the area MEANS or how strong the coach said it was.
+ *
+ * A faint wash goes down under the rules so the shape still reads as a filled
+ * region at a glance, and so the pointer has something to hit — a pattern of
+ * bare lines over transparent grass is a mark you cannot reliably click.
+ */
+function Hatch({ id, tone, ink }: { id: string; tone: string; ink: number }) {
+  return (
+    <pattern
+      id={id}
+      patternUnits="userSpaceOnUse"
+      width={u(HATCH_PITCH)}
+      height={u(HATCH_PITCH)}
+      patternTransform="rotate(45)"
+    >
+      <rect width={u(HATCH_PITCH)} height={u(HATCH_PITCH)} fill={tone} fillOpacity={ink * 0.3} />
+      <line
+        x1={0}
+        y1={0}
+        x2={0}
+        y2={u(HATCH_PITCH)}
+        stroke={tone}
+        strokeOpacity={Math.min(0.85, ink * 2.2)}
+        strokeWidth={u(HATCH_RULE)}
+      />
+    </pattern>
+  )
+}
+
+const LABEL_DROP: Record<BandShape, number> = {
+  box: 0,
+  round: 0,
+  ellipse: 0.5,
+  diamond: 0.5,
+  // Lower than the middle: an apex-up triangle is only half its width at the
+  // halfway line, and a two-word name does not fit across half a funnel.
+  triangle: 0.66,
+}
+
+/**
+ * The corners of the outlines that are polygons, in draw order.
+ *
+ * Both are inscribed in the stored rectangle rather than fitted to its area, so
+ * a triangle and a box drawn with the same drag cover the same ground and the
+ * four resize grips sit exactly where the coach put them. A shape that shrank
+ * away from its own handles would be a shape you cannot aim.
+ */
+function polygonFor(shape: 'triangle' | 'diamond', r: { x: number; y: number; w: number; h: number }): string {
+  const cx = r.x + r.w / 2
+  const cy = r.y + r.h / 2
+  return shape === 'triangle'
+    ? // Apex up. A pressing trap is a funnel and it narrows towards the touch-
+      // line or the corner the coach is herding them into, which on a board
+      // drawn our way round is up the picture.
+      `${cx},${r.y} ${r.x + r.w},${r.y + r.h} ${r.x},${r.y + r.h}`
+    : `${cx},${r.y} ${r.x + r.w},${cy} ${cx},${r.y + r.h} ${r.x},${cy}`
+}
+
+/**
  * A plain shaded area: the danger zone, a channel, a trap.
  *
- * Three outlines off one rectangle. The stored geometry is a box whatever the
+ * Five outlines off one rectangle. The stored geometry is a box whatever the
  * shape is, and that is deliberate rather than lazy — it means changing an
  * ellipse to a box is a change of appearance and not a redraw, the resize grips
- * in the editor are the same four corners for all three, and nothing about the
+ * in the editor are the same four corners for all five, and nothing about the
  * document has to know which one is showing.
  */
 export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: ZoneProps) {
   const p = useSurface()
   const s = resolveBandStyle(p, kind, band)
   const gid = `${idp}-zone-${kind}`
-  const shape: BandShape = band?.shape ?? 'box'
+  // Anything this build does not recognise draws as a box. A document written
+  // by a newer studio therefore opens here as the rectangle it is stored as,
+  // rather than as nothing at all.
+  const asked = band?.shape ?? 'box'
+  const shape: BandShape = asked in LABEL_DROP ? asked : 'box'
 
   // A round box's corner radius is a fraction of its SHORT side, so a long thin
   // channel comes out with the same visible softness as a square pocket rather
@@ -568,7 +667,7 @@ export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: Zo
     shape === 'round' ? Math.min(rect.w, rect.h) * 0.22 : shape === 'box' ? u(0.6) : 0
 
   const common = {
-    fill: `url(#${gid})`,
+    fill: `url(#${gid}${s.hatch ? '-hatch' : ''})`,
     stroke: active ? p.goldDeep : s.tone,
     strokeOpacity: active ? 0.9 : s.edge,
     strokeWidth: active ? u(0.5) : u(0.26),
@@ -585,6 +684,7 @@ export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: Zo
           <stop offset="0%" stopColor={s.tone} stopOpacity={s.fill} />
           <stop offset="100%" stopColor={s.tone} stopOpacity={s.fill * 0.45} />
         </linearGradient>
+        {s.hatch && <Hatch id={`${gid}-hatch`} tone={s.tone} ink={s.fill} />}
       </defs>
 
       {shape === 'ellipse' ? (
@@ -595,17 +695,20 @@ export function Zone({ idp, kind, rect, label, active, band, onPointerDown }: Zo
           ry={rect.h / 2}
           {...common}
         />
+      ) : shape === 'triangle' || shape === 'diamond' ? (
+        // Rounded joins, because a shaded area is a gesture at a space and not
+        // a diagram of one. Three needle-sharp corners read as a measurement.
+        <polygon points={polygonFor(shape, rect)} strokeLinejoin="round" {...common} />
       ) : (
         <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rx} {...common} />
       )}
 
       {label && (
-        // Inside the top edge on a box, and pushed down on an ellipse — the
-        // corner of an ellipse's bounding box is empty grass, so a label set at
-        // the box's top sits outside the shape it is naming.
+        // Inside the top edge on a box, and pushed down on everything that has
+        // no top edge to sit inside. See LABEL_DROP.
         <text
           x={rect.x + rect.w / 2}
-          y={rect.y + (shape === 'ellipse' ? rect.h * 0.5 + u(0.6) : u(2.4))}
+          y={rect.y + (LABEL_DROP[shape] ? rect.h * LABEL_DROP[shape] + u(0.6) : u(2.4))}
           textAnchor="middle"
           fontFamily="Inter Variable, Inter, system-ui, sans-serif"
           fontWeight={800}

@@ -519,11 +519,11 @@ function DownToOurs() {
  *
  * The official ones are the systems that went out as videos, and they lead,
  * because "this is the actual document that video was made from" is the best
- * sentence on the page. But they are UPRIGHT and the other five are landscape,
- * and a board must be handed a container of its own `aspect(view)` or it
- * renders straight through the letterbox — Board.tsx says so at length. So they
- * cannot share a row, and a single grid would give one 520px-tall card sitting
- * beside three 230px ones with a field of white underneath them.
+ * sentence on the page. But they are TALLER THAN WIDE and the other five are
+ * landscape, and a board must be handed a container of its own `aspect(view)`
+ * or it renders straight through the letterbox — Board.tsx says so at length.
+ * So they cannot share a row, and a single grid would give one 520px-tall card
+ * sitting beside three 230px ones with a field of white underneath them.
  *
  * Two grids under one heading is what that constraint leaves, and it turns out
  * to be the more honest layout anyway: the heading can stay "ours" without

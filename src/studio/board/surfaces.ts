@@ -358,14 +358,31 @@ export function cueColor(p: BoardPalette): Record<string, string> {
  * converted at draw time. Storing a dash as a ready-made SVG string is the trap
  * here: `strokeDasharray` is in user units, so "1.6 1.1" would mean 16cm of ink
  * and 11cm of gap and render as a solid line.
+ *
+ * `head` IS ON EVERY ROW, including the five that have never had a choice about
+ * it. A `head?: boolean` read as "absent means yes" would put the knowledge
+ * that a pass has an arrowhead in the drawing code rather than in this table,
+ * and this table is meant to be the whole answer to "what does this kind look
+ * like" — somebody adding the sixth kind should be able to read the row above
+ * theirs and know what they have to fill in.
  */
 export function arrowStyle(p: BoardPalette) {
   return {
-    pass: { color: p.ink, dash: null as [number, number] | null, width: 0.42, wavy: false },
-    run: { color: p.greenDeep, dash: [1.5, 1.05] as [number, number] | null, width: 0.42, wavy: false },
-    carry: { color: p.ink, dash: null as [number, number] | null, width: 0.42, wavy: true },
-    press: { color: p.goldDeep, dash: null as [number, number] | null, width: 0.5, wavy: false },
-    switch: { color: p.ink, dash: [2.4, 1.3] as [number, number] | null, width: 0.5, wavy: false },
+    pass: { color: p.ink, dash: null as [number, number] | null, width: 0.42, wavy: false, head: true },
+    run: { color: p.greenDeep, dash: [1.5, 1.05] as [number, number] | null, width: 0.42, wavy: false, head: true },
+    carry: { color: p.ink, dash: null as [number, number] | null, width: 0.42, wavy: true, head: true },
+    press: { color: p.goldDeep, dash: null as [number, number] | null, width: 0.5, wavy: false, head: true },
+    switch: { color: p.ink, dash: [2.4, 1.3] as [number, number] | null, width: 0.5, wavy: false, head: true },
+    /*
+     * The divider. Solid ink, no head, and THINNER than a pass on purpose.
+     *
+     * A line is the only mark here that is not an event. It sits under the
+     * football rather than in it — the height the press starts from, the line
+     * they will not step past — so it has to be readable without competing
+     * with the arrows drawn across it. Same colour as a pass at the same weight
+     * would have made the quietest mark on the board the loudest.
+     */
+    line: { color: p.ink, dash: null as [number, number] | null, width: 0.3, wavy: false, head: false },
   }
 }
 
@@ -487,15 +504,22 @@ export const BAND_EDGES: { id: BandEdge; label: string }[] = [
  * 'shade'  — the default: a gradient fill and (for a block) the string through
  *            the players.
  * 'none'   — no fill; the border outline speaks for itself.
+ * 'hatch'  — ruled diagonally instead of washed. The same ink as a shade, laid
+ *            on as lines, which is how a coach's own slide marks a channel he
+ *            wants crossed: it says "this space, treated differently" without
+ *            burying the grass or the players standing on it, and it survives
+ *            being printed in black and white, which a wash does not.
  * 'line'   — no fill and no border polygon at all. Only the string threaded
- *            through the players is drawn. Meaningful only on a block (which
- *            has a string); on an area drawn as a box it would leave nothing
- *            visible at all, so the UI gates it to block bands.
+ *            through the players is drawn. NOT hatching, despite the name:
+ *            "line" here is the string through a block's players. Meaningful
+ *            only on a block (which has a string); on an area drawn as a box it
+ *            would leave nothing visible at all, so the UI gates it to blocks.
  */
-export type BandFill = 'shade' | 'none' | 'line'
+export type BandFill = 'shade' | 'none' | 'line' | 'hatch'
 
 export const BAND_FILLS: { id: BandFill; label: string }[] = [
   { id: 'shade', label: 'Shaded' },
+  { id: 'hatch', label: 'Hatched' },
   { id: 'none', label: 'Outline' },
   { id: 'line', label: 'Line only' },
 ]
@@ -599,6 +623,7 @@ export function resolveBandStyle(
       string: base.string > 0 && stringId === 'off' ? 0 : base.string,
       stringWidth: pick(BAND_STRINGS, stringId)?.width ?? 1.15,
       pad: corner.pad,
+      hatch: false,
     }
   }
 
@@ -626,6 +651,12 @@ export function resolveBandStyle(
     stringWidth: pick(BAND_STRINGS, stringId)?.width ?? 1.15,
     /** How far a closed block sits off its players, in metres. */
     pad: corner.pad,
+    /**
+     * Rule the inside rather than washing it. `fill` above still carries the
+     * strength the coach asked for — the drawing decides what to do with it,
+     * which is a wash at that opacity or ruled lines carrying the same ink.
+     */
+    hatch: fill === 'hatch',
   }
 }
 

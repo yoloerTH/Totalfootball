@@ -67,7 +67,27 @@ export interface Token {
  * carry. The `kind` picks the house treatment (solid/dashed/squiggle + head),
  * so a coach chooses intent and we choose the drawing.
  */
-export type ArrowKind = 'pass' | 'run' | 'carry' | 'press' | 'switch'
+export type ArrowKind = 'pass' | 'run' | 'carry' | 'press' | 'switch' | 'line'
+
+/**
+ * 'line' IS THE ODD ONE OUT, and deliberately in this union rather than beside
+ * it.
+ *
+ * Every other kind is a MOVEMENT: something travels, and the two taps that draw
+ * it also pose the next phase (see ../actions.ts). A line moves nothing. It is
+ * the mark a coach draws across a board to divide it — the line of
+ * confrontation, an offside line, the edge of the space they are giving up —
+ * and it is drawn with no head for exactly that reason: a head says "this way",
+ * and a line has no this-way to say.
+ *
+ * It shares this type anyway because it shares everything else. It is two
+ * points, it bows on the same handle, it takes a label in the same place, it
+ * binds to players and follows them, and it fades on the same strength slider.
+ * Giving it its own mark type would have meant a second copy of all of that
+ * behaviour, kept true by hand, so that one boolean could live somewhere
+ * tidier. `TOKEN_KINDS` and `BALL_KINDS` in ../arrows.ts are what keep it out
+ * of the movement machinery, and `perform` is never handed one.
+ */
 
 export interface Arrow {
   id: string
@@ -144,8 +164,22 @@ export type BandKind = 'block' | 'danger' | 'zone'
  * play rather than against a line, and the ellipse is for the one thing a
  * rectangle genuinely misrepresents: a pocket of space, which has no edges and
  * which coaches draw as a circle on every whiteboard in the world.
+ *
+ * The triangle and the diamond are the two shapes a space is DIRECTIONAL in. A
+ * pressing trap is a funnel — wide where they receive it, narrow where it
+ * closes — and drawn as a box it says the opposite, that the whole area is
+ * equally bad to be in. A diamond is the same argument about a pocket between
+ * four players: it is widest across the middle and it has a top and a bottom,
+ * which is what makes it read as the space between the lines rather than a
+ * patch of grass (user, 2026-08-28).
+ *
+ * ALL FIVE STORE THE SAME `rect`. The shape is appearance, not geometry: the
+ * resize grips are the same four corners whichever is showing, changing a
+ * triangle to an oval is a repaint rather than a redraw, and a build that has
+ * never heard of a diamond opens the document and draws the box it is stored
+ * as. That is what makes adding one of these safe.
  */
-export type BandShape = 'box' | 'round' | 'ellipse'
+export type BandShape = 'box' | 'round' | 'ellipse' | 'triangle' | 'diamond'
 
 export interface Band {
   id: string
@@ -616,6 +650,22 @@ export interface System {
    * `resolveSurface()` in ./board/surfaces.ts supplies paper.
    */
   surface?: PitchSurfaceId
+  /**
+   * The grid ruled onto the pitch: thirds, five channels, the eighteen
+   * numbered zones. Empty or absent is the plain pitch.
+   *
+   * On the document beside the surface, and furniture rather than a mark: a
+   * coach who works in corridors gets the corridors ruled in, at the real
+   * numbers, in every phase and every export, instead of redrawing them by
+   * hand at the top of each session. It is NOT a second pitch view — the view
+   * is the crop, this is what is ruled onto whatever the crop shows, and the
+   * two multiply.
+   *
+   * A loose `string` for the same reason a band's appearance is (see `Band`):
+   * a grid added next year must not stop this build opening the file. Unknown
+   * values fall back to the plain pitch in `resolveGrid()`.
+   */
+  grid?: string
   /**
    * Whether the film moves, and how.
    *

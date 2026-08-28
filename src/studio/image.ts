@@ -125,9 +125,13 @@ export function imageSize(shape: ImageShape, size: ImageSize): { w: number; h: n
  * system's name; a slide wants the board and the coach's own credit and nothing
  * else; a picture for a group chat wants everything (user, 2026-08-27).
  *
- * So: four parts, three of them with a switch, and `chrome` still the master.
+ * So: five parts, three of them with a switch, and `chrome` still the master.
  * Turning `chrome` off is the same answer it always was and does not need any
  * of these.
+ *
+ * The fifth, `counter`, has no switch either — it is on for a still and off for
+ * a film, decided by the medium rather than by the coach. Its own note says
+ * why.
  *
  * ── THE ONE PART THAT IS NOT THE COACH'S TO SET ──────────────────────────────
  *
@@ -158,8 +162,29 @@ export function imageSize(shape: ImageShape, size: ImageSize): { w: number; h: n
  * removes the head, the caption and the credit along with it.
  */
 export interface ChromeParts {
-  /** Top left: the gold rule, the system's name, the phase count opposite. */
+  /** Top left: the gold rule and the system's name. */
   head: boolean
+  /**
+   * Top right, opposite the head: "04 / 36".
+   *
+   * ── OFF IN THE FILM, AND NOT A SWITCH THERE ────────────────────────────────
+   *
+   * A still is a page. It gets handed round on its own, out of order, printed
+   * into a pack — so it has to say which page it is, and the count is the only
+   * thing on the picture that can.
+   *
+   * A film is not. It plays start to finish with a progress bar along the
+   * bottom already saying how far through it is, and the number in the corner
+   * says the same thing again in a form nobody needs: what a viewer takes from
+   * "05 / 36" is that there are thirty-one more of these to sit through (user,
+   * 2026-08-28). `renderVideo` therefore forces this false, the way
+   * `resolveParts` forces the lockup true — it is a rule about the medium, not
+   * a preference, so it is not a switch in the dialog.
+   *
+   * TRUE out of `resolveParts`, so every still export and every caller written
+   * before this field existed keeps the count it has always drawn.
+   */
+  counter: boolean
   /** Top left, under the head: this phase's own title and caption. */
   words: boolean
   /** Bottom left: their name, their club, their note and the date. */
@@ -176,6 +201,7 @@ export interface ChromeParts {
 
 export const CHROME_PARTS_ALL: ChromeParts = {
   head: true,
+  counter: true,
   words: true,
   credit: true,
   lockup: true,
@@ -220,7 +246,7 @@ export interface ImageOptions {
    * Which PARTS of the chrome, for a coach who wants some of it.
    *
    * Absent means all of them, which is what `chrome: true` has always meant.
-   * See `ChromeParts` below for why this is four switches and not one.
+   * See `ChromeParts` below for why this is a set of switches and not one.
    */
   parts?: Partial<ChromeParts>
   /** Stamp the shared-on date into the credit line. See `VideoOptions.date`. */

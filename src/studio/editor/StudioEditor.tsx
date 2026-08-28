@@ -45,15 +45,18 @@ import {
 } from '../board/Board'
 import { arrowRim, bendFor } from '../board/Overlays'
 import { arrowEnds, bindEnd, snapTarget } from '../arrows'
-import { perform, type Target } from '../actions'
+import { perform, type ActionKind, type Target } from '../actions'
 import {
   PITCH_VIEWS,
+  PITCH_GRID_LIST,
   PITCH_VIEW_LIST,
   aspect,
   cropRect,
   remap,
+  resolveGrid,
   resolveViewId,
   toMetres,
+  toPercent,
   toUnits,
   unitsToPercent,
 } from '../board/pitch'
@@ -157,6 +160,8 @@ import {
   ACTION,
   ARROW_MARK,
   ARROW_TOOL_IDS,
+  LINE_TOOL_ID,
+  TWO_POINT_TOOL_IDS,
   DRAWER,
   TEXT_TOOL_ID,
   HINT,
@@ -211,7 +216,26 @@ const CUES: Cue[] = ['PRESS', 'COVER', 'BALANCE', 'SPARE', 'JOCKEY', 'DROP']
  */
 type Tool = ToolId
 
-const isArrowTool = (t: Tool): t is ArrowKind => (ARROW_TOOL_IDS as readonly string[]).includes(t)
+/**
+ * Drawn by pulling between two points. Arrows AND the line.
+ *
+ * This is the drawing question: does the pointer draw a curve from where it
+ * pressed to where it let go, does it keep the counters live so an end can be
+ * dropped on one, and does it preview as a stroke. All six answer yes.
+ */
+const isArrowTool = (t: Tool): t is ArrowKind => (TWO_POINT_TOOL_IDS as readonly string[]).includes(t)
+
+/**
+ * The five that also POSE THE NEXT PHASE when they are tapped twice.
+ *
+ * A separate question from the one above, and it has to be, because the line
+ * answers the two differently: it is drawn exactly like an arrow and it
+ * performs nothing. Tapping a player with it armed must not arm him — there is
+ * no second tap that could mean anything, `perform` in ../actions.ts has no
+ * case for a line, and a coach who got a new phase out of drawing an offside
+ * line would rightly call that broken.
+ */
+const isActionTool = (t: Tool): t is ActionKind => (ARROW_TOOL_IDS as readonly string[]).includes(t)
 const isZoneTool = (t: Tool): t is 'danger' | 'zone' => (ZONE_TOOL_IDS as readonly string[]).includes(t)
 
 /**
@@ -1488,7 +1512,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * three phases of a film that is now three times as long. See ../actions.ts.
    */
   const performAction = useCallback(
-    (kind: ArrowKind, actorId: string, target: Target) => {
+    (kind: ActionKind, actorId: string, target: Target) => {
       edit(`action:${kind}`, (s) => {
         const i = Math.min(actIndex, s.acts.length - 1)
         const cur = s.acts[i]
@@ -1498,11 +1522,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           : {
               ...structuredClone(cur),
               id: uid('act'),
-              title: `${PHASE.One} ${s.acts.length + 1}`,
-              // A copied-forward phase does NOT inherit this one's arrows. They
-              // describe the move INTO it, so carrying them across would leave
-              // the board annotated with something that has already happened.
-              arrows: [],
+              // The title comes across in the clone and is deliberately not
+              // overwritten here. See `addAct`.
+              /*
+               * A copied-forward phase does NOT inherit this one's ARROWS. They
+               * describe the move INTO it, so carrying them across would leave
+               * the board annotated with something that has already happened.
+               *
+               * LINES ARE THE EXCEPTION, and they are the exception because
+               * they are not events. A line has no head and fires no action: it
+               * is furniture — a corridor edge, the seam between two sectors,
+               * the near post to the far post. A coach who rules a sector grid
+               * out of lines and then taps two players to draw a pass was
+               * losing the whole grid on the phase the pass created, while "Add
+               * phase" (which clones everything) kept it. The rule is not
+               * "clear the arrows list", it is "clear what described the move",
+               * and a line never did.
+               */
+              arrows: structuredClone(cur.arrows.filter((a) => a.kind === LINE_TOOL_ID)),
             }
 
         const done = perform(kind, cur, next, actorId, target)
@@ -2081,6 +2118,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         e.pointerId,
         (ev) => {
           to = clientToPercent(svg, view, ev.clientX, ev.clientY)
+          // Straightened BEFORE `pending` is set and before the commit reads
+          // it, so the preview a coach is judging the drag by is the mark they
+          // will get. A constraint that only applied on release would be a
+          // line that jumped when they let go of it.
+          if (ev.shiftKey) {
+            to = isZoneTool(tool) ? constrainBox(view, from, to) : constrainDrag(view, from, to)
+          }
           setPending({ from, to })
           // Ring the man the head will attach to, so the coach can see the
           // arrow is going to hold on to him before they let go of it.
@@ -2129,6 +2173,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 ],
               }))
               seal()
+            } else if (!isActionTool(tool)) {
+              /*
+               * A LINE THAT NEVER TRAVELLED IS NOTHING, and is dropped here.
+               *
+               * Every branch below this one is about the two-tap action, and a
+               * line has no action to fire — so a click with it armed has to
+               * mean "I changed my mind", not "arm this man". Falling through
+               * would leave `actor` set on a tool that can never spend it, and
+               * the next drag would fire somebody else's pass.
+               */
             } else if (!actor) {
               /*
                * First tap. It only arms if it landed on somebody: an action has
@@ -2770,10 +2824,34 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     // difference between the two becomes the animation.
     edit('add-phase', (s) => {
       const src = s.acts[Math.min(actIndex, s.acts.length - 1)]
+      /*
+       * ── THE TITLE COMES ACROSS WITH EVERYTHING ELSE ──────────────────────
+       *
+       * `structuredClone` already carries it; there is no `title:` line here
+       * because there is nothing to override it with. This used to stamp
+       * "Phase 7" on the new one, and that was wrong in both directions at
+       * once (user, 2026-08-28).
+       *
+       * Wrong when the coach had titled the phase, because a system is
+       * normally several beats of ONE idea: three phases of "Pressing trap"
+       * with the men in different places. Stamping a number over that threw
+       * away the words they had typed and made them type them again, on every
+       * phase, forever.
+       *
+       * Wrong when they had NOT titled it, because "Phase 7" is not a title,
+       * it is a count — the strip under the board already numbers every
+       * thumbnail, the phase panel says which of how many, and the film draws
+       * it in the corner. Writing the number a fourth time, into the field
+       * meant for the coach's own words, meant every board went out with a
+       * heading that said nothing.
+       *
+       * So: empty stays empty, and words stay put until the coach changes
+       * them. The one rule, and it holds for `duplicateAct` and for the phase
+       * an arrow's two taps create as well.
+       */
       const copy: Act = {
         ...structuredClone(src),
         id: uid('act'),
-        title: `${PHASE.One} ${s.acts.length + 1}`,
       }
       const acts = [...s.acts]
       acts.splice(actIndex + 1, 0, copy)
@@ -2797,9 +2875,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * A duplicate is a different intention. It is "keep this one as it is while I
    * try something", or "say this again with one more arrow showing" — a slow
    * reveal is literally the same board four times with a different arrow turned
-   * up on each. That wants the source's own title carried across, not a
-   * position in a count, so a coach can still tell at a glance which run of
-   * thumbnails belongs together.
+   * up on each.
+   *
+   * It USED to append "(copy)". It does not any more, and the reason is that
+   * `addAct` now carries the title across too: a suffix here would be the one
+   * phase in the run wearing a mark the others do not, and every phase added
+   * after it would inherit "(copy)" and carry it to the end of the deck. The
+   * strip numbers the thumbnails, which is what tells two identical boards
+   * apart; the title says what they are both about.
    *
    * `structuredClone` and a fresh act id, but the ids INSIDE are kept: token
    * ids are the join that makes movement work across phases (see ../tween.ts),
@@ -2813,7 +2896,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       const copy: Act = {
         ...structuredClone(src),
         id: uid('act'),
-        title: src.title ? `${src.title} (copy)` : `${PHASE.One} ${i + 2}`,
+        title: src.title,
       }
       const acts = [...s.acts]
       acts.splice(i + 1, 0, copy)
@@ -2987,6 +3070,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const textsHere = (act.texts ?? []).length
   const ball = resolveBall(system.matchBall)
   const surface = resolveSurface(system.surface)
+  const grid = resolveGrid(system.grid)
   const camera = resolveCamera(system.camera)
   const cameraMode = CAMERA_MODES.find((c) => c.id === camera) ?? CAMERA_MODES[0]
   const push = resolvePush(system.push)
@@ -3178,7 +3262,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-paper p-1 lg:shrink-0 lg:overflow-visible"
         {...inert}
       >
-        {(['select', ...ARROW_TOOL_IDS] as Tool[]).map((id) => (
+        {(['select', ...TWO_POINT_TOOL_IDS] as Tool[]).map((id) => (
           <Tip key={id} text={<ToolText id={id} />} title={TOOL_DOC[id].label} side="bottom" help={`tool:${id}`}>
             <Button active={tool === id} onClick={() => setTool(id)} className="!px-2 lg:!px-2.5">
               {TOOL_DOC[id].label}
@@ -3585,10 +3669,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               ? 'Click the next one along. A block needs at least two.'
               : HINT.blockPicking}
         </>
-      ) : isArrowTool(tool) ? (
+      ) : isActionTool(tool) ? (
         // Its own branch above the generic drawing one, for the same reason the
         // Block tool has one: this tool has a running state, and the useful
-        // sentence is which of the two taps the coach is on.
+        // sentence is which of the two taps the coach is on. NOT `isArrowTool`:
+        // the line has no two taps to be part-way through, so it falls to the
+        // generic branch below and gets `TOOL_DOC.line.drag`, which is the
+        // sentence that is actually true of it.
         <>
           <span className="font-bold text-ink">{actor ? ACTION.aim[tool] : ACTION.arm[tool]}</span>{' '}
           {actor ? ACTION.armed : ACTION.also}
@@ -3879,6 +3966,22 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               </p>
             </Tip>
           )}
+        </Panel>
+
+        <Panel title="Markings">
+          <Tip text={HINT.pitchGrid} title="Markings" block>
+            <Select
+              value={system.grid ?? 'none'}
+              onChange={(id: string) => {
+                edit('grid', (s) => ({ ...s, grid: id }))
+                seal()
+              }}
+              options={PITCH_GRID_LIST.map((g) => ({ value: g.id, label: g.label }))}
+            />
+          </Tip>
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            <span className="text-ink-soft">{grid.hint}</span> {grid.useFor}
+          </p>
         </Panel>
 
         <Panel title="Pitch">
@@ -4923,6 +5026,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                     { value: 'box', label: 'Box' },
                     { value: 'round', label: 'Rounded' },
                     { value: 'ellipse', label: 'Oval' },
+                    { value: 'triangle', label: 'Triangle' },
+                    { value: 'diamond', label: 'Diamond' },
                   ]}
                 />
               </Field>
@@ -4962,7 +5067,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                     ? 'none'
                     : selectedBand.fill === 'line'
                       ? 'line'
-                      : 'shade'
+                      : selectedBand.fill === 'hatch'
+                        ? 'hatch'
+                        : 'shade'
                 }
                 onChange={(v) => {
                   // When switching TO 'line only', ensure the string is not
@@ -5307,8 +5414,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       <Panel title={`Marks on this ${PHASE.one}`}>
         {marks.length === 0 ? (
           <p className="text-[11px] leading-relaxed text-ink-faint">
-            Nothing drawn yet. Pick Pass, Run, Carry, Press or Switch at the top and drag on the board, or
-            pick Text and click where you want to write.
+            Nothing drawn yet. Pick Pass, Run, Carry, Press, Switch or Line at the top and drag on the
+            board, or pick Text and click where you want to write.
           </p>
         ) : (
           <>
@@ -5656,6 +5763,81 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
 // ── small pieces ─────────────────────────────────────────────────────────────
 
+/* ── HOLD SHIFT TO KEEP IT STRAIGHT ──────────────────────────────────────────
+ *
+ * A coach ruling corridors onto the board was eyeballing every one of them, and
+ * a grid of eyeballed lines is a grid that says "about here" when the whole
+ * point of drawing it was to say "here". Shift is the gesture every drawing
+ * tool on earth already uses for this, so it needs no control, no setting and
+ * nothing to discover: hold it and the drag comes out straight.
+ *
+ * IN METRES, NOT PERCENT, and that is the part worth reading twice. A drag is
+ * held as percent-of-crop, and the crop is not square — on "their half" a
+ * percent across is roughly a third of a percent along. Snapping to 45° in
+ * percent space would therefore draw a line at 45° to nothing in particular,
+ * and a "vertical" one would be vertical, correctly, only by accident of which
+ * axis it fell on. Metres are the grass, the board preserves its aspect ratio
+ * when it is fitted, so a diagonal constrained in metres is a diagonal on the
+ * screen and a diagonal on the printed page.
+ *
+ * The upright view is the same rule read honestly: the axes are the PITCH's, so
+ * a constrained line runs along or across the grass, which is what a coach
+ * means by straight, and is the same direction the ruled grid runs. It appears
+ * turned on screen because the whole pitch is turned.
+ */
+
+/** The eight directions a constrained drag can point in: every 45°. */
+const CONSTRAIN_STEP = Math.PI / 4
+
+/**
+ * The far end of a drag, snapped to the nearest 45° from where it started.
+ *
+ * PROJECTED onto that direction rather than swung round to it, so the mark ends
+ * level with the pointer instead of running past it. Snapping to the nearest of
+ * eight means the pointer is never more than 22.5° off the chosen line, so the
+ * projection never shortens the drag by more than eight percent — the line ends
+ * where the coach is pointing, straightened.
+ */
+function constrainDrag(
+  v: PitchView,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): { x: number; y: number } {
+  const a = toMetres(v, from.x, from.y)
+  const b = toMetres(v, to.x, to.y)
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  if (dx === 0 && dy === 0) return to
+  const ang = Math.round(Math.atan2(dy, dx) / CONSTRAIN_STEP) * CONSTRAIN_STEP
+  const ux = Math.cos(ang)
+  const uy = Math.sin(ang)
+  const len = dx * ux + dy * uy
+  return toPercent(v, a.x + ux * len, a.y + uy * len)
+}
+
+/**
+ * The far corner of a dragged box, squared off on the grass.
+ *
+ * A rectangle is already axis-aligned, so shift has nothing to straighten here
+ * and the useful constraint is the other one every drawing tool offers: equal
+ * sides. Squared in METRES for the same reason as above — a box with equal
+ * percentages is a box that is only square on the full pitch.
+ */
+function constrainBox(
+  v: PitchView,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): { x: number; y: number } {
+  const a = toMetres(v, from.x, from.y)
+  const b = toMetres(v, to.x, to.y)
+  const side = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y))
+  return toPercent(
+    v,
+    a.x + Math.sign(b.x - a.x || 1) * side,
+    a.y + Math.sign(b.y - a.y || 1) * side,
+  )
+}
+
 /** A rectangle in percent space from two dragged corners, always positive. */
 function rectOf(a: { x: number; y: number }, b: { x: number; y: number }) {
   return {
@@ -5810,7 +5992,12 @@ export function newSystem(): System {
     acts: [
       {
         ...emptyAct(place(f, 'us', 'full', 'position', true)),
-        title: `${PHASE.One} 1`,
+        // UNTITLED, and it has to be: every phase after this one is a copy of
+        // the one before it and now keeps its title, so a starter stamped
+        // "Phase 1" would put "Phase 1" on all thirty-six of them. An empty
+        // title draws nothing at all, which is the right thing for a board
+        // whose coach has not said what it is about yet.
+        title: '',
         // `newBall()` sits on the centre spot, so the legacy mirror agrees.
         ...ballFields([newBall()]),
       },

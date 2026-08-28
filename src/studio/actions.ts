@@ -55,6 +55,19 @@ export interface Pt {
 export type Target = { kind: 'token'; id: string } | { kind: 'spot'; pt: Pt }
 
 /**
+ * The kinds that ARE an action: something travels, and posing it is this file's
+ * job.
+ *
+ * Every `ArrowKind` except the line, and stated as an exclusion rather than as
+ * a second hand-written list so that the sixth kind somebody adds cannot be
+ * quietly left out of both. The exhaustive `switch` in `perform` is what makes
+ * this load-bearing: narrowing the parameter to this type means a new movement
+ * kind fails to compile here until it has a case, and a new NON-movement kind
+ * has to be excluded here before it can be drawn at all.
+ */
+export type ActionKind = Exclude<ArrowKind, 'line'>
+
+/**
  * How close the ball has to be to count as being at somebody's feet, in percent
  * of the pitch's length.
  *
@@ -147,7 +160,7 @@ export interface Performed {
  * differ as soon as a second action lands on the same transition, which is the
  * whole point of letting them.
  */
-export function perform(kind: ArrowKind, cur: Act, next: Act, actorId: string, target: Target): Performed | null {
+export function perform(kind: ActionKind, cur: Act, next: Act, actorId: string, target: Target): Performed | null {
   const actorCur = at(cur, actorId)
   if (!actorCur) return null
 

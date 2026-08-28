@@ -12,7 +12,7 @@
  * lets the same markup be serialised straight to a PNG at export time.
  */
 
-import { MARK, PITCH, U, penaltyArcHalfHeight } from './pitch'
+import { MARK, PITCH, U, penaltyArcHalfHeight, resolveGrid } from './pitch'
 import { useSurface } from './surfaces'
 
 /** metres → SVG user units. */
@@ -36,11 +36,27 @@ interface Props {
    * dragging and on for export.
    */
   texture?: boolean
+  /**
+   * The ruled grid the system is coached in — thirds, channels, the eighteen
+   * numbered zones. Stored loose on the document, so anything unrecognised
+   * draws the plain pitch rather than nothing at all. See ./pitch.ts.
+   */
+  grid?: string
+  /**
+   * The view stands the pitch on its end.
+   *
+   * The markings carry that quarter turn as a real transform (see ../Board.tsx),
+   * which was safe for as long as this file contained no text. The zone numbers
+   * are text, so they counter-rotate — a board a coach has to tilt their head
+   * to read the numbers off is not a board.
+   */
+  turned?: boolean
 }
 
-export function Pitch({ idp, texture = false }: Props) {
+export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
+  const ruled = resolveGrid(grid)
 
   // Both ends are mirrored from the same constants, so they cannot drift apart.
   // Only the top edge of each box is needed; the height comes from MARK.
@@ -133,6 +149,48 @@ export function Pitch({ idp, texture = false }: Props) {
       />
       {p.grass && <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-grass)`} />}
       <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-turf)`} />
+
+      {/*
+       * THE RULED GRID, under the real markings and over the turf.
+       *
+       * Under, because the pitch is the pitch: a corridor line that cut across
+       * the penalty spot would be the one drawing on the board that argues with
+       * the laws of the game. It is also drawn softer and thinner than a real
+       * line for the same reason — it is a way of talking about the pitch, not
+       * part of it, and a coach must never have to work out which lines the
+       * referee would recognise.
+       *
+       * Inert: no pointer events, no ids, nothing selectable. There is nothing
+       * to edit here, because the numbers are the game's and not ours.
+       */}
+      {(ruled.lines.length > 0 || ruled.cells.length > 0) && (
+        // Named in the DOM so the smoke test can count what was ruled without
+        // guessing at a stroke colour. See scripts/smoke-studio.mjs.
+        <g pointerEvents="none" data-grid={ruled.id}>
+          <g fill="none" stroke={p.lineSoft} strokeWidth={LINE * 0.7} strokeLinecap="butt">
+            {ruled.lines.map((l, i) => (
+              <line key={i} x1={u(l.x1)} y1={u(l.y1)} x2={u(l.x2)} y2={u(l.y2)} />
+            ))}
+          </g>
+          {ruled.cells.map((c) => (
+            <text
+              key={c.label}
+              x={u(c.x)}
+              y={u(c.y)}
+              transform={turned ? `rotate(90 ${u(c.x)} ${u(c.y)})` : undefined}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill={p.lineSoft}
+              fontFamily="Inter Variable, Inter, system-ui, sans-serif"
+              fontSize={u(3.4)}
+              fontWeight={700}
+              opacity={0.55}
+            >
+              {c.label}
+            </text>
+          ))}
+        </g>
+      )}
 
       <g
         fill="none"
