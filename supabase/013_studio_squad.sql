@@ -143,8 +143,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if (select count(*) from public.studio_squad where owner = new.owner) >= 40 then
-    raise exception 'A squad holds at most 40 players.';
+  if (select count(*) from public.studio_squad where owner = new.owner) >= 60 then
+    raise exception 'A squad holds at most 60 players.';
   end if;
   return new;
 end;

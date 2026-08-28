@@ -51,7 +51,7 @@ export interface Player {
 }
 
 /** Mirrors the trigger in supabase/013. Shown to the coach before the database has to. */
-export const SQUAD_MAX = 40
+export const SQUAD_MAX = 60
 
 export const NAME_MAX = 18
 export const NUMBER_MAX = 4
