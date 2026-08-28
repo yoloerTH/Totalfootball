@@ -145,34 +145,62 @@ export function profileCompletion(profile: Profile): Completion {
 /**
  * How long to leave it between asks, in days, by how many times we have asked.
  *
- * ESCALATING, and that is the whole cadence. Somebody who has ignored this
- * three times has told us something, and the honest reading of it is "not now"
- * rather than "you have not seen it yet". Five asks spread over about eight
- * weeks, and then it stops on its own without the coach ever having to find the
- * button that turns it off.
+ * TWO SCHEDULES, PICKED BY HOW MUCH IS DONE, and that is the whole of the
+ * restraint. A single schedule has to be either kind to the coach who has
+ * nearly finished or useful to the coach who has not started, and it cannot be
+ * both — the first one is being chased over a bio, and the second is the one
+ * whose shared boards are going out anonymous.
+ *
+ *  · A coach who has not made a couple of changes yet gets `EMPTY`: asked back
+ *    the next day, then every few days, because nothing they have shared so far
+ *    carries their name, their club or their colours, and that is a real cost
+ *    landing on them every time they send a board to somebody.
+ *  · A coach who is underway gets `UNDERWAY`: they have understood the offer
+ *    and chosen what to fill in. What is left is a crest, a handle, a
+ *    photograph — worth having, not worth a fortnightly reminder.
+ *
+ * BOTH ESCALATE, which is the part that has to survive any retuning. Somebody
+ * who has ignored this four times has told us something, and the honest reading
+ * of it is "not now" rather than "you have not seen it yet". Each list runs out
+ * on its own, so it stops without the coach ever having to find the button that
+ * turns it off.
  *
  * A day before the first one, not zero: a coach who has just signed up is
  * looking at an empty shelf and wants to build something, not fill in a form.
  * The prompt is for their second visit, when they have a system worth signing.
  *
- * ── WHY THESE NUMBERS AND NOT THE ORIGINAL [2, 6, 18, 40] ────────────────────
+ * ── WHY IT IS NOT THE ONLY WAY THIS GETS MENTIONED ───────────────────────────
  *
- * They were widened on the reasoning that a prompt which appears often becomes
- * an advert, which is true and is still the reason this escalates at all. What
- * they got wrong is that in practice the gaps were long enough that most coaches
- * met this once, in their first fortnight, and then never again — so a profile
- * left unfinished on day three stayed unfinished, and the prompt's restraint
- * was costing exactly the coaches it was written for (user, 2026-08-28).
+ * The first version of these gaps was [2, 6, 18, 40], on the reasoning that a
+ * prompt which appears often becomes an advert. That is true, and it is still
+ * why this escalates. What it got wrong is that in practice most coaches met
+ * the panel once, in their first fortnight, and never again — so a profile left
+ * empty on day three stayed empty, and the restraint was costing exactly the
+ * people it was written for (user, 2026-08-28).
  *
- * The answer is not to ask harder here. It is that this panel is no longer the
- * only place the studio mentions it: the portal header carries a permanent,
- * silent count of what is left (../account/Portal.tsx), the settings page opens
- * with the same list (./Settings.tsx), and the export dialogs say so at the one
- * moment it actually costs something (../editor/IdentityToggle.tsx). Those are
- * always there and interrupt nobody, which lets THIS stay a prompt rather than
- * becoming the product's main way of asking.
+ * The answer is not to ask harder here. It is that this is no longer the only
+ * place the studio mentions it: the portal header carries a permanent, silent
+ * count of what is left (./Portal.tsx), and the export dialogs say so at the
+ * one moment it actually costs something (../editor/IdentityToggle.tsx). Those
+ * interrupt nobody, which is what lets THIS stay a prompt rather than becoming
+ * the product's main way of asking.
  */
-const GAPS = [1, 3, 7, 14, 30]
+const GAPS_EMPTY = [1, 2, 4, 8, 16, 30]
+const GAPS_UNDERWAY = [3, 8, 21, 45]
+
+/**
+ * How many finished steps count as "underway".
+ *
+ * TWO, because two is the point at which a coach has demonstrably found the
+ * settings page and decided what they wanted off it — one could be the name
+ * that ../editor/ShareDialog.tsx asks for in passing, which says nothing about
+ * whether they ever opened the page at all.
+ */
+const UNDERWAY = 2
+
+function gapsFor(completion: Completion): number[] {
+  return completion.done >= UNDERWAY ? GAPS_UNDERWAY : GAPS_EMPTY
+}
 
 /**
  * Should the portal offer to help finish the profile right now?
@@ -194,14 +222,23 @@ export function shouldNudge(
 ): boolean {
   if (completion.complete) return false
   if (guide.profileNudgeOff) return false
-  // Asked as often as it is going to be. It stops rather than looping back.
-  if (guide.profileNudges >= GAPS.length) return false
+  const gaps = gapsFor(completion)
+  /*
+   * Asked as often as it is going to be. It stops rather than looping back.
+   *
+   * Against the schedule the coach is on TODAY, which means somebody who fills
+   * two things in and moves to the longer list can find themselves already past
+   * its end — four asks spent, four allowed — and is then left alone for good.
+   * That is the right outcome: they have been asked four times and they have
+   * acted on it twice, and there is nothing left worth interrupting them for.
+   */
+  if (guide.profileNudges >= gaps.length) return false
   // Somebody with nothing on the shelf has not used the tool yet, and a prompt
   // about signing your work is meaningless before there is any work.
   if (!firstSeenAt) return false
 
   const day = 86_400_000
-  const gap = GAPS[guide.profileNudges] * day
+  const gap = gaps[guide.profileNudges] * day
   // Before the FIRST ask the clock runs from when they started, not from a
   // nudge that has never happened — `profileNudgedAt` is 0 there, and treating
   // that as "1970" would show it to every new coach on their first minute.

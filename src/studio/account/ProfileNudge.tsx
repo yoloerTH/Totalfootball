@@ -34,10 +34,22 @@
  * missing; the highlight says where you go. Neither works as well alone: a
  * prompt with a button teaches nothing about the page, and a ringed link with
  * no explanation is a decoration.
+ *
+ * ── AND WHY THE MARK IS ON IT ───────────────────────────────────────────────
+ *
+ * Because a card that slides into the corner of a page is, at a glance,
+ * indistinguishable from the thing everybody has been trained to close without
+ * reading. A coach gives it about a third of a second to prove it is not a
+ * cookie banner or a chat widget, and the fastest way to prove that is the mark
+ * they have already seen on the end of every short and at the foot of every
+ * board they have shared. It is the same `Mark` the credit bar draws
+ * (../viewer/Mark.tsx), not a lookalike — one geometry, or it is not a
+ * signature.
  */
 
 import { useEffect, useState } from 'react'
 import type { Completion, ProfileStep } from './completion'
+import { Mark } from '../viewer/Mark'
 import { STUDIO_EVENTS, track } from '../track'
 
 /** How many of the unfinished steps to actually list. See the header. */
@@ -106,13 +118,21 @@ export function ProfileNudge({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-micro uppercase text-ink-faint">Your profile</p>
-          <h2 className="mt-1 text-base font-black tracking-display text-ink">
-            {completion.done === 0
-              ? 'Put your name on your work'
-              : `${completion.total - completion.done} things left`}
-          </h2>
+        <div className="flex min-w-0 items-start gap-3">
+          {/* Sized to sit on the cap-height of the line beside it, not centred
+              on the block: the mark reads as a letterhead that way, and as a
+              stray icon the other. */}
+          <span className="mt-0.5 shrink-0">
+            <Mark size={30} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-micro uppercase text-ink-faint">Total Football</p>
+            <h2 className="mt-0.5 text-base font-black tracking-display text-ink">
+              {completion.done === 0
+                ? 'Put your name on your work'
+                : `${completion.total - completion.done} things left`}
+            </h2>
+          </div>
         </div>
         <button
           type="button"
