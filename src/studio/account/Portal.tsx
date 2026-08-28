@@ -40,6 +40,7 @@ import { hydratePrefs } from './prefs'
 import { useSession, signOut } from './session'
 import { hydrateProfile } from './profile'
 import { profileCompletion, shouldNudge, type Completion } from './completion'
+import { EMPTY_PROFILE } from './cloud'
 import { ProfileNudge } from './ProfileNudge'
 import { readGuide, writeGuide } from '../storage'
 import {
@@ -154,6 +155,35 @@ export default function Portal() {
    * with "we could not check your profile" has made their day worse over
    * something that was never their business.
    */
+  /*
+   * ── SEEING IT ON PURPOSE: /studio/portal/?nudge ──────────────────────────
+   *
+   * Everything below is built to make this panel appear rarely and only to the
+   * right person, which is correct and has one bad consequence: nobody who
+   * works on it can look at it. Whoever tunes the copy has a finished profile,
+   * a shelf years old and a `profileNudges` count long since spent, so the one
+   * state they can never reach is the one every new coach starts in (user,
+   * 2026-08-28: "i dont see at all the studio popup").
+   *
+   * The flag skips the cadence, not the panel. Nothing is stamped, so looking
+   * at it does not spend one of a real coach's asks, and the guard against
+   * `profileNudgeOff` is skipped too — a preview that silently did nothing
+   * because of a flag set months ago is the same problem again.
+   *
+   * If the profile really is finished there is nothing to list, so the preview
+   * falls back to an empty one and SAYS SO on the card. A harness that shows
+   * you invented data without admitting it is how somebody ends up tuning copy
+   * against a state that cannot occur.
+   *
+   * Same posture as /studio/preview/ and /studio/shoot/: no product behaviour
+   * changes, and there is nothing here to protect — it reads the viewer's own
+   * profile, in the viewer's own browser, and writes nothing.
+   */
+  const [preview, setPreview] = useState(false)
+  useEffect(() => {
+    setPreview(new URLSearchParams(window.location.search).has('nudge'))
+  }, [])
+
   useEffect(() => {
     if (status !== 'in' || load === 'working' || !user) return
     let live = true
@@ -172,6 +202,12 @@ export default function Portal() {
         const t = Date.parse(r.updated)
         return Number.isFinite(t) ? (min === 0 ? t : Math.min(min, t)) : min
       }, 0)
+      if (preview) {
+        // A finished profile has an empty list, which shows nothing about the
+        // design. Fall back to a blank one — the card says it is a sample.
+        setNudge(completion.complete ? profileCompletion(EMPTY_PROFILE) : completion)
+        return
+      }
       if (!shouldNudge(completion, readGuide(), oldest)) return
       /*
        * Stamped when it is SHOWN, not when it is answered.
@@ -193,7 +229,7 @@ export default function Portal() {
     // rename would re-show a panel the coach has just dismissed. `load` moving
     // off 'working' is the one transition that matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, load, user])
+  }, [status, load, user, preview])
 
   const create = useCallback(() => {
     // Written locally before we navigate, so the editor opens on a real
@@ -389,6 +425,7 @@ export default function Portal() {
       {nudge && (
         <ProfileNudge
           completion={nudge}
+          sample={preview}
           onClose={() => {
             track(STUDIO_EVENTS.profileNudge, 'dismissed')
             setNudge(null)

@@ -66,12 +66,23 @@ export function ProfileNudge({
   completion,
   onClose,
   onNever,
+  sample = false,
 }: {
   completion: Completion
   /** Not now. The cadence in ./completion.ts decides when it comes back. */
   onClose: () => void
   /** Never again. A latch, and the only thing here that is one. */
   onNever: () => void
+  /**
+   * This is /studio/portal/?nudge, not a real prompt.
+   *
+   * It has to be SAID on the card, not just known by the caller. Whoever opened
+   * the preview has a finished profile, so the list they are looking at is
+   * invented, and a harness that shows invented data without admitting it is
+   * how somebody spends an afternoon tuning copy for a state that cannot occur.
+   * See the header of the effect in ./Portal.tsx.
+   */
+  sample?: boolean
 }) {
   /*
    * Slid in a beat after mount rather than on it.
@@ -126,7 +137,9 @@ export function ProfileNudge({
             <Mark size={30} />
           </span>
           <div className="min-w-0">
-            <p className="text-micro uppercase text-ink-faint">Total Football</p>
+            <p className="text-micro uppercase text-ink-faint">
+              {sample ? 'Preview · sample data' : 'Total Football'}
+            </p>
             <h2 className="mt-0.5 text-base font-black tracking-display text-ink">
               {completion.done === 0
                 ? 'Put your name on your work'
