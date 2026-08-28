@@ -932,11 +932,10 @@ function ArrowGrips({
 /**
  * Screen coordinates → percent-of-crop, for drags.
  *
- * Uses the SVG's own CTM rather than getBoundingClientRect maths, so it stays
- * correct when the board is scaled by its container, sitting inside a
- * transformed panel, or on a zoomed mobile viewport. The CTM lands us in FINAL
- * units — the same space `pos()` writes into — so `unitsToPercent` is what
- * takes the quarter turn back out on an upright board.
+ * Uses `getBoundingClientRect` maths to account for `preserveAspectRatio="xMidYMid meet"`,
+ * returning us to the SVG's FINAL units. This is fully robust against CSS transforms
+ * applied to ancestor HTML elements (unlike `getScreenCTM()`, which ignores them in Safari).
+ * `unitsToPercent` then takes the quarter turn back out on an upright board.
  */
 export function clientToPercent(
   svg: SVGSVGElement,
@@ -944,13 +943,20 @@ export function clientToPercent(
   clientX: number,
   clientY: number,
 ): { x: number; y: number } {
-  const pt = svg.createSVGPoint()
-  pt.x = clientX
-  pt.y = clientY
-  const ctm = svg.getScreenCTM()
-  if (!ctm) return { x: 50, y: 50 }
-  const local = pt.matrixTransform(ctm.inverse())
-  return unitsToPercent(view, local.x, local.y)
+  const rect = svg.getBoundingClientRect()
+  const vb = svg.viewBox.baseVal
+  if (!vb || vb.width === 0 || vb.height === 0 || rect.width === 0 || rect.height === 0) {
+    return { x: 50, y: 50 }
+  }
+
+  const scale = Math.min(rect.width / vb.width, rect.height / vb.height)
+  const offsetX = (rect.width - vb.width * scale) / 2
+  const offsetY = (rect.height - vb.height * scale) / 2
+
+  const localX = vb.x + (clientX - rect.left - offsetX) / scale
+  const localY = vb.y + (clientY - rect.top - offsetY) / scale
+
+  return unitsToPercent(view, localX, localY)
 }
 
 /**
