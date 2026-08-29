@@ -56,6 +56,30 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'training-boards',
+    date: '2026-08-29',
+    kind: 'new',
+    title: 'Boards for training sessions',
+    body: 'The pitch view picker now has four session boards under the match ones: a 40 by 30 small-sided pitch, the same 40 by 30 ruled into six boxes, a 30 by 20 possession grid and a 20 by 20 rondo square. They are drawn as coned areas rather than as pitches, so nothing on the board argues with your exercise, and each leaves a few metres of spare grass round the outside for the goals and the cones. Everything else works as it does on a pitch: shapes, arrows, zones, phases, films and PDFs.',
+    where: 'Pitch view, under The board',
+  },
+  {
+    id: 'training-goals',
+    date: '2026-08-29',
+    kind: 'new',
+    title: 'Goals go wherever the exercise wants them',
+    body: 'No goals are painted onto the session boards. A mini goal in a training exercise belongs in the corners, on the ends, turned sideways or facing in, and that changes with every drill, so it is equipment you place rather than part of the board. Drag as many mini goals as you need out of Equipment and put them where the session needs them. Four corner goals for a four-goal possession game is four drags, and they line themselves up as they land.',
+    where: 'Mini goal, under Equipment',
+  },
+  {
+    id: 'align-snap',
+    date: '2026-08-29',
+    kind: 'better',
+    title: 'Players and gear line up as you drop them',
+    body: 'Drag a player, the ball, a mannequin or a cone near the line of something already on the board and it comes level with it, with a guide showing you the line it took. A back four is now actually level, three mannequins actually make a line, and a row of cones actually sits in one channel, instead of being a metre out in a way you only see on the finished film. The two axes are decided separately, so a man can come level with his centre-half without moving up the pitch. It never lands anybody on top of anybody. Hold Alt while you drag to turn it off and place something exactly where your hand is.',
+    where: 'Anywhere you drag on the board',
+  },
+  {
     id: 'set-pieces',
     date: '2026-08-29',
     kind: 'new',

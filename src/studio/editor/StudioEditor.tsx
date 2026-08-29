@@ -51,7 +51,7 @@ import { perform, type ActionKind, type Target } from '../actions'
 import {
   PITCH_VIEWS,
   PITCH_GRID_LIST,
-  PITCH_VIEW_LIST,
+  PITCH_VIEW_GROUPS,
   aspect,
   cropRect,
   remap,
@@ -4584,12 +4584,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             <Select
               value={system.pitch}
               onChange={setPitch}
-              options={PITCH_VIEW_LIST.map((v) => ({ value: v.id, label: v.label }))}
+              groups={PITCH_VIEW_GROUPS.map((g) => ({
+                label: g.label,
+                options: g.views.map((v) => ({ value: v.id, label: v.label })),
+              }))}
             />
           </Tip>
           <p className="mt-2 text-[11px] leading-snug text-ink-faint">
             <span className="text-ink-soft">{view.hint}</span> {view.useFor}
           </p>
+          {view.area && (
+            <Tip text={HINT.training} title="The training boards" block>
+              <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
+                No goals are drawn on a session board on purpose. Drag{' '}
+                <span className="font-bold text-ink-soft">mini goals</span> out of Equipment onto the
+                grass around the grid, wherever the exercise wants them.
+              </p>
+            </Tip>
+          )}
           {cast.partial && (
             <Tip text={HINT.pitchFit} title="Who fits on this view" block>
               <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
@@ -4651,6 +4663,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </Panel>
         */}
 
+        {/*
+          THE RULED GRIDS ARE HIDDEN ON A TRAINING BOARD, not disabled.
+
+          Thirds, the five channels and the eighteen zones are measured in
+          pitch metres — a third of 105m, the width of a penalty area — and
+          ../board/PitchMarkings.tsx will not draw them on a coned area for
+          that reason. A control that is on the screen and does nothing when
+          pressed is worse than one that is not there, and the grid the coach
+          picked is still on the document, so it comes back with the pitch.
+        */}
+        {!view.area && (
         <Panel title="Markings">
           <Tip text={HINT.pitchGrid} title="Markings" block>
             <Select
@@ -4666,6 +4689,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             <span className="text-ink-soft">{grid.hint}</span> {grid.useFor}
           </p>
         </Panel>
+        )}
 
         <Panel title="Pitch">
           <Tip text={HINT.surface} title="What the pitch is drawn on" block>

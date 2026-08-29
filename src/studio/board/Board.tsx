@@ -417,6 +417,7 @@ export function Board({
             grid={system.grid}
             turned={Boolean(view.vertical)}
             goalHref={gearHrefs ? gearHrefs['mini-goal'] : resolveGear('mini-goal')?.src}
+            area={view.area}
           />
         </g>
 

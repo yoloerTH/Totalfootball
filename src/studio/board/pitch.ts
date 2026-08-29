@@ -48,6 +48,49 @@ export const MARK = {
   corner: 1,
 } as const
 
+/**
+ * A TRAINING AREA: the coned-off rectangle a session is actually run in.
+ *
+ * WHY THIS IS A RECTANGLE INSIDE THE PITCH AND NOT A BOARD OF ITS OWN
+ *
+ * A training grid is not a pitch, but it is laid out ON one, and everything in
+ * the studio — the stored percent coordinates, `remap` between views, the
+ * bands, the gear, the snapping in ./align.ts, the tween, the film exporter —
+ * is built on the single 105x68 metre space in this file. Giving a rondo its
+ * own coordinate system would fork every one of those. So a training board is
+ * an ordinary crop of the same pitch with different LINES painted on it, and
+ * nothing downstream has to know the difference.
+ *
+ * WHY THE CROP IS BIGGER THAN THE AREA
+ *
+ * A coach cones a 30x20 and then puts the goals OUTSIDE it, in the corners, on
+ * the ends, wherever the exercise wants them — that is what the picture this
+ * came from shows. If the crop stopped at the cones there would be nowhere to
+ * put them: percent is measured on the crop and a drag is clamped a few percent
+ * past it. Every area below therefore sits inside about five metres of spare
+ * grass on all four sides, which is both the room to place equipment and what a
+ * coned grid on a real field looks like.
+ *
+ * Every measurement is in metres of pitch space, like everything else here.
+ */
+export interface TrainingArea {
+  /** The playing rectangle. Inside the view's crop, never equal to it. */
+  x0: number
+  x1: number
+  y0: number
+  y1: number
+  /** A halfway line across it. */
+  halfway?: boolean
+  /** Centre circle radius. Omitted on the bare grids, which have no kickoff. */
+  circle?: number
+  /** A goal area at each end: how far INTO the area, how wide ACROSS it. */
+  box?: { depth: number; width: number }
+  /** A square in the middle, side in metres. The rondo's inner box. */
+  middle?: number
+  /** Ruled into cells: divisions along the length, divisions across the width. */
+  cells?: { along: number; across: number }
+}
+
 export type PitchViewId =
   | 'full'
   | 'full-vertical'
@@ -57,6 +100,10 @@ export type PitchViewId =
   | 'attacking-box'
   | 'attacking-set-piece'
   | 'defending-set-piece'
+  | 'training-pitch'
+  | 'channel-grid'
+  | 'possession-grid'
+  | 'rondo-square'
 
 export interface PitchView {
   id: PitchViewId
@@ -109,6 +156,15 @@ export interface PitchView {
    * round with the quarter turn.
    */
   pad?: { x: number; y: number }
+  /**
+   * Paint a training area on this board instead of a football pitch.
+   *
+   * Present on the four training boards and absent everywhere else, and that
+   * absence is what every other view means by "draw the pitch". See
+   * `TrainingArea` for why a grid is a crop of the pitch rather than its own
+   * board.
+   */
+  area?: TrainingArea
 }
 
 /**
@@ -238,18 +294,173 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
     vertical: true,
     flip: true,
   },
+
+  /*
+   * -- THE FOUR TRAINING BOARDS ---------------------------------------------
+   *
+   * Same amendment to §3a of docs/STUDIO.md as the set pieces, from the same
+   * coach and with a picture again (2026-08-29): a coned grid with mini goals
+   * round it, which is what most of a coaching week is actually spent on. A
+   * session drawn on `full` is a cluster of counters in a fifth of a pitch with
+   * a centre circle and two penalty areas arguing with it.
+   *
+   * The sizes are the ones a session plan is written in, not tidy numbers:
+   * 40x30 is the 7v7 / 9v9 pitch, 30x20 is the standard possession grid, 20x20
+   * is the rondo box. All four are centred on the middle of the pitch, so the
+   * grass, the mow and the surface come free and the crop never leaves the
+   * turf.
+   *
+   * NO GOALS ARE DRAWN ON ANY OF THEM. A mini goal is equipment, it goes where
+   * the exercise puts it — in the corners, on the ends, facing inwards — and
+   * every one of those is a drag from Equipment onto the spare grass these
+   * crops leave round the outside. Painting four goals into the board would
+   * make exactly one exercise easy and every other one wrong.
+   */
+  'training-pitch': {
+    id: 'training-pitch',
+    label: 'Small-sided pitch (40 x 30)',
+    hint: 'A 7v7 pitch: halfway line, centre circle, an area at each end.',
+    useFor: 'Small-sided games, phase of play, anything played to two goals.',
+    x0: 27.5,
+    x1: 77.5,
+    y0: 14,
+    y1: 54,
+    /*
+     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
+     * corner arcs are not clipped flush against the edge; a coned area has
+     * neither, and the five metres of margin already inside the crop is where
+     * the equipment goes. Three more on top of it just makes the grid look
+     * small on the screen.
+     */
+    pad: { x: 1.5, y: 1.5 },
+    area: {
+      x0: 32.5,
+      x1: 72.5,
+      y0: 19,
+      y1: 49,
+      halfway: true,
+      circle: 5,
+      box: { depth: 6, width: 16 },
+    },
+  },
+  'channel-grid': {
+    id: 'channel-grid',
+    label: 'Channelled grid (40 x 30)',
+    hint: 'The same 40 x 30, ruled into six boxes.',
+    useFor: 'Positional games: who holds which box, when you are allowed out of it.',
+    x0: 27.5,
+    x1: 77.5,
+    y0: 14,
+    y1: 54,
+    /*
+     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
+     * corner arcs are not clipped flush against the edge; a coned area has
+     * neither, and the five metres of margin already inside the crop is where
+     * the equipment goes. Three more on top of it just makes the grid look
+     * small on the screen.
+     */
+    pad: { x: 1.5, y: 1.5 },
+    area: {
+      x0: 32.5,
+      x1: 72.5,
+      y0: 19,
+      y1: 49,
+      cells: { along: 3, across: 2 },
+    },
+  },
+  'possession-grid': {
+    id: 'possession-grid',
+    label: 'Possession grid (30 x 20)',
+    hint: 'A bare rectangle with a square in the middle of it.',
+    useFor: 'Possession games, four-goal games, keeping the ball under pressure.',
+    x0: 33,
+    x1: 72,
+    y0: 19.5,
+    y1: 48.5,
+    /*
+     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
+     * corner arcs are not clipped flush against the edge; a coned area has
+     * neither, and the five metres of margin already inside the crop is where
+     * the equipment goes. Three more on top of it just makes the grid look
+     * small on the screen.
+     */
+    pad: { x: 1.5, y: 1.5 },
+    area: {
+      x0: 37.5,
+      x1: 67.5,
+      y0: 24,
+      y1: 44,
+      middle: 8,
+    },
+  },
+  'rondo-square': {
+    id: 'rondo-square',
+    label: 'Rondo square (20 x 20)',
+    hint: 'A square, with the inner box the middle men work in.',
+    useFor: '4v2, 5v2, 6v3: first touch, angles of support, pressing in a pair.',
+    x0: 38,
+    x1: 67,
+    y0: 19.5,
+    y1: 48.5,
+    /*
+     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
+     * corner arcs are not clipped flush against the edge; a coned area has
+     * neither, and the five metres of margin already inside the crop is where
+     * the equipment goes. Three more on top of it just makes the grid look
+     * small on the screen.
+     */
+    pad: { x: 1.5, y: 1.5 },
+    area: {
+      x0: 42.5,
+      x1: 62.5,
+      y0: 24,
+      y1: 44,
+      middle: 8,
+    },
+  },
 }
 
-export const PITCH_VIEW_LIST: PitchView[] = [
-  PITCH_VIEWS.full,
-  PITCH_VIEWS['full-vertical'],
-  PITCH_VIEWS['two-thirds'],
-  PITCH_VIEWS['attacking-half'],
-  PITCH_VIEWS['defending-half'],
-  PITCH_VIEWS['attacking-box'],
-  PITCH_VIEWS['attacking-set-piece'],
-  PITCH_VIEWS['defending-set-piece'],
+/**
+ * The picker, in the three kinds of board there now are.
+ *
+ * Twelve views in one flat dropdown is a list you read rather than scan, and it
+ * would put "Rondo square" one line under "Our half" as though they were
+ * alternatives to each other. They are not: a coach opening this knows before
+ * they open it whether they are drawing a match, a dead ball or a session, so
+ * that question is asked first and the list under it is short.
+ *
+ * The order inside each group is widest board first, which is the order a coach
+ * zooms in.
+ */
+export const PITCH_VIEW_GROUPS: { label: string; views: PitchView[] }[] = [
+  {
+    label: 'Match',
+    views: [
+      PITCH_VIEWS.full,
+      PITCH_VIEWS['full-vertical'],
+      PITCH_VIEWS['two-thirds'],
+      PITCH_VIEWS['attacking-half'],
+      PITCH_VIEWS['defending-half'],
+      PITCH_VIEWS['attacking-box'],
+    ],
+  },
+  {
+    label: 'Set pieces',
+    views: [PITCH_VIEWS['attacking-set-piece'], PITCH_VIEWS['defending-set-piece']],
+  },
+  {
+    label: 'Training',
+    views: [
+      PITCH_VIEWS['training-pitch'],
+      PITCH_VIEWS['channel-grid'],
+      PITCH_VIEWS['possession-grid'],
+      PITCH_VIEWS['rondo-square'],
+    ],
+  },
 ]
+
+/** Every view, flat, in the picker's own order. */
+export const PITCH_VIEW_LIST: PitchView[] = PITCH_VIEW_GROUPS.flatMap((g) => g.views)
 
 /**
  * Views that no longer exist, mapped to their nearest survivor.
@@ -449,9 +660,49 @@ export function defendedGoal(
   side: 'us' | 'them',
   v: PitchView,
 ): { axis: 'x' | 'y'; at: number } {
-  const goalMetreX = side === 'us' ? 0 : PITCH.length
+  // On a training board the end a side is protecting is the end LINE OF THE
+  // GRID, not a goal line five and twenty metres off the edge of the crop. A
+  // block drawn in a 30x20 has to close onto the cones the coach can see, or it
+  // fills the margin and half the pitch beyond it.
+  const ends = v.area ? [v.area.x0, v.area.x1] : [0, PITCH.length]
+  const goalMetreX = side === 'us' ? ends[0] : ends[1]
   const p = metresToUnits(v, goalMetreX, PITCH.width / 2)
   return v.vertical ? { axis: 'y', at: p.y } : { axis: 'x', at: p.x }
+}
+
+/**
+ * How far inside a training area's edge a counter has to START, in metres.
+ *
+ * A counter is 4.2m across on a board drawn in real metres (`TOKEN_R` in
+ * ./Token.tsx), so a man placed exactly on the boundary of a 20m square hangs
+ * half of himself out of the exercise. On a full pitch that is right — a
+ * full-back stands on the touchline — and on a coned grid it is not, because
+ * the grid is the whole of what the exercise is. Two and a half metres is the
+ * counter's own radius plus enough air to read as inside rather than on.
+ *
+ * scripts/check-align.mjs asserts this against TOKEN_R, which lives in a .tsx
+ * this file will not import: pitch geometry stays free of React.
+ */
+export const AREA_INSET = 2.5
+
+/**
+ * The slice of a view's crop, in percent, that a shape may be laid into.
+ *
+ * The whole crop on a pitch, and on a training board the coned area pulled in
+ * by `AREA_INSET`. See `TrainingArea` for why the crop is bigger than the area:
+ * the margin is where the goals and cones go, and it is not somewhere to place
+ * a back four.
+ *
+ * Percent, because that is the space ../formations.ts lays shapes out in.
+ */
+export function areaBand(v: PitchView, axis: 'x' | 'y'): [number, number] {
+  if (!v.area) return [0, 100]
+  const c0 = axis === 'x' ? v.x0 : v.y0
+  const c1 = axis === 'x' ? v.x1 : v.y1
+  const a0 = axis === 'x' ? v.area.x0 : v.area.y0
+  const a1 = axis === 'x' ? v.area.x1 : v.area.y1
+  const pc = (m: number) => Math.round(((m - c0) / (c1 - c0)) * 1000) / 10
+  return [pc(a0 + AREA_INSET), pc(a1 - AREA_INSET)]
 }
 
 /**

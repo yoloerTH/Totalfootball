@@ -12,8 +12,8 @@
  * lets the same markup be serialised straight to a PNG at export time.
  */
 
-import { MARK, PITCH, U, penaltyArcHalfHeight, resolveGrid } from './pitch'
-import { useSurface } from './surfaces'
+import { MARK, PITCH, U, penaltyArcHalfHeight, resolveGrid, type TrainingArea } from './pitch'
+import { useSurface, type BoardPalette } from './surfaces'
 
 /** metres → SVG user units. */
 const u = (m: number) => m * U
@@ -22,6 +22,89 @@ const L = PITCH.length
 const W = PITCH.width
 const MID = W / 2
 const LINE = u(MARK.line * 3.2) // drawn a touch heavy so it reads when zoomed out
+
+/**
+ * A TRAINING AREA: the coned rectangle, and whatever is ruled inside it.
+ *
+ * Drawn in the same metre space and with the same stroke as the pitch, so a
+ * grid on the paper surface is the same pen as a pitch on the paper surface,
+ * and the quarter turn in ../Board.tsx applies to it unchanged.
+ *
+ * WHY THE LINES ARE THINNER THAN A PITCH'S
+ *
+ * A pitch's markings are the laws of the game. A grid's are four cones and a
+ * decision the coach made this morning, and next week it is a different size.
+ * Drawing them at a referee's line weight claims a permanence they do not have,
+ * and reads as a badly proportioned pitch rather than as a marked-out area. At
+ * three quarters it reads as what it is: chalk, or a line of flat markers.
+ *
+ * The inner rulings — the middle square, the cells — go thinner and softer
+ * still, for the same reason ../PitchMarkings' ruled grid does: they are a way
+ * of talking about the area, not its edge. The one line a player may not cross
+ * has to be the one that looks like it.
+ */
+function Area({ a, p, weight }: { a: TrainingArea; p: BoardPalette; weight: number }) {
+  const x = u(a.x0)
+  const y = u(a.y0)
+  const w = u(a.x1 - a.x0)
+  const h = u(a.y1 - a.y0)
+  const cx = u((a.x0 + a.x1) / 2)
+  const cy = u((a.y0 + a.y1) / 2)
+  const len = a.x1 - a.x0
+  const wid = a.y1 - a.y0
+
+  const inner: string[] = []
+  if (a.middle) {
+    const m = u(a.middle)
+    inner.push(`M ${cx - m / 2} ${cy - m / 2} h ${m} v ${m} h ${-m} Z`)
+  }
+  if (a.cells) {
+    for (let i = 1; i < a.cells.along; i++) {
+      const gx = u(a.x0 + (len * i) / a.cells.along)
+      inner.push(`M ${gx} ${y} V ${y + h}`)
+    }
+    for (let i = 1; i < a.cells.across; i++) {
+      const gy = u(a.y0 + (wid * i) / a.cells.across)
+      inner.push(`M ${x} ${gy} H ${x + w}`)
+    }
+  }
+
+  return (
+    <g fill="none" stroke={p.line} strokeWidth={weight} strokeLinecap="square">
+      {/* the cones themselves: the one edge that means anything */}
+      <rect x={x} y={y} width={w} height={h} />
+
+      {a.halfway && <line x1={cx} y1={y} x2={cx} y2={y + h} />}
+      {a.circle && (
+        <>
+          <circle cx={cx} cy={cy} r={u(a.circle)} />
+          <circle cx={cx} cy={cy} r={weight * 1.6} fill={p.line} stroke="none" />
+        </>
+      )}
+
+      {a.box && (
+        <>
+          <rect
+            x={x}
+            y={cy - u(a.box.width) / 2}
+            width={u(a.box.depth)}
+            height={u(a.box.width)}
+          />
+          <rect
+            x={x + w - u(a.box.depth)}
+            y={cy - u(a.box.width) / 2}
+            width={u(a.box.depth)}
+            height={u(a.box.width)}
+          />
+        </>
+      )}
+
+      {inner.length > 0 && (
+        <path d={inner.join(' ')} stroke={p.lineSoft} strokeWidth={weight * 0.7} />
+      )}
+    </g>
+  )
+}
 
 interface Props {
   /**
@@ -52,9 +135,20 @@ interface Props {
    */
   turned?: boolean
   goalHref?: string
+  /**
+   * Paint a coned training area instead of a pitch. See `TrainingArea`.
+   *
+   * When it is set, NONE of the pitch is drawn — no goals, no penalty areas, no
+   * centre circle a hundred metres wide, and none of the ruled grid either. The
+   * ruled grids are pitch ideas measured in pitch metres (thirds of 105m, zone
+   * 14), so on a 20m square they are three lines slashing across it that mean
+   * nothing. The grass, the mow, the light and the vignette are the surface's
+   * and stay exactly as they are.
+   */
+  area?: TrainingArea
 }
 
-export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: Props) {
+export function Pitch({ idp, texture = false, grid, turned = false, goalHref, area }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
   const ruled = resolveGrid(grid)
@@ -168,7 +262,7 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: 
        * Inert: no pointer events, no ids, nothing selectable. There is nothing
        * to edit here, because the numbers are the game's and not ours.
        */}
-      {(ruled.lines.length > 0 || ruled.cells.length > 0) && (
+      {!area && (ruled.lines.length > 0 || ruled.cells.length > 0) && (
         // Named in the DOM so the smoke test can count what was ruled without
         // guessing at a stroke colour. See scripts/smoke-studio.mjs.
         <g pointerEvents="none" data-grid={ruled.id}>
@@ -197,6 +291,9 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: 
         </g>
       )}
 
+      {area ? (
+        <Area a={area} p={p} weight={LINE * 0.75} />
+      ) : (
       <g
         fill="none"
         stroke={p.line}
@@ -275,6 +372,7 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: 
           d={`M 0 ${u(W - MARK.corner)} A ${u(MARK.corner)} ${u(MARK.corner)} 0 0 1 ${u(MARK.corner)} ${u(W)}`}
         />
       </g>
+      )}
 
       {/* Light and vignette sit above the lines so the markings recede at the
           edges the way they do on the videos' board. */}

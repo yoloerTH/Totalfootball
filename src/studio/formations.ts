@@ -21,8 +21,7 @@
  * right.
  */
 
-import { PITCH, PITCH_VIEWS, resolveViewId } from './board/pitch'
-import type { PitchViewId } from './board/pitch'
+import { PITCH, PITCH_VIEWS, areaBand, resolveViewId, type PitchViewId } from './board/pitch'
 import type { Side, Token } from './schema'
 
 export interface Slot {
@@ -552,6 +551,37 @@ export function formationsByFamily(): { family: string; formations: Formation[] 
  * the other way round. A coach then drags from a sensible starting point
  * rather than untangling eleven counters piled on the halfway line.
  */
+/*
+ * THE TRAINING BOARDS TAKE THEIR BANDS FROM THEIR OWN GEOMETRY.
+ *
+ * Every match view's numbers below are judgement calls, and they have to be:
+ * "how much of their half does the opposition get" has no arithmetic behind it.
+ * A training board's does. The crop is the coned area plus about five metres of
+ * grass for the equipment, so the band a shape may use is exactly that area,
+ * pulled in by a counter's radius — `areaBand` in ./board/pitch.ts. Writing
+ * those percentages out by hand would be four numbers per board that go silently
+ * wrong the day a grid is resized.
+ */
+
+/**
+ * A training board's usable length, split between two sides.
+ *
+ * The gap in the middle is wider than the match views' four points, and has to
+ * be: four points of a 105m pitch is four metres and four points of a 29m rondo
+ * square is barely one, so the two lines that meet in the middle would be drawn
+ * on top of each other. Twenty points is about six metres on the smallest board
+ * here, which is a counter's width of daylight between the two sides.
+ */
+function split(id: PitchViewId): { us: [number, number]; them: [number, number] } {
+  const [a, b] = areaBand(PITCH_VIEWS[id], 'x')
+  return { us: [a, 40], them: [60, b] }
+}
+
+/** The whole of it, for a shape with the board to itself. */
+function whole(id: PitchViewId): [number, number] {
+  return areaBand(PITCH_VIEWS[id], 'x')
+}
+
 const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] }> = {
   full: { us: [3, 48], them: [52, 97] },
   // Upright is the same crop stood on its end. Percent is measured on the crop
@@ -567,6 +597,10 @@ const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] 
   // bands as the halves they are cut from and need no numbers of their own.
   'attacking-set-piece': { us: [3, 47], them: [53, 97] },
   'defending-set-piece': { us: [3, 47], them: [53, 97] },
+  'training-pitch': split('training-pitch'),
+  'channel-grid': split('channel-grid'),
+  'possession-grid': split('possession-grid'),
+  'rondo-square': split('rondo-square'),
 }
 
 /**
@@ -586,6 +620,32 @@ const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
   'attacking-box': [3, 88],
   'attacking-set-piece': [3, 88],
   'defending-set-piece': [3, 88],
+  'training-pitch': whole('training-pitch'),
+  'channel-grid': whole('channel-grid'),
+  'possession-grid': whole('possession-grid'),
+  'rondo-square': whole('rondo-square'),
+}
+
+/**
+ * How much of the crop's WIDTH a shape may use, per view.
+ *
+ * Every match view is the whole pitch or a crop of it, so a shape spans the
+ * board's full height and a full-back stands on the touchline where he belongs.
+ * A training board is not like that: the crop is the coned area PLUS about five
+ * metres of spare grass on each side (board/pitch.ts `TrainingArea`), and that
+ * margin belongs to the goals and the cones. A shape laid out across the whole
+ * crop puts the wide men in it — standing on the line or outside the exercise
+ * altogether, which is not where a session starts.
+ *
+ * So the training boards state the slice of the crop their AREA occupies, taken
+ * in a little further so nobody is placed on the boundary itself. Everything
+ * else keeps the whole width, which is what the absent entry means.
+ */
+const WIDTH_BANDS: Partial<Record<PitchViewId, [number, number]>> = {
+  'training-pitch': areaBand(PITCH_VIEWS['training-pitch'], 'y'),
+  'channel-grid': areaBand(PITCH_VIEWS['channel-grid'], 'y'),
+  'possession-grid': areaBand(PITCH_VIEWS['possession-grid'], 'y'),
+  'rondo-square': areaBand(PITCH_VIEWS['rondo-square'], 'y'),
 }
 
 /** The x-band our shape occupies on a view — the full solo band, or the half it shares with an opposition. */
@@ -686,6 +746,15 @@ const CAST: Record<PitchViewId, { us: number; them: number }> = {
   // about. So both boards hold everybody, and `setpieces.ts` places them.
   'attacking-set-piece': { us: 11, them: 11 },
   'defending-set-piece': { us: 11, them: 11 },
+  // TRAINING BOARDS, capped at the numbers the area is actually sized for
+  // rather than at a squad. Twenty-two counters in a 20m square is not a rondo,
+  // it is a crowd — and a coach who wants more drags them on, which is the
+  // normal way to build a session anyway. Lines are still never split, so a
+  // back four either all comes or none of it does.
+  'training-pitch': { us: 8, them: 8 },
+  'channel-grid': { us: 8, them: 8 },
+  'possession-grid': { us: 6, them: 6 },
+  'rondo-square': { us: 4, them: 3 },
 }
 
 /**
@@ -796,12 +865,35 @@ export function place(
   const hi = Math.max(...slots.map((s) => s.depth))
   const spread = (d: number) => (partial && hi > lo ? (d - lo) / (hi - lo) : d)
 
+  /*
+   * ACROSS the board, the same argument, and ONLY on a training board.
+   *
+   * A cast on a small grid is a slice out of the middle of a team — four
+   * midfielders and a holder — and their `width` values all sit within a few
+   * points of the centre line, because that is where midfielders stand on a
+   * pitch. Laid out raw into a 20m square that is five counters in a vertical
+   * pile with the whole grid empty either side of them, which is not a rondo,
+   * it is a queue.
+   *
+   * The match views deliberately do NOT do this. There, width means something
+   * fixed — a left-back is on the left touchline and stays there whoever else
+   * is in the picture — and stretching a cast across the pitch would move men
+   * off the positions the view exists to show. A coned grid has no touchline
+   * and no left-back: it has an area, and the men in it should fill it.
+   */
+  const across = WIDTH_BANDS[view] !== undefined
+  const wlo = Math.min(...slots.map((s) => s.width))
+  const whi = Math.max(...slots.map((s) => s.width))
+  const fan = (w: number) => (across && whi > wlo ? (w - wlo) / (whi - wlo) : w)
+
   return slots.map((slot) => {
     // depth runs from the team's own goal to its front line, along the band
     const along = facesRight ? spread(slot.depth) : 1 - spread(slot.depth)
     const x = x0 + along * (x1 - x0)
     // Seen from above, a team attacking right has its LEFT flank at the top.
-    const y = (facesRight ? slot.width : 1 - slot.width) * 100
+    const [y0, y1] = WIDTH_BANDS[view] ?? [0, 100]
+    const w = fan(slot.width)
+    const y = y0 + (facesRight ? w : 1 - w) * (y1 - y0)
 
     return {
       id: `${side}-${slot.id}`,
