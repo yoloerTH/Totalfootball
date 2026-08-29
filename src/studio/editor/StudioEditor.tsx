@@ -4444,7 +4444,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       <Section
         title={DRAWER.board}
-        hint="Pitch view, set pieces, surface, camera"
+        hint="Pitch view, markings, surface, camera"
         defaultOpen
         badge={view.label}
       >
@@ -4476,6 +4476,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           )}
         </Panel>
 
+        {/*
+          SET PIECES — HIDDEN FOR NOW.
+
+          The predefined arrangements did not hold up in use, so the picker is out
+          of the drawer until they do. Everything behind it is left standing —
+          `SET_PIECES` in ../setpieces.ts, `applySetPiece`, and the pre-set-piece
+          snapshot that backs the revert — so bringing it back is deleting this
+          comment wrapper and nothing else.
+        */}
+        {/*
         <Panel title="Set pieces">
           <Tip text={HINT.setPiece} title="Set pieces" block>
             <Select
@@ -4508,6 +4518,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             )}
           </p>
         </Panel>
+        */}
 
         <Panel title="Markings">
           <Tip text={HINT.pitchGrid} title="Markings" block>

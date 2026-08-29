@@ -994,6 +994,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     body: [HINT.pitchView, HINT.pitchFit],
     target: { drawer: DRAWER.board, anchor: 'Pitch view', name: 'Pitch view' },
   },
+  /*
+   * SET PIECES — HIDDEN WITH THE PICKER ITSELF (see ../editor/StudioEditor.tsx).
+   * A guide entry that scrolls to a control the drawer no longer shows is worse
+   * than no entry, so this comes back at the same time the panel does.
+   */
+  /*
   {
     id: 'set-pieces',
     group: 'board',
@@ -1002,6 +1008,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     body: [HINT.setPiece],
     target: { drawer: DRAWER.board, anchor: 'Set pieces', name: 'Set pieces' },
   },
+  */
   {
     id: 'pitch-grid',
     group: 'board',
