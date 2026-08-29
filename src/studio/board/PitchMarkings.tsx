@@ -87,7 +87,6 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: 
           width={p.mow.kind === 'stripe' ? u(p.mow.size * 2) : u(p.mow.size)}
           height={u(p.mow.size)}
           patternUnits="userSpaceOnUse"
-          patternTransform={p.mow.kind === 'checker' ? 'rotate(45)' : undefined}
         >
           {p.mow.kind === 'checker' ? (
             <>
