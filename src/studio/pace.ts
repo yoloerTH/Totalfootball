@@ -109,8 +109,8 @@ export const HOLD_STEP_MS = 200
  */
 export const DEFAULT_MOVE_MS = 1100
 
-/** The floor IS the default. The slider only goes slower. */
-export const MIN_MOVE_MS = DEFAULT_MOVE_MS
+/** The floor was the default, but reduced to allow faster transitions. */
+export const MIN_MOVE_MS = 200
 
 /**
  * The longest move.
@@ -165,7 +165,7 @@ export function moveMs(system: Pick<System, 'move'>): number {
  * mathematics of moving something from A to B.
  */
 export function moveRelax(system: Pick<System, 'move'>): number {
-  const span = MAX_MOVE_MS - MIN_MOVE_MS
+  const span = MAX_MOVE_MS - DEFAULT_MOVE_MS
   if (span <= 0) return 0
-  return Math.min(1, Math.max(0, (moveMs(system) - MIN_MOVE_MS) / span))
+  return Math.min(1, Math.max(0, (moveMs(system) - DEFAULT_MOVE_MS) / span))
 }
