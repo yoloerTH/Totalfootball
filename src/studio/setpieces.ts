@@ -101,6 +101,9 @@ export interface SetPiece {
   ball: { d: number; s: number }
   attack: Spot[]
   defend: Spot[]
+  tokenSize?: number
+  bands?: { kind: 'danger' | 'zone'; rect: { d: number; s: number; w: number; h: number }; label?: string; tone?: string; shape?: 'box' | 'round' | 'ellipse' | 'triangle' | 'diamond' }[]
+  gear?: { d: number; s: number; gear: string }[]
   /**
    * The delivery, drawn from the ball.
    *
@@ -110,7 +113,7 @@ export interface SetPiece {
    * somewhere for the picture to mean anything, and because a bowed delivery is
    * the mark that says in-swinger rather than "a ball, at a corner".
    */
-  delivery?: { d: number; s: number; bend: number; kind: ArrowKind }
+  delivery?: { d: number; s: number; bend: number; kind: 'pass' | 'run' | 'carry' | 'press' | 'switch' | 'line' }
 }
 
 /* ── THE CASTS ──────────────────────────────────────────────────────────────
@@ -249,6 +252,14 @@ export const SET_PIECES: SetPiece[] = [
     attack: INSWINGER,
     defend: ZONAL,
     delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'pass' },
+    tokenSize: 0.75,
+    bands: [
+      { kind: 'danger', rect: { d: 4, s: 30, w: 12, h: 6 }, tone: 'red', shape: 'ellipse' },
+    ],
+    gear: [
+      { d: 11.5, s: 35.0, gear: 'dummy-mannequin' },
+      { d: 10.5, s: 40.5, gear: 'dummy-mannequin' },
+    ],
   },
   {
     id: 'corner-short',
@@ -261,6 +272,13 @@ export const SET_PIECES: SetPiece[] = [
     attack: CORNER_SHORT,
     defend: ZONAL,
     delivery: { d: 7.0, s: 60.0, bend: 0, kind: 'pass' },
+    tokenSize: 0.75,
+    bands: [
+      { kind: 'zone', rect: { d: 2, s: 55, w: 10, h: 10 }, tone: 'blue', shape: 'round' },
+    ],
+    gear: [
+      { d: 8.0, s: 61.0, gear: 'marker-cone' },
+    ],
   },
   {
     id: 'corner-defend',
@@ -273,6 +291,10 @@ export const SET_PIECES: SetPiece[] = [
     attack: INSWINGER,
     defend: ZONAL,
     delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'pass' },
+    tokenSize: 0.75,
+    bands: [
+      { kind: 'zone', rect: { d: 1, s: 26, w: 16, h: 8 }, tone: 'blue', shape: 'box' },
+    ],
   },
   {
     id: 'fk-wide',
@@ -285,6 +307,13 @@ export const SET_PIECES: SetPiece[] = [
     attack: FK_WIDE_ON,
     defend: FK_WIDE_OFF,
     delivery: { d: 9.0, s: 34.0, bend: 0.3, kind: 'pass' },
+    tokenSize: 0.75,
+    bands: [
+      { kind: 'danger', rect: { d: 6, s: 28, w: 16, h: 6 }, tone: 'red', shape: 'round' },
+    ],
+    gear: [
+      { d: 24.0, s: 56.0, gear: 'marker-cone' },
+    ],
   },
   {
     id: 'fk-wall',
@@ -297,6 +326,13 @@ export const SET_PIECES: SetPiece[] = [
     attack: FK_DIRECT_ON,
     defend: FK_DIRECT_OFF,
     delivery: { d: 0.5, s: 37.0, bend: 0.25, kind: 'pass' },
+    tokenSize: 0.75,
+    gear: [
+      { d: 13.9, s: 29.5, gear: 'dummy-mannequin' },
+      { d: 13.9, s: 34.2, gear: 'dummy-mannequin' },
+      { d: 13.9, s: 38.9, gear: 'dummy-mannequin' },
+      { d: 13.9, s: 43.6, gear: 'dummy-mannequin' },
+    ]
   },
 ]
 

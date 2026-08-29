@@ -722,6 +722,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const [shapePrompt, setShapePrompt] = useState<{ side: Side; formationId: string } | null>(null)
   /** The set piece last laid down, so the picker shows what the board is. Not on the document: it is a starting position, and the moment a coach drags anybody it stops being true of the board and starts being true only of where they began. */
   const [setPieceId, setSetPieceId] = useState('')
+  const [preSetPieceSystem, setPreSetPieceSystem] = useState<System | null>(null)
   const [panelTab, setPanelTab] = useState<'setup' | 'phase'>('setup')
 
   // The phase on screen travels with an undo entry: taking back a change made
@@ -2806,6 +2807,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * is a property of the system, so that part does land everywhere.
    */
   const applySetPiece = (id: string) => {
+    if (id === '') {
+      if (preSetPieceSystem) {
+        edit('setpiece', () => preSetPieceSystem)
+        seal()
+      }
+      setSetPieceId('')
+      setPreSetPieceSystem(null)
+      return
+    }
+
+    if (!setPieceId && !preSetPieceSystem) {
+      setPreSetPieceSystem(system)
+    }
+
     const piece = SET_PIECE_BY_ID.get(id)
     if (!piece) return
     const view = PITCH_VIEWS[piece.view]
@@ -2814,6 +2829,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       const here = Math.min(actIndexRef.current, moved.acts.length - 1)
       return {
         ...moved,
+        tokenSize: piece.tokenSize ?? moved.tokenSize,
         acts: moved.acts.map((a, i) => {
           if (i !== here) return a
           // An opposition is something a PHASE has. A set piece does not
@@ -2826,6 +2842,38 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             tokens: [
               ...arrange(piece, 'us', view, a.tokens),
               ...(hasThem ? arrange(piece, 'them', view, a.tokens) : []),
+            ],
+            bands: [
+              ...a.bands,
+              ...(piece.bands?.map((b, bi) => {
+                const p1 = spotToPercent(view, { d: b.rect.d, s: b.rect.s })
+                const p2 = spotToPercent(view, { d: b.rect.d + b.rect.h, s: b.rect.s + b.rect.w })
+                return {
+                  id: `sp-band-${a.id}-${bi}`,
+                  kind: b.kind,
+                  shape: b.shape ?? 'box',
+                  label: b.label,
+                  tone: b.tone,
+                  rect: {
+                    x: Math.min(p1.x, p2.x),
+                    y: Math.min(p1.y, p2.y),
+                    w: Math.abs(p2.x - p1.x),
+                    h: Math.abs(p2.y - p1.y),
+                  },
+                } as Band
+              }) ?? []),
+            ],
+            gear: [
+              ...(a.gear ?? []),
+              ...(piece.gear?.map((g, gi) => {
+                const at = spotToPercent(view, { d: g.d, s: g.s })
+                return {
+                  id: `sp-gear-${a.id}-${gi}`,
+                  kind: g.gear,
+                  x: at.x,
+                  y: at.y,
+                }
+              }) ?? []),
             ],
             // The ball that is already here is MOVED, keeping its id, so a
             // phase that follows still tweens the same ball rather than
