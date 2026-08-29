@@ -348,6 +348,46 @@ export function writeStripSize(size: StripSize): void {
   sink?.({ view: readView() })
 }
 
+// ── snapping ────────────────────────────────────────────────────────
+
+/**
+ * Whether a dragged mark lines itself up with the ones around it.
+ *
+ * A PREFERENCE ABOUT THE TOOL, NOT A PROPERTY OF THE DOCUMENT, which is why it
+ * is here and not in ../schema.ts. A shared board carries how the pitch is
+ * drawn and where everybody stands; it must not carry the fact that the coach
+ * who drew it prefers to work with the snap off, because it would then be
+ * imposed on whoever opens it. See ./board/align.ts.
+ *
+ * On by default. It is the behaviour that was asked for, and it is suspendable
+ * mid-drag by holding the ⌥ key — this switch exists for the iPad, which has no
+ * modifier to hold.
+ */
+const SNAP_KEY = 'tf.studio.snap'
+
+export const DEFAULT_SNAP = true
+
+export function readSnap(): boolean {
+  if (typeof localStorage === 'undefined') return DEFAULT_SNAP
+  try {
+    const raw = localStorage.getItem(scopedKey(SNAP_KEY))
+    return raw === null ? DEFAULT_SNAP : raw === 'on'
+  } catch {
+    return DEFAULT_SNAP
+  }
+}
+
+export function writeSnap(on: boolean): void {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(scopedKey(SNAP_KEY), on ? 'on' : 'off')
+    } catch {
+      // Same bargain as the strip size: losing a view preference is survivable.
+    }
+  }
+  sink?.({ view: readView() })
+}
+
 // ── which drawers are open ──────────────────────────────────────────
 
 /**
@@ -381,7 +421,7 @@ export function writeSection(title: string, open: boolean): void {
       // As above.
     }
   }
-  sink?.({ view: { strip: readStripSize(), sections: next } })
+  sink?.({ view: { strip: readStripSize(), sections: next, snap: readSnap() } })
 }
 
 // ── the way up to the account ──────────────────────────────────────
@@ -407,10 +447,11 @@ export interface Prefs {
 export interface ViewPrefs {
   strip: StripSize
   sections: Record<string, boolean>
+  snap: boolean
 }
 
 export function readView(): ViewPrefs {
-  return { strip: readStripSize(), sections: readSections() }
+  return { strip: readStripSize(), sections: readSections(), snap: readSnap() }
 }
 
 /**
@@ -422,7 +463,12 @@ export function readView(): ViewPrefs {
  * default is indistinguishable from a decision without this — read the strip
  * size on a fresh machine and it says 'medium' either way. See ./account/prefs.ts.
  */
-export function hasStored(): { guide: boolean; strip: boolean; sections: boolean } {
+export function hasStored(): {
+  guide: boolean
+  strip: boolean
+  sections: boolean
+  snap: boolean
+} {
   const has = (base: string) => {
     try {
       return typeof localStorage !== 'undefined' && localStorage.getItem(scopedKey(base)) !== null
@@ -430,7 +476,12 @@ export function hasStored(): { guide: boolean; strip: boolean; sections: boolean
       return false
     }
   }
-  return { guide: has(GUIDE_KEY), strip: has(STRIP_KEY), sections: has(SECTIONS_KEY) }
+  return {
+    guide: has(GUIDE_KEY),
+    strip: has(STRIP_KEY),
+    sections: has(SECTIONS_KEY),
+    snap: has(SNAP_KEY),
+  }
 }
 
 /**
@@ -470,6 +521,7 @@ export function applyPrefs(prefs: Partial<Prefs>): void {
     if (prefs.view) {
       localStorage.setItem(scopedKey(STRIP_KEY), prefs.view.strip)
       localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(prefs.view.sections))
+      localStorage.setItem(scopedKey(SNAP_KEY), prefs.view.snap ? 'on' : 'off')
     }
     if (prefs.last) {
       // Through the store rather than beside it: `lastOpened()` reads this

@@ -137,6 +137,11 @@ function reconcile(row: PrefsRow, local: Prefs): Prefs {
       sections: stored.sections
         ? { ...(remoteView.sections ?? {}), ...local.view.sections }
         : { ...local.view.sections, ...(remoteView.sections ?? {}) },
+      // Same rule as the strip: a browser that has expressed an opinion keeps
+      // it, one that never has inherits the account's. `typeof` and not a
+      // truthiness test, because the interesting value here is `false`.
+      snap:
+        !stored.snap && typeof remoteView.snap === 'boolean' ? remoteView.snap : local.view.snap,
     },
     /*
      * THE ACCOUNT WINS, and this is the one field where it wins outright.

@@ -44,6 +44,7 @@ import {
   type FramePart,
 } from '../board/Board'
 import { arrowRim, bendFor } from '../board/Overlays'
+import { alignSnap, snapTolerance, type Alignable, type SnapGuide } from '../board/align'
 import { arrowEnds, bindEnd, snapTarget } from '../arrows'
 import { SET_PIECES, SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
 import { perform, type ActionKind, type Target } from '../actions'
@@ -142,9 +143,11 @@ import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import {
   readGuide,
+  readSnap,
   readStripSize,
   saveSystem,
   writeGuide,
+  writeSnap,
   writeStripSize,
   STRIP_HEIGHTS,
   STRIP_LABELS,
@@ -639,6 +642,16 @@ function clampPan(x: number, y: number, z: number, w: number, h: number) {
   }
 }
 
+/**
+ * One empty array, shared.
+ *
+ * A drag reports its guides on every pointermove and most moves have none. A
+ * fresh `[]` each time is a new identity, so the board would re-render for the
+ * whole length of every unsnapped drag to be handed the same nothing. See
+ * `putGuides`.
+ */
+const NO_GUIDES: SnapGuide[] = []
+
 export default function StudioEditor({ systemId, initial, locked = false }: Props) {
   /*
    * A locked board opens on the first phase that has anybody on it.
@@ -821,6 +834,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * writable on a locked board — see `readStripSize` in ../storage.ts.
    */
   const [stripSize, setStripSize] = useState<StripSize>(readStripSize)
+  /*
+   * Whether a dragged mark lines itself up with the ones around it, and the
+   * lines it is being held on right now.
+   *
+   * The guides are STATE and not a ref because they are drawn, and they are
+   * emptied the moment a drag ends — a line left on the board after the mark
+   * has landed is a line the coach will try to move. See ../board/align.ts.
+   */
+  const [snapOn, setSnapOn] = useState<boolean>(readSnap)
+  const [guides, setGuides] = useState<SnapGuide[]>(NO_GUIDES)
   const [walkthrough, setWalkthrough] = useState(false)
   const [upgradesWalkthrough, setUpgradesWalkthrough] = useState(false)
   /*
@@ -1606,6 +1629,60 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [],
   )
 
+  /** Guides in, without a render for one empty array replacing another. */
+  const putGuides = useCallback((next: SnapGuide[]) => {
+    setGuides((prev) => (prev.length === 0 && next.length === 0 ? prev : next))
+  }, [])
+
+  /**
+   * Everything a dragged mark can line itself up with: every counter, ball and
+   * piece of gear on THIS phase, minus the one in the hand.
+   *
+   * Built once on the way down, like `base` above and for the same reason —
+   * nothing else moves during a drag, and rebuilding it per pointermove would
+   * be reading a document the gesture is in the middle of writing.
+   *
+   * The excluded id matters more than it looks: a mark is within nothing of
+   * itself, so left in it would win both axes at every tolerance and pin the
+   * drag to the spot it started from.
+   */
+  const alignablesFor = useCallback(
+    (source: Act, exceptId: string): Alignable[] =>
+      [
+        ...source.tokens.map((t) => ({ id: t.id, x: t.x, y: t.y })),
+        ...ballsOf(source).map((b) => ({ id: b.id, x: b.x, y: b.y })),
+        ...(source.gear ?? []).map((g) => ({ id: g.id, x: g.x, y: g.y })),
+      ].filter((a) => a.id !== exceptId),
+    [],
+  )
+
+  /**
+   * The snap for one move of a drag: where the mark should actually land, and
+   * what to draw while it is there.
+   *
+   * ⌥ HELD SUSPENDS IT, read off the move event rather than from a key
+   * listener of our own — every pointermove carries the modifier state as it is
+   * at that instant, so pressing and releasing ⌥ mid-drag works with nothing
+   * tracking it. The switch beside the zoom is the same escape for a coach on
+   * an iPad, which has no key to hold.
+   *
+   * The tolerance is measured once, on the way down: it is a fact about how big
+   * the board is on screen, the zoom cannot change under a drag, and it saves a
+   * layout read on every frame of one.
+   */
+  const snapMove = useCallback(
+    (want: { x: number; y: number }, mates: Alignable[], tolM: number, alt: boolean) => {
+      if (!snapOn || alt || mates.length === 0) {
+        putGuides(NO_GUIDES)
+        return want
+      }
+      const hit = alignSnap(view, want, mates, tolM)
+      putGuides(hit.guides)
+      return clampToBoard(hit.x, hit.y)
+    },
+    [snapOn, view, putGuides],
+  )
+
   /**
    * Dragging a counter or the ball.
    *
@@ -1643,6 +1720,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       const down = clientToPercent(svg, view, e.clientX, e.clientY)
       const grab = clampToBoard(down.x, down.y)
+      const mates = alignablesFor(source, drag.id)
+      const tolM = snapTolerance(svg)
 
       setDragging(drag)
 
@@ -1651,7 +1730,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         (ev) => {
           const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
           const q = clampToBoard(raw.x, raw.y)
-          const p = clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y))
+          // The MARK is snapped, never the cursor: the offset between the two is
+          // where the coach grabbed the counter, and losing it teleports the man
+          // by the width of the grab. See the note above.
+          const p = snapMove(
+            clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y)),
+            mates,
+            tolM,
+            ev.altKey,
+          )
           // One label for the whole gesture: ../history.ts collapses it into a
           // single undo entry, and `seal()` on release closes it so the next
           // drag of the same counter is its own.
@@ -1663,12 +1750,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
         () => {
           if (drag.kind === 'token') markGuide({ moved: true })
+          putGuides(NO_GUIDES)
           seal()
           setDragging(null)
         },
       )
     },
-    [act, bindGesture, view, patchAct, markGuide, seal],
+    [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides],
   )
 
   /**
@@ -1861,22 +1949,32 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       const down = clientToPercent(svg, view, e.clientX, e.clientY)
       const grab = clampToBoard(down.x, down.y)
+      const mates = alignablesFor(source, id)
+      const tolM = snapTolerance(svg)
 
       bindGesture(
         e.pointerId,
         (ev) => {
           const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
           const q = clampToBoard(raw.x, raw.y)
-          const at = clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y))
+          const at = snapMove(
+            clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y)),
+            mates,
+            tolM,
+            ev.altKey,
+          )
           patchAct(`gear:${id}:move`, (a) => ({
             ...a,
             gear: (a.gear ?? []).map((g) => (g.id === id ? { ...g, ...at } : g)),
           }))
         },
-        () => seal(),
+        () => {
+          putGuides(NO_GUIDES)
+          seal()
+        },
       )
     },
-    [act, bindGesture, view, patchAct, seal],
+    [act, bindGesture, view, patchAct, seal, alignablesFor, snapMove, putGuides],
   )
 
   const beginArrowDrag = useCallback(
@@ -3950,6 +4048,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         act={rendered}
         idp="studio"
         mode={boardMode}
+        /* Only ever non-empty mid-drag, and only in here: the viewer, the print
+           sheet and both exporters never pass any. See ../board/align.ts. */
+        guides={guides}
         photoHrefs={photoHrefs}
         /* Wide while posing with the shot outlined on top; the real push-in
            happens on Play. See `showFrame` in ../board/Board.tsx. */
@@ -4086,6 +4187,36 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg bg-ink/90 p-1 text-paper shadow backdrop-blur-sm transition-opacity"
         style={{ opacity: playing ? 0 : 1, pointerEvents: playing ? 'none' : 'auto', zIndex: 50 }}
       >
+        {/*
+         * Snapping, beside the zoom rather than in a panel: it is a fact about
+         * the workspace, like the zoom, and not about the document — a board
+         * shared with an assistant must not carry the fact that whoever drew it
+         * likes to work with the snap off. See `readSnap` in ../storage.ts.
+         */}
+        <button
+          data-help="snap"
+          onClick={() => {
+            const next = !snapOn
+            setSnapOn(next)
+            writeSnap(next)
+          }}
+          className={`flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30 ${
+            snapOn ? 'bg-white/20' : 'opacity-55'
+          }`}
+          title={
+            snapOn
+              ? 'Lining up: on. Dragged players and gear settle level with the ones around them. Hold ⌥ to place one freely.'
+              : 'Lining up: off. Dragged players and gear go exactly where you put them.'
+          }
+          aria-pressed={snapOn}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2v20" strokeDasharray="3 3" strokeLinecap="round" />
+            <rect x="6" y="4.5" width="12" height="4.5" rx="1.4" />
+            <rect x="6" y="15" width="12" height="4.5" rx="1.4" />
+          </svg>
+        </button>
+        <div className="mx-1 h-4 w-px bg-white/20" />
         <button
           onClick={() => zoomBy(1 / 1.25)}
           className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30"

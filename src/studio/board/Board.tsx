@@ -42,6 +42,7 @@ import {
   cropRect,
   defendedGoal,
   resolveViewId,
+  metresToUnits,
   toUnits,
   unitsToPercent,
 } from './pitch'
@@ -55,6 +56,7 @@ import { SurfaceContext, resolveSurface } from './surfaces'
 import { resolveBall } from '../balls'
 import { resolveGear } from '../gear'
 import { arrowEnds } from '../arrows'
+import type { SnapGuide } from './align'
 import { kitFor } from '../schema'
 import type { System } from '../schema'
 import type { RenderAct, RenderBand } from '../tween'
@@ -203,6 +205,16 @@ interface Props {
    * and getting it wrong is worse than having none.
    */
   mode?: BoardMode
+  /**
+   * Alignment guides to draw over the board while a mark is being dragged onto
+   * a line. In METRES — see `SnapGuide` in ./align.ts for why that and not
+   * board units.
+   *
+   * Editor only, and it costs nothing to keep it that way: the shared viewer,
+   * the print sheet and both exporters simply never pass any, so there is no
+   * path by which a working line can end up in a film.
+   */
+  guides?: SnapGuide[]
   className?: string
   svgRef?: React.Ref<SVGSVGElement>
 }
@@ -302,6 +314,7 @@ export function Board({
   photoHrefs,
   crestHref,
   mode = 'move',
+  guides,
   className,
   svgRef,
   view: viewOverride,
@@ -398,7 +411,13 @@ export function Board({
          * cue chips and arrow captions stand upright on an upright board.
          */}
         <g transform={boardTransform(view)}>
-          <Pitch idp={idp} texture={texture} grid={system.grid} turned={Boolean(view.vertical)} />
+          <Pitch
+            idp={idp}
+            texture={texture}
+            grid={system.grid}
+            turned={Boolean(view.vertical)}
+            goalHref={gearHrefs ? gearHrefs['mini-goal'] : resolveGear('mini-goal')?.src}
+          />
         </g>
 
       {/* bands first: they are the ground the idea sits on */}
@@ -792,6 +811,40 @@ export function Board({
                 ))}
               </g>
             )}
+          </g>
+        )}
+
+        {/*
+         * The alignment guides, over everything and inert to the pointer. Drawn
+         * from metres so the quarter turn of an upright board comes for free —
+         * `metresToUnits` is the only place that turn exists, and a guide that
+         * went through it is turned by the same hand that turned the counters
+         * it is lining up.
+         */}
+        {guides && guides.length > 0 && (
+          <g pointerEvents="none">
+            {guides.map((g) => {
+              const a = g.axis === 'x'
+                ? metresToUnits(view, g.at, g.from)
+                : metresToUnits(view, g.from, g.at)
+              const b = g.axis === 'x'
+                ? metresToUnits(view, g.at, g.to)
+                : metresToUnits(view, g.to, g.at)
+              return (
+                <line
+                  key={`${g.axis}${g.at}`}
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke={surface.palette.gold}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeDasharray="10 8"
+                  opacity={0.95}
+                />
+              )
+            })}
           </g>
         )}
       </g>

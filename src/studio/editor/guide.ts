@@ -1057,6 +1057,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
     target: { anchor: 'zoom', name: 'the zoom controls' },
   },
+  {
+    id: 'snap',
+    group: 'board',
+    label: 'Keeping a line straight',
+    terms: ['snap', 'align', 'line', 'level', 'straight', 'same line', 'tidy', 'mannequin', 'ravan'],
+    body: [
+      'Drag a player, a ball or a piece of gear near the line of another one and it settles onto it, level with them or in the same channel. A gold line shows you what it has lined up with, and it reaches every mark on that line, so a back four comes out as one line rather than four near misses.',
+      'It only ever lines things up with what you have put down yourself, one axis at a time, and it will not drop a counter on top of somebody. Hold the option key while you drag to place something exactly where you want it instead, or turn it off with the button beside the zoom.',
+    ],
+    target: { anchor: 'snap', name: 'the lining-up button' },
+  },
 
   // ── marks ──────────────────────────────────────────────────────────────────
   ...TOOL_TOPICS,
