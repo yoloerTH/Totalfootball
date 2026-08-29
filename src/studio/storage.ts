@@ -18,7 +18,7 @@
  * seconds between a change and the upload.
  */
 
-import { resolveViewId } from './board/pitch'
+import { RETIRED_AREAS, resolveViewId } from './board/pitch'
 import { clearScoped, scopedKey } from './scope'
 import type { System } from './schema'
 
@@ -59,7 +59,13 @@ export function migrate(system: System): System {
   // move them relative to the grass — but the alternative is a document that
   // names a view we no longer have, which renders as nothing at all.
   const pitch = resolveViewId(system.pitch)
-  return pitch === system.pitch ? system : { ...system, pitch }
+  if (pitch === system.pitch) return system
+  // The four fixed training boards became one board with a size, so the id
+  // alone is not the whole of what a document said: `rondo-square` meant a
+  // 20 x 20 with an inner box, and it still does. Carry the size across with
+  // the id, or a saved rondo would open as the default 30 x 20 possession grid.
+  const area = RETIRED_AREAS[system.pitch]
+  return { ...system, pitch, ...(area && !system.area ? { area } : {}) }
 }
 
 interface Store {

@@ -56,20 +56,28 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
-    id: 'training-boards',
+    id: 'session-grid',
     date: '2026-08-29',
     kind: 'new',
-    title: 'Boards for training sessions',
-    body: 'The pitch view picker now has four session boards under the match ones: a 40 by 30 small-sided pitch, the same 40 by 30 ruled into six boxes, a 30 by 20 possession grid and a 20 by 20 rondo square. They are drawn as coned areas rather than as pitches, so nothing on the board argues with your exercise, and each leaves a few metres of spare grass round the outside for the goals and the cones. Everything else works as it does on a pitch: shapes, arrows, zones, phases, films and PDFs.',
+    title: 'A session board, at whatever size you are running today',
+    body: 'The training board is a coned area on grass, and its size is a control rather than a board you have to pick: drag the two sliders, or take a preset. Rondos from 10 by 10 up to 25 by 25, possession grids out to 40 by 35, and the FA small-sided pitches at their real dimensions from 5v5 to 11v11. While you size it, it works out the area per player standing on the grid, which is how a training space is sized professionally and something you would otherwise do on paper, and it tells you which band you have landed in. No goals are painted on it on purpose, because a goal in an exercise goes where the exercise wants it: drag mini goals out of Equipment onto the grass around the grid.',
+    where: 'Size of the grid, under The board',
+  },
+  {
+    id: 'session-bench',
+    date: '2026-08-29',
+    kind: 'fixed',
+    title: 'Going to a session board no longer squashes your team into it',
+    body: 'It used to carry your match layout across and compress a whole pitch into the grid, which turned a back four four metres apart into a back four one metre apart with a forty-metre arrow hooked over the top of it. Now your players stand down into a strip under the grid and you drag on the ones the drill needs, which is how a rondo is actually written. Drag them back down when it is somebody else\'s turn. One undo puts your match layout back exactly as it was.',
     where: 'Pitch view, under The board',
   },
   {
-    id: 'training-goals',
+    id: 'session-counters',
     date: '2026-08-29',
-    kind: 'new',
-    title: 'Goals go wherever the exercise wants them',
-    body: 'No goals are painted onto the session boards. A mini goal in a training exercise belongs in the corners, on the ends, turned sideways or facing in, and that changes with every drill, so it is equipment you place rather than part of the board. Drag as many mini goals as you need out of Equipment and put them where the session needs them. Four corner goals for a four-goal possession game is four drags, and they line themselves up as they land.',
-    where: 'Mini goal, under Equipment',
+    kind: 'fixed',
+    title: 'Counters are the right size on a small grid',
+    body: 'A counter was drawn at a fixed size in metres, so on a 20 by 20 rondo square it took over twice the share of the board it takes on a full pitch, and the grid looked crowded before anybody was on it. It is now sized to how much grass is on screen, so a player looks the same on a rondo as he does on a full pitch. Your own size slider still works on top of it, so if you like them big you can still have them big.',
+    where: 'Anywhere on a session board',
   },
   {
     id: 'align-snap',

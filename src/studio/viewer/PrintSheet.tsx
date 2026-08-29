@@ -30,14 +30,14 @@
  */
 
 import { Board } from '../board/Board'
-import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
+import { aspect, viewFor } from '../board/pitch'
 import { resolveAct } from '../tween'
 import type { System } from '../schema'
 import { CreditBar, formatDate } from './CreditBar'
 import { Mark } from './Mark'
 
 export function PrintSheet({ system }: { system: System }) {
-  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view = viewFor(system)
   const credit = system.credit
 
   return (

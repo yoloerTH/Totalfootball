@@ -28,7 +28,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Board } from '../board/Board'
-import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
+import { PITCH_VIEWS, aspect, resolveViewId, viewFor } from '../board/pitch'
 import type { System } from '../schema'
 import { listSystems, newSystemId, saveSystem, deleteSystem as deleteLocal } from '../storage'
 import { templateUrl } from '../share'
@@ -681,7 +681,7 @@ function ShelfLabel({
 
 function TemplateCard({ template }: { template: Template }) {
   const { system, watch } = template
-  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view = viewFor(system)
   const first = system.acts[0]
   const href = `/studio/new/?t=${encodeURIComponent(template.id)}`
   // Same reason as the shelf's cards: one <defs> namespace per page.
@@ -1003,7 +1003,7 @@ function Card({
     return () => clearTimeout(t)
   }, [confirming])
 
-  const view = PITCH_VIEWS[resolveViewId(row.system.pitch)]
+  const view = viewFor(row.system)
   const first = row.system.acts[0]
   const href = `/studio/new/?s=${encodeURIComponent(row.id)}`
   const phases = row.system.acts.length

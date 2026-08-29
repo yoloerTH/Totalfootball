@@ -37,14 +37,13 @@
  */
 
 import {
-  PITCH_VIEWS,
   boardTransform,
   cropRect,
   defendedGoal,
-  resolveViewId,
   metresToUnits,
   toUnits,
   unitsToPercent,
+  viewFor,
 } from './pitch'
 import type { PitchView } from './pitch'
 import { cameraRect, cameraViewBox, resolvePush } from '../camera'
@@ -319,7 +318,7 @@ export function Board({
   svgRef,
   view: viewOverride,
 }: Props) {
-  const view: PitchView = viewOverride ?? PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view: PitchView = viewOverride ?? viewFor(system)
   const pos = (x: number, y: number) => toUnits(view, x, y)
   const crop = cropRect(view)
   // The camera. `showFrame` inverts it: outline the shot rather than move to it.
@@ -617,7 +616,24 @@ export function Board({
                 photoAngle={system.photoAngle}
                 cue={t.cue}
                 dim={t.dim}
-                scale={(t.scale ?? 1) * (system.tokenSize ?? 1)}
+                /*
+                 * Three sizes, multiplied, and each one is somebody else's
+                 * answer to a different question.
+                 *
+                 *  · `t.scale`        — this counter, because the coach made
+                 *                       this one bigger.
+                 *  · `system.tokenSize` — every counter on this board, because
+                 *                       the coach wants them all bigger.
+                 *  · `view.counter`   — how much grass is on screen, which is
+                 *                       nobody's preference and is why a
+                 *                       counter took 2.3x the share of a rondo
+                 *                       square that it took of a full pitch.
+                 *                       See `PitchView.counter`.
+                 *
+                 * Absent on every match view, so this is `* 1` there and the
+                 * output is unchanged.
+                 */
+                scale={(t.scale ?? 1) * (system.tokenSize ?? 1) * (view.counter ?? 1)}
                 active={activeTokenId === t.id}
               />
             </g>

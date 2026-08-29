@@ -70,7 +70,7 @@ import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal
 import { kickTrack } from './audio'
 import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
-import { PAD, PITCH_VIEWS, resolveViewId, type PitchView } from './board/pitch'
+import { PAD, viewFor, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
 import { gearKinds, inlineGear } from './gear'
@@ -803,7 +803,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
    */
   const parts: ChromeParts = { ...resolveParts(opts.parts), counter: false }
   const frame = frameSize(shape, quality)
-  const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
+  const view = frameView(viewFor(system), frame)
   const l = layout(frame)
 
   // Everything that is fetched rather than computed, up front: a failure here
@@ -1022,7 +1022,7 @@ export async function renderStills(
   const shape = resolveImageShape(opts.shape)
   const size = resolveImageSize(opts.size)
   const frame = imageSize(shape, size)
-  const view = frameView(PITCH_VIEWS[resolveViewId(system.pitch)], frame)
+  const view = frameView(viewFor(system), frame)
   const l = layout(frame)
   const chrome = opts.chrome !== false
   const parts = resolveParts(opts.parts)

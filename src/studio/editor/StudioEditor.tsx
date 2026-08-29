@@ -49,20 +49,30 @@ import { arrowEnds, bindEnd, snapTarget } from '../arrows'
 import { SET_PIECES, SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
 import { perform, type ActionKind, type Target } from '../actions'
 import {
+  AREA_MAX,
+  AREA_MIN,
+  AREA_PRESET_GROUPS,
+  AREA_PRESET_LIST,
+  DEFAULT_AREA,
+  LOAD_BANDS,
   PITCH_VIEWS,
   PITCH_GRID_LIST,
   PITCH_VIEW_GROUPS,
+  areaStats,
   aspect,
+  benchLayout,
   cropRect,
+  inBench,
+  presetFor,
   remap,
   resolveGrid,
-  resolveViewId,
   toMetres,
   toPercent,
   toUnits,
   unitsToPercent,
+  viewFor,
 } from '../board/pitch'
-import type { PitchView } from '../board/pitch'
+import type { PitchView, SessionArea } from '../board/pitch'
 import { readableText, darken } from '../board/palette'
 import {
   PITCH_SURFACES,
@@ -365,8 +375,11 @@ function withEdits(placed: Token[], previous: Token[], keepLabel = true): Token[
  * for `system.pitch` to catch up, and then pose against a stale crop.
  */
 function remapSystem(s: System, pitch: System['pitch']): System {
-  const from = PITCH_VIEWS[resolveViewId(s.pitch)]
-  const to = PITCH_VIEWS[resolveViewId(pitch)]
+  // `viewFor` and not `PITCH_VIEWS[id]`: the training board's crop is derived
+  // from the coach's own grid size, so looking it up by name alone would remap
+  // onto the default 30 x 20 and move every mark by the difference.
+  const from = viewFor(s)
+  const to = viewFor({ pitch, area: s.area })
   if (from === to) return s.pitch === pitch ? s : { ...s, pitch }
   const rp = (p: { x: number; y: number }) => remap(from, to, p.x, p.y)
   return {
@@ -384,6 +397,95 @@ function remapSystem(s: System, pitch: System['pitch']): System {
         return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
       }),
     })),
+  }
+}
+
+/**
+ * A token with the bench flag set or cleared, and no empty key left behind.
+ *
+ * `benched: undefined` would survive into the saved JSON as a null and into
+ * every diff of the document forever, so coming off the bench deletes the key
+ * rather than blanking it.
+ */
+function withBench(t: Token, on: boolean): Token {
+  if (on) return { ...t, benched: true }
+  if (!t.benched) return t
+  const { benched: _off, ...rest } = t
+  return rest
+}
+
+/**
+ * Lay this phase's bench out as a row, leaving everybody on the grid alone.
+ *
+ * The positions are WRITTEN onto the tokens rather than computed at draw time,
+ * and that is the whole reason a benched player behaves like a player: an arrow
+ * bound to him lands on him, the film tweens him out of the bench and onto the
+ * grid, and the PDF prints him where the studio drew him. See `Token.benched`
+ * in ../schema.ts.
+ *
+ * Run it after ANY change to who is on the bench, so the row closes up rather
+ * than leaving a gap where somebody used to stand.
+ */
+function layBench(view: PitchView, tokens: Token[]): Token[] {
+  const spots = benchLayout(view, tokens.filter((t) => t.benched).map((t) => t.id))
+  return tokens.map((t) => (spots[t.id] ? { ...t, ...spots[t.id] } : t))
+}
+
+/**
+ * Everybody off the pitch and onto the side, on every phase, in one edit.
+ *
+ * ── WHY THIS IS NOT `remapSystem` ──────────────────────────────────────────
+ *
+ * Re-expressing percent from one crop into another is exactly right between two
+ * views of a pitch, and it is what makes changing the crop non-destructive.
+ * Going from `full` to a 20m rondo square it takes 105 x 68 metres of football
+ * and compresses it into twenty: a back four four metres apart lands one metre
+ * apart, and a forty-metre switch of play becomes a hook across the square.
+ * That is the screenshot the coach sent, and it is `remap` working as designed
+ * on a switch it was never designed for (docs/TRAINING.md 3).
+ *
+ * A training board is a change of KIND, not a change of crop. So the players
+ * are stood down and the coach builds the drill by dragging the ones they want
+ * onto the grid, which is how a rondo is actually written.
+ *
+ * ── EVERY PHASE, NOT JUST THIS ONE ─────────────────────────────────────────
+ *
+ * `applySetPiece` beside this poses one phase, because a set piece is the first
+ * phase of a routine. This is the other case: the VIEW is a property of the
+ * system, so every phase is on the grid, and benching only the current one
+ * would leave phases two and three holding the squashed shape this exists to
+ * prevent. One edit, so one undo puts the whole session back.
+ *
+ * The marks go with them, per D2 of the report: an arrow drawn for a pitch is
+ * about the pitch. The BALL stays — a rondo has a ball — and so does the gear,
+ * because a mini goal on the grass is equipment for whatever comes next.
+ */
+function benchSystem(s: System, pitch: System['pitch']): System {
+  // Remapped first, so the coordinates under the bench flag are honest: if the
+  // coach changes their mind and goes back to a pitch, the players come off the
+  // bench onto the grass they were remapped to rather than into the car park.
+  const moved = remapSystem(s, pitch)
+  const view = viewFor(moved)
+  return {
+    ...moved,
+    acts: moved.acts.map((a) => ({
+      ...a,
+      tokens: layBench(
+        view,
+        a.tokens.map((t) => withBench(t, true)),
+      ),
+      arrows: [],
+      bands: [],
+    })),
+  }
+}
+
+/** Nobody is waiting at the side of a board that has no side to wait at. */
+function unbenchSystem(s: System): System {
+  if (!s.acts.some((a) => a.tokens.some((t) => t.benched))) return s
+  return {
+    ...s,
+    acts: s.acts.map((a) => ({ ...a, tokens: a.tokens.map((t) => withBench(t, false)) })),
   }
 }
 
@@ -1179,7 +1281,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * frame of the very drag it is running.
    */
   const shotRef = useRef<Shot | null>(null)
-  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view = viewFor(system)
   /*
    * How close this system's camera is allowed to get, as a fraction of the crop.
    *
@@ -1751,6 +1853,33 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         () => {
           if (drag.kind === 'token') markGuide({ moved: true })
           putGuides(NO_GUIDES)
+          /*
+           * WHERE A COUNTER LANDS IS WHETHER IT IS IN THE EXERCISE.
+           *
+           * There is no button for this and there should not be: a coach picks
+           * a player off the bench by dragging him onto the grid, and takes him
+           * out by dragging him back, which is what every board they already
+           * use does. The strip is real grass inside the crop, so the gesture
+           * is an ordinary drag and the clamp already allows it.
+           *
+           * Same `patchAct` label as the drag itself, so ../history.ts folds it
+           * into the one undo entry the gesture already owns.
+           */
+          if (drag.kind === 'token' && view.bench) {
+            patchAct(`drag:${drag.id}`, (a) => {
+              const t = a.tokens.find((x) => x.id === drag.id)
+              if (!t) return a
+              const now = inBench(view, t.y)
+              if (now === Boolean(t.benched)) return a
+              return {
+                ...a,
+                tokens: layBench(
+                  view,
+                  a.tokens.map((x) => (x.id === drag.id ? withBench(x, now) : x)),
+                ),
+              }
+            })
+          }
           seal()
           setDragging(null)
         },
@@ -2751,7 +2880,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     const band = keep && side === 'them' ? oppositionBand(a.tokens) : undefined
     const at = new Map(here.map((t) => [t.id, t]))
     return !FORMATIONS.some((f) => {
-      const placed = place(f, side, system.pitch, labels, wide, band)
+      const placed = place(f, side, view, labels, wide, band)
       if (placed.length !== here.length) return false
       return placed.every((q) => {
         const t = at.get(q.id)
@@ -2786,7 +2915,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           ...a.tokens.filter((t) => t.side !== side),
           // Everything the coach typed, picked or assigned rides across; only
           // the positions and the position labels come from the new shape.
-          ...withEdits(place(f, side, system.pitch, labels, wide, band), a.tokens, false),
+          ...withEdits(place(f, side, view, labels, wide, band), a.tokens, false),
         ],
       }
     }
@@ -2880,8 +3009,45 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * change they might be making to take a second look.
    */
   const setPitch = (pitch: System['pitch']) => {
-    edit('pitch', (s) => remapSystem(s, pitch))
+    edit('pitch', (s) => {
+      const from = viewFor(s)
+      const to = viewFor({ pitch, area: s.area })
+      // THE BRANCH IS `to.area`, and a match view never enters it. Arriving on
+      // a training board from a pitch is a change of kind and stands everybody
+      // down; everything else is the crop change it always was.
+      // The grid's size is written onto the document on the way in rather than
+      // left to `viewFor`'s default, so what a coach sees in the panel is what
+      // is saved, shared and printed, and the sliders start from a real value.
+      if (to.area) {
+        const sized = s.area ? s : { ...s, area: DEFAULT_AREA }
+        return from.area ? remapSystem(sized, pitch) : benchSystem(sized, pitch)
+      }
+      return unbenchSystem(remapSystem(s, pitch))
+    })
     seal()
+  }
+
+  /**
+   * Resize the grid.
+   *
+   * NOTHING IS REMAPPED, and that is the point. Percent is measured on the
+   * crop, so leaving the numbers alone is what makes a shape SCALE with the
+   * grid: pull a 30 x 20 in to 20 x 20 and the four men on the corners are
+   * still on the corners, which is what a coach means when they shrink a rondo.
+   * Re-expressing through metres would hold them where they were standing and
+   * leave half of them outside the cones.
+   *
+   * The bench is re-laid, because the strip has moved with the crop.
+   */
+  const setArea = (next: SessionArea, label = 'area') => {
+    edit(label, (s) => {
+      const view = viewFor({ pitch: s.pitch, area: next })
+      return {
+        ...s,
+        area: next,
+        acts: s.acts.map((a) => ({ ...a, tokens: layBench(view, a.tokens) })),
+      }
+    })
   }
 
   /**
@@ -3006,14 +3172,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       // This phase only, and it does not conjure an opposition onto a phase
       // that has none — it re-places the shapes that are standing here.
       const hasThem = a.tokens.some((t) => t.side === 'them')
-      const ours = us ? withEdits(place(us, 'us', system.pitch, labels, keep || !hasThem), a.tokens) : []
+      const ours = us ? withEdits(place(us, 'us', view, labels, keep || !hasThem), a.tokens) : []
       return {
         ...a,
         tokens: [
           ...ours,
           ...(hasThem && them
             ? withEdits(
-                place(them, 'them', system.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
+                place(them, 'them', view, labels, false, keep ? oppositionBand(ours) : undefined),
                 a.tokens,
               )
             : []),
@@ -3054,7 +3220,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         const ours = keep
           ? a.tokens.filter((t) => t.side === 'us')
           : us
-            ? withEdits(place(us, 'us', s.pitch, labels, !on), a.tokens)
+            ? withEdits(place(us, 'us', viewFor(s), labels, !on), a.tokens)
             : []
         return {
           ...a,
@@ -3062,7 +3228,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             ...ours,
             ...(on && them
               ? withEdits(
-                  place(them, 'them', s.pitch, labels, false, keep ? oppositionBand(ours) : undefined),
+                  place(them, 'them', viewFor(s), labels, false, keep ? oppositionBand(ours) : undefined),
                   a.tokens,
                 )
               : []),
@@ -3110,8 +3276,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     edit('keepShape', (s) => {
       if (!s.teams.them) return { ...s, keepShape: on }
       const them = FORMATION_BY_ID.get(themFormation)
-      const from = usBand(s.pitch, !on)
-      const to = usBand(s.pitch, on)
+      const from = usBand(viewFor(s), !on)
+      const to = usBand(viewFor(s), on)
       return {
         ...s,
         keepShape: on,
@@ -3127,7 +3293,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               ...ours,
               ...(them
                 ? withEdits(
-                    place(them, 'them', s.pitch, labels, false, on ? oppositionBand(ours) : undefined),
+                    place(them, 'them', viewFor(s), labels, false, on ? oppositionBand(ours) : undefined),
                     a.tokens,
                   )
                 : theirs),
@@ -3716,11 +3882,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const cast = useMemo(() => {
     const f = FORMATION_BY_ID.get(usFormation)
     const t = FORMATION_BY_ID.get(themFormation)
-    const us = f ? castFor(f, 'us', system.pitch).length : 11
-    const them = t ? castFor(t, 'them', system.pitch).length : 11
+    const us = f ? castFor(f, 'us', view).length : 11
+    const them = t ? castFor(t, 'them', view).length : 11
     const partial = (f ? us < f.slots.length : false) || (system.teams.them && t ? them < t.slots.length : false)
     return { us, them, partial }
-  }, [usFormation, themFormation, system.pitch, system.teams.them])
+  }, [usFormation, themFormation, view, system.teams.them])
 
   const railDone = useMemo(
     () =>
@@ -3743,9 +3909,31 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * from the outside: pick "Their box" from a full-pitch 4-3-3 and ten players
    * silently vanish. So say it, and say what to do about it.
    */
-  const offCrop = act ? act.tokens.filter((t) => t.x < -2 || t.x > 102 || t.y < -2 || t.y > 102).length : 0
+  const offCrop = act
+    ? act.tokens.filter(
+        // A benched player is not lost, he is waiting, and he is on screen at
+        // the side of the board where the coach put him. Counting him here
+        // would tell a coach who has just built a 4v2 that eighteen players
+        // have gone missing and offer to re-place the shape, which would undo
+        // the drill they came here to draw.
+        (t) => !t.benched && (t.x < -2 || t.x > 102 || t.y < -2 || t.y > 102),
+      ).length
+    : 0
 
   if (!act) return null
+
+  /**
+   * The grid, and what it works out at per player.
+   *
+   * The count is the players ON the grid — benched ones are waiting, and
+   * including them would tell a coach their 4v2 is 22 players in a hundred
+   * square metres. Everything else is arithmetic in ../board/pitch.ts, so the
+   * panel is a readout and not a second opinion.
+   */
+  const areaStat = areaStats(
+    system.area ?? DEFAULT_AREA,
+    act.tokens.filter((t) => !t.benched).length,
+  )
 
   if (tooSmall) {
     return (
@@ -4594,11 +4782,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             <span className="text-ink-soft">{view.hint}</span> {view.useFor}
           </p>
           {view.area && (
-            <Tip text={HINT.training} title="The training boards" block>
+            <Tip text={HINT.training} title="The training board" block>
               <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
-                No goals are drawn on a session board on purpose. Drag{' '}
-                <span className="font-bold text-ink-soft">mini goals</span> out of Equipment onto the
-                grass around the grid, wherever the exercise wants them.
+                Your players are waiting in the strip under the grid. Drag on the ones this
+                exercise needs, and drag them back when it is somebody else's turn. No goals are
+                drawn on purpose: pull{' '}
+                <span className="font-bold text-ink-soft">mini goals</span> out of Equipment onto
+                the grass around the grid, wherever the drill wants them.
               </p>
             </Tip>
           )}
@@ -4618,6 +4808,196 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </Tip>
           )}
         </Panel>
+
+        {/*
+          THE SIZE OF THE GRID, WHICH IS THE CONTROL A COACH USES MOST.
+
+          Rondos run from 8x8 to 40x40 and possession games out to 40x35, and
+          which one you are on is decided by the age group, the number of
+          players and what is being coached — every session, sometimes twice in
+          one session (docs/TRAINING.md 1b). Four fixed boards asked the coach
+          to pick the nearest. This asks them for the number.
+
+          Rendered ONLY on a training board. A match view has no `area`, so it
+          never sees this panel and nothing about it changes.
+        */}
+        {view.area && (
+          <Panel title="Size of the grid">
+            <Tip text={HINT.areaPreset} title="Grid size" block>
+              <Select
+                value={presetFor(system.area ?? DEFAULT_AREA)?.id ?? ''}
+                onChange={(id: string) => {
+                  const p = AREA_PRESET_LIST.find((x) => x.id === id)
+                  if (p) {
+                    setArea(p.area, `area:${id}`)
+                    seal()
+                  }
+                }}
+                groups={[
+                  // The blank row is what "you have dragged it somewhere that is
+                  // not on the list" looks like, and it is a perfectly good place
+                  // to be — most sessions are. It is never a state to correct.
+                  { label: 'Yours', options: [{ value: '', label: 'Custom size' }] },
+                  ...AREA_PRESET_GROUPS.map((g) => ({
+                    label: g.label,
+                    options: g.presets.map((x) => ({ value: x.id, label: x.label })),
+                  })),
+                ]}
+              />
+            </Tip>
+            {presetFor(system.area ?? DEFAULT_AREA) && (
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                {presetFor(system.area ?? DEFAULT_AREA)!.hint}
+              </p>
+            )}
+
+            <div className="mt-3">
+              <Slider
+                label="Length"
+                min={AREA_MIN.length}
+                max={AREA_MAX.length}
+                step={1}
+                value={(system.area ?? DEFAULT_AREA).length}
+                onChange={(v) => setArea({ ...(system.area ?? DEFAULT_AREA), length: v }, 'area:length')}
+                onCommit={seal}
+                readout={`${(system.area ?? DEFAULT_AREA).length} m`}
+              />
+            </div>
+            <div className="mt-3">
+              <Slider
+                label="Width"
+                min={AREA_MIN.width}
+                max={AREA_MAX.width}
+                step={1}
+                value={(system.area ?? DEFAULT_AREA).width}
+                onChange={(v) => setArea({ ...(system.area ?? DEFAULT_AREA), width: v }, 'area:width')}
+                onCommit={seal}
+                readout={`${(system.area ?? DEFAULT_AREA).width} m`}
+              />
+            </div>
+
+            {/*
+              AREA PER PLAYER, which is the number two whole products are built
+              on and the one a coach currently works out on paper. It counts the
+              players ON THE GRID, not the ones waiting at the side, because
+              that is the number the research is about.
+            */}
+            <Tip text={HINT.areaPerPlayer} title="Area per player" block>
+              <div className="mt-3 rounded-md bg-paper px-2.5 py-2">
+                <p className="text-[11px] font-bold leading-snug text-ink-soft">
+                  {areaStat.length} × {areaStat.width} m · {areaStat.m2} m²
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-ink-faint">
+                  {areaStat.players === 0 ? (
+                    <>Nobody on the grid yet. Drag a player up off the bench.</>
+                  ) : (
+                    <>
+                      {areaStat.players} on the grid ·{' '}
+                      <span className="font-bold text-ink-soft">{areaStat.per} m² each</span>
+                    </>
+                  )}
+                </p>
+                {areaStat.band && (
+                  <p className="mt-1 text-[11px] leading-snug text-ink-faint">
+                    <span className="text-ink-soft">{LOAD_BANDS[areaStat.band].label}.</span>{' '}
+                    {LOAD_BANDS[areaStat.band].note}
+                  </p>
+                )}
+              </div>
+            </Tip>
+
+            {/*
+              WHAT IS RULED ON IT. Four switches rather than four boards: the
+              same 40 x 30 is a small-sided pitch with a halfway line and a
+              positional game ruled into six boxes, and a coach who wants the
+              second one should not have to find a different view for it.
+            */}
+            <div className="mt-3 space-y-2">
+              <Toggle
+                label="Halfway line and centre circle"
+                checked={Boolean((system.area ?? DEFAULT_AREA).halfway)}
+                onChange={(v) => {
+                  setArea({ ...(system.area ?? DEFAULT_AREA), halfway: v || undefined }, 'area:halfway')
+                  seal()
+                }}
+              />
+              <Toggle
+                label="An area at each end"
+                checked={Boolean((system.area ?? DEFAULT_AREA).ends)}
+                onChange={(v) => {
+                  setArea({ ...(system.area ?? DEFAULT_AREA), ends: v || undefined }, 'area:ends')
+                  seal()
+                }}
+              />
+              <Toggle
+                label="A square in the middle"
+                checked={Boolean((system.area ?? DEFAULT_AREA).middle)}
+                onChange={(v) => {
+                  setArea({ ...(system.area ?? DEFAULT_AREA), middle: v || undefined }, 'area:middle')
+                  seal()
+                }}
+              />
+              <Toggle
+                label="Ruled into boxes"
+                checked={Boolean((system.area ?? DEFAULT_AREA).cells)}
+                onChange={(v) => {
+                  setArea(
+                    {
+                      ...(system.area ?? DEFAULT_AREA),
+                      cells: v ? { along: 3, across: 2 } : undefined,
+                    },
+                    'area:cells',
+                  )
+                  seal()
+                }}
+              />
+            </div>
+            {(system.area ?? DEFAULT_AREA).cells && (
+              <>
+                <div className="mt-3">
+                  <Slider
+                    label="Boxes along"
+                    min={2}
+                    max={6}
+                    step={1}
+                    value={(system.area ?? DEFAULT_AREA).cells!.along}
+                    onChange={(v) =>
+                      setArea(
+                        {
+                          ...(system.area ?? DEFAULT_AREA),
+                          cells: { along: v, across: (system.area ?? DEFAULT_AREA).cells!.across },
+                        },
+                        'area:cells:along',
+                      )
+                    }
+                    onCommit={seal}
+                    readout={String((system.area ?? DEFAULT_AREA).cells!.along)}
+                  />
+                </div>
+                <div className="mt-3">
+                  <Slider
+                    label="Boxes across"
+                    min={1}
+                    max={5}
+                    step={1}
+                    value={(system.area ?? DEFAULT_AREA).cells!.across}
+                    onChange={(v) =>
+                      setArea(
+                        {
+                          ...(system.area ?? DEFAULT_AREA),
+                          cells: { along: (system.area ?? DEFAULT_AREA).cells!.along, across: v },
+                        },
+                        'area:cells:across',
+                      )
+                    }
+                    onCommit={seal}
+                    readout={String((system.area ?? DEFAULT_AREA).cells!.across)}
+                  />
+                </div>
+              </>
+            )}
+          </Panel>
+        )}
 
         {/*
           SET PIECES — HIDDEN FOR NOW.
@@ -6798,7 +7178,7 @@ export function newSystem(): System {
     teams: { us: DEFAULT_US, them: null },
     acts: [
       {
-        ...emptyAct(place(f, 'us', 'full', 'position', true)),
+        ...emptyAct(place(f, 'us', PITCH_VIEWS.full, 'position', true)),
         // UNTITLED, and it has to be: every phase after this one is a copy of
         // the one before it and now keeps its title, so a starter stamped
         // "Phase 1" would put "Phase 1" on all thirty-six of them. An empty

@@ -148,6 +148,12 @@ interface Props {
   area?: TrainingArea
 }
 
+/**
+ * How far past the pitch's own lines the grass runs on a training board, in
+ * metres. Comfortably past the biggest grid `AREA_MAX` allows plus its margins.
+ */
+const TRAINING_TURF = 40
+
 export function Pitch({ idp, texture = false, grid, turned = false, goalHref, area }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
@@ -246,8 +252,37 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, ar
         height={u(PITCH.width * 3)}
         fill={`url(#${idp}-paper)`}
       />
-      {p.grass && <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-grass)`} />}
-      <rect x={0} y={0} width={u(L)} height={u(W)} fill={`url(#${idp}-turf)`} />
+      {/*
+       * THE TURF, AND HOW FAR IT REACHES.
+       *
+       * On a pitch it stops at the touchlines, because that is where a pitch
+       * stops and the run-off around it is part of the picture.
+       *
+       * On a TRAINING board it does not, and it must not. A coned area is laid
+       * out on a training field, which is grass in every direction — and the
+       * board is sized from the coach's own numbers, so a 82 x 50 small-sided
+       * pitch plus its margins and its bench strip is a crop taller than the
+       * 68m pitch this file draws. Stopping the grass at the touchline would
+       * put a band of run-off across the bottom of a board that is nowhere near
+       * a touchline. It is all clipped to the crop either way, so the larger
+       * rect costs nothing on a board that does not need it.
+       */}
+      {p.grass && (
+        <rect
+          x={area ? u(-TRAINING_TURF) : 0}
+          y={area ? u(-TRAINING_TURF) : 0}
+          width={u(L + (area ? TRAINING_TURF * 2 : 0))}
+          height={u(W + (area ? TRAINING_TURF * 2 : 0))}
+          fill={`url(#${idp}-grass)`}
+        />
+      )}
+      <rect
+        x={area ? u(-TRAINING_TURF) : 0}
+        y={area ? u(-TRAINING_TURF) : 0}
+        width={u(L + (area ? TRAINING_TURF * 2 : 0))}
+        height={u(W + (area ? TRAINING_TURF * 2 : 0))}
+        fill={`url(#${idp}-turf)`}
+      />
 
       {/*
        * THE RULED GRID, under the real markings and over the turf.

@@ -100,10 +100,18 @@ export type PitchViewId =
   | 'attacking-box'
   | 'attacking-set-piece'
   | 'defending-set-piece'
-  | 'training-pitch'
-  | 'channel-grid'
-  | 'possession-grid'
-  | 'rondo-square'
+  /*
+   * ONE training board, not four.
+   *
+   * The four that shipped on 2026-08-29 were four points — 40x30, 40x30 ruled,
+   * 30x20, 20x20 — in a range coaches move through every session: rondos run
+   * from 8x8 to 40x40 and possession games out to 40x35 (docs/TRAINING.md 1b).
+   * Four fixed sizes is the wrong SHAPE of feature; the size is the control.
+   * So the grid is one board and its dimensions live on the System, where the
+   * coach can drag them. `RETIRED_VIEWS` maps the four old ids onto this one
+   * and ../storage.ts `migrate` brings their sizes with them.
+   */
+  | 'training'
 
 export interface PitchView {
   id: PitchViewId
@@ -165,7 +173,140 @@ export interface PitchView {
    * board.
    */
   area?: TrainingArea
+  /**
+   * How big a counter is drawn on THIS board, as a multiple of its normal size.
+   *
+   * WHY THE SIZE BELONGS TO THE VIEW AND NOT TO THE SYSTEM
+   *
+   * `TOKEN_R` is 2.1 metres, so a counter is 4.2m across on every board — 5.7%
+   * of the short side of the full pitch, and 13.1% of a 20m rondo square. Same
+   * counter, 2.3x the share of the screen, which is exactly what the coach was
+   * looking at when he said they were huge (docs/TRAINING.md 2).
+   *
+   * The five set pieces already work around this by putting `tokenSize: 0.75`
+   * on the SYSTEM, and that is the wrong place: it follows the coach back onto
+   * the full pitch when they leave the set piece, and shrinks counters on a
+   * board that never needed it. How much grass is on screen is a property of
+   * the VIEW and of nothing else, so the correction lives here.
+   *
+   * It MULTIPLIES with `System.tokenSize`, it does not replace it — a coach who
+   * wants big counters on a rondo still gets them. Absent on every match view,
+   * which is what `?? 1` in ../board/Board.tsx means: byte-identical output.
+   */
+  counter?: number
+  /**
+   * The strip of margin, in metres, that benched counters lay out in.
+   *
+   * Present on the training board and nowhere else. See `benchLayout`, and
+   * `TrainingArea` for why the crop is bigger than the coned area in the first
+   * place: the bench is the outer part of the same spare grass the goals go on,
+   * which is where every board a coach already uses puts it (TRAINING.md 1d).
+   */
+  bench?: { x0: number; x1: number; y0: number; y1: number }
 }
+
+/* ── THE SESSION AREA, AS THE COACH SIZES IT ─────────────────────────────────
+ *
+ * `TrainingArea` above is the rectangle in PITCH METRES that gets drawn. This
+ * is the two numbers and four switches a coach actually sets, and it lives on
+ * the System (../schema.ts `area`) rather than on the view, because it is the
+ * thing they change most: a rondo is 10x10 for an U9 group and 25x25 for a
+ * first team, and both are the same board.
+ *
+ * Everything else — where the crop sits, how much margin, where the bench
+ * strip is, how big a counter is drawn — is DERIVED from these by
+ * `trainingView`. Nothing downstream stores a second copy of any of it.
+ */
+export interface SessionArea {
+  /** Along the pitch's length, in metres. */
+  length: number
+  /** Across the pitch's width, in metres. */
+  width: number
+  /** A halfway line and a centre circle, for anything played to two goals. */
+  halfway?: boolean
+  /** An end area at each end, the small-sided pitch's goal areas. */
+  ends?: boolean
+  /** The inner square the middle men work in. The rondo's box. */
+  middle?: boolean
+  /** Ruled into cells: divisions along the length, divisions across the width. */
+  cells?: { along: number; across: number }
+}
+
+/**
+ * What a coach may drag the grid to.
+ *
+ * The low end is the twin rondo's 8x8; the top end is the FA's biggest youth
+ * pitch, 91 x 55 for U15 and up. Both ends are real sizes out of TRAINING.md
+ * 1b and 1e rather than round numbers, and the board is drawn on grass at every
+ * point between them — see ../board/PitchMarkings.tsx, which paints the turf
+ * past the pitch's own touchlines when there is an area on the board.
+ */
+export const AREA_MIN = { length: 8, width: 8 } as const
+export const AREA_MAX = { length: 95, width: 60 } as const
+
+/** The grid a new training board starts on: the standard possession grid. */
+export const DEFAULT_AREA: SessionArea = { length: 30, width: 20, middle: true }
+
+/**
+ * Spare grass between the cones and the edge of the board, in metres.
+ *
+ * Where the goals, the cones and the mannequins go. See `TrainingArea`: if the
+ * crop stopped at the cones there would be nowhere to put them.
+ */
+export const AREA_MARGIN = 5
+
+/**
+ * A counter's diameter in metres, which is `TOKEN_R * 2` in ./Token.tsx.
+ *
+ * Restated rather than imported because this file stays free of React and
+ * Token.tsx is a component. scripts/check-align.mjs reads both and fails if
+ * they ever disagree, so the duplicate cannot rot.
+ */
+export const COUNTER_D = 4.2
+
+/**
+ * Breathing room around the crop, in metres, so the goal frame and the corner
+ * arcs are not clipped flush against the edge of the image. Part of the look:
+ * the videos always let the board sit inside its frame.
+ *
+ * DECLARED HERE, above `PITCH_VIEWS`, and not down beside `pads()` where it
+ * used to live: the training entry in that table is derived by `trainingView`
+ * at module init, and the derivation reads this. A const read before its own
+ * declaration is a dead-zone throw at import time, not a zero.
+ */
+export const PAD = 3
+
+/**
+ * The short side of the full pitch, in metres, INCLUDING its padding.
+ *
+ * The yardstick every other board's counter size is set against: a counter is
+ * 5.7% of this, and it should be 5.7% of whatever board the coach is on. See
+ * `PitchView.counter`.
+ */
+const MATCH_SHORT = PITCH.width + PAD * 2
+
+/** Rows of counters the bench strip is sized to hold, and the air round them. */
+const BENCH_ROWS = 2
+const BENCH_STEP = 1.15
+const BENCH_AIR = 1
+
+/** Round to a tenth of a metre. Board geometry, not a survey. */
+const t1 = (n: number) => Math.round(n * 10) / 10
+
+/**
+ * Derived boards, kept by size.
+ *
+ * MEMOISED because callers compare views by IDENTITY — `setPitch` short
+ * circuits when `from === to`, and React re-renders the board when the object
+ * changes. Deriving a fresh object per render would make the board look
+ * permanently dirty. The key is the size, so two systems on the same grid share
+ * one view, which is right: a view is a crop and nothing else.
+ *
+ * Declared up here with the constants rather than beside `trainingView`,
+ * because the `training` entry in `PITCH_VIEWS` is derived while that table is
+ * being built and would otherwise read this before it exists.
+ */
+const TRAINING_CACHE = new Map<string, PitchView>()
 
 /**
  * The views, and where each one comes from.
@@ -296,128 +437,28 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
   },
 
   /*
-   * -- THE FOUR TRAINING BOARDS ---------------------------------------------
+   * -- THE TRAINING BOARD ---------------------------------------------------
    *
-   * Same amendment to §3a of docs/STUDIO.md as the set pieces, from the same
+   * Same amendment to 3a of docs/STUDIO.md as the set pieces, from the same
    * coach and with a picture again (2026-08-29): a coned grid with mini goals
    * round it, which is what most of a coaching week is actually spent on. A
    * session drawn on `full` is a cluster of counters in a fifth of a pitch with
    * a centre circle and two penalty areas arguing with it.
    *
-   * The sizes are the ones a session plan is written in, not tidy numbers:
-   * 40x30 is the 7v7 / 9v9 pitch, 30x20 is the standard possession grid, 20x20
-   * is the rondo box. All four are centred on the middle of the pitch, so the
-   * grass, the mow and the surface come free and the crop never leaves the
-   * turf.
+   * ONE ENTRY, AND IT IS DERIVED. Four fixed sizes shipped first and were the
+   * wrong shape of feature: the size of the grid is the thing a coach changes
+   * most, every session, and it runs from an 8x8 twin rondo to a 40x35
+   * possession game to a 91x55 youth pitch (docs/TRAINING.md 1b, 1e). So the
+   * numbers live on the System and this is what they look like on a board.
+   * The entry below is the DEFAULT grid; `viewFor` is how you get the coach's.
    *
-   * NO GOALS ARE DRAWN ON ANY OF THEM. A mini goal is equipment, it goes where
-   * the exercise puts it — in the corners, on the ends, facing inwards — and
-   * every one of those is a drag from Equipment onto the spare grass these
-   * crops leave round the outside. Painting four goals into the board would
-   * make exactly one exercise easy and every other one wrong.
+   * NO GOALS ARE DRAWN ON IT. A mini goal is equipment, it goes where the
+   * exercise puts it -- in the corners, on the ends, facing inwards -- and
+   * every one of those is a drag from Equipment onto the spare grass the crop
+   * leaves round the outside. Painting four goals into the board would make
+   * exactly one exercise easy and every other one wrong.
    */
-  'training-pitch': {
-    id: 'training-pitch',
-    label: 'Small-sided pitch (40 x 30)',
-    hint: 'A 7v7 pitch: halfway line, centre circle, an area at each end.',
-    useFor: 'Small-sided games, phase of play, anything played to two goals.',
-    x0: 27.5,
-    x1: 77.5,
-    y0: 14,
-    y1: 54,
-    /*
-     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
-     * corner arcs are not clipped flush against the edge; a coned area has
-     * neither, and the five metres of margin already inside the crop is where
-     * the equipment goes. Three more on top of it just makes the grid look
-     * small on the screen.
-     */
-    pad: { x: 1.5, y: 1.5 },
-    area: {
-      x0: 32.5,
-      x1: 72.5,
-      y0: 19,
-      y1: 49,
-      halfway: true,
-      circle: 5,
-      box: { depth: 6, width: 16 },
-    },
-  },
-  'channel-grid': {
-    id: 'channel-grid',
-    label: 'Channelled grid (40 x 30)',
-    hint: 'The same 40 x 30, ruled into six boxes.',
-    useFor: 'Positional games: who holds which box, when you are allowed out of it.',
-    x0: 27.5,
-    x1: 77.5,
-    y0: 14,
-    y1: 54,
-    /*
-     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
-     * corner arcs are not clipped flush against the edge; a coned area has
-     * neither, and the five metres of margin already inside the crop is where
-     * the equipment goes. Three more on top of it just makes the grid look
-     * small on the screen.
-     */
-    pad: { x: 1.5, y: 1.5 },
-    area: {
-      x0: 32.5,
-      x1: 72.5,
-      y0: 19,
-      y1: 49,
-      cells: { along: 3, across: 2 },
-    },
-  },
-  'possession-grid': {
-    id: 'possession-grid',
-    label: 'Possession grid (30 x 20)',
-    hint: 'A bare rectangle with a square in the middle of it.',
-    useFor: 'Possession games, four-goal games, keeping the ball under pressure.',
-    x0: 33,
-    x1: 72,
-    y0: 19.5,
-    y1: 48.5,
-    /*
-     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
-     * corner arcs are not clipped flush against the edge; a coned area has
-     * neither, and the five metres of margin already inside the crop is where
-     * the equipment goes. Three more on top of it just makes the grid look
-     * small on the screen.
-     */
-    pad: { x: 1.5, y: 1.5 },
-    area: {
-      x0: 37.5,
-      x1: 67.5,
-      y0: 24,
-      y1: 44,
-      middle: 8,
-    },
-  },
-  'rondo-square': {
-    id: 'rondo-square',
-    label: 'Rondo square (20 x 20)',
-    hint: 'A square, with the inner box the middle men work in.',
-    useFor: '4v2, 5v2, 6v3: first touch, angles of support, pressing in a pair.',
-    x0: 38,
-    x1: 67,
-    y0: 19.5,
-    y1: 48.5,
-    /*
-     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
-     * corner arcs are not clipped flush against the edge; a coned area has
-     * neither, and the five metres of margin already inside the crop is where
-     * the equipment goes. Three more on top of it just makes the grid look
-     * small on the screen.
-     */
-    pad: { x: 1.5, y: 1.5 },
-    area: {
-      x0: 42.5,
-      x1: 62.5,
-      y0: 24,
-      y1: 44,
-      middle: 8,
-    },
-  },
+  training: trainingView(DEFAULT_AREA),
 }
 
 /**
@@ -450,12 +491,7 @@ export const PITCH_VIEW_GROUPS: { label: string; views: PitchView[] }[] = [
   },
   {
     label: 'Training',
-    views: [
-      PITCH_VIEWS['training-pitch'],
-      PITCH_VIEWS['channel-grid'],
-      PITCH_VIEWS['possession-grid'],
-      PITCH_VIEWS['rondo-square'],
-    ],
+    views: [PITCH_VIEWS.training],
   },
 ]
 
@@ -473,6 +509,28 @@ export const PITCH_VIEW_LIST: PitchView[] = PITCH_VIEW_GROUPS.flatMap((g) => g.v
 const RETIRED_VIEWS: Record<string, PitchViewId> = {
   'final-third': 'attacking-box',
   'middle-third': 'full',
+  // The four fixed training boards became one board with a size. Their sizes
+  // are not lost: `RETIRED_AREAS` carries each one onto the new board, and
+  // ../storage.ts `migrate` writes it onto the document.
+  'training-pitch': 'training',
+  'channel-grid': 'training',
+  'possession-grid': 'training',
+  'rondo-square': 'training',
+}
+
+/**
+ * The grid each retired training board was, so a saved session opens the size
+ * it was drawn at rather than the default one.
+ *
+ * A document that named `rondo-square` was a 20x20 with an inner box, and it
+ * still is. `migrate` reads this once, on load, and the document then carries
+ * its own numbers like any other.
+ */
+export const RETIRED_AREAS: Record<string, SessionArea> = {
+  'training-pitch': { length: 40, width: 30, halfway: true, ends: true },
+  'channel-grid': { length: 40, width: 30, cells: { along: 3, across: 2 } },
+  'possession-grid': { length: 30, width: 20, middle: true },
+  'rondo-square': { length: 20, width: 20, middle: true },
 }
 
 /** Coerce any stored pitch id — including retired ones — to a live view. */
@@ -481,13 +539,6 @@ export function resolveViewId(id: string | undefined): PitchViewId {
   if (id in PITCH_VIEWS) return id as PitchViewId
   return RETIRED_VIEWS[id] ?? 'full'
 }
-
-/**
- * Breathing room around the crop, in metres, so the goal frame and the corner
- * arcs are not clipped flush against the edge of the image. Part of the look:
- * the videos always let the board sit inside its frame.
- */
-export const PAD = 3
 
 /** This view's padding, per pitch axis, with the default filled in. */
 function pads(v: PitchView): { x: number; y: number } {
@@ -686,6 +737,22 @@ export function defendedGoal(
 export const AREA_INSET = 2.5
 
 /**
+ * The same figure for a PARTICULAR board, which is the one to use.
+ *
+ * `AREA_INSET` above is a counter's radius plus air at full size, and it was
+ * the whole answer while every counter was 4.2m across on every board. It is
+ * not any more: a counter on a 10m rondo is drawn at about a third of that
+ * (`PitchView.counter`), and holding a fixed 2.5m inset there would reserve
+ * half the grid to keep a man off a line he is nowhere near. So the inset is
+ * the counter's own radius on THIS board, plus the same 0.4m of air.
+ *
+ * A match view has no `counter`, so this is 2.5 there and nothing changes.
+ */
+export function areaInset(v: PitchView): number {
+  return (COUNTER_D / 2) * (v.counter ?? 1) + 0.4
+}
+
+/**
  * The slice of a view's crop, in percent, that a shape may be laid into.
  *
  * The whole crop on a pitch, and on a training board the coned area pulled in
@@ -701,8 +768,283 @@ export function areaBand(v: PitchView, axis: 'x' | 'y'): [number, number] {
   const c1 = axis === 'x' ? v.x1 : v.y1
   const a0 = axis === 'x' ? v.area.x0 : v.area.y0
   const a1 = axis === 'x' ? v.area.x1 : v.area.y1
+  const inset = areaInset(v)
   const pc = (m: number) => Math.round(((m - c0) / (c1 - c0)) * 1000) / 10
-  return [pc(a0 + AREA_INSET), pc(a1 - AREA_INSET)]
+  return [pc(a0 + inset), pc(a1 - inset)]
+}
+
+
+/* -- DERIVING A TRAINING BOARD FROM A SIZE ----------------------------------
+ *
+ * Four numbers a coach sets (`SessionArea`) become a whole board: a crop, a
+ * coned rectangle inside it, whatever is ruled on it, the counter size and the
+ * bench strip. Nothing in it is eyeballed, and scripts/check-align.mjs checks
+ * the arithmetic against every preset.
+ *
+ * THE ONE PIECE OF ALGEBRA WORTH READING is the bench strip, because it is
+ * circular and looks it. The strip has to be tall enough for two rows of
+ * counters; a counter's size is set from the SHORT SIDE of the board; and the
+ * short side includes the strip. So:
+ *
+ *     short = width + 2*margin + 2*pad + bench
+ *     bench = k * short + air,   k = counterDiameter * rows * step / 74
+ *
+ * which solves in one line rather than by iterating:
+ *
+ *     short = (width + 2*margin + 2*pad + air) / (1 - k)
+ *
+ * Solved on the WIDTH because that is the short side of every grid a coach
+ * actually draws. If a long thin one makes the LENGTH shorter, the counter
+ * comes out smaller than the strip was sized for and the bench simply has room
+ * to spare, which is the safe direction to be wrong in.
+ */
+
+export function trainingView(a: SessionArea): PitchView {
+  const length = Math.min(AREA_MAX.length, Math.max(AREA_MIN.length, a.length))
+  const width = Math.min(AREA_MAX.width, Math.max(AREA_MIN.width, a.width))
+  const key = JSON.stringify([length, width, a.halfway, a.ends, a.middle, a.cells])
+  const hit = TRAINING_CACHE.get(key)
+  if (hit) return hit
+
+  const M = AREA_MARGIN
+  const P = 1.5
+  const k = (COUNTER_D * BENCH_ROWS * BENCH_STEP) / MATCH_SHORT
+  const shortSide = (width + M * 2 + P * 2 + BENCH_AIR) / (1 - k)
+  const bench = t1(k * shortSide + BENCH_AIR)
+
+  // The crop. Centred on the pitch centre along the length; along the width it
+  // hangs the bench strip off the bottom, so the cones sit a little above the
+  // middle of the board and the coach's waiting players sit below them --
+  // which is where every board they already use puts the bench (TRAINING.md 1d).
+  const cropW = length + M * 2
+  const cropH = width + M * 2 + bench
+  const x0 = t1(PITCH.length / 2 - cropW / 2)
+  const y0 = t1(PITCH.width / 2 - cropH / 2)
+  const x1 = t1(x0 + cropW)
+  const y1 = t1(y0 + cropH)
+
+  const ax0 = t1(x0 + M)
+  const ay0 = t1(y0 + M)
+  const ax1 = t1(ax0 + length)
+  const ay1 = t1(ay0 + width)
+
+  // The counter, as a share of what is actually on screen. `full` is the
+  // yardstick: 4.2m of counter in 74m of board. See `PitchView.counter`.
+  const visible = Math.min(cropW + P * 2, cropH + P * 2)
+  const counter = Math.round((visible / MATCH_SHORT) * 1000) / 1000
+
+  const short = Math.min(length, width)
+  const view: PitchView = {
+    id: 'training',
+    label: 'Training grid',
+    hint: `A coned ${length} by ${width} area, with grass round it for the goals.`,
+    useFor: 'Rondos, possession games, small-sided games: anything played inside cones.',
+    x0,
+    x1,
+    y0,
+    y1,
+    /*
+     * Less spare grass than a pitch gets. `PAD` exists so a goal frame and the
+     * corner arcs are not clipped flush against the edge; a coned area has
+     * neither, and the margin already inside the crop is where the equipment
+     * goes. Three more on top of it just makes the grid look small.
+     */
+    pad: { x: P, y: P },
+    counter,
+    area: {
+      x0: ax0,
+      x1: ax1,
+      y0: ay0,
+      y1: ay1,
+      ...(a.halfway ? { halfway: true, circle: t1(short / 6) } : {}),
+      ...(a.ends ? { box: { depth: t1(length * 0.15), width: t1(width * 0.53) } } : {}),
+      ...(a.middle ? { middle: t1(short * 0.4) } : {}),
+      ...(a.cells ? { cells: a.cells } : {}),
+    },
+    // A metre in off each side, so a counter at the end of a full row is not
+    // drawn half off the board.
+    bench: { x0: t1(x0 + 1), x1: t1(x1 - 1), y0: t1(y1 - bench), y1 },
+  }
+  TRAINING_CACHE.set(key, view)
+  return view
+}
+
+/**
+ * The board a SYSTEM is on -- the one call site everything should use.
+ *
+ * `PITCH_VIEWS[resolveViewId(s.pitch)]` was that call until the grid got a
+ * size, and it is now wrong for exactly one id: the training board's crop is
+ * derived from `system.area`, so looking it up by id alone hands back the
+ * default 30x20 whatever the coach set. Every reader of a system's view goes
+ * through here instead.
+ */
+export function viewFor(s: { pitch?: string; area?: SessionArea } | null | undefined): PitchView {
+  const id = resolveViewId(s?.pitch)
+  if (id !== 'training') return PITCH_VIEWS[id]
+  return trainingView(s?.area ?? DEFAULT_AREA)
+}
+
+/**
+ * Where the benched counters stand, in percent of the crop.
+ *
+ * Laid out rather than stored, so a full squad coming off a match view lands as
+ * a tidy row instead of twenty-two counters piled on one spot. The caller
+ * WRITES the result onto the tokens (`benchAct` in ../editor/StudioEditor.tsx)
+ * rather than drawing from it, and that is deliberate: a benched player whose
+ * stored position was somewhere else would tween out of the wrong place in the
+ * film and hold an arrow to a spot nobody can see. On the board, in the film,
+ * in the PDF, a man on the bench is simply a man standing on that patch of
+ * grass -- which is what he is on a real training pitch.
+ *
+ * Ids in, positions out, so this file stays clear of the document's types.
+ */
+export function benchLayout(v: PitchView, ids: string[]): Record<string, { x: number; y: number }> {
+  const out: Record<string, { x: number; y: number }> = {}
+  const b = v.bench
+  if (!b || ids.length === 0) return out
+
+  const step = COUNTER_D * (v.counter ?? 1) * BENCH_STEP
+  const perRow = Math.max(1, Math.min(ids.length, Math.floor((b.x1 - b.x0) / step)))
+  const rows = Math.ceil(ids.length / perRow)
+  const rowH = (b.y1 - b.y0) / rows
+  const midX = (b.x0 + b.x1) / 2
+
+  ids.forEach((id, i) => {
+    const r = Math.floor(i / perRow)
+    const col = i - r * perRow
+    // The last row is short, so it is centred on its own count rather than
+    // hanging off the left with a gap where the rest of the squad is not.
+    const inRow = Math.min(perRow, ids.length - r * perRow)
+    const mx = midX - ((inRow - 1) * step) / 2 + col * step
+    const my = b.y0 + rowH * (r + 0.5)
+    const p = toPercent(v, mx, my)
+    out[id] = { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }
+  })
+  return out
+}
+
+/** True when a point, in percent of the crop, is down in the bench strip. */
+export function inBench(v: PitchView, y: number): boolean {
+  const b = v.bench
+  if (!b) return false
+  return toMetres(v, 50, y).y >= b.y0
+}
+
+/* -- THE SIZES A SESSION IS ACTUALLY WRITTEN IN -----------------------------
+ *
+ * Not invented, and not rounded: every one is a size that appears by name in
+ * the coaching literature or in the FA's own pitch guide (docs/TRAINING.md 1b
+ * and 1e, with the sources at the foot of it). A coach who wants something
+ * else drags the two sliders; these are the ones worth one press.
+ */
+export interface AreaPreset {
+  id: string
+  label: string
+  /** What it is for, in the coach's language. */
+  hint: string
+  area: SessionArea
+}
+
+export const AREA_PRESET_GROUPS: { label: string; presets: AreaPreset[] }[] = [
+  {
+    label: 'Rondo',
+    presets: [
+      { id: 'rondo-10', label: '10 x 10', hint: '4v2, 5v2, 6v2. One player on each corner.', area: { length: 10, width: 10, middle: true } },
+      { id: 'rondo-15', label: '15 x 15', hint: '6v2, with two on the midpoints of opposite sides.', area: { length: 15, width: 15, middle: true } },
+      { id: 'rondo-20', label: '20 x 20', hint: 'The everyday rondo box.', area: { length: 20, width: 20, middle: true } },
+      { id: 'rondo-25', label: '25 x 25', hint: '6v3, and rondos with a bit more air in them.', area: { length: 25, width: 25, middle: true } },
+    ],
+  },
+  {
+    label: 'Possession grid',
+    presets: [
+      { id: 'grid-25-20', label: '25 x 20', hint: 'The space between the sideline and the 18 yard area.', area: { length: 25, width: 20, middle: true } },
+      { id: 'grid-30-20', label: '30 x 20', hint: 'The standard possession grid.', area: { length: 30, width: 20, middle: true } },
+      { id: 'grid-40-30', label: '40 x 30', hint: 'Bigger possession, four goal games, phase of play.', area: { length: 40, width: 30, middle: true } },
+      { id: 'grid-40-35', label: '40 x 35', hint: 'Between the halfway line and the 18 yard box.', area: { length: 40, width: 35, middle: true } },
+      { id: 'cells-40-30', label: '40 x 30, six boxes', hint: 'Positional games: who holds which box.', area: { length: 40, width: 30, cells: { along: 3, across: 2 } } },
+    ],
+  },
+  {
+    label: 'Small-sided pitch',
+    presets: [
+      { id: 'fa-5v5', label: '37 x 27 (5v5)', hint: 'The FA size for U7 and U8. Goals 3.66 by 1.83.', area: { length: 37, width: 27, halfway: true, ends: true } },
+      { id: 'fa-7v7', label: '55 x 37 (7v7)', hint: 'The FA size for U9 and U10. Goals 3.66 by 1.83.', area: { length: 55, width: 37, halfway: true, ends: true } },
+      { id: 'fa-9v9', label: '73 x 46 (9v9)', hint: 'The FA size for U11 and U12. Goals 4.88 by 2.13.', area: { length: 73, width: 46, halfway: true, ends: true } },
+      { id: 'fa-11v11', label: '82 x 50 (11v11)', hint: 'The FA size for U13 and U14. Goals 6.40 by 2.13.', area: { length: 82, width: 50, halfway: true, ends: true } },
+    ],
+  },
+]
+
+export const AREA_PRESET_LIST: AreaPreset[] = AREA_PRESET_GROUPS.flatMap((g) => g.presets)
+
+/** The preset a size IS, if it is one. Drives the picker's selected row. */
+export function presetFor(a: SessionArea): AreaPreset | undefined {
+  return AREA_PRESET_LIST.find(
+    (p) =>
+      p.area.length === a.length &&
+      p.area.width === a.width &&
+      Boolean(p.area.halfway) === Boolean(a.halfway) &&
+      Boolean(p.area.ends) === Boolean(a.ends) &&
+      Boolean(p.area.middle) === Boolean(a.middle) &&
+      p.area.cells?.along === a.cells?.along &&
+      p.area.cells?.across === a.cells?.across,
+  )
+}
+
+/* -- AREA PER PLAYER --------------------------------------------------------
+ *
+ * The professional way to size a grid, and the thing two whole products are
+ * built on: total area divided by the players in it. A coach who can see
+ * `600 m2 - 8 on the grid - 75 m2 each` while dragging the handle is being told
+ * something they currently work out on paper.
+ *
+ * The bands are the research's, not ours (docs/TRAINING.md 1c). Small-sided
+ * games have been studied across 43-341 m2 per player; under about 150 they do
+ * not stimulate match-level high-speed running in youth players; Barcelona's
+ * 8v2 in a 10x10 is about 10 m2 each and is deliberately nowhere near match
+ * demands. So the readout says which of those a coach has just built, because
+ * "75 m2 each" only means something next to them.
+ */
+export type LoadBand = 'technical' | 'below' | 'match' | 'open'
+
+export const LOAD_BANDS: Record<LoadBand, { label: string; note: string }> = {
+  technical: {
+    label: 'Technical',
+    note: 'Touches, first touch and angles. Well below match running, on purpose.',
+  },
+  below: {
+    label: 'Below match running',
+    note: 'Accelerations and decisions. Under about 150 m2 each there is no match-level sprinting.',
+  },
+  match: {
+    label: 'Match-like',
+    note: 'The band where high-speed running and sprint distance start to look like a game.',
+  },
+  open: {
+    label: 'Open',
+    note: 'More distance and more sprinting, fewer touches each. A running session as much as a ball one.',
+  },
+}
+
+export interface AreaStats {
+  length: number
+  width: number
+  /** Total playing area in square metres. */
+  m2: number
+  /** Players standing ON the grid -- the bench is not in it. */
+  players: number
+  /** Square metres each, or null when nobody is on it yet. */
+  per: number | null
+  band: LoadBand | null
+}
+
+export function areaStats(a: SessionArea, players: number): AreaStats {
+  const m2 = Math.round(a.length * a.width)
+  const per = players > 0 ? Math.round(m2 / players) : null
+  const band: LoadBand | null =
+    per === null ? null : per < 40 ? 'technical' : per < 150 ? 'below' : per <= 341 ? 'match' : 'open'
+  return { length: a.length, width: a.width, m2, players, per, band }
 }
 
 /**

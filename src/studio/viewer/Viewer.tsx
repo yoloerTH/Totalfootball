@@ -27,7 +27,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Board } from '../board/Board'
-import { PITCH_VIEWS, aspect, resolveViewId } from '../board/pitch'
+import { aspect, viewFor } from '../board/pitch'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, holdMs, moveMs } from '../pace'
 import { resolveAct, tweenActs } from '../tween'
 import { fetchShared, idFromPath, systemFromHash, templateIdFromUrl } from '../share'
@@ -242,7 +242,7 @@ export default function Viewer() {
     )
   }
 
-  const view = PITCH_VIEWS[resolveViewId(system.pitch)]
+  const view = viewFor(system)
   const act = system.acts[Math.min(index, count - 1)]
   // `p` is linear time. tweenActs applies the house curve itself — easing it
   // here as well would ease it twice and land somewhere nobody chose.

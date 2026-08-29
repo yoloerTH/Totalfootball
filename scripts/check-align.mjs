@@ -6,7 +6,7 @@
  * A snap is invisible when it works and invisible when it is 4cm out. Nobody
  * reviewing a diff can see that a back four came out level on the horizontal
  * pitch and 0.03m crooked on the upright one, because the numbers involved are
- * percent of a crop that is a different shape on each of the twelve views, run
+ * percent of a crop that is a different shape on each of the nine views, run
  * through a quarter turn on three of them and the OTHER quarter turn on one.
  * That is exactly the kind of claim a machine should be making.
  *
@@ -20,15 +20,23 @@
 
 import { readFileSync } from 'node:fs'
 import {
-  AREA_INSET,
+  AREA_MAX,
+  AREA_MIN,
+  AREA_PRESET_LIST,
+  COUNTER_D,
+  PITCH,
   PITCH_VIEWS,
   PITCH_VIEW_LIST,
+  U,
   areaBand,
+  areaInset,
+  benchLayout,
   cropRect,
   metresToUnits,
   remap,
   toMetres,
   toPercent,
+  trainingView,
 } from '../src/studio/board/pitch.ts'
 import { alignSnap, snapTolerance, SNAP_PX, FALLBACK_TOL_M } from '../src/studio/board/align.ts'
 
@@ -191,80 +199,221 @@ for (const v of PITCH_VIEW_LIST) {
   }
 }
 
-/* ── 4 · The training boards leave room for what goes on them ───────────────
- * A coned area is only a training board if there is grass OUTSIDE it to put
- * the goals and the cones on, and room INSIDE it to stand a counter without
- * half of him hanging over the line. Both are arithmetic, and both go silently
- * wrong the day somebody resizes a grid, so neither is left to the eye.
+/* ── 4 · The training board leaves room for what goes on it ────────────────
+ * A coned area is only a training board if there is grass OUTSIDE it to put the
+ * goals and the cones on, and room INSIDE it to stand a counter without half of
+ * him hanging over the line. Both are arithmetic.
+ *
+ * IT IS SWEPT, NOT SPOT-CHECKED. The four fixed grids became one board whose
+ * size the coach drags, so there is no longer a short list of boards to look
+ * at: every preset is checked, both extremes of the sliders are checked, and a
+ * sweep of the whole range in between is checked. A derivation that is right at
+ * 30 x 20 and wrong at 10 x 10 is a derivation that is wrong.
+ */
+const sweep = []
+for (const p of AREA_PRESET_LIST) sweep.push([p.id, p.area])
+sweep.push(['min', { length: AREA_MIN.length, width: AREA_MIN.width, middle: true }])
+sweep.push(['max', { length: AREA_MAX.length, width: AREA_MAX.width, halfway: true, ends: true }])
+sweep.push(['long-thin', { length: AREA_MAX.length, width: AREA_MIN.width }])
+sweep.push(['short-fat', { length: AREA_MIN.length, width: AREA_MAX.width }])
+for (let L = AREA_MIN.length; L <= AREA_MAX.length; L += 5) {
+  for (let W = AREA_MIN.width; W <= AREA_MAX.width; W += 5) {
+    sweep.push([
+      `${L}x${W}`,
+      { length: L, width: W, halfway: true, ends: true, middle: true, cells: { along: 3, across: 2 } },
+    ])
+  }
+}
+
+const boards = [
+  ...PITCH_VIEW_LIST.filter((v) => v.area).map((v) => ['picker default', v]),
+  ...sweep.map(([id, a]) => [id, trainingView(a)]),
+]
+if (boards.length === 0) fail('training', 'no view has a training area; the session board is gone')
+
+for (const [g, v] of boards) {
+  const a = v.area
+  if (!a) {
+    fail('training', `${g}: derived a board with no coned area on it at all.`)
+    continue
+  }
+
+  // (a) the area is INSIDE the crop, with room for a goal on all four sides.
+  const margins = {
+    left: a.x0 - v.x0,
+    right: v.x1 - a.x1,
+    top: a.y0 - v.y0,
+    bottom: v.y1 - a.y1,
+  }
+  for (const [side, gap] of Object.entries(margins)) {
+    if (gap < 4) {
+      fail(
+        'training',
+        `${g}: only ${m(gap)} of grass on the ${side} of the area — a goal will not fit. AREA_MARGIN is what sets this; take it to ${(4 - gap + 5).toFixed(1)}.`,
+      )
+    }
+  }
+
+  /*
+   * (b) the area is CENTRED along the length, and hangs the bench off the
+   *     bottom across the width.
+   *
+   * The old claim wanted all four margins equal. It was right while the board
+   * was four hand-written rectangles and it is wrong now: the bench strip is
+   * part of the bottom margin on purpose, because a bench belongs outside the
+   * playing area and under it, which is where every board a coach already uses
+   * puts it. So the claim is now the two halves of the real intent — nothing
+   * drifts sideways, and the bottom margin is the top margin plus exactly the
+   * strip and nothing else.
+   */
+  if (Math.abs(margins.left - margins.right) > 0.11) {
+    fail(
+      'training',
+      `${g}: margins of ${m(margins.left)} and ${m(margins.right)} along the length. The area is off centre by ${m(Math.abs(margins.left - margins.right) / 2)}; centre x on ${(PITCH.length / 2).toFixed(1)}.`,
+    )
+  }
+  const strip = v.bench ? v.bench.y1 - v.bench.y0 : 0
+  if (Math.abs(margins.bottom - margins.top - strip) > 0.11) {
+    fail(
+      'training',
+      `${g}: bottom margin ${m(margins.bottom)} against a top of ${m(margins.top)} and a ${m(strip)} bench. Set y1 to ${(a.y1 + margins.top + strip).toFixed(2)}.`,
+    )
+  }
+
+  // (c) a counter placed on the band's edge is wholly inside the cones.
+  const inset = areaInset(v)
+  const r = (COUNTER_D / 2) * (v.counter ?? 1)
+  if (inset < r) {
+    fail('training', `${g}: an inset of ${m(inset)} against a counter's ${m(r)} on this board. Take it to ${(r + 0.4).toFixed(2)}.`)
+  }
+  for (const axis of ['x', 'y']) {
+    const [b0, b1] = areaBand(v, axis)
+    const span = axis === 'x' ? a.x1 - a.x0 : a.y1 - a.y0
+    if (!(b1 > b0)) {
+      fail(
+        'training',
+        `${g}: the ${axis} band is ${b0}..${b1}, which is inside out — a ${span}m area cannot hold a counter inset ${m(inset)}. AREA_MIN on this axis must be at least ${(inset * 2 + r * 2).toFixed(1)}.`,
+      )
+    }
+    if (b0 < 0 || b1 > 100) {
+      fail('training', `${g}: the ${axis} band is ${b0}..${b1}, outside the crop. The area is not inside the view.`)
+    }
+  }
+
+  // (d) whatever is ruled inside the area actually fits in it.
+  const shortest = Math.min(a.x1 - a.x0, a.y1 - a.y0)
+  if (a.middle && a.middle >= shortest) {
+    fail('training', `${g}: a ${a.middle}m middle square in a ${a.x1 - a.x0} x ${a.y1 - a.y0} area. Take the factor in trainingView to ${(shortest / 2 / shortest).toFixed(2)} of the short side or less.`)
+  }
+  if (a.circle && a.circle * 2 >= a.y1 - a.y0) {
+    fail('training', `${g}: a ${a.circle}m circle is ${a.circle * 2}m across in a ${a.y1 - a.y0}m width. Take the radius to ${((a.y1 - a.y0) / 4).toFixed(1)}.`)
+  }
+  if (a.box && a.box.depth * 2 >= a.x1 - a.x0) {
+    fail('training', `${g}: two ${a.box.depth}m end areas meet in the middle of a ${a.x1 - a.x0}m length. Take the depth to ${((a.x1 - a.x0) / 5).toFixed(1)}.`)
+  }
+  if (a.box && a.box.width >= a.y1 - a.y0) {
+    fail('training', `${g}: a ${a.box.width}m end area across a ${a.y1 - a.y0}m width. Take it to ${((a.y1 - a.y0) * 0.55).toFixed(1)}.`)
+  }
+}
+
+/* ── 5 · A counter is the same size on every board ──────────────────────────
+ * TOKEN_R is fixed in metres, so a counter that is 5.7% of the full pitch is
+ * 13.1% of a 20m rondo square — the same counter taking 2.3x the share of the
+ * screen, which is what the coach was looking at when he said they were huge.
+ * `PitchView.counter` is the correction, and it comes in two halves.
+ *
+ * ── THE MATCH VIEWS ARE NOT IN THE BAND, AND THEY ARE NOT MEANT TO BE ──────
+ *
+ * `attacking-box` runs at 11.4% of its 37m short side, and it always has. That
+ * is the closest crop in the studio and every diagram anybody has drawn on it
+ * was drawn with counters that size. Bringing it into the band would change a
+ * match view, which docs/TRAINING.md rules out before anything else and rules
+ * out for good reason: this piece of work is about the session boards and a
+ * coach's saved systems must come back looking like themselves.
+ *
+ * So the claim about a match view is the OPPOSITE one — that it declares no
+ * counter size at all, which is the whole of the promise that nothing on it
+ * moved. The 4-9% band is asserted where it was introduced: on the grids.
  */
 {
-  const areas = PITCH_VIEW_LIST.filter((v) => v.area)
-  if (areas.length === 0) fail('training', 'no view has a training area; the session boards are gone')
-
-  for (const v of areas) {
-    const g = v.id
-    const a = v.area
-
-    // (a) the area is INSIDE the crop, with margin on all four sides.
-    const margins = {
-      left: a.x0 - v.x0,
-      right: v.x1 - a.x1,
-      top: a.y0 - v.y0,
-      bottom: v.y1 - a.y1,
+  if (Math.abs(COUNTER_D - TOKEN_R * 2) > 1e-9) {
+    fail(
+      'counter',
+      `COUNTER_D in board/pitch.ts is ${m(COUNTER_D)} against a TOKEN_R of ${m(TOKEN_R)} in board/Token.tsx. Set COUNTER_D to ${(TOKEN_R * 2).toFixed(1)}.`,
+    )
+  }
+  for (const v of PITCH_VIEW_LIST) {
+    if (!v.area && v.counter !== undefined) {
+      fail(
+        'counter',
+        `${v.id} is a match view carrying counter ${v.counter}. It must carry none: a match board is byte-identical to what the coach saved. Delete the field.`,
+      )
     }
-    for (const [side, gap] of Object.entries(margins)) {
-      if (gap < 4) {
-        const want = side === 'left' || side === 'right' ? a.x1 - a.x0 : a.y1 - a.y0
-        fail(
-          'training',
-          `${g}: only ${m(gap)} of grass on the ${side} of the area — a goal will not fit. Widen that side of the crop to ${m(4 - gap)} more, or shrink the ${want}m area.`,
-        )
+  }
+  for (const [g, v] of boards) {
+    const crop = cropRect(v)
+    const short = Math.min(crop.w, crop.h) / U
+    const share = (TOKEN_R * 2 * (v.counter ?? 1)) / short
+    if (share < 0.04 || share > 0.09) {
+      const want = Math.round(((0.057 * short) / (TOKEN_R * 2)) * 1000) / 1000
+      fail(
+        'counter',
+        `${g}: a counter is ${(share * 100).toFixed(1)}% of a ${short.toFixed(1)}m short side, outside 4-9%. Set this board's counter to ${want}.`,
+      )
+    }
+  }
+}
+
+/* ── 6 · The bench holds a whole squad, tidily ──────────────────────────────
+ * Switching onto a training board stands every player down, and that is up to
+ * twenty-two counters. They have to fit in the strip, they have to stay on the
+ * board, and no two of them may be laid on top of each other — which is the
+ * whole reason the row is laid out rather than left where everybody was.
+ */
+for (const [g, v] of boards) {
+  if (!v.bench) {
+    fail('bench', `${g}: a training board with no bench strip. Nothing can be stood down on it.`)
+    continue
+  }
+  const ids = Array.from({ length: 22 }, (_, i) => `p${i}`)
+  const spots = benchLayout(v, ids)
+  const d = COUNTER_D * (v.counter ?? 1)
+  const pts = ids.map((id) => toMetres(v, spots[id].x, spots[id].y))
+
+  for (let i = 0; i < pts.length; i++) {
+    const q = pts[i]
+    const out = Math.max(v.bench.x0 - q.x, q.x - v.bench.x1, v.bench.y0 - q.y, q.y - v.bench.y1)
+    if (out > 0.06) {
+      fail(
+        'bench',
+        `${g}: counter ${i} sits ${m(out)} outside a strip of ${v.bench.x0.toFixed(1)}..${v.bench.x1.toFixed(1)} by ${v.bench.y0.toFixed(1)}..${v.bench.y1.toFixed(1)}. Widen the strip by that much.`,
+      )
+      break
+    }
+  }
+
+  let worst = Infinity
+  let pair = ''
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const gap = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+      if (gap < worst) {
+        worst = gap
+        pair = `${i} and ${j}`
       }
     }
-
-    // (b) the margins are SYMMETRIC, or the area drifts off the middle of the board.
-    if (Math.abs(margins.left - margins.right) > 1e-9) {
-      fail('training', `${g}: margins of ${m(margins.left)} and ${m(margins.right)} along the length. Set x0 to ${(a.x0 - (margins.left + margins.right) / 2).toFixed(2)} and x1 to ${(a.x1 + (margins.left + margins.right) / 2).toFixed(2)}.`)
-    }
-    if (Math.abs(margins.top - margins.bottom) > 1e-9) {
-      fail('training', `${g}: margins of ${m(margins.top)} and ${m(margins.bottom)} across the width. Set y0 to ${(a.y0 - (margins.top + margins.bottom) / 2).toFixed(2)} and y1 to ${(a.y1 + (margins.top + margins.bottom) / 2).toFixed(2)}.`)
-    }
-
-    // (c) a counter placed on the band's edge is wholly inside the cones.
-    if (AREA_INSET < TOKEN_R) {
-      fail('training', `AREA_INSET is ${m(AREA_INSET)} against a counter's ${m(TOKEN_R)}. Set it to ${(TOKEN_R + 0.4).toFixed(1)}.`)
-    }
-    for (const axis of ['x', 'y']) {
-      const [b0, b1] = areaBand(v, axis)
-      if (!(b1 > b0)) {
-        const span = axis === 'x' ? a.x1 - a.x0 : a.y1 - a.y0
-        fail('training', `${g}: the ${axis} band is ${b0}..${b1}, which is inside out — a ${span}m area cannot hold a counter inset ${m(AREA_INSET)}. Make it at least ${m(AREA_INSET * 2 + TOKEN_R * 2)}.`)
-      }
-      // The band is a slice of the crop, so it has to fall inside 0..100.
-      if (b0 < 0 || b1 > 100) {
-        fail('training', `${g}: the ${axis} band is ${b0}..${b1}, outside the crop. The area is not inside the view.`)
-      }
-    }
-
-    // (d) whatever is ruled inside the area actually fits in it.
-    if (a.middle && (a.middle >= a.x1 - a.x0 || a.middle >= a.y1 - a.y0)) {
-      fail('training', `${g}: a ${a.middle}m middle square in a ${a.x1 - a.x0} x ${a.y1 - a.y0} area. Take it to ${(Math.min(a.x1 - a.x0, a.y1 - a.y0) / 2).toFixed(1)} or less.`)
-    }
-    if (a.circle && a.circle * 2 >= a.y1 - a.y0) {
-      fail('training', `${g}: a ${a.circle}m circle is ${a.circle * 2}m across in a ${a.y1 - a.y0}m width. Take it to ${((a.y1 - a.y0) / 4).toFixed(1)}.`)
-    }
-    if (a.box && a.box.depth * 2 >= a.x1 - a.x0) {
-      fail('training', `${g}: two ${a.box.depth}m end areas meet in the middle of a ${a.x1 - a.x0}m length. Take the depth to ${((a.x1 - a.x0) / 5).toFixed(1)}.`)
-    }
-    if (a.box && a.box.width >= a.y1 - a.y0) {
-      fail('training', `${g}: a ${a.box.width}m end area across a ${a.y1 - a.y0}m width. Take it to ${((a.y1 - a.y0) * 0.55).toFixed(1)}.`)
-    }
+  }
+  if (worst < d * 0.95) {
+    fail(
+      'bench',
+      `${g}: counters ${pair} are ${m(worst)} apart on a bench of ${m(d)} counters. BENCH_STEP must be at least ${(1.05).toFixed(2)} and the strip at least ${m(d * 1.15 * 2 + 1)}.`,
+    )
   }
 }
 
 if (faults.length === 0) {
   console.log(
-    `${PITCH_VIEW_LIST.length} views, 6 claims each, plus the tolerance, the remap and ${PITCH_VIEW_LIST.filter((v) => v.area).length} training areas. All clear.`,
+    `${PITCH_VIEW_LIST.length} views, 6 claims each, plus the tolerance, the remap, the counter size on every board and ${boards.length} training grids with their benches. All clear.`,
   )
   process.exit(0)
 }

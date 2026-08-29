@@ -21,7 +21,7 @@
  * right.
  */
 
-import { PITCH, PITCH_VIEWS, areaBand, resolveViewId, type PitchViewId } from './board/pitch'
+import { PITCH, areaBand, type PitchView, type PitchViewId } from './board/pitch'
 import type { Side, Token } from './schema'
 
 export interface Slot {
@@ -572,16 +572,20 @@ export function formationsByFamily(): { family: string; formations: Formation[] 
  * on top of each other. Twenty points is about six metres on the smallest board
  * here, which is a counter's width of daylight between the two sides.
  */
-function split(id: PitchViewId): { us: [number, number]; them: [number, number] } {
-  const [a, b] = areaBand(PITCH_VIEWS[id], 'x')
+function split(v: PitchView): { us: [number, number]; them: [number, number] } {
+  const [a, b] = areaBand(v, 'x')
   return { us: [a, 40], them: [60, b] }
 }
 
-/** The whole of it, for a shape with the board to itself. */
-function whole(id: PitchViewId): [number, number] {
-  return areaBand(PITCH_VIEWS[id], 'x')
-}
-
+/**
+ * The tables below are keyed by view id and answer for the MATCH boards only.
+ *
+ * The training board cannot be in them, and that is the whole of what changed
+ * when the four fixed grids became one resizable one: its bands are arithmetic
+ * on a size the coach sets at runtime (`areaBand`), so there is no constant to
+ * write down. Every lookup therefore goes through `bandsOf` / `soloBandOf` /
+ * `widthBandOf` / `capOf` below, which ask the BOARD rather than its name.
+ */
 const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] }> = {
   full: { us: [3, 48], them: [52, 97] },
   // Upright is the same crop stood on its end. Percent is measured on the crop
@@ -597,10 +601,8 @@ const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] 
   // bands as the halves they are cut from and need no numbers of their own.
   'attacking-set-piece': { us: [3, 47], them: [53, 97] },
   'defending-set-piece': { us: [3, 47], them: [53, 97] },
-  'training-pitch': split('training-pitch'),
-  'channel-grid': split('channel-grid'),
-  'possession-grid': split('possession-grid'),
-  'rondo-square': split('rondo-square'),
+  // Derived per board, never read: see the note above `BANDS`.
+  training: { us: [3, 40], them: [60, 97] },
 }
 
 /**
@@ -620,10 +622,8 @@ const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
   'attacking-box': [3, 88],
   'attacking-set-piece': [3, 88],
   'defending-set-piece': [3, 88],
-  'training-pitch': whole('training-pitch'),
-  'channel-grid': whole('channel-grid'),
-  'possession-grid': whole('possession-grid'),
-  'rondo-square': whole('rondo-square'),
+  // Derived per board, never read: see the note above `BANDS`.
+  training: [3, 97],
 }
 
 /**
@@ -641,16 +641,21 @@ const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
  * in a little further so nobody is placed on the boundary itself. Everything
  * else keeps the whole width, which is what the absent entry means.
  */
-const WIDTH_BANDS: Partial<Record<PitchViewId, [number, number]>> = {
-  'training-pitch': areaBand(PITCH_VIEWS['training-pitch'], 'y'),
-  'channel-grid': areaBand(PITCH_VIEWS['channel-grid'], 'y'),
-  'possession-grid': areaBand(PITCH_VIEWS['possession-grid'], 'y'),
-  'rondo-square': areaBand(PITCH_VIEWS['rondo-square'], 'y'),
+function widthBandOf(v: PitchView): [number, number] | undefined {
+  return v.area ? areaBand(v, 'y') : undefined
+}
+
+function bandsOf(v: PitchView): { us: [number, number]; them: [number, number] } {
+  return v.area ? split(v) : (BANDS[v.id] ?? BANDS.full)
+}
+
+function soloBandOf(v: PitchView): [number, number] {
+  return v.area ? areaBand(v, 'x') : (SOLO_BANDS[v.id] ?? SOLO_BANDS.full)
 }
 
 /** The x-band our shape occupies on a view — the full solo band, or the half it shares with an opposition. */
-export function usBand(view: PitchViewId, solo: boolean): [number, number] {
-  return solo ? (SOLO_BANDS[view] ?? SOLO_BANDS.full) : (BANDS[view] ?? BANDS.full).us
+export function usBand(view: PitchView, solo: boolean): [number, number] {
+  return solo ? soloBandOf(view) : bandsOf(view).us
 }
 
 /**
@@ -746,15 +751,29 @@ const CAST: Record<PitchViewId, { us: number; them: number }> = {
   // about. So both boards hold everybody, and `setpieces.ts` places them.
   'attacking-set-piece': { us: 11, them: 11 },
   'defending-set-piece': { us: 11, them: 11 },
-  // TRAINING BOARDS, capped at the numbers the area is actually sized for
-  // rather than at a squad. Twenty-two counters in a 20m square is not a rondo,
-  // it is a crowd — and a coach who wants more drags them on, which is the
-  // normal way to build a session anyway. Lines are still never split, so a
-  // back four either all comes or none of it does.
-  'training-pitch': { us: 8, them: 8 },
-  'channel-grid': { us: 8, them: 8 },
-  'possession-grid': { us: 6, them: 6 },
-  'rondo-square': { us: 4, them: 3 },
+  // The training board is the one entry here that is NOT a judgement call, so
+  // this is a placeholder and `capOf` below is the answer. See it.
+  training: { us: 6, them: 6 },
+}
+
+/**
+ * How many players of a side a board holds.
+ *
+ * A judgement call on every match view, and arithmetic on a training one:
+ * a grid has a SIZE, and how many people belong in it is the same question as
+ * area per player, which is the question the coach is already being answered in
+ * the size panel (docs/TRAINING.md 1c). Seventy-five square metres each is the
+ * middle of what these grids are drawn for, and it reproduces the four fixed
+ * boards' old caps almost exactly: a 40x30 gives eight a side, as it did.
+ *
+ * Floored at three a side, because the smallest thing anybody draws on a grid
+ * is a 4v2 and six counters have to fit; ceilinged at a squad.
+ */
+function capOf(v: PitchView, side: Side): number {
+  if (!v.area) return CAST[v.id][side]
+  const m2 = (v.area.x1 - v.area.x0) * (v.area.y1 - v.area.y0)
+  const total = Math.min(22, Math.max(6, Math.round(m2 / 75)))
+  return Math.min(11, side === 'us' ? Math.ceil(total / 2) : Math.floor(total / 2))
 }
 
 /**
@@ -775,9 +794,8 @@ function naturalX(slot: Slot, side: Side): number {
  * ordering only starts discriminating once it runs out of players who are
  * actually there. Slots at the same depth are one line and travel together.
  */
-export function castFor(formation: Formation, side: Side, view: PitchViewId): Slot[] {
-  const v = PITCH_VIEWS[resolveViewId(view)]
-  const cap = CAST[v.id][side]
+export function castFor(formation: Formation, side: Side, v: PitchView): Slot[] {
+  const cap = capOf(v, side)
   // The blank XI is a tray of magnets, not a shape. Eleven were asked for.
   if (formation.blank || formation.slots.length <= cap) return formation.slots
 
@@ -826,7 +844,7 @@ export type LabelMode = 'position' | 'number'
 export function place(
   formation: Formation,
   side: Side,
-  view: PitchViewId,
+  view: PitchView,
   labels: LabelMode = 'position',
   /** True when this shape is alone on the board — it then gets the wider band. */
   solo = false,
@@ -839,13 +857,13 @@ export function place(
    */
   bandOverride?: [number, number],
 ): Token[] {
-  const band = BANDS[view] ?? BANDS.full
+  const band = bandsOf(view)
   const [x0, x1] =
-    bandOverride ??
-    (solo && side === 'us' ? (SOLO_BANDS[view] ?? SOLO_BANDS.full) : side === 'us' ? band.us : band.them)
+    bandOverride ?? (solo && side === 'us' ? soloBandOf(view) : side === 'us' ? band.us : band.them)
   const facesRight = side === 'us'
 
   const slots = castFor(formation, side, view)
+  const wband = widthBandOf(view)
 
   /*
    * A cast fills the band it is given.
@@ -881,7 +899,7 @@ export function place(
    * off the positions the view exists to show. A coned grid has no touchline
    * and no left-back: it has an area, and the men in it should fill it.
    */
-  const across = WIDTH_BANDS[view] !== undefined
+  const across = wband !== undefined
   const wlo = Math.min(...slots.map((s) => s.width))
   const whi = Math.max(...slots.map((s) => s.width))
   const fan = (w: number) => (across && whi > wlo ? (w - wlo) / (whi - wlo) : w)
@@ -891,7 +909,7 @@ export function place(
     const along = facesRight ? spread(slot.depth) : 1 - spread(slot.depth)
     const x = x0 + along * (x1 - x0)
     // Seen from above, a team attacking right has its LEFT flank at the top.
-    const [y0, y1] = WIDTH_BANDS[view] ?? [0, 100]
+    const [y0, y1] = wband ?? [0, 100]
     const w = fan(slot.width)
     const y = y0 + (facesRight ? w : 1 - w) * (y1 - y0)
 

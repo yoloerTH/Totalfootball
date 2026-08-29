@@ -16,7 +16,7 @@
  */
 
 import type { BallId } from './balls'
-import type { PitchViewId } from './board/pitch'
+import type { PitchViewId, SessionArea } from './board/pitch'
 import type { PitchSurfaceId } from './board/surfaces'
 import type { CameraMode, CameraPush } from './camera'
 
@@ -79,6 +79,38 @@ export interface Token {
    * act. It is stored per-token per-act anyway, because that is what an act is.
    */
   bib?: string
+  /**
+   * Waiting on the side rather than in the exercise.
+   *
+   * ── WHY A DRILL STARTS WITH EVERYBODY ON THE BENCH ─────────────────────────
+   *
+   * A session is written by putting one player on each corner and two in the
+   * middle. It is never written by squashing a 4-3-3 into a 20m square, which
+   * is what changing to a training board used to do: `remapSystem` is the right
+   * operation between two crops of a pitch and the wrong one for a change of
+   * KIND. So switching onto a grid stands everybody down instead, and the coach
+   * builds the drill by dragging on the ones they want. Building from scratch
+   * is a first-class start, not a failure state — it is how every board a coach
+   * already uses works (docs/TRAINING.md 1d).
+   *
+   * ── THE POSITION IS REAL, NOT A PLACEHOLDER ───────────────────────────────
+   *
+   * `x` and `y` of a benched player are the spot in the bench strip they are
+   * actually standing on, written from `benchLayout` in ./board/pitch.ts
+   * whenever the bench changes. This flag says WHY they are there, and it
+   * drives two things: the row is re-laid so nobody collides, and the "players
+   * are outside this view" warning stays quiet about them, because they are not
+   * lost, they are waiting.
+   *
+   * Storing the flag and drawing them somewhere else would be the
+   * cheaper-looking choice and it is wrong: an arrow bound to a benched player
+   * would point at nothing, and the film would tween him out of a spot he was
+   * never in.
+   *
+   * Per act, like `cue` and `dim`, because who is on the grid is exactly what
+   * changes from phase to phase.
+   */
+  benched?: boolean
 }
 
 /**
@@ -678,6 +710,21 @@ export interface System {
   /** Optional folder to organise the system. */
   folder?: string
   pitch: PitchViewId
+  /**
+   * The coned rectangle a session is run in — only on a training board.
+   *
+   * WHY IT IS ON THE SYSTEM AND NOT ON THE VIEW. The size of the grid is the
+   * thing a coach changes most: rondos run 8x8 to 40x40, possession games out
+   * to 40x35, small-sided pitches to 91x55 (docs/TRAINING.md 1b, 1e). Four
+   * fixed views were four points in that range. A view is a CROP, and the crop
+   * here is derived from these two numbers plus the margin — see `trainingView`
+   * and `viewFor` in ./board/pitch.ts, which are the only things that read it.
+   *
+   * Absent on every match view and on every document written before this
+   * existed, and `viewFor` fills in `DEFAULT_AREA` when it is missing, so a
+   * board that names `training` without one is a 30 x 20 possession grid.
+   */
+  area?: SessionArea
   /**
    * Which match ball is on the board. A property of the whole presentation, not
    * of an act: a coach picks the 2010 ball because the session is about 2010,

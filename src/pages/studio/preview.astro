@@ -30,8 +30,8 @@ const views = PITCH_VIEW_LIST.map((v) => {
     acts: [],
   }
   const act = emptyAct([
-    ...place(FORMATION_BY_ID.get('4-3-3')!, 'us', v.id),
-    ...place(FORMATION_BY_ID.get('4-4-2')!, 'them', v.id),
+    ...place(FORMATION_BY_ID.get('4-3-3')!, 'us', v),
+    ...place(FORMATION_BY_ID.get('4-4-2')!, 'them', v),
   ])
   return { view: v, system, act: resolveAct(act) }
 })
@@ -39,7 +39,7 @@ const views = PITCH_VIEW_LIST.map((v) => {
 /** Every formation, our side only, on the full pitch. */
 const shapes = FORMATIONS.map((f) => {
   const system: System = { v: 1, title: f.name, pitch: 'full', teams: { us: DEFAULT_US, them: null }, acts: [] }
-  return { f, system, act: resolveAct(emptyAct(place(f, 'us', 'full'))) }
+  return { f, system, act: resolveAct(emptyAct(place(f, 'us', PITCH_VIEWS.full))) }
 })
 
 /**
@@ -54,8 +54,8 @@ const kitchenSink: System = {
   acts: [],
 }
 const sinkTokens = [
-  ...place(FORMATION_BY_ID.get('4-4-2')!, 'us', 'defending-half'),
-  ...place(FORMATION_BY_ID.get('4-3-3')!, 'them', 'defending-half'),
+  ...place(FORMATION_BY_ID.get('4-4-2')!, 'us', PITCH_VIEWS['defending-half']),
+  ...place(FORMATION_BY_ID.get('4-3-3')!, 'them', PITCH_VIEWS['defending-half']),
 ]
 const sinkAct: Act = {
   ...emptyAct(
@@ -107,7 +107,7 @@ const bibsSystem: System = {
   acts: [],
 }
 const bibsAct = emptyAct(
-  place(FORMATION_BY_ID.get('4-3-3')!, 'us', 'full').map((t, i) => {
+  place(FORMATION_BY_ID.get('4-3-3')!, 'us', PITCH_VIEWS.full).map((t, i) => {
     if (t.id === 'us-GK') return { ...t, bib: 'k' }
     if (i % 3 === 1) return { ...t, bib: 'y' }
     if (i % 3 === 2) return { ...t, bib: 'b' }
@@ -122,7 +122,7 @@ const bibsAct = emptyAct(
  * already knows the shape of.
  */
 const tweenSystem: System = { v: 1, title: 'Tween', pitch: 'defending-half', teams, acts: [] }
-const base = place(FORMATION_BY_ID.get('4-4-2')!, 'us', 'defending-half')
+const base = place(FORMATION_BY_ID.get('4-4-2')!, 'us', PITCH_VIEWS['defending-half'])
 const actA: Act = {
   ...emptyAct(base.map((t) => (t.id === 'us-RB' ? { ...t, cue: 'PRESS' as const } : t))),
   ball: { x: 64, y: 12 },
@@ -170,7 +170,7 @@ const upSystem: System = {
 }
 const upAct: Act = {
   ...emptyAct(
-    place(FORMATION_BY_ID.get('4-3-3')!, 'us', 'full-vertical').map((t) =>
+    place(FORMATION_BY_ID.get('4-3-3')!, 'us', PITCH_VIEWS['full-vertical']).map((t) =>
       t.id === 'us-ST' ? { ...t, cue: 'PRESS' as const } : t,
     ),
   ),

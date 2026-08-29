@@ -14,7 +14,7 @@
  * animation state.
  */
 
-import { PITCH_VIEWS, resolveViewId } from './board/pitch'
+import { viewFor } from './board/pitch'
 import { lerpShot, shotFor, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
@@ -121,7 +121,7 @@ export interface RenderAct {
  */
 function shotOf(system: System | undefined, act: Act): Shot | null {
   if (!system) return null
-  return shotFor(system, act, PITCH_VIEWS[resolveViewId(system.pitch)])
+  return shotFor(system, act, viewFor(system))
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -250,7 +250,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
    * which is what a bare tween with no system should get and is also what it
    * has always effectively drawn.
    */
-  const view = PITCH_VIEWS[resolveViewId(system?.pitch)]
+  const view = viewFor(system)
   /*
    * Read off the phase the arrows are DRAWN on. An arrow belongs to the
    * transition out of `from`, which is exactly the transition being played.
