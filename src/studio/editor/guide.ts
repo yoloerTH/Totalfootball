@@ -334,6 +334,8 @@ export const HINT = {
 
   pitchView:
     'How much of the pitch you are looking at. Changing it does not move anybody: everyone stays on the same patch of grass, you just see more or less of it.',
+  setPiece:
+    'The dead-ball boards. Picking one stands the pitch on its end with the goal the ball is going into at the top, the way a corner is drawn on a whiteboard, and puts everybody on their marks: four across the six, both posts filled, a wall at the regulation nine metres. It moves the players you already have rather than handing you new ones, so their names, faces and bibs come with them, and it only touches the phase you are on. Everything on it is yours to drag. There is an attacking board and a defending one, and the two are the same geometry seen from the end that matters to you.',
   pitchGrid:
     'Rules the grid you coach in onto the pitch itself: thirds, the five channels, or the eighteen numbered zones. The lines are drawn at the real numbers, not by eye — the channels are set by the width of the penalty area and the six-yard box, which is why "outside the box line" and "in the half-space" mean the same thing to everyone looking at the board. They sit under every counter and arrow, they are on every phase and every export, and there is nothing to drag or delete: this is the pitch, not something drawn on it. Put your own names on the sectors with the Text tool.',
   pitchFit:
@@ -991,6 +993,14 @@ export const HELP_TOPICS: HelpTopic[] = [
     terms: ['pitch', 'view', 'half', 'third', 'final third', 'box', 'penalty area', 'full pitch', 'upright', 'zoom out', 'wider', 'closer'],
     body: [HINT.pitchView, HINT.pitchFit],
     target: { drawer: DRAWER.board, anchor: 'Pitch view', name: 'Pitch view' },
+  },
+  {
+    id: 'set-pieces',
+    group: 'board',
+    label: 'Corners, free kicks and the board for them',
+    terms: ['set piece', 'set pieces', 'dead ball', 'deadball', 'corner', 'corners', 'free kick', 'freekick', 'wall', 'zonal', 'man marking', 'near post', 'far post', 'inswinger', 'in-swinger', 'short corner', 'restart', 'prekid', 'korner'],
+    body: [HINT.setPiece],
+    target: { drawer: DRAWER.board, anchor: 'Set pieces', name: 'Set pieces' },
   },
   {
     id: 'pitch-grid',

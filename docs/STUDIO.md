@@ -60,14 +60,17 @@ back the film. Nothing else here is hard to copy — that is.
 | Auth | **Email + password, and Google.** Details still to be discussed | User's call, 2026-08-12 |
 | Pricing | Free for adoption first, paid + affiliates later | Not built |
 | An Act is called a **phase** in the UI | The type stays `Act`; `PHASE` in `editor/guide.ts` is the boundary | Coaches say "phase of play". Renaming the type across a document format to win a label is a bad trade |
-| Pitch views | **Only the ones the videos actually use**, plus the upright pitch | See §3a. A view nobody has ever shot is a view nobody wants |
+| Pitch views | **Only the ones the videos actually use**, plus the upright pitch — **and the two set-piece boards, which a coach asked for** | See §3a, and the amendment at the end of it. A view nobody has ever shot is a view nobody wants; a view a coach asks for by name is a different question |
+| Set pieces | **Two upright boards with the goal at the TOP, plus five arrangements in `setpieces.ts`.** Not a mode | Asked for by Bojan Krulj (UEFA Pro, 2026-08-29), who had rebuilt a corner routine on `full` and had it land in a fifth of the board. He was offered a "Set Piece mode" and answered by describing a view, twice. A mode would be a second editor to keep true; the two boards and a starting arrangement are the whole of what was missing |
+| Where a set piece is authored | **In metres off the goal the ball is going into**, never in team space | A formation is a set of relationships and has to survive a change of view; a dead ball is a set of absolute distances. A near-post runner stands five metres off the six-yard line, not at a proportion of a band. See the head of `setpieces.ts` |
+| What applying a set piece does to the players | **Moves them. Never replaces them** | The stable token id is what every tween joins on, and on a set-piece board the squad IS most of the value: a corner routine is about WHICH man attacks the near post. `arrange()` keeps ids, names, faces, bibs and cues and changes only positions |
 | Match balls | The real photographed balls from the Remotion project | The one place `<image href>` is allowed on the board. See §6 |
 
 ---
 
 ## 3. What exists
 
-27 files, ~7,000 lines, all under `src/studio/` and `src/pages/studio/`.
+28 files, ~7,400 lines, all under `src/studio/` and `src/pages/studio/`.
 Everything below is **built, typechecking, and verified by driving the real UI**.
 
 ### `src/studio/board/` — the board core
@@ -120,6 +123,14 @@ Remotion-free SVG port of `editor/src/components/football/TacticsBoard.tsx`.
   change. `place()` maps them in. `blank-11` is the empty squad: eleven counters
   parked along the team's own touchline, in shirt order, for a coach who has a
   shape in their head and wants a tray of magnets rather than a 4-3-3 to undo.
+- **`setpieces.ts`** — **five dead-ball arrangements**, authored in METRES off
+  the goal the ball is going into (`d` out from the goal line, `s` across the
+  screen) and placed straight through `toPercent`, touching neither `BANDS` nor
+  `castFor`. The casts are written once and composed by the pieces, so the
+  attacking corner and the defending corner cannot disagree about where the
+  near-post runner stands. `arrange()` MOVES the coach's own players onto the
+  spots rather than handing back strangers. Checked by
+  `scripts/check-setpieces.mjs`, which is in the build. See §3a.
 - **`balls.ts`** — the five real match balls from the Remotion project (Trionda
   2026 as the house default, Al Rihla, Brazuca, Jabulani, Telstar), plus a drawn
   vector ball that needs no asset. Assets live in `public/studio/balls/`, trimmed
@@ -452,6 +463,54 @@ retired ids for documents that still name them, and `storage.ts` migrates on
 read.
 
 If you are tempted to add a view, count it in the shorts first.
+
+### The amendment: the two set-piece boards (2026-08-29)
+
+`attacking-set-piece` and `defending-set-piece` are the one pair here that were
+not counted out of the shorts, and the rule above is **amended rather than
+broken**. Read it for what it is for: it stops US inventing views on a hunch. It
+was never meant to outrank a coach asking for one by name — and one did, twice,
+in two languages, with a picture of it attached (Bojan Krulj, UEFA Pro). He had
+already rebuilt a corner routine in the studio on `full`, fourteen counters and
+a bowed delivery squeezed into the right-hand penalty box with his own half of
+the pitch empty beside it. Nothing else about it was broken. The vocabulary was
+all there: the bend on the delivery, the zone band, the text label, the photo
+counters. **He was missing a crop.**
+
+The count is not zero either. `SetPieceShort.tsx` is 844 lines and four
+routines — the inswinger, the screen, the short corner, the worked free kick —
+shot on the half-pitch board with the camera pushed in.
+
+The framing is his and not ours: **half a pitch stood on its end with the goal
+the ball is going INTO at the top**, full 68m of width because the man taking it
+is standing on the touchline. Which means the defending board is the only view
+in the file that plays DOWN the screen, breaking "we attack right, and up, on
+every view" — deliberately, because a defensive corner is drawn the same way
+round as an attacking one by every coach in the game, and the goal under threat
+is the subject of the picture. That is `flip` in `board/pitch.ts`, a +90 turn
+where the others take -90. It is a rotation and not a mirror, so nothing comes
+out handed backwards.
+
+**Both boards hold eleven a side** (`CAST` in `formations.ts`), which is the one
+place the close-up cast rule is suspended. Every other cap says a close-up is a
+close-up because most of the team is somewhere else. At a corner that is simply
+false.
+
+**`scripts/check-setpieces.mjs` is not optional and it is in the build.** A
+counter is 4.2m across on a board drawn in real metres and a six-yard box is
+18.32m wide, so twenty-two of them in a penalty area is 55% of the grass
+covered. Two men authored three metres apart do not look tight, they vanish into
+each other, and the routine silently teaches something else. The check runs
+every pair on every piece, confirms the goal is at the top of both boards,
+round-trips every spot through percent, and verifies the delivery bows towards
+the goal rather than away from it. It **collects**, and every fault line carries
+the metres the pair is short by **and the `s` that clears it**, so the fix is a
+copy-paste. Nothing in that file was measured by eye.
+
+It imports the real `pitch.ts` and `setpieces.ts` through
+`scripts/lib/ts.mjs` — Node 24 strips the types itself and only needs the file
+extension guessed. A check carrying its own copy of the geometry passes forever
+after the source has moved.
 
 ---
 

@@ -45,6 +45,7 @@ import {
 } from '../board/Board'
 import { arrowRim, bendFor } from '../board/Overlays'
 import { arrowEnds, bindEnd, snapTarget } from '../arrows'
+import { SET_PIECES, SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
 import { perform, type ActionKind, type Target } from '../actions'
 import {
   PITCH_VIEWS,
@@ -346,6 +347,52 @@ function withEdits(placed: Token[], previous: Token[], keepLabel = true): Token[
     }
   })
 }
+
+/**
+ * Every mark in a system, re-expressed against a different crop.
+ *
+ * Percent coordinates are relative to the view, so they cannot be carried from
+ * one to another — but they can be RE-EXPRESSED: out to metres in the old view
+ * and back into percent in the new one, which leaves everything on the same
+ * patch of grass. Nobody is moved and nothing is deleted.
+ *
+ * At module scope because two callers need it and they must not disagree: the
+ * pitch picker, and applying a set piece — which changes the view and poses the
+ * board in one go, and would otherwise have to change the view, wait a render
+ * for `system.pitch` to catch up, and then pose against a stale crop.
+ */
+function remapSystem(s: System, pitch: System['pitch']): System {
+  const from = PITCH_VIEWS[resolveViewId(s.pitch)]
+  const to = PITCH_VIEWS[resolveViewId(pitch)]
+  if (from === to) return s.pitch === pitch ? s : { ...s, pitch }
+  const rp = (p: { x: number; y: number }) => remap(from, to, p.x, p.y)
+  return {
+    ...s,
+    pitch,
+    acts: s.acts.map((a) => ({
+      ...a,
+      tokens: a.tokens.map((t) => ({ ...t, ...rp(t) })),
+      ...ballFields(ballsOf(a).map((b) => ({ ...b, ...rp(b) }))),
+      arrows: a.arrows.map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
+      bands: a.bands.map((b) => {
+        if (!b.rect) return b
+        const tl = rp({ x: b.rect.x, y: b.rect.y })
+        const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
+        return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
+      }),
+    })),
+  }
+}
+
+/**
+ * The id every set piece's delivery arrow is drawn under.
+ *
+ * Fixed rather than generated, so pressing a second set piece REPLACES the
+ * first one's ball rather than leaving a corner routine with two crosses on it.
+ * An arrow the coach drew themselves has a `uid` and is never this, so their
+ * own work is untouched either way.
+ */
+const DELIVERY_ID = 'sp-delivery'
 
 /**
  * The bib colours the button hands out, in order, and what they are called.
@@ -673,6 +720,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * nothing put back.
    */
   const [shapePrompt, setShapePrompt] = useState<{ side: Side; formationId: string } | null>(null)
+  /** The set piece last laid down, so the picker shows what the board is. Not on the document: it is a starting position, and the moment a coach drags anybody it stops being true of the board and starts being true only of where they began. */
+  const [setPieceId, setSetPieceId] = useState('')
   const [panelTab, setPanelTab] = useState<'setup' | 'phase'>('setup')
 
   // The phase on screen travels with an undo entry: taking back a change made
@@ -2732,27 +2781,73 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * change they might be making to take a second look.
    */
   const setPitch = (pitch: System['pitch']) => {
-    edit('pitch', (s) => {
-      const from = PITCH_VIEWS[resolveViewId(s.pitch)]
-      const to = PITCH_VIEWS[resolveViewId(pitch)]
-      const rp = (p: { x: number; y: number }) => remap(from, to, p.x, p.y)
+    edit('pitch', (s) => remapSystem(s, pitch))
+    seal()
+  }
+
+  /**
+   * Lay a set piece down: the board it wants, and everybody on their marks.
+   *
+   * ── ONE EDIT, AND THE ORDER INSIDE IT MATTERS ──────────────────────────────
+   *
+   * The view change goes first, through `remapSystem`, so the arrows and shaded
+   * areas the coach has already drawn come across onto the same grass. Only
+   * then are the players posed, because a spot is authored in metres off the
+   * goal and has to be turned into percent of the crop it is actually landing
+   * on. Doing it as two edits would pose against the crop the coach was on a
+   * render ago and put a near-post runner in the car park.
+   *
+   * ── THIS PHASE ONLY ────────────────────────────────────────────────────────
+   *
+   * Same call `Re-place shapes` makes, and for the same reason: a set piece is
+   * the FIRST phase of a routine, not the routine. A coach lays the corner out,
+   * adds a phase, and moves three men — stamping the starting positions onto
+   * every phase would flatten exactly the work they came here to do. The view
+   * is a property of the system, so that part does land everywhere.
+   */
+  const applySetPiece = (id: string) => {
+    const piece = SET_PIECE_BY_ID.get(id)
+    if (!piece) return
+    const view = PITCH_VIEWS[piece.view]
+    edit('setpiece', (s) => {
+      const moved = remapSystem(s, piece.view)
+      const here = Math.min(actIndexRef.current, moved.acts.length - 1)
       return {
-        ...s,
-        pitch,
-        acts: s.acts.map((a) => ({
-          ...a,
-          tokens: a.tokens.map((t) => ({ ...t, ...rp(t) })),
-          ...ballFields(ballsOf(a).map((b) => ({ ...b, ...rp(b) }))),
-          arrows: a.arrows.map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
-          bands: a.bands.map((b) => {
-            if (!b.rect) return b
-            const tl = rp({ x: b.rect.x, y: b.rect.y })
-            const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
-            return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
-          }),
-        })),
+        ...moved,
+        acts: moved.acts.map((a, i) => {
+          if (i !== here) return a
+          // An opposition is something a PHASE has. A set piece does not
+          // conjure one onto a board the coach deliberately left one team on.
+          const hasThem = a.tokens.some((t) => t.side === 'them')
+          const at = spotToPercent(view, piece.ball)
+          const balls = ballsOf(a)
+          return {
+            ...a,
+            tokens: [
+              ...arrange(piece, 'us', view, a.tokens),
+              ...(hasThem ? arrange(piece, 'them', view, a.tokens) : []),
+            ],
+            // The ball that is already here is MOVED, keeping its id, so a
+            // phase that follows still tweens the same ball rather than
+            // cutting one away and another in. Any others are left alone.
+            ...ballFields([{ ...(balls[0] ?? newBall()), ...at }, ...balls.slice(1)]),
+            arrows: piece.delivery
+              ? [
+                  ...a.arrows.filter((ar) => ar.id !== DELIVERY_ID),
+                  {
+                    id: DELIVERY_ID,
+                    kind: piece.delivery.kind,
+                    from: at,
+                    to: spotToPercent(view, piece.delivery),
+                    bend: piece.delivery.bend,
+                  },
+                ]
+              : a.arrows,
+          }
+        }),
       }
     })
+    setSetPieceId(id)
     seal()
   }
 
@@ -3412,6 +3507,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }))
   }
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
+  const chosenPiece = SET_PIECE_BY_ID.get(setPieceId)
   // What is on THIS phase, for the drawer badges and the two "clear it" rows.
   // Counted here rather than at each use so the badge and the button can never
   // disagree about whether there is anything to clear.
@@ -4300,7 +4396,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
       <Section
         title={DRAWER.board}
-        hint="Pitch view, surface, camera"
+        hint="Pitch view, set pieces, surface, camera"
         defaultOpen
         badge={view.label}
       >
@@ -4330,6 +4426,39 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               </p>
             </Tip>
           )}
+        </Panel>
+
+        <Panel title="Set pieces">
+          <Tip text={HINT.setPiece} title="Set pieces" block>
+            <Select
+              value={setPieceId}
+              onChange={applySetPiece}
+              options={[
+                { value: '', label: 'Choose a set piece\u2026' },
+                ...SET_PIECES.map((p) => ({ value: p.id, label: p.label })),
+              ]}
+            />
+          </Tip>
+          {chosenPiece && !themHere && (
+            <p className="mt-2 rounded-md bg-paper px-2 py-1.5 text-[11px] leading-snug text-ink-faint">
+              Only your side is on this {PHASE.one}, so only your side has been placed. A dead ball is an argument
+              between two teams: turn <span className="font-bold text-ink-soft">The other team</span> on under Teams
+              and kit and pick the set piece again to get theirs.
+            </p>
+          )}
+          <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+            {chosenPiece ? (
+              <>
+                <span className="text-ink-soft">{chosenPiece.family}.</span> {chosenPiece.hint}
+              </>
+            ) : (
+              <>
+                <span className="text-ink-soft">Turns the board upright with the goal at the top</span> and puts
+                everybody on their marks. It moves the players you already have, so their names and faces come with
+                them. This {PHASE.one} only.
+              </>
+            )}
+          </p>
         </Panel>
 
         <Panel title="Markings">

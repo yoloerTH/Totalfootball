@@ -55,6 +55,8 @@ export type PitchViewId =
   | 'attacking-half'
   | 'defending-half'
   | 'attacking-box'
+  | 'attacking-set-piece'
+  | 'defending-set-piece'
 
 export interface PitchView {
   id: PitchViewId
@@ -74,6 +76,22 @@ export interface PitchView {
    * `metresToUnits`, which is the only place the quarter turn exists.
    */
   vertical?: boolean
+  /**
+   * Turn the OTHER way, so the pitch's OWN goal end stands at the top.
+   *
+   * Only meaningful alongside `vertical`, and true on exactly one view. Every
+   * other upright board attacks UP the screen, which is right everywhere except
+   * a defensive set piece: that board is about the goal the ball is arriving
+   * at, and a coach draws a defensive corner the same way round as an attacking
+   * one. So `defending-set-piece` is the one view where we play DOWN the
+   * screen, and this flag is the whole of how.
+   *
+   * It is a ROTATION and not a mirror — +90 where the others take -90 — so
+   * nothing comes out handed backwards. A ball on the top touchline is still on
+   * the top touchline; it has come round the other side of the board, which is
+   * what turning a board round actually does.
+   */
+  flip?: boolean
   /**
    * Grass beyond the crop, in metres, per PITCH axis (x is along the length, y
    * across the width — the turn does not enter into it). Defaults to `PAD` on
@@ -177,6 +195,49 @@ export const PITCH_VIEWS: Record<PitchViewId, PitchView> = {
     y0: 0,
     y1: 68,
   },
+
+  /*
+   * ── THE TWO SET-PIECE BOARDS ─────────────────────────────────────────────
+   *
+   * These are the one pair of views here that were not counted out of the
+   * shorts, and §3a of docs/STUDIO.md is AMENDED rather than broken. That rule
+   * exists to stop US inventing views nobody wants; a coach asking for one by
+   * name, twice, and sending a picture of it is a better source than a count of
+   * our own output (Bojan Krulj, UEFA Pro, 2026-08-29). The count is not zero
+   * either — SetPieceShort.tsx is four routines on the half-pitch board.
+   *
+   * The framing is his: half a pitch stood on its end, the goal the ball is
+   * going INTO at the top, and the full 68m of width, because the man taking it
+   * is standing on the touchline. A corner drawn on `full` lands in a fifth of
+   * the board with the coach's own half empty beside it, which is exactly the
+   * screen he was looking at when he asked.
+   *
+   * Both are half-pitch crops, so they share their bands and their geometry
+   * with `attacking-half` / `defending-half` and only the turn is new.
+   */
+  'attacking-set-piece': {
+    id: 'attacking-set-piece',
+    label: 'Attacking set piece',
+    hint: 'Their goal at the top, the whole width in front of it.',
+    useFor: 'Corners, wide free kicks, anything you rehearse into their box.',
+    x0: 52.5,
+    x1: 105,
+    y0: 0,
+    y1: 68,
+    vertical: true,
+  },
+  'defending-set-piece': {
+    id: 'defending-set-piece',
+    label: 'Defending set piece',
+    hint: 'Our goal at the top, the ball arriving at it.',
+    useFor: 'Marking jobs, zonal setups, winning the first ball and clearing it.',
+    x0: 0,
+    x1: 52.5,
+    y0: 0,
+    y1: 68,
+    vertical: true,
+    flip: true,
+  },
 }
 
 export const PITCH_VIEW_LIST: PitchView[] = [
@@ -186,6 +247,8 @@ export const PITCH_VIEW_LIST: PitchView[] = [
   PITCH_VIEWS['attacking-half'],
   PITCH_VIEWS['defending-half'],
   PITCH_VIEWS['attacking-box'],
+  PITCH_VIEWS['attacking-set-piece'],
+  PITCH_VIEWS['defending-set-piece'],
 ]
 
 /**
@@ -254,14 +317,19 @@ export function metresToUnits(v: PitchView, mx: number, my: number): { x: number
   const y = my * U
   if (!v.vertical) return { x, y }
   const { cx, cy } = cropCentre(v)
-  return { x: cx + (y - cy), y: cy - (x - cx) }
+  const dx = x - cx
+  const dy = y - cy
+  // -90 for an upright board, +90 for the flipped one. See `flip`.
+  return v.flip ? { x: cx - dy, y: cy + dx } : { x: cx + dy, y: cy - dx }
 }
 
 /** Final SVG units → metres. The inverse of `metresToUnits`. */
 export function unitsToMetres(v: PitchView, ux: number, uy: number): { x: number; y: number } {
   if (!v.vertical) return { x: ux / U, y: uy / U }
   const { cx, cy } = cropCentre(v)
-  return { x: (cx - (uy - cy)) / U, y: (cy + (ux - cx)) / U }
+  const dx = ux - cx
+  const dy = uy - cy
+  return v.flip ? { x: (cx + dy) / U, y: (cy - dx) / U } : { x: (cx - dy) / U, y: (cy + dx) / U }
 }
 
 /** The crop window in FINAL units — what the viewBox frames and the clip cuts to. */
@@ -288,7 +356,7 @@ export function viewBox(v: PitchView): string {
 export function boardTransform(v: PitchView): string | undefined {
   if (!v.vertical) return undefined
   const { cx, cy } = cropCentre(v)
-  return `rotate(-90 ${cx} ${cy})`
+  return `rotate(${v.flip ? 90 : -90} ${cx} ${cy})`
 }
 
 /**

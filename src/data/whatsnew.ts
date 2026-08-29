@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'set-pieces',
+    date: '2026-08-29',
+    kind: 'new',
+    title: 'A board for corners and free kicks',
+    body: 'Set pieces stands the pitch on its end with the goal the ball is going into at the top, which is how a dead ball is drawn on every whiteboard in the game, and puts everybody on their marks. There are five to start from: the in-swinging corner, the short corner, defending a corner zonally, a wide free kick delivered, and defending one with a wall at the regulation nine metres. It moves the players you already have rather than giving you strangers, so the names, the faces and the bibs come with them. Two boards, one attacking and one defending, and everything on them is yours to drag.',
+    where: 'Set pieces, under The board',
+  },
+  {
     id: 'bibs',
     date: '2026-08-28',
     kind: 'new',

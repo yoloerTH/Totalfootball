@@ -562,6 +562,11 @@ const BANDS: Record<PitchViewId, { us: [number, number]; them: [number, number] 
   'attacking-half': { us: [3, 47], them: [53, 97] },
   'defending-half': { us: [3, 47], them: [53, 97] },
   'attacking-box': { us: [3, 47], them: [53, 97] },
+  // The set-piece boards are the two half-pitch crops stood on their end, and
+  // percent is measured on the crop BEFORE the turn, so they take the same
+  // bands as the halves they are cut from and need no numbers of their own.
+  'attacking-set-piece': { us: [3, 47], them: [53, 97] },
+  'defending-set-piece': { us: [3, 47], them: [53, 97] },
 }
 
 /**
@@ -579,6 +584,8 @@ const SOLO_BANDS: Record<PitchViewId, [number, number]> = {
   'attacking-half': [3, 88],
   'defending-half': [3, 88],
   'attacking-box': [3, 88],
+  'attacking-set-piece': [3, 88],
+  'defending-set-piece': [3, 88],
 }
 
 /** The x-band our shape occupies on a view — the full solo band, or the half it shares with an opposition. */
@@ -669,6 +676,16 @@ const CAST: Record<PitchViewId, { us: number; them: number }> = {
   'defending-half': { us: 8, them: 6 },
   // Their box. Everything here is about the attack and the line defending it.
   'attacking-box': { us: 6, them: 6 },
+  // THE SET PIECES ARE THE EXCEPTION TO EVERYTHING ABOVE, and deliberately.
+  //
+  // Every other cap here is a judgement that a close-up view is a close-up
+  // BECAUSE most of the team is somewhere else. On a dead ball that is simply
+  // false: at a corner all twenty-two are inside this crop, the goalkeeper who
+  // is a pitch away is a real player standing on the halfway line in the
+  // picture, and dropping a back four would delete the men the routine is
+  // about. So both boards hold everybody, and `setpieces.ts` places them.
+  'attacking-set-piece': { us: 11, them: 11 },
+  'defending-set-piece': { us: 11, them: 11 },
 }
 
 /**
