@@ -462,6 +462,16 @@ export function timelineAt(
   }
 }
 
+/**
+ * A single phase with no pause is the one document the pace controls can
+ * describe but a video cannot be: the hold IS the whole film, so a hold of zero
+ * asks for zero frames. It gets a still instead, long enough to be a file
+ * somebody can play. Every system with more than one phase, and every
+ * single-phase system anybody has ever made (the shortest hold before the
+ * control went to zero was 0.2s), is untouched by this.
+ */
+const STILL_MS = 600
+
 export function totalDuration(actCount: number, hold = DEFAULT_HOLD_MS, move = DEFAULT_MOVE_MS): number {
-  return actCount <= 1 ? hold : actCount * (hold + move) - move
+  return actCount <= 1 ? Math.max(hold, STILL_MS) : actCount * (hold + move) - move
 }

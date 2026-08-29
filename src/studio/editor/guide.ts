@@ -341,7 +341,7 @@ export const HINT = {
   pitchFit:
     'A close-up view cannot hold two full teams, so a shape placed on one puts in the players that part of the pitch is actually about and leaves the rest out. Everyone else is still in your system, and comes back when you widen the view.',
   pace:
-    'The two halves of a beat, set apart. The hold is how long a phase stands still, which is reading time. The move is how long it takes to become the next one, which is the football. Bring the hold down and stretch the move and you get the shape a coach rehearsing something familiar wants: poses they already know gone quickly, transitions they are teaching drawn out. Both belong to the system rather than to whoever is watching, so the film, the share link and Play all move together.',
+    'The two halves of a beat, set apart. The hold is how long a phase stands still, which is reading time. The move is how long it takes to become the next one, which is the football. Bring the hold down and stretch the move and you get the shape a coach rehearsing something familiar wants: poses they already know gone quickly, transitions they are teaching drawn out. The hold goes all the way down to nothing, which is a film with no pauses in it at all: every phase starts becoming the next one the moment it lands. Both belong to the system rather than to whoever is watching, so the film, the share link and Play all move together.',
 
   camera:
     'Whether the film moves. Fixed shows the whole pitch view in every phase, which is what a coach draws on a whiteboard. Follow the ball frames the ball and travels with it, the way the videos are shot — it follows the ball and nothing else, so moving a player never moves the camera. A phase with no ball is framed on what you have marked on it instead, and a phase with SEVERAL balls is yours to frame: there is no one ball to follow, so the camera uses the frame you drew on that phase and stays wide if you drew none. It changes nothing on the board: nobody moves, and you can still see everyone while you work.',
@@ -758,14 +758,19 @@ export const PACE = {
    * both.
    */
   line: (holdSeconds: number, moveSeconds: number, filmSeconds: number, phases: number) =>
-    `Each ${PHASE.one} holds for ${holdSeconds.toFixed(1)}s, then takes ${moveSeconds.toFixed(1)}s to move. ` +
+    (holdSeconds <= 0
+      ? `Nothing pauses. Each ${PHASE.one} lands and takes ${moveSeconds.toFixed(1)}s to become the next. `
+      : `Each ${PHASE.one} holds for ${holdSeconds.toFixed(1)}s, then takes ${moveSeconds.toFixed(1)}s to move. `) +
     `${phases} ${phases === 1 ? PHASE.one : PHASE.many} ${phases === 1 ? 'runs' : 'run'} ${filmSeconds.toFixed(1)}s.`,
   /**
-   * Shown at the fast end. Says what the limit is protecting rather than that a
-   * limit exists — "minimum 0.2s" is a rule, "gone before the room has seen it"
-   * is a reason.
+   * Shown at the bottom of the hold, which is now no hold at all. It is a real
+   * setting rather than an edge the slider fell off, so this says what it gives
+   * you — and points at the control that answers the objection, because a coach
+   * who takes the pauses out and then cannot follow the football wants a longer
+   * MOVE, not their pauses back.
    */
-  floor: 'As quick as it goes. Any less and a pose is gone before a room has taken it in.',
+  floor:
+    'No pause at all. Each phase starts becoming the next the moment it lands, so the whole film is movement. If that is too quick to follow, give the move longer rather than the hold.',
   /**
    * The move's floor is the speed everything here has always moved at, so this
    * says so plainly rather than apologising for a limit. Nobody has ever asked

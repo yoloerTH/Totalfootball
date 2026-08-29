@@ -71,9 +71,30 @@
  * When a model disagrees with four years of shorts that demonstrably work, the
  * model is wrong.
  *
- * So the floor protects the only thing that is genuinely not negotiable: that a
- * pose is on screen long enough to be seen at all before it starts moving
- * again. That is a property of eyes, not of copy, and it is a constant.
+ * WHY THE HOLD NOW GOES ALL THE WAY TO ZERO
+ *
+ * The floor used to be 200ms, and the argument for it was that a pose must be
+ * on screen long enough to be seen at all. That argument was about EYES, and it
+ * was sound — but it was answering the wrong question, because it assumed the
+ * hold is where the watching happens.
+ *
+ * It is not, and the request that killed it said so exactly: the coach did not
+ * want the phases to arrive any faster, they wanted to watch the football and
+ * not sit through a freeze between two pieces of it. The pose is not the
+ * information. The MOVE is the information — who went where — and that control
+ * is right above this one, unchanged and as long as they like.
+ *
+ * So a hold of zero is not a pose nobody can see. It is a film with no pauses
+ * in it, one movement running into the next, which is a legitimate thing to
+ * want and was previously impossible to ask for. The coach who wants reading
+ * time still has 6 seconds of it a phase, and 2.6s is still what every system
+ * ever made here carries.
+ *
+ * The one case zero genuinely breaks is a system of ONE phase, where the hold
+ * is the entire film and zero means no film. That is handled where the film's
+ * length is computed — `totalDuration` in ./tween.ts — and not by a floor here,
+ * because it is a property of that one degenerate document rather than of the
+ * control.
  */
 
 import type { System } from './schema'
@@ -84,13 +105,12 @@ import type { System } from './schema'
 export const DEFAULT_HOLD_MS = 2600
 
 /**
- * The shortest hold the studio will render.
+ * The shortest hold the studio will render: none at all.
  *
- * At 0.2s a pose can be used as a very brief beat before the move takes over.
- * This is intentionally permissive: the coach may want a near-instant cue,
- * and the fixed move still gives the transition a readable shape.
+ * Zero is a real setting and not a degenerate one — see the header. Each phase
+ * lands and immediately starts becoming the next, and the whole film is travel.
  */
-export const MIN_HOLD_MS = 200
+export const MIN_HOLD_MS = 0
 
 /**
  * The longest. Past six seconds a coach is not pacing a film, they are pausing
