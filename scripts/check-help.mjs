@@ -26,10 +26,26 @@
 
 import { readFileSync } from 'node:fs'
 
-const EDITOR = 'src/studio/editor/StudioEditor.tsx'
+/**
+ * Every file that can put an address on the screen.
+ *
+ * THE RAIL IS NO LONGER ONE FILE, and this list is what keeps the check honest
+ * about that. `Panel` earns its `data-help` from its own title (ui.tsx), so a
+ * panel is an address wherever it is written — and the moment one moved out of
+ * StudioEditor.tsx into a component of its own, this check started reporting
+ * the topic aimed at it as broken while the ring worked perfectly. Reported the
+ * wrong way round, which is the worse direction: a check that cries wolf gets
+ * argued with, and the next real fault gets argued with too.
+ *
+ * ADD A FILE HERE WHEN YOU MOVE A PANEL INTO IT. Hand-listed rather than
+ * globbed, so that the set of things that can claim an address stays something
+ * a reader can see at the top of this file.
+ */
+const SOURCES = ['src/studio/editor/StudioEditor.tsx', 'src/studio/editor/Lineup.tsx']
+const EDITOR = SOURCES.map((f) => f.replace('src/studio/editor/', '')).join(' or ')
 const GUIDE = 'src/studio/editor/guide.ts'
 
-const editor = readFileSync(EDITOR, 'utf8')
+const editor = SOURCES.map((f) => readFileSync(f, 'utf8')).join('\n')
 const guide = readFileSync(GUIDE, 'utf8')
 
 /**

@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'lineup-panel',
+    date: '2026-08-29',
+    kind: 'new',
+    title: 'Change the lineup once, not on every slide',
+    body: 'Lineup lists every role on your board with the player filling it, and picking a new one changes the name, the number and the face on every phase at once. Nobody moves: the runs, the timing and the shape stay exactly as you drew them. Build a move properly once and put a different eleven into it next week in a few seconds. It also flags what is easy to miss on a long board, telling you a role nobody is on, the same player in two places, and any phase that disagrees with the others about who somebody is.',
+    where: 'Lineup, under Teams and kit',
+  },
+  {
     id: 'session-grid',
     date: '2026-08-29',
     kind: 'new',

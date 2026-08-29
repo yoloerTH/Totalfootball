@@ -376,6 +376,9 @@ export const HINT = {
 
   labels: 'What is printed on the counters: the position they play, or their shirt number.',
 
+  lineup:
+    'Who is filling each role, across every phase at once. Pick a player here and the name, the number and the face change on all of them, and nobody moves: the runs, the timing and the shape stay exactly as you drew them. That is what makes a board worth keeping. Build the movement once and put next week\'s eleven into it in a few seconds. It also tells you what it finds wrong, which is the part that saves a Friday night: a role nobody is on, the same player in two places, and any phase that disagrees with the others about who somebody is.',
+
   namePlace:
     'Where a player\'s name is printed. Above the counter is how the board has always drawn. Below is for a board that needs the air above it, for a title plate, for raised headshots, or simply because the names read better under the shape.',
   photoPlace:
@@ -1207,6 +1210,43 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
     target: { drawer: DRAWER.teams, anchor: 'Your club', name: 'Your club' },
     // The panel is only drawn once a kit is saved. See `fallback` above.
+    fallback: 'settings',
+  },
+  {
+    id: 'lineup',
+    group: 'kit',
+    label: "Changing the lineup without redrawing the board",
+    // The words a coach hunting for this actually has, which are the words in
+    // the complaint that produced it: they are not looking for a "lineup panel",
+    // they are looking for the retyping to stop.
+    terms: [
+      'lineup',
+      'line up',
+      'team sheet',
+      'starting eleven',
+      'xi',
+      'swap',
+      'substitute',
+      'change player',
+      'change name',
+      'rename',
+      'wrong name',
+      'every slide',
+      'all phases',
+      'reuse',
+      'template',
+      'next week',
+      'new match',
+    ],
+    body: [
+      HINT.lineup,
+      'Names, numbers and faces belong to the player and so they travel across every phase on their own. Cues, fades and where somebody is standing belong to the phase, and those stay where you put them.',
+      'The counter beside each row takes you to that player on the board.',
+    ],
+    target: { drawer: DRAWER.teams, anchor: 'Lineup', name: 'Lineup' },
+    // Drawn once there is a squad to pick from, or a name already on the board.
+    // A coach with neither is being pointed at the squad, which is the thing
+    // they are missing.
     fallback: 'settings',
   },
   {

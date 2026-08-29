@@ -170,7 +170,17 @@ import { useSession } from '../account/session'
 import { useProfileOrNull } from '../account/profile'
 import { withProfile } from '../account/cloud'
 import { imageUrl } from '../account/images'
+import type { Player } from '../account/squad'
 import { SquadPick, useSquad, useSquadPhotos } from './SquadPick'
+import { Lineup } from './Lineup'
+import {
+  EMPTY_ROLE,
+  assignRole as assignRoleIn,
+  fillFrom,
+  healRoles as healRolesIn,
+  refreshRoles as refreshRolesIn,
+  type Role,
+} from '../lineup'
 import { GuideRail } from './GuideRail'
 import {
   ACTION,
@@ -352,6 +362,10 @@ function withEdits(placed: Token[], previous: Token[], keepLabel = true): Token[
       label: keepLabel ? p.label : t.label,
       name: p.name,
       photo: p.photo,
+      // With the name and the photo, never on its own. All three are the same
+      // fact arriving by different routes, and a re-place that kept two of them
+      // would leave a counter pointing at a squad row it no longer resembles.
+      playerId: p.playerId,
       cue: p.cue,
       dim: p.dim,
       // The bib is the one thing here that is not per-phase editing at all: it
@@ -3686,6 +3700,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   }
 
   // ── selection editing ──────────────────────────────────────────────────────
+  /**
+   * Change what the selected player is DOING. On this phase only.
+   *
+   * `patchAct`, so the write lands on the act the coach is looking at. That is
+   * right for a cue, a fade and a position, and it is the whole point of an act.
+   * It is wrong for a name — see `patchIdentity` below, and `PHASE_FIELDS` in
+   * ../schema.ts for which fields are which.
+   */
   const patchToken = (patch: Partial<Token>, label: string) => {
     if (!selectedToken) return
     const id = selectedToken.id
@@ -3693,6 +3715,111 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       ...a,
       tokens: a.tokens.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     }))
+  }
+
+  /**
+   * Change WHO the selected player is. On every phase at once.
+   *
+   * ── WHY THIS IS A SECOND FUNCTION AND NOT A FLAG ON THE FIRST ──────────────
+   *
+   * Because the two are never a judgement call at the call site. A field is a
+   * pose or it is a person, that is decided once in ../schema.ts, and every
+   * control writes through whichever function matches its field. A boolean
+   * argument would put the decision at each of the eight call sites, and the
+   * ninth one added next year would get it wrong in the direction that is hard
+   * to see: a name that goes onto one slide looks completely correct on the
+   * slide you are looking at.
+   *
+   * That is not hypothetical, it is the bug this replaced. `name`, `photo` and
+   * `label` went through `patchToken`, so a coach swapping their right back had
+   * to open all five phases and retype it on each, and forgetting phase four
+   * produced a board showing a substitution that never happened (user,
+   * 2026-08-29). `assignBib` beside the bibs had already been written the wide
+   * way, with a comment explaining exactly why a player cannot change shirt
+   * mid-move. The argument was right and it applied to four fields, not one.
+   *
+   * ── IT DOES NOT MOVE ANYBODY, AND THAT IS THE PROMISE ──────────────────────
+   *
+   * `x` and `y` are not in `PERSON_FIELDS`, so no patch that comes through here
+   * can carry them. The runs, the timing and the shape are untouched: this
+   * changes the tag on a counter and nothing else, which is what makes a
+   * playbook worth reusing next week.
+   *
+   * ── NO `seal()`, LIKE `patchToken` ─────────────────────────────────────────
+   *
+   * Both are driven by text inputs, and a sealed step per keystroke would make
+   * undo walk back through a name one letter at a time. The discrete callers
+   * below (`assignRole`, and the picker) seal for themselves.
+   */
+  const patchIdentity = (patch: Partial<Token>, label: string) => {
+    if (!selectedToken) return
+    const id = selectedToken.id
+    edit(`player:${label}`, (s) => ({
+      ...s,
+      acts: s.acts.map((a) => ({
+        ...a,
+        tokens: a.tokens.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      })),
+    }))
+  }
+
+  // ── the lineup ─────────────────────────────────────────────────────────────
+  //
+  // Three writes that take a role id rather than the selection, because the
+  // lineup panel edits eleven roles without selecting any of them. Each one is
+  // wide, for the reason `patchIdentity` gives above, and each one seals: they
+  // are single presses, not typing.
+
+  /** Put a squad player on a role, or empty it. */
+  const assignRole = (roleId: string, player: Player | null) => {
+    edit(player ? 'lineup:fill' : 'lineup:clear', (s) => assignRoleIn(s, roleId, player))
+    seal()
+  }
+
+  /**
+   * Re-copy the name and the face from the squad, for roles that have drifted.
+   *
+   * THE COACH PRESSES THIS. Nothing here runs on open, on save or on a squad
+   * edit, which is the rule ../account/squad.ts sets out at length: a board is a
+   * record of a session that happened and it keeps the names it was drawn with.
+   * A player renamed in settings in March does not rewrite February.
+   *
+   * `refreshFrom` and not `fillFrom`, so a relabelled counter survives. See
+   * `isStale` in ./Lineup.tsx.
+   */
+  const refreshRoles = (roles: Role[]) => {
+    edit('lineup:refresh', (s) => refreshRolesIn(s, roles, squad))
+    seal()
+  }
+
+  /**
+   * Make every act agree with the first one, for roles whose phases disagree.
+   *
+   * Only reachable from a warning that names the roles, and only for documents
+   * written before identity edits went wide — nothing can produce a split from
+   * here on. `Role` already carries the first act's values, which is the
+   * authority we want: the earliest phase a role appears on is the one the
+   * coach filled in deliberately.
+   */
+  const healRoles = (roles: Role[]) => {
+    edit('lineup:agree', (s) => healRolesIn(s, roles))
+    seal()
+  }
+
+  /**
+   * Show a role on the board, from its row in the lineup.
+   *
+   * Jumps to the phase FIRST when the role is not on this one. A twelfth man
+   * added to phase 3 alone has a row in the list, and a click that silently did
+   * nothing would read as a broken row rather than as a player who is elsewhere.
+   */
+  const selectRole = (roleId: string) => {
+    if (!act.tokens.some((t) => t.id === roleId)) {
+      const i = system.acts.findIndex((a) => a.tokens.some((t) => t.id === roleId))
+      if (i < 0) return
+      setActIndex(i)
+    }
+    setSelection({ kind: 'token', id: roleId })
   }
 
   const patchMark = (patch: Partial<Arrow>) => {
@@ -5367,6 +5494,36 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </Panel>
 
         {/*
+         * ── THE LINEUP ───────────────────────────────────────────────────────
+         *
+         * Under the two shapes and above the bibs, because that is the order the
+         * questions arrive in: a coach lays out the shape, fills it with this
+         * week's players, and then decides what they are wearing.
+         *
+         * In `Teams and kit` and NOT in `On this phase`, which is the only
+         * placement decision here worth arguing about. Everything in the phase
+         * drawer edits the beat on screen; this edits every beat at once. Putting
+         * a control that rewrites five slides inside the drawer headed with the
+         * number of the slide you are on would be the studio's own layout
+         * telling a coach the opposite of what the control does.
+         *
+         * Renders nothing at all until there is a squad or a name on the board.
+         * See the foot of ./Lineup.tsx.
+         */}
+        <Lineup
+          system={system}
+          squad={squad}
+          photoHrefs={photoHrefs}
+          /* From the selection and not from `selectedToken`, so the row stays
+             lit while the coach is on a phase that player is not standing on. */
+          selectedId={selection?.kind === 'token' ? selection.id : null}
+          onAssign={assignRole}
+          onSelect={selectRole}
+          onRefresh={refreshRoles}
+          onHeal={healRoles}
+        />
+
+        {/*
          * ── BIBS ─────────────────────────────────────────────────────────────
          *
          * Below the two shapes, because that is the order the question arrives
@@ -5939,35 +6096,43 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           <SquadPick
             squad={squad}
             token={selectedToken}
-            onPick={(player) =>
-              patchToken(
-                {
-                  // The squad's number wins if there is one, and the counter
-                  // keeps whatever it had if there is not. A player with no
-                  // number is a real entry, and blanking a counter that already
-                  // said "6" would be the picker taking something away.
-                  label: player.number || selectedToken.label,
-                  name: player.name,
-                  photo: player.photoPath || undefined,
-                },
-                'player',
-              )
-            }
+            /* `patchIdentity` and `fillFrom`, so this picker and the lineup
+               panel cannot come to mean different things. The rule about the
+               squad's number winning is written once, in ./Lineup.tsx, and both
+               call sites read it from there. The last time a rule like this was
+               spelled out at two call sites it stopped agreeing with itself —
+               see `creditOnly` in ../account/cloud.ts. */
+            onPick={(player) => {
+              patchIdentity(fillFrom(player, selectedToken.label), 'player')
+              seal()
+            }}
             // Clears what the pick put there and nothing else. The counter's
             // label is left alone for the same reason it is kept above: it is a
             // position on the board, not a property of the person.
-            onClear={() => patchToken({ name: undefined, photo: undefined }, 'player')}
+            onClear={() => {
+              patchIdentity(EMPTY_ROLE, 'player')
+              seal()
+            }}
           />
           <Field label="On the counter">
             <Tip text={HINT.playerLabel} title="On the counter" side="left" block>
-              <TextInput value={selectedToken.label} onChange={(v) => patchToken({ label: v }, 'label')} maxLength={4} />
+              <TextInput
+                value={selectedToken.label}
+                onChange={(v) => patchIdentity({ label: v }, 'label')}
+                maxLength={4}
+              />
             </Tip>
           </Field>
           <Field label="Name (optional)">
             <Tip text={HINT.playerName} title="Name" side="left" block>
               <TextInput
                 value={selectedToken.name ?? ''}
-                onChange={(v) => patchToken({ name: v || undefined }, 'name')}
+                /* Typing a name BREAKS THE LINK to the squad row, deliberately.
+                   A coach who picked Owusu and then edited the text has said
+                   the counter is not that row any more; leaving `playerId` on
+                   would let the lineup panel report their own typing as drift
+                   and offer to undo it. Picking from the squad sets it again. */
+                onChange={(v) => patchIdentity({ name: v || undefined, playerId: undefined }, 'name')}
                 placeholder="Printed above the counter"
                 maxLength={18}
               />

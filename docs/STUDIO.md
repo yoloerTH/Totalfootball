@@ -114,6 +114,10 @@ Remotion-free SVG port of `editor/src/components/football/TacticsBoard.tsx`.
 - **`schema.ts`** — `System` → `Act[]` → `Token[]`/`Arrow[]`/`Band[]`. One JSONB
   document. **Token `id` is stable across acts** — the note at the top of that
   file explains why everything depends on it.
+- **`lineup.ts`** — the role/person split, and the four writes that change who
+  is on a role. Pure `System` in, `System` out, so
+  `scripts/check-lineup.mjs` runs it against real five-phase documents. See
+  §3j.
 - **`share.ts`** — a System, deflated and base64url'd into a URL fragment, and
   back. `CompressionStream('deflate-raw')` with an uncompressed fallback, tagged
   so the decoder never guesses. A two-phase system is a **759-character link**.
@@ -735,6 +739,91 @@ trigger, not from the client — a browser with a wrong clock cannot forge one.
 **Still browser-local, on purpose:** `tf_theme` (a device preference, shared with
 the marketing site) and `tf-studio:owner` (the scope marker itself, which has to
 be readable synchronously before any async session resolves).
+
+## 3j. Role, person, pose — one lineup across every phase (2026-08-29)
+
+A coach asked for one thing and the request named the fix precisely: *"the
+positions and movements stay identical from match to match, but the starting
+lineup changes, so I have to open every single slide and retype the name."*
+Twenty to thirty minutes of a Friday, and the cost that matters is not the
+typing — it is the slide where the typing was forgotten, which puts a
+substitution nobody made on a board in front of a squad.
+
+**The document already had everything needed. One function was writing at the
+wrong width.** Token `id` has been stable across acts since the format was
+written, so the roles were already fixed and the movement was already keyed to
+them. But `patchToken` routes through `patchAct`, which writes the act on
+screen, and `name`, `photo` and `label` were going through it — filed next to
+`cue` and `dim` as though who somebody is were a property of one beat.
+`assignBib` had already been written the other way a month earlier, with a
+comment arguing exactly the coach's case about a player who cannot change shirt
+mid-move. The argument was right and it applied to four fields, not one.
+
+**So the three kinds of fact are now named in the schema and exported.**
+`ROLE_FIELDS` (`id`, `side`) never change. `PERSON_FIELDS` (`label`, `name`,
+`photo`, `playerId`, `bib`) have one answer per document and are written across
+every act by `patchIdentity`. `PHASE_FIELDS` (`x`, `y`, `cue`, `dim`, `benched`)
+belong to one act and are written by `patchToken`. **A new field on `Token` fails
+the build until it is in one of the three lists** — the decision takes ten
+seconds when the field is written and a fortnight when it comes back as a bug
+report.
+
+**`Token.playerId` is provenance and nothing reads it at draw time.**
+`account/squad.ts` argues at length that a board is a record of a session that
+happened and keeps the names it was drawn with, and that holds: the name, number
+and photo are still COPIED onto the document. What the id buys is the question
+copies cannot answer — which role is holding whom — because a name is not a key:
+two lads called Owusu collapse into one row, and a name corrected in settings
+stops matching the board it came from. It is read by the lineup panel and by
+Refresh from squad, which the coach presses. A squad edit still never reaches a
+finished board on its own. `withoutIdentity` strips it with the name and the
+photo; it is a key into an own-row table and has no business on a shared board.
+
+**The Lineup panel is a view, never a stored copy.** `rolesOf` derives every row
+from the acts on each render. A stored lineup is a thing that can disagree with
+the board, and the disagreement would stay invisible until somebody was
+presenting. It reports three things that are invisible on a board and expensive
+on a Friday: a role nobody is on, the same player in two places, and any phase
+that disagrees with the others about who somebody is.
+
+**It does not heal a split document on open.** Every board built before this was
+built under the narrow write, so plenty genuinely do say Owusu on phase 1 and
+nothing on phase 4. Silently rewriting a document a coach has not touched is how
+you lose the one phase where the difference was deliberate. It flags the split,
+names the roles, and offers a button.
+
+**Drift is measured on the person, never on the counter.** `applyLabels`
+rewrites every label on the board in one press, and `label` is a field a coach
+can retype. Comparing it would report every numbered player as permanently out
+of date, and pressing the offered button would put the numbers back and undo
+their choice. `fillFrom` writes the number when a player is picked, because that
+is the coach asking; `refreshFrom` does not.
+
+**In `Teams and kit`, not in `On this phase`.** The only placement worth arguing
+about. Everything in the phase drawer edits the beat on screen; this edits every
+beat at once, and a control that rewrites five slides sitting under a heading
+that names the slide you are on would have the layout contradicting the control.
+
+**The check has a behaviour tier, and that is the half that matters.**
+`scripts/check-lineup.mjs` builds a five-phase board with a value in every field,
+swaps a player, and asserts the name reached all five phases **and** that the
+positions, arrows, bands, balls, writing, gear, shots and captions came out
+byte-identical. A promise about what a function does NOT touch cannot be seen on
+a screen and is exactly the sort that rots quietly. Every rule in it was
+confirmed by breaking the source and watching it fail: the narrow write, a write
+that moves somebody, drift measured on the counter, the squad link ignored,
+split detection off, and a duplicate going unreported. **One of the six passed
+the first time and should not have** — the fixture had the two players called
+Owusu in an order where matching by name gave the same answer as matching by id,
+so the check agreed with a bug. The namesake is now listed first, deliberately,
+and the comment on the fixture says why.
+
+**`check-help.mjs` had to learn the rail is more than one file.** It collected
+panel headings from `StudioEditor.tsx` alone, so the moment a panel moved into a
+component of its own it reported the topic aimed at it as broken while the ring
+worked perfectly — a false alarm, which is the worse direction, because a check
+that cries wolf gets argued with and so does the next real fault. `SOURCES` at
+the top of it is the list to add to when a panel moves out.
 
 ## 6. Gotchas — every one of these was a real bug, found by looking
 

@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/check-help.mjs && node --import ./scripts/lib/ts.mjs scripts/check-setpieces.mjs && node --import ./scripts/lib/ts.mjs scripts/check-align.mjs && astro check && astro build",
+    "build": "node scripts/check-help.mjs && node --import ./scripts/lib/ts.mjs scripts/check-lineup.mjs && node --import ./scripts/lib/ts.mjs scripts/check-setpieces.mjs && node --import ./scripts/lib/ts.mjs scripts/check-align.mjs && astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
     "check:help": "node scripts/check-help.mjs",
+    "check:lineup": "node --import ./scripts/lib/ts.mjs scripts/check-lineup.mjs",
     "check:setpieces": "node --import ./scripts/lib/ts.mjs scripts/check-setpieces.mjs",
     "check:align": "node --import ./scripts/lib/ts.mjs scripts/check-align.mjs",
     "db:apply": "node scripts/apply-migration.mjs",

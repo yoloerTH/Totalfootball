@@ -9,13 +9,20 @@
  * in their personal settings, so a name that has been typed once is a press
  * rather than a retype, and so a name can arrive with a photograph attached.
  *
- * ── PICKING COPIES; IT DOES NOT LINK ─────────────────────────────────────────
+ * ── PICKING COPIES; IT STILL DOES NOT LINK ───────────────────────────────────
  *
  * The name, the number and the photo path are written ONTO the token, into the
- * System document. Nothing afterwards follows the link back to the squad row.
- * ../account/squad.ts argues this at the top and it is the same rule
+ * System document. Nothing afterwards follows anything back to the squad row on
+ * its own. ../account/squad.ts argues this at the top and it is the same rule
  * `withProfile` follows: a board is a record of a session that happened, and it
  * keeps the names it was drawn with even after a player has left the club.
+ *
+ * `Token.playerId` was added in 2026-08 and does NOT change that. It is written
+ * beside the copies and read by nothing that draws: it is how the lineup panel
+ * knows which role is holding whom, and how Refresh from squad knows what it
+ * would be refreshing FROM. Both are things the coach does. A squad edit still
+ * never reaches a finished board by itself, and a player deleted from the squad
+ * still leaves every counter they were ever on exactly as it was.
  *
  * ── AND THE PHOTOS ARE NOT IN THE DOCUMENT ───────────────────────────────────
  *
@@ -30,6 +37,7 @@ import { useEffect, useState } from 'react'
 import type { System, Token } from '../schema'
 import { listSquad, photoPaths, signPhotos, type Player } from '../account/squad'
 import { useSession } from '../account/session'
+import { playerFor } from '../lineup'
 
 /**
  * Storage path → signed URL, for every photograph anywhere in this system.
@@ -114,9 +122,10 @@ export function SquadPick({
 }) {
   if (squad.length === 0) return null
 
-  // Matched on NAME, because that is what was copied. There is no id on the
-  // token to match against, on purpose — see the note at the top of this file.
-  const current = squad.find((p) => p.name === token.name)
+  // `playerFor` rather than a name match, so this and the lineup panel cannot
+  // disagree about which row a counter is holding. Id first, name as the
+  // fallback that keeps every board built before `playerId` existed working.
+  const current = playerFor(token, squad)
 
   return (
     <div className="mb-3">

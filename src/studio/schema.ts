@@ -57,6 +57,36 @@ export interface Token {
    * not a gap to close casually; see the head of ./account/squad.ts.
    */
   photo?: string
+  /**
+   * Which row of the coach's own squad this counter was filled from.
+   *
+   * PROVENANCE. NOTHING READS IT AT DRAW TIME, and that is the whole design.
+   * The name, the number and the photo path above are still COPIED onto the
+   * document, so this field can name a player who has been deleted, renamed or
+   * renumbered since, and every board drawn last autumn keeps the names it was
+   * drawn with. ./account/squad.ts argues that at the top and it still holds:
+   * a board is a record of a session that happened.
+   *
+   * What it buys is the question the copies cannot answer — WHICH ROLE IS
+   * HOLDING WHOM. Matching a counter back to a squad row by name was the only
+   * way to ask that, and a name is not a key: two lads called Owusu collapse
+   * into one row, and a name corrected in settings stops matching the board it
+   * came from. The lineup panel needs a definite answer for eleven roles at
+   * once, so it gets one.
+   *
+   * It is therefore read by exactly two things, both of which the coach drives:
+   * the lineup panel, to say who is on a role, and Refresh from squad, which
+   * they press. A squad edit never reaches a board on its own.
+   *
+   * A PERSON FIELD — see `PERSON_FIELDS`. It moves across every act with the
+   * name it arrived with, because a role that was Owusu on phase 1 and nobody
+   * on phase 4 is the inconsistency this whole file exists to prevent.
+   *
+   * Stripped by `withoutIdentity` alongside the name and the photo. It is an
+   * opaque uuid, but it is a key into an account-private table and it has no
+   * business on a board being handed to a stranger.
+   */
+  playerId?: string
   cue?: Cue
   /** Greyed back, for players who are not part of this act's lesson. */
   dim?: boolean
@@ -112,6 +142,78 @@ export interface Token {
    */
   benched?: boolean
 }
+
+/*
+ * ── EVERY FIELD ON `Token`, SORTED INTO ONE OF THREE KINDS ───────────────────
+ *
+ * A counter carries three unrelated sorts of fact, and the studio got one bug
+ * out of each of them by not saying which was which:
+ *
+ *   THE ROLE     who this counter IS, across the whole document. Never edited.
+ *   THE PERSON   who is filling that role this week. One value per document.
+ *   THE POSE     what they are doing on THIS beat. One value per act.
+ *
+ * The distinction is not cosmetic — it decides how wide a write goes. A name is
+ * a person fact, so retyping it on phase 1 has to reach phases 2 to 5; a cue is
+ * a pose fact, so setting PRESS on phase 3 must NOT. Until these lists existed,
+ * `name`, `photo` and `label` were being written one act at a time next to
+ * `cue` and `dim`, which is why a coach had to open all five slides and type
+ * the same substitution five times (user, 2026-08-29). `bib` had already been
+ * moved to the wide write by hand, alone, with a comment explaining why — the
+ * comment was right and the field was the only one that got the benefit.
+ *
+ * THEY ARE EXPORTED SO THAT A MACHINE CAN CHECK THEM. scripts/check-lineup.mjs
+ * reads the field names out of the interface above and fails the build if any
+ * one of them is in neither list, in both, or in a list twice. That is the same
+ * job `withEdits` in ./editor/StudioEditor.tsx does by hand and has a comment
+ * begging the next person not to forget — `photo` proved it could be forgotten.
+ * A new field on `Token` now stops the build until somebody has decided which
+ * kind of fact it is, which is a decision that takes ten seconds when the field
+ * is written and a fortnight when it surfaces as a coach's bug report.
+ */
+
+/**
+ * WHO A COUNTER IS. Fixed for the life of the document; no control writes them.
+ *
+ * `side` is here rather than among the person fields because a counter changing
+ * team is not a substitution, it is a different board. Nothing in the editor
+ * offers it, and the tween would have no idea what to do with it.
+ */
+export const ROLE_FIELDS = ['id', 'side'] as const
+
+/**
+ * WHO IS FILLING THE ROLE. Written across EVERY act at once.
+ *
+ * `label` is in this list and it is the only debatable one, so: what is printed
+ * on a counter is a position in one house style ("LB") and a shirt number in
+ * the other, and the studio lets a coach pick (`applyLabels`). Under the number
+ * reading it is plainly the person. Under the position reading it belongs to
+ * the role — but a role's position does not change between two poses of one
+ * move either, so the wide write is correct in BOTH readings and the narrow one
+ * is correct in neither. A counter reading "LB" on phase 1 and "3" on phase 4
+ * is a bug however you argue it.
+ *
+ * `photo` and `playerId` travel with `name` because they are the same fact
+ * arriving by a different route; splitting them is how a board ends up with a
+ * face on three phases and a blank on the other two.
+ */
+export const PERSON_FIELDS = ['label', 'name', 'photo', 'playerId', 'bib'] as const
+
+/**
+ * WHAT THEY ARE DOING ON THIS BEAT. Written to the act the coach is looking at.
+ *
+ * `x`/`y` lead the list because they are the reason acts exist at all: the
+ * difference between one act's coordinates and the next one's IS the animation.
+ * Widening a write to include them would flatten a film into a still.
+ *
+ * `benched` is a pose and not a person, which reads oddly until you build a
+ * session: who is on the grid and who is waiting is exactly what changes from
+ * drill to drill. See `Token.benched`.
+ */
+export const PHASE_FIELDS = ['x', 'y', 'cue', 'dim', 'benched'] as const
+
+/** A field a coach's edit can travel across every act on. */
+export type PersonField = (typeof PERSON_FIELDS)[number]
 
 /**
  * Arrows carry the meaning on a coach's board: a run, a pass, a press, a
@@ -1016,7 +1118,8 @@ export function uid(prefix: string): string {
  *      contains the account's uuid, and which is account-private data by
  *      decision (see ./account/squad.ts). A shared board never carried the
  *      FACES, because supabase/013 will not sign a path a stranger does not
- *      own, but it did carry the names.
+ *      own, but it did carry the names. `playerId` joined them when the lineup
+ *      panel was built: it is a key into `studio_squad`, which is own-row.
  *
  * Taking one and leaving the others is the kind of half-answer that reads as a
  * bug: a board that says "not presented by anybody" over eleven counters with
@@ -1055,7 +1158,15 @@ export function withoutIdentity(system: System): System {
     acts: system.acts.map((act) => ({
       ...act,
       tokens: act.tokens.map((t) =>
-        t.name || t.photo ? { ...t, name: undefined, photo: undefined } : t,
+        // `playerId` with the other two, not because a uuid names anybody to a
+        // stranger but because it is a key into a table only this account may
+        // read, and a document that carries one is carrying a reference to
+        // private data for no reader who could ever use it. All three or none:
+        // taking the name and leaving the pointer to the name is the shape of
+        // leak this whole function exists to avoid.
+        t.name || t.photo || t.playerId
+          ? { ...t, name: undefined, photo: undefined, playerId: undefined }
+          : t,
       ),
     })),
   }
