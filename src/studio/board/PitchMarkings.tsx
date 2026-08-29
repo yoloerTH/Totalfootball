@@ -51,9 +51,10 @@ interface Props {
    * to read the numbers off is not a board.
    */
   turned?: boolean
+  goalHref?: string
 }
 
-export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
+export function Pitch({ idp, texture = false, grid, turned = false, goalHref }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
   const ruled = resolveGrid(grid)
@@ -63,6 +64,10 @@ export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
   const penY0 = MID - MARK.penWidth / 2
   const sixY0 = MID - MARK.sixWidth / 2
   const goalY0 = MID - MARK.goalWidth / 2
+  
+  // Goals from perspective assets need to be scaled up slightly to match the visual weight of flat lines
+  const GOAL_IMG_W = MARK.goalWidth * 1.25
+  const GOAL_IMG_H = GOAL_IMG_W / 2.663
 
   return (
     <>
@@ -82,6 +87,7 @@ export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
           width={p.mow.kind === 'stripe' ? u(p.mow.size * 2) : u(p.mow.size)}
           height={u(p.mow.size)}
           patternUnits="userSpaceOnUse"
+          patternTransform={p.mow.kind === 'checker' ? 'rotate(45)' : undefined}
         >
           {p.mow.kind === 'checker' ? (
             <>
@@ -213,12 +219,16 @@ export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
         <path
           d={`M ${u(MARK.penDepth)} ${u(MID - arcH)} A ${u(MARK.circle)} ${u(MARK.circle)} 0 0 1 ${u(MARK.penDepth)} ${u(MID + arcH)}`}
         />
-        <rect
-          x={u(-MARK.goalDepth)}
-          y={u(goalY0)}
-          width={u(MARK.goalDepth)}
-          height={u(MARK.goalWidth)}
-        />
+        
+        <g transform={`translate(0 ${u(MID)}) rotate(-90)`}>
+          <image
+            href={goalHref}
+            x={u(-GOAL_IMG_W / 2)}
+            y={u(-GOAL_IMG_H)}
+            width={u(GOAL_IMG_W)}
+            height={u(GOAL_IMG_H)}
+          />
+        </g>
 
         {/* ── right end (mirrored) ── */}
         <rect
@@ -243,7 +253,16 @@ export function Pitch({ idp, texture = false, grid, turned = false }: Props) {
         <path
           d={`M ${u(L - MARK.penDepth)} ${u(MID - arcH)} A ${u(MARK.circle)} ${u(MARK.circle)} 0 0 0 ${u(L - MARK.penDepth)} ${u(MID + arcH)}`}
         />
-        <rect x={u(L)} y={u(goalY0)} width={u(MARK.goalDepth)} height={u(MARK.goalWidth)} />
+        
+        <g transform={`translate(${u(L)} ${u(MID)}) rotate(90)`}>
+          <image
+            href={goalHref}
+            x={u(-GOAL_IMG_W / 2)}
+            y={u(-GOAL_IMG_H)}
+            width={u(GOAL_IMG_W)}
+            height={u(GOAL_IMG_H)}
+          />
+        </g>
 
         {/* corner arcs, each bulging into the pitch */}
         <path d={`M ${u(MARK.corner)} 0 A ${u(MARK.corner)} ${u(MARK.corner)} 0 0 1 0 ${u(MARK.corner)}`} />

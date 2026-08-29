@@ -197,7 +197,7 @@ export async function inlineGear(kinds: string[]): Promise<Record<string, string
   return out
 }
 
-/** Every gear kind used anywhere in a system, for the exporter to inline. */
+/** Every gear kind used anywhere in a system, plus the mini-goal for the pitch, for the exporter to inline. */
 export function gearKinds(system: { acts: { gear?: { kind: string }[] }[] }): string[] {
-  return [...new Set(system.acts.flatMap((a) => (a.gear ?? []).map((g) => g.kind)))]
+  return [...new Set(['mini-goal', ...system.acts.flatMap((a) => (a.gear ?? []).map((g) => g.kind))])]
 }
