@@ -43,6 +43,7 @@
  * the same transition rather than starting a new one.
  */
 
+import { PITCH } from './board/pitch'
 import { ballFields, ballsOf, uid } from './schema'
 import type { Act, Arrow, ArrowKind, BallMark } from './schema'
 
@@ -84,17 +85,53 @@ export type ActionKind = Exclude<ArrowKind, 'line'>
 const POSSESSION_PCT = 4
 
 /**
- * How far short of their target a press stops, in percent of the pitch's length.
+ * How far short of their target a press stops, in METRES.
  *
  * A press closes somebody down; it does not stand on them. Arriving on the exact
  * spot puts two counters on top of each other, which reads as a tackle that has
  * already happened rather than as pressure being applied — and pressure being
  * applied is the entire idea the tool exists to draw.
  */
-const PRESS_GAP_PCT = 3.2
+const PRESS_GAP_M = 3.4
+
+/**
+ * How far short of a MAN a run or a carry stops, in metres.
+ *
+ * This is the same rule as the press gap and it was missing, which is a bug
+ * somebody found the hard way: a Run aimed at another player landed the runner
+ * on that player's exact centre, and one counter vanished underneath another.
+ * The arrow still points AT him — being run at is the whole picture — but the
+ * runner arrives beside him.
+ *
+ * Wider than the press gap on purpose, and the number is not free. A counter is
+ * TOKEN_R = 2.1m, so two of them touch at 4.2m centre to centre. At 4.4 they sit
+ * a hand apart and both stay whole. A press is allowed to be tighter than that
+ * because a press being uncomfortably close IS the thing it draws.
+ *
+ * A run aimed at a SPOT is untouched. A coach pointing at bare grass has said
+ * where they want the man, and the tool does not get to argue about it.
+ */
+const RUN_GAP_M = 4.4
 
 /** Where the ball settles when a pass arrives, measured back down the pass. */
 const RECEIVE_GAP_PCT = 2.6
+
+/**
+ * A gap in metres, as a distance in board units along the heading travelled.
+ *
+ * THE BOARD IS NOT SQUARE. One unit along the pitch is 1.05m and one across it
+ * is 0.68m, so a stand-off measured in raw units is half again as tight for a
+ * man arriving from directly behind as for one arriving from the side — and the
+ * counters overlap or do not depending on which way somebody happened to run.
+ * The constants above are metres, because metres is what a coach means by "he
+ * stops short of him", and this is the only place the difference is handled.
+ */
+function gapUnits(from: Pt, to: Pt, metres: number): number {
+  const du = Math.hypot(to.x - from.x, to.y - from.y)
+  if (du < 1e-9) return 0
+  const dm = Math.hypot(((to.x - from.x) * PITCH.length) / 100, ((to.y - from.y) * PITCH.width) / 100)
+  return (metres * du) / dm
+}
 
 const at = (act: Act, id: string) => act.tokens.find((t) => t.id === id) ?? null
 
@@ -219,10 +256,12 @@ export function perform(kind: ActionKind, cur: Act, next: Act, actorId: string, 
 
     case 'carry': {
       // Player and ball travel together, keeping whatever offset the coach had
-      // already given the ball — a carry does not re-tidy their board.
-      const moved = moveToken(next, actorId, there)
-      const dx = there.x - here.x
-      const dy = there.y - here.y
+      // already given the ball — a carry does not re-tidy their board. Driving
+      // AT a man stops in front of him; driving at a spot arrives on it.
+      const land = target.kind === 'token' ? shortOf(here, there, gapUnits(here, there, RUN_GAP_M)) : there
+      const moved = moveToken(next, actorId, land)
+      const dx = land.x - here.x
+      const dy = land.y - here.y
       return {
         arrow,
         next: moveBall(moved, ball, ball ? { x: ball.x + dx, y: ball.y + dy } : here),
@@ -232,12 +271,14 @@ export function perform(kind: ActionKind, cur: Act, next: Act, actorId: string, 
 
     case 'run': {
       // Movement without the ball — unless this is the player on it, in which
-      // case leaving the ball behind is not what anybody asked for.
-      const moved = moveToken(next, actorId, there)
+      // case leaving the ball behind is not what anybody asked for. Running at a
+      // man stops beside him; running to a spot arrives on it.
+      const land = target.kind === 'token' ? shortOf(here, there, gapUnits(here, there, RUN_GAP_M)) : there
+      const moved = moveToken(next, actorId, land)
       const carrying = Boolean(ball) && Math.hypot(ball!.x - here.x, ball!.y - here.y) <= POSSESSION_PCT
       if (!carrying) return { arrow, next: moved, posed: true }
-      const dx = there.x - here.x
-      const dy = there.y - here.y
+      const dx = land.x - here.x
+      const dy = land.y - here.y
       return {
         arrow,
         next: moveBall(moved, ball, { x: ball!.x + dx, y: ball!.y + dy }),
@@ -248,7 +289,11 @@ export function perform(kind: ActionKind, cur: Act, next: Act, actorId: string, 
     case 'press': {
       // Close down and stop short. The ball is not touched: a press is pressure
       // going on, and whether it wins the ball is the next phase's business.
-      return { arrow, next: moveToken(next, actorId, shortOf(here, there, PRESS_GAP_PCT)), posed: true }
+      return {
+        arrow,
+        next: moveToken(next, actorId, shortOf(here, there, gapUnits(here, there, PRESS_GAP_M))),
+        posed: true,
+      }
     }
   }
 }
