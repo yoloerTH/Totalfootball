@@ -117,26 +117,42 @@ export const CAMERA_PUSHES: {
   tightest: number
   margin: number
 }[] = [
+  /*
+   * EVERY SETTING WAS ONE STEP TOO TIGHT, and all three moved together.
+   *
+   * `tightest` was 0.68 / 0.56 / 0.45 and is now 0.80 / 0.68 / 0.56. On an
+   * upright full pitch that is a floor of 54 / 46 / 38 metres across instead of
+   * 46 / 38 / 31, which is the difference between seeing a back four and seeing
+   * two of them. The complaint was that a followed phase lost the shape the
+   * phase was about, and a camera that has to be corrected by hand on every
+   * phase is not a camera setting, it is a chore.
+   *
+   * The margins moved much less. `margin` is what decides whether a frame ends
+   * up wider than WORTH_IT and therefore does not move at all, so opening it
+   * out as hard as the floor would have quietly turned Gentle into Fixed on
+   * half the phases in a film. The floor is the honest control for "show me
+   * more"; the margin is only there to keep the subject off the edge.
+   */
   {
     id: 'gentle',
     label: 'Gentle',
     hint: 'Barely moves. Keeps most of the pitch in shot and drifts towards the action.',
-    tightest: 0.68,
+    tightest: 0.8,
     margin: 15,
   },
   {
     id: 'standard',
     label: 'Standard',
     hint: 'Frames the phase with room around it. The middle setting, and a safe one.',
-    tightest: 0.56,
-    margin: 11,
+    tightest: 0.68,
+    margin: 12,
   },
   {
     id: 'close',
     label: 'Close',
     hint: 'Pushes right in on what each phase is about. The way the videos are cut.',
-    tightest: 0.45,
-    margin: 9,
+    tightest: 0.56,
+    margin: 10,
   },
 ]
 
@@ -247,7 +263,18 @@ function interest(act: Act): Pt[] {
  * `lerpShot`, where the difference decides what a move to a wide phase does.
  */
 export function shotFor(system: System, act: Act, view: PitchView): Shot | null {
-  if (resolveCamera(system.camera) !== 'follow') return null
+  /*
+   * THE PHASE OVERRULES THE DOCUMENT.
+   *
+   * `Act.camera` undefined means "whatever the system says", which is every
+   * phase of every document written before this line existed, so nothing
+   * already made moves by a pixel. Set on a phase, it wins.
+   *
+   * It is here rather than above `act.shot` on purpose: a phase turned off is
+   * off, hand-drawn frame or not, because the whole point is to hold the
+   * opening of a film still while the phases that carry the idea track.
+   */
+  if (resolveCamera(act.camera ?? system.camera) !== 'follow') return null
 
   /*
    * A frame the coach drew wins outright, and skips every test below it.

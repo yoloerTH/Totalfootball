@@ -1,0 +1,9245 @@
+{
+ "v": 1,
+ "title": "The 2-3-5 Build-Up",
+ "pitch": "full-vertical",
+ "surface": "chalk",
+ "grid": "channels",
+ "matchBall": "trionda",
+ "camera": "off",
+ "keepShape": true,
+ "hold": 500,
+ "move": 1100,
+ "teams": {
+  "us": {
+   "base": "#ebebeb",
+   "deep": "#b7b7b7",
+   "name": "Our team",
+   "text": "#161618"
+  },
+  "them": {
+   "base": "#E2473B",
+   "deep": "#B5392F",
+   "name": "Opposition",
+   "text": "#FFFFFF"
+  }
+ },
+ "acts": [
+  {
+   "id": "a00",
+   "title": "Why Your Back Four Cannot Play Out",
+   "caption": "",
+   "tokens": [],
+   "ball": null,
+   "arrows": [],
+   "bands": [],
+   "notes": "Empty board, title only."
+  },
+  {
+   "id": "a01",
+   "title": "The Problem",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "A textbook 4-3-3 against a 4-4-2 mid block. Goal kick."
+  },
+  {
+   "id": "a02",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [],
+   "texts": [
+    {
+     "id": "tx-2v2",
+     "x": 18.0,
+     "y": 50.0,
+     "text": "2 v 2",
+     "size": "l",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "red"
+    }
+   ],
+   "notes": "Their two strikers, our two centre-backs. Even. Even means they can press and never be wrong."
+  },
+  {
+   "id": "a03",
+   "title": "",
+   "caption": "OUTNUMBERED TWICE",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [],
+   "texts": [
+    {
+     "id": "tx-2v2",
+     "x": 18.0,
+     "y": 50.0,
+     "text": "2 v 2",
+     "size": "l",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "red"
+    },
+    {
+     "id": "tx-3v4",
+     "x": 38.0,
+     "y": 50.0,
+     "text": "3 v 4",
+     "size": "l",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "red"
+    }
+   ],
+   "notes": "And their four midfielders against our three. There is no free man anywhere on the board. This is the flat 4-3-3's problem in two numbers."
+  },
+  {
+   "id": "a04",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 43.0,
+     "y": 16.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 41.0,
+     "y": 38.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 41.0,
+     "y": 62.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 84.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 20.0,
+     "y": 40.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 20.0,
+     "y": 60.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 16.5,
+    "y": 35.0
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "They press. The strikers take a centre-back each and the midfield four steps up behind them. The ball goes to the left centre-back with nothing in front of him."
+  },
+  {
+   "id": "a05",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 34.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "cue": "PRESS"
+    },
+    {
+     "x": 41.0,
+     "y": 38.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 41.0,
+     "y": 62.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 84.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 20.0,
+     "y": 40.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 20.0,
+     "y": 60.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 22.5,
+    "y": 12.0
+   },
+   "arrows": [
+    {
+     "id": "ar-trap",
+     "kind": "press",
+     "from": {
+      "x": 42.0,
+      "y": 15.0
+     },
+     "to": {
+      "x": 30.0,
+      "y": 14.0
+     },
+     "fromId": "them-RM"
+    }
+   ],
+   "bands": [],
+   "notes": "The only pass is the one they want: wide, to the full-back, with the touchline already doing half their work."
+  },
+  {
+   "id": "a06",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 34.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "cue": "PRESS"
+    },
+    {
+     "x": 37.0,
+     "y": 26.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "COVER"
+    },
+    {
+     "x": 41.0,
+     "y": 62.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 84.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 20.0,
+     "y": 40.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 20.0,
+     "y": 60.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 22.5,
+    "y": 12.0
+   },
+   "arrows": [],
+   "bands": [],
+   "texts": [
+    {
+     "id": "tx-out",
+     "x": 30.0,
+     "y": 5.0,
+     "text": "NO WAY OUT",
+     "size": "m",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "red"
+    }
+   ],
+   "notes": "Inside is covered, forward is covered, the line is behind him. No kick on this phase: the trap closes without the ball moving."
+  },
+  {
+   "id": "a07",
+   "title": "",
+   "caption": "THIS IS WHY TEAMS GO LONG",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 34.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "cue": "PRESS"
+    },
+    {
+     "x": 37.0,
+     "y": 26.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "COVER"
+    },
+    {
+     "x": 41.0,
+     "y": 62.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 84.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 20.0,
+     "y": 40.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 20.0,
+     "y": 60.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 33.0,
+    "y": 16.0
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "Turnover in our own third. Everything after this is about never arriving here."
+  },
+  {
+   "id": "a08",
+   "title": "The Rotation",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 21.0,
+     "y": 10.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 21.0,
+     "y": 90.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": null,
+   "arrows": [
+    {
+     "id": "ar-inv-l",
+     "kind": "run",
+     "from": {
+      "x": 21.0,
+      "y": 10.0
+     },
+     "to": {
+      "x": 33.0,
+      "y": 31.0
+     },
+     "fromId": "us-LB",
+     "bend": -1
+    },
+    {
+     "id": "ar-inv-r",
+     "kind": "run",
+     "from": {
+      "x": 21.0,
+      "y": 90.0
+     },
+     "to": {
+      "x": 33.0,
+      "y": 69.0
+     },
+     "fromId": "us-RB",
+     "bend": 1
+    }
+   ],
+   "bands": [],
+   "notes": "Back to the start, no press yet. The two arrows are the whole change: the full-backs are not going forward, they are going inside."
+  },
+  {
+   "id": "a09",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 15.0,
+     "y": 37.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 15.0,
+     "y": 63.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 31.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 32.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 43.0,
+     "y": 68.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 8.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 62.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "Both full-backs invert and stand beside the six. Ball still: the movement is the event."
+  },
+  {
+   "id": "a10",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "The centre-backs split to the edges of the box, the eights climb into the half-spaces, the wingers stand on the touchline and stay there."
+  },
+  {
+   "id": "a11",
+   "title": "",
+   "caption": "TWO. THREE. FIVE.",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Zero movement. The bands are what arrives."
+  },
+  {
+   "id": "a12",
+   "title": "",
+   "caption": "ONE MAN IN EVERY LANE",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1",
+     "dim": true
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3",
+     "dim": true
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4",
+     "dim": true
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5",
+     "dim": true
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2",
+     "dim": true
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6",
+     "dim": true
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "dim": true
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Five channels, five men, one each. Their back four cannot double up on anybody without leaving somebody completely alone. Width is held by standing still, not by running."
+  },
+  {
+   "id": "a13",
+   "title": "",
+   "caption": "THREE BETWEEN THE LINES",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1",
+     "dim": true
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4",
+     "dim": true
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5",
+     "dim": true
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8",
+     "dim": true
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10",
+     "dim": true
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11",
+     "dim": true
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9",
+     "dim": true
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7",
+     "dim": true
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "dim": true
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Two inverted full-backs and the six, in the strip between their strikers and their midfield four."
+  },
+  {
+   "id": "a14",
+   "title": "",
+   "caption": "TWO, AND THE KEEPER MAKES THREE",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3",
+     "dim": true
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2",
+     "dim": true
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6",
+     "dim": true
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8",
+     "dim": true
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10",
+     "dim": true
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11",
+     "dim": true
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9",
+     "dim": true
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7",
+     "dim": true
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "dim": true
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5",
+     "dim": true
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "dim": true
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8",
+     "dim": true
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "dim": true
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "dim": true
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Yes, it is 2 v 2 at the back. With the keeper playing it is 3 v 2, and the free man has been moved up a line to somewhere he is worth more."
+  },
+  {
+   "id": "a15",
+   "title": "Their Two Cannot Cover Three",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 7.6,
+    "y": 50.4
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-free",
+     "kind": "zone",
+     "shape": "box",
+     "tone": "gold",
+     "label": "Nobody owns this",
+     "rect": {
+      "x": 30.0,
+      "y": 22.0,
+      "w": 14.0,
+      "h": 56.0
+     }
+    }
+   ],
+   "notes": "Two strikers have two jobs and can only do one. Press the back two, or screen the middle three. The next ten phases are what happens either way."
+  },
+  {
+   "id": "a16",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 19.0,
+     "y": 33.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 19.0,
+     "y": 67.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 14.5,
+    "y": 31.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-free",
+     "kind": "zone",
+     "shape": "box",
+     "tone": "gold",
+     "label": "Nobody owns this",
+     "rect": {
+      "x": 30.0,
+      "y": 22.0,
+      "w": 14.0,
+      "h": 56.0
+     }
+    }
+   ],
+   "notes": "OPTION ONE. They press the two. Ball to the left centre-back, and their whole block slides to it. Watch their far-side midfielder come inside."
+  },
+  {
+   "id": "a17",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6",
+     "cue": "SPARE"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 19.0,
+     "y": 33.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 19.0,
+     "y": 67.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 34.5,
+    "y": 50.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-free",
+     "kind": "zone",
+     "shape": "box",
+     "tone": "gold",
+     "label": "Nobody owns this",
+     "rect": {
+      "x": 30.0,
+      "y": 22.0,
+      "w": 14.0,
+      "h": 56.0
+     }
+    }
+   ],
+   "notes": "Both strikers are now behind the ball. The six receives facing forward, past the first line, with nobody within ten metres of him."
+  },
+  {
+   "id": "a18",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 44.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "PRESS"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 19.0,
+     "y": 33.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 19.0,
+     "y": 67.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 34.5,
+    "y": 50.5
+   },
+   "arrows": [
+    {
+     "id": "ar-step",
+     "kind": "press",
+     "from": {
+      "x": 44.0,
+      "y": 40.0
+     },
+     "to": {
+      "x": 39.5,
+      "y": 43.0
+     },
+     "fromId": "them-RCM"
+    }
+   ],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Their four becomes a three the moment one of them steps. No kick: the step is the event."
+  },
+  {
+   "id": "a19",
+   "title": "",
+   "caption": "PRESS ONE, LOSE THE NEXT",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 50.0,
+     "y": 30.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 44.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "PRESS"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 19.0,
+     "y": 33.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "PRESS"
+    },
+    {
+     "x": 19.0,
+     "y": 67.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "PRESS"
+    }
+   ],
+   "ball": {
+    "x": 51.5,
+    "y": 30.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Into the half-space he just left, received by a man already facing their goal."
+  },
+  {
+   "id": "a20",
+   "title": "",
+   "caption": "SO THEY SCREEN INSTEAD",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": null,
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "OPTION TWO. Rewind. The strikers do not press: they drop onto the six and screen the middle three. Ball off the board across the cut so the rewind does not fire a kick."
+  },
+  {
+   "id": "a21",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": {
+    "x": 14.5,
+    "y": 31.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Same start, different answer from them."
+  },
+  {
+   "id": "a22",
+   "title": "",
+   "caption": "THEN NOBODY IS ON THE BALL",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 24.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": {
+    "x": 25.5,
+    "y": 30.5
+   },
+   "arrows": [
+    {
+     "id": "ar-carry",
+     "kind": "carry",
+     "from": {
+      "x": 14.0,
+      "y": 30.0
+     },
+     "to": {
+      "x": 23.0,
+      "y": 30.0
+     },
+     "fromId": "us-LCB"
+    }
+   ],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "A screen is not a press. The centre-back simply drives. A carried ball is what forces a defender to commit, and this is the phase most teams never take."
+  },
+  {
+   "id": "a23",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": {
+    "x": 25.5,
+    "y": 30.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "And the carry starts a chain: the inverted left-back vacates the space the centre-back is driving into and climbs into the half-space. Never two men on the same square metre. Their block slides across with it."
+  },
+  {
+   "id": "a24",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "PRESS"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": {
+    "x": 25.5,
+    "y": 30.5
+   },
+   "arrows": [
+    {
+     "id": "ar-step2",
+     "kind": "press",
+     "from": {
+      "x": 44.0,
+      "y": 38.0
+     },
+     "to": {
+      "x": 39.5,
+      "y": 35.0
+     },
+     "fromId": "them-RCM"
+    }
+   ],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "The same man, forced out by a carry instead of by a pass. He cannot hold his line and let a centre-back walk into the middle third."
+  },
+  {
+   "id": "a25",
+   "title": "",
+   "caption": "SAME DOOR. DIFFERENT KEY.",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6",
+     "cue": "PRESS"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9",
+     "cue": "COVER"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10",
+     "cue": "COVER"
+    }
+   ],
+   "ball": {
+    "x": 55.5,
+    "y": 28.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "The same half-space, open again. Press or screen, their midfield four has to break, and when it breaks the eight is behind it. That is the whole system in one sentence."
+  },
+  {
+   "id": "a26",
+   "title": "The Third Man",
+   "caption": "HE CANNOT TURN",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 59.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 55.5,
+    "y": 28.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Their right centre-back follows him in, tight to his back. The eight is facing his own goal. Most build-ups die exactly here."
+  },
+  {
+   "id": "a27",
+   "title": "",
+   "caption": "HE DOES NOT HAVE TO",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 59.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 41.5,
+    "y": 44.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Lay it back to the six. The eight's job was to drag a centre-back thirty metres out of the back four, and it is already done."
+  },
+  {
+   "id": "a28",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 59.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 69.0,
+     "y": 82.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 59.0,
+    "y": 91.5
+   },
+   "arrows": [
+    {
+     "id": "ar-switch",
+     "kind": "switch",
+     "from": {
+      "x": 42.0,
+      "y": 46.0
+     },
+     "to": {
+      "x": 57.0,
+      "y": 89.0
+     },
+     "fromId": "us-CDM",
+     "toId": "us-RW",
+     "bend": 1,
+     "label": "The third man"
+    }
+   ],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "The third man is the one who touched neither of the first two passes. The far winger has been standing still for the whole film waiting for this, and their block is on the wrong side of the pitch."
+  },
+  {
+   "id": "a29",
+   "title": "",
+   "caption": "ONE AGAINST ONE",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 59.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 66.0,
+     "y": 90.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 59.0,
+    "y": 91.5
+   },
+   "arrows": [
+    {
+     "id": "ar-pin",
+     "kind": "line",
+     "from": {
+      "x": 58.0,
+      "y": 7.0
+     },
+     "to": {
+      "x": 71.0,
+      "y": 12.0
+     },
+     "fromId": "us-LW",
+     "toId": "them-RB",
+     "opacity": 0.45
+    }
+   ],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Their back four cannot slide across, because our left winger has not moved all film and their right-back cannot leave him. The faint line is the pin. That is what the line of five is actually for."
+  },
+  {
+   "id": "a30",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 74.0,
+     "y": 94.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 59.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 66.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 72.0,
+     "y": 90.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 43.0,
+     "y": 55.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 75.5,
+    "y": 93.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Outside, at the full-back, with no cover behind him."
+  },
+  {
+   "id": "a31",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 70.0,
+     "y": 36.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 76.0,
+     "y": 60.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 83.0,
+     "y": 46.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 84.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 92.0,
+     "y": 48.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 80.0,
+     "y": 42.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 82.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 72.0,
+     "y": 90.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 70.0,
+     "y": 66.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 84.0,
+    "y": 52.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Byline, and pulled back. Three arriving, all running forward at defenders running backwards."
+  },
+  {
+   "id": "a32",
+   "title": "",
+   "caption": "GOAL",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 44.0,
+     "y": 24.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 33.0,
+     "y": 31.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 40.0,
+     "y": 44.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 70.0,
+     "y": 36.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 76.0,
+     "y": 60.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 86.0,
+     "y": 49.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 84.0,
+     "y": 92.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 93.0,
+     "y": 46.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 80.0,
+     "y": 42.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 82.0,
+     "y": 58.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 72.0,
+     "y": 90.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 44.0,
+     "y": 17.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 38.0,
+     "y": 34.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 70.0,
+     "y": 66.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 45.0,
+     "y": 70.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 97.0,
+    "y": 49.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Seven passes from the goalkeeper, and not one of them forward into pressure."
+  },
+  {
+   "id": "a33",
+   "title": "Why You Can Risk It",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 30.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 64.0,
+     "y": 34.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": null,
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Same shape, middle third. Everything so far has been about having the ball. This is the half of the 2-3-5 that explains why you are allowed to build this way at all."
+  },
+  {
+   "id": "a34",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 30.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 64.0,
+     "y": 34.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 53.5,
+    "y": 30.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Ball in the left half-space, eight on it."
+  },
+  {
+   "id": "a35",
+   "title": "",
+   "caption": "YOU LOSE IT",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 30.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 58.0,
+     "y": 32.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 56.5,
+    "y": 32.5
+   },
+   "arrows": [],
+   "bands": [],
+   "notes": "Intercepted. In a 4-3-3 this is the moment eight men turn and sprint seventy metres, and arrive too late anyway."
+  },
+  {
+   "id": "a36",
+   "title": "",
+   "caption": "NOBODY DROPS",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 46.0,
+     "y": 30.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3",
+     "cue": "COVER"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 44.0,
+     "y": 42.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6",
+     "cue": "BALANCE"
+    },
+    {
+     "x": 55.0,
+     "y": 31.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8",
+     "cue": "PRESS"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 58.0,
+     "y": 32.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 56.5,
+    "y": 32.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "The three do not retreat, they collapse. Press the ball, cover the pass inside, balance the switch. Ball still: the shape is the event."
+  },
+  {
+   "id": "a37",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 46.0,
+     "y": 30.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3",
+     "cue": "COVER"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 44.0,
+     "y": 42.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6",
+     "cue": "BALANCE"
+    },
+    {
+     "x": 55.0,
+     "y": 31.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8",
+     "cue": "PRESS"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 58.0,
+     "y": 32.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 56.5,
+    "y": 32.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "texts": [
+    {
+     "id": "tx-15",
+     "x": 44.0,
+     "y": 12.0,
+     "text": "3 MEN. 15 METRES.",
+     "size": "m",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "gold"
+    }
+   ],
+   "notes": "They are already there because they never went anywhere. That is the whole trade: you accept two at the back so that three are permanently standing where the ball is going to be lost."
+  },
+  {
+   "id": "a38",
+   "title": "",
+   "caption": "BALL WON",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 46.0,
+     "y": 30.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 44.0,
+     "y": 42.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 31.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 58.0,
+     "y": 32.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 56.0,
+    "y": 29.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "No sprint back, no recovery run, no shape to rebuild."
+  },
+  {
+   "id": "a39",
+   "title": "",
+   "caption": "AND WE NEVER LEFT THE SHAPE",
+   "tokens": [
+    {
+     "x": 9.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 46.0,
+     "y": 30.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 44.0,
+     "y": 42.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 31.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 58.0,
+     "y": 32.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 50.0,
+     "y": 46.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 29.0,
+     "y": 44.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 29.0,
+     "y": 56.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 61.0,
+    "y": 48.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Straight back into the same 2-3-5, facing the right way, against a back four that had already committed forward."
+  },
+  {
+   "id": "a40",
+   "title": "What It Costs",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 11.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 48.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 46.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 50.0,
+     "y": 52.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 60.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 58.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 38.0,
+     "y": 60.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 35.0,
+     "y": 45.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": null,
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Be honest about the price. The counter-press misses, one pass goes through the three, and they are running at two."
+  },
+  {
+   "id": "a41",
+   "title": "",
+   "caption": "TWO AGAINST TWO. THE OTHER WAY.",
+   "tokens": [
+    {
+     "x": 11.0,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 48.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5",
+     "cue": "COVER"
+    },
+    {
+     "x": 46.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 50.0,
+     "y": 52.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 60.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 58.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 38.0,
+     "y": 60.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 35.0,
+     "y": 45.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 36.5,
+    "y": 45.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "texts": [
+    {
+     "id": "tx-2v2b",
+     "x": 18.0,
+     "y": 50.0,
+     "text": "2 v 2",
+     "size": "l",
+     "look": "halo",
+     "weight": "black",
+     "align": "center",
+     "tone": "red"
+    }
+   ],
+   "notes": "The same two numbers the film opened on, now pointing at us. This is a real risk. It is accepted, not hidden, and it is the price of every free man the last sixty seconds bought."
+  },
+  {
+   "id": "a42",
+   "title": "",
+   "caption": "THE KEEPER IS THE THIRD DEFENDER",
+   "tokens": [
+    {
+     "x": 22.0,
+     "y": 48.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1",
+     "cue": "SPARE"
+    },
+    {
+     "x": 48.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4",
+     "cue": "JOCKEY"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5",
+     "cue": "COVER"
+    },
+    {
+     "x": 46.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 50.0,
+     "y": 52.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 60.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 58.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 38.0,
+     "y": 60.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 35.0,
+     "y": 45.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 36.5,
+    "y": 45.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Which is why he stood at the edge of his box for the whole film and not on his line. Two at the back is only survivable behind a keeper who defends the halfway line."
+  },
+  {
+   "id": "a43",
+   "title": "",
+   "caption": "",
+   "tokens": [
+    {
+     "x": 22.0,
+     "y": 48.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 48.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 46.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 50.0,
+     "y": 52.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 52.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 60.0,
+     "y": 30.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 55.0,
+     "y": 58.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 38.0,
+     "y": 60.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 35.0,
+     "y": 45.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 24.0,
+    "y": 47.0
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Swept up outside the area."
+  },
+  {
+   "id": "a44",
+   "title": "",
+   "caption": "TWO. THREE. FIVE.",
+   "tokens": [
+    {
+     "x": 5.5,
+     "y": 50.0,
+     "id": "us-GK",
+     "side": "us",
+     "label": "1"
+    },
+    {
+     "x": 34.0,
+     "y": 32.0,
+     "id": "us-LB",
+     "side": "us",
+     "label": "3"
+    },
+    {
+     "x": 13.0,
+     "y": 30.0,
+     "id": "us-LCB",
+     "side": "us",
+     "label": "4"
+    },
+    {
+     "x": 13.0,
+     "y": 70.0,
+     "id": "us-RCB",
+     "side": "us",
+     "label": "5"
+    },
+    {
+     "x": 34.0,
+     "y": 68.0,
+     "id": "us-RB",
+     "side": "us",
+     "label": "2"
+    },
+    {
+     "x": 33.0,
+     "y": 50.0,
+     "id": "us-CDM",
+     "side": "us",
+     "label": "6"
+    },
+    {
+     "x": 54.0,
+     "y": 28.0,
+     "id": "us-LCM",
+     "side": "us",
+     "label": "8"
+    },
+    {
+     "x": 54.0,
+     "y": 72.0,
+     "id": "us-RCM",
+     "side": "us",
+     "label": "10"
+    },
+    {
+     "x": 58.0,
+     "y": 7.0,
+     "id": "us-LW",
+     "side": "us",
+     "label": "11"
+    },
+    {
+     "x": 60.0,
+     "y": 50.0,
+     "id": "us-ST",
+     "side": "us",
+     "label": "9"
+    },
+    {
+     "x": 58.0,
+     "y": 93.0,
+     "id": "us-RW",
+     "side": "us",
+     "label": "7"
+    },
+    {
+     "x": 95.0,
+     "y": 50.0,
+     "id": "them-GK",
+     "side": "them",
+     "label": "1"
+    },
+    {
+     "x": 71.0,
+     "y": 12.0,
+     "id": "them-RB",
+     "side": "them",
+     "label": "2"
+    },
+    {
+     "x": 68.0,
+     "y": 38.0,
+     "id": "them-RCB",
+     "side": "them",
+     "label": "4"
+    },
+    {
+     "x": 68.0,
+     "y": 62.0,
+     "id": "them-LCB",
+     "side": "them",
+     "label": "5"
+    },
+    {
+     "x": 71.0,
+     "y": 88.0,
+     "id": "them-LB",
+     "side": "them",
+     "label": "3"
+    },
+    {
+     "x": 47.0,
+     "y": 14.0,
+     "id": "them-RM",
+     "side": "them",
+     "label": "7"
+    },
+    {
+     "x": 45.0,
+     "y": 39.0,
+     "id": "them-RCM",
+     "side": "them",
+     "label": "6"
+    },
+    {
+     "x": 45.0,
+     "y": 61.0,
+     "id": "them-LCM",
+     "side": "them",
+     "label": "8"
+    },
+    {
+     "x": 47.0,
+     "y": 86.0,
+     "id": "them-LM",
+     "side": "them",
+     "label": "11"
+    },
+    {
+     "x": 27.0,
+     "y": 43.0,
+     "id": "them-RST",
+     "side": "them",
+     "label": "9"
+    },
+    {
+     "x": 27.0,
+     "y": 57.0,
+     "id": "them-LST",
+     "side": "them",
+     "label": "10"
+    }
+   ],
+   "ball": {
+    "x": 9.0,
+    "y": 50.5
+   },
+   "arrows": [],
+   "bands": [
+    {
+     "id": "bd-line2",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LCB",
+      "us-RCB"
+     ],
+     "strength": "soft"
+    },
+    {
+     "id": "bd-line3",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LB",
+      "us-CDM",
+      "us-RB"
+     ]
+    },
+    {
+     "id": "bd-line5",
+     "kind": "block",
+     "close": "shape",
+     "drawn": true,
+     "edge": "none",
+     "fill": "line",
+     "string": "thin",
+     "corner": "tight",
+     "throughTokens": [
+      "us-LW",
+      "us-LCM",
+      "us-ST",
+      "us-RCM",
+      "us-RW"
+     ],
+     "strength": "soft"
+    }
+   ],
+   "notes": "Played back, and it starts again. Ends on the shape it argued for."
+  }
+ ]
+}

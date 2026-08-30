@@ -2782,6 +2782,35 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     seal()
   }, [patchAct, seal])
 
+  /*
+   * WHERE the tracking starts, which is a different question from whether it
+   * tracks at all, and the reason `Act.camera` exists at all (../schema.ts).
+   *
+   * One press on the phase you are standing on, rather than a per-phase control
+   * a coach would have to set forty times and could set inconsistently. Every
+   * phase before this one is pinned off; this one and everything after it go
+   * back to inheriting, so changing the document's setting later still governs
+   * the whole tail of the film.
+   */
+  const trackFromHere = useCallback(() => {
+    edit('camera start', (s) => ({
+      ...s,
+      camera: 'follow' as CameraMode,
+      acts: s.acts.map((a, i) =>
+        i < actIndex ? { ...a, camera: 'off' as CameraMode } : { ...a, camera: undefined },
+      ),
+    }))
+    seal()
+  }, [edit, seal, actIndex])
+
+  const trackFromStart = useCallback(() => {
+    edit('camera start', (s) => ({
+      ...s,
+      acts: s.acts.map((a) => ({ ...a, camera: undefined })),
+    }))
+    seal()
+  }, [edit, seal])
+
   /**
    * The tool did its job. Counted, and remembered until the dialog is out of
    * the way — see ../feedback.ts for why this is what times the one question we
@@ -3958,6 +3987,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const camera = resolveCamera(system.camera)
   const cameraMode = CAMERA_MODES.find((c) => c.id === camera) ?? CAMERA_MODES[0]
   const push = resolvePush(system.push)
+  // Where the tracking starts, for the control below the camera mode. The first
+  // phase NOT pinned off is the answer, and no pins at all means phase one.
+  const trackingFrom = system.acts.findIndex((a) => a.camera !== 'off')
+  const phaseCameraSet = system.acts.some((a) => a.camera !== undefined)
   /*
    * Whether the board already wears the profile's kit.
    *
@@ -5230,6 +5263,37 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           <p className="mt-2 text-[11px] leading-snug text-ink-faint">
             <span className="font-bold text-ink-soft">{cameraMode.label}.</span> {cameraMode.hint}
           </p>
+
+          {/*
+           * Outside the `follow` gate on purpose: starting the tracking part way
+           * through is most of the reason somebody turns the camera on at all,
+           * and hiding it behind having already turned it on is a door that only
+           * opens from the inside.
+           */}
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <Tip
+              text={`Holds the camera still on every ${PHASE.one} before this one and tracks from this one on. Nothing earlier is reframed.`}
+              title="Start tracking here"
+            >
+              <Button onClick={trackFromHere}>Start tracking here</Button>
+            </Tip>
+            {phaseCameraSet && (
+              <Tip
+                text={`Back to one setting for the whole film: every ${PHASE.one} shot the same way.`}
+                title="Track from the start"
+              >
+                <Button onClick={trackFromStart}>Track from the start</Button>
+              </Tip>
+            )}
+          </div>
+          {phaseCameraSet && (
+            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+              Tracking starts at {PHASE.one}{' '}
+              <span className="font-bold text-ink-soft">{Math.max(0, trackingFrom) + 1}</span>.
+              Everything before it is shot wide.
+            </p>
+          )}
+
           {camera === 'follow' && (
             <>
               {/*

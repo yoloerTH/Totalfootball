@@ -652,6 +652,16 @@ export interface Act {
    * somewhere of its own to live.
    */
   shot?: Shot
+  /**
+   * This phase's camera, overriding the document's.
+   *
+   * Undefined is "use the system's", and that is what every phase written
+   * before this existed says. Its one real use is a starting line: mark the
+   * phases before the idea starts 'off' and the camera holds still through the
+   * opening, then begins to track, without any of those phases being reframed.
+   * The editor writes it that way and nobody should have to set it by hand.
+   */
+  camera?: CameraMode
   tokens: Token[]
   /**
    * THE LEGACY SINGLE BALL. Read `balls` instead — see `ballsOf`.

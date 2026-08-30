@@ -1,0 +1,997 @@
+{
+  "v": 1,
+  "title": "The Box Midfield Rest Defence",
+  "subtitle": "Suffocating the counter-attack before it starts",
+  "pitch": "two-thirds",
+  "matchBall": "brazuca",
+  "hold": 1500,
+  "move": 1200,
+  "camera": "follow",
+  "push": "gentle",
+  "teams": {
+    "us": {
+      "name": "In Possession",
+      "base": "#08C16A",
+      "deep": "#06A659",
+      "text": "#FFFFFF"
+    },
+    "them": {
+      "name": "Defending Block",
+      "base": "#E2473B",
+      "deep": "#B5392F",
+      "text": "#FFFFFF"
+    }
+  },
+  "acts": [
+    {
+      "id": "act-1",
+      "title": "The Setup",
+      "caption": "We start in a standard 4-3-3 shape against a deep 4-4-2 block.",
+      "ball": {
+        "x": 20,
+        "y": 65
+      },
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 5,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 25,
+          "y": 15,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 20,
+          "y": 35,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 20,
+          "y": 65,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 25,
+          "y": 85,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-cdm",
+          "x": 35,
+          "y": 50,
+          "label": "DM",
+          "side": "us"
+        },
+        {
+          "id": "u-lcm",
+          "x": 50,
+          "y": 35,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-rcm",
+          "x": 50,
+          "y": 65,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-lw",
+          "x": 75,
+          "y": 10,
+          "label": "LW",
+          "side": "us"
+        },
+        {
+          "id": "u-st",
+          "x": 70,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-rw",
+          "x": 75,
+          "y": 90,
+          "label": "RW",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 95,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 83,
+          "y": 20,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 85,
+          "y": 40,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85,
+          "y": 60,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 83,
+          "y": 80,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-lm",
+          "x": 72,
+          "y": 20,
+          "label": "LM",
+          "side": "them"
+        },
+        {
+          "id": "o-lcm",
+          "x": 70,
+          "y": 40,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rcm",
+          "x": 70,
+          "y": 60,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rm",
+          "x": 72,
+          "y": 80,
+          "label": "RM",
+          "side": "them"
+        },
+        {
+          "id": "o-lst",
+          "x": 55,
+          "y": 45,
+          "label": "ST",
+          "side": "them"
+        },
+        {
+          "id": "o-rst",
+          "x": 55,
+          "y": 55,
+          "label": "ST",
+          "side": "them"
+        }
+      ],
+      "arrows": [],
+      "bands": []
+    },
+    {
+      "id": "act-2",
+      "title": "Forming the Box",
+      "caption": "The fullback tucks in alongside the pivot. The eights push high. A box is formed.",
+      "ball": {
+        "x": 45,
+        "y": 38
+      },
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 15,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 35,
+          "y": 20,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 30,
+          "y": 45,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 30,
+          "y": 70,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 45,
+          "y": 62,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-cdm",
+          "x": 45,
+          "y": 38,
+          "label": "DM",
+          "side": "us"
+        },
+        {
+          "id": "u-lcm",
+          "x": 65,
+          "y": 38,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-rcm",
+          "x": 65,
+          "y": 62,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-lw",
+          "x": 80,
+          "y": 15,
+          "label": "LW",
+          "side": "us"
+        },
+        {
+          "id": "u-st",
+          "x": 75,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-rw",
+          "x": 80,
+          "y": 85,
+          "label": "RW",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 95,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 83,
+          "y": 20,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 85,
+          "y": 40,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85,
+          "y": 60,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 83,
+          "y": 80,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-lm",
+          "x": 72,
+          "y": 20,
+          "label": "LM",
+          "side": "them"
+        },
+        {
+          "id": "o-lcm",
+          "x": 70,
+          "y": 40,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rcm",
+          "x": 70,
+          "y": 60,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rm",
+          "x": 72,
+          "y": 80,
+          "label": "RM",
+          "side": "them"
+        },
+        {
+          "id": "o-lst",
+          "x": 55,
+          "y": 45,
+          "label": "ST",
+          "side": "them"
+        },
+        {
+          "id": "o-rst",
+          "x": 55,
+          "y": 55,
+          "label": "ST",
+          "side": "them"
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-1",
+          "kind": "run",
+          "from": {
+            "x": 25,
+            "y": 85
+          },
+          "to": {
+            "x": 43,
+            "y": 64
+          }
+        },
+        {
+          "id": "ar-2",
+          "kind": "pass",
+          "from": {
+            "x": 20,
+            "y": 65
+          },
+          "to": {
+            "x": 43,
+            "y": 39
+          }
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-box",
+          "kind": "zone",
+          "rect": {
+            "x": 40,
+            "y": 33,
+            "w": 30,
+            "h": 34
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-3",
+      "title": "The Vertical Pass",
+      "caption": "With the box controlling the center, we bypass the block and play into the striker.",
+      "ball": {
+        "x": 75,
+        "y": 50
+      },
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 15,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 35,
+          "y": 20,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 30,
+          "y": 45,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 30,
+          "y": 70,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 45,
+          "y": 62,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-cdm",
+          "x": 45,
+          "y": 38,
+          "label": "DM",
+          "side": "us"
+        },
+        {
+          "id": "u-lcm",
+          "x": 65,
+          "y": 38,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-rcm",
+          "x": 65,
+          "y": 62,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-lw",
+          "x": 80,
+          "y": 15,
+          "label": "LW",
+          "side": "us"
+        },
+        {
+          "id": "u-st",
+          "x": 75,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-rw",
+          "x": 80,
+          "y": 85,
+          "label": "RW",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 95,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 83,
+          "y": 20,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 85,
+          "y": 40,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85,
+          "y": 60,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 83,
+          "y": 80,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-lm",
+          "x": 72,
+          "y": 20,
+          "label": "LM",
+          "side": "them"
+        },
+        {
+          "id": "o-lcm",
+          "x": 70,
+          "y": 40,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rcm",
+          "x": 70,
+          "y": 60,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rm",
+          "x": 72,
+          "y": 80,
+          "label": "RM",
+          "side": "them"
+        },
+        {
+          "id": "o-lst",
+          "x": 55,
+          "y": 45,
+          "label": "ST",
+          "side": "them"
+        },
+        {
+          "id": "o-rst",
+          "x": 55,
+          "y": 55,
+          "label": "ST",
+          "side": "them"
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-3",
+          "kind": "pass",
+          "from": {
+            "x": 45,
+            "y": 38
+          },
+          "to": {
+            "x": 73,
+            "y": 50
+          }
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-box",
+          "kind": "zone",
+          "rect": {
+            "x": 40,
+            "y": 33,
+            "w": 30,
+            "h": 34
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-4",
+      "title": "The Trap is Sprung",
+      "caption": "The opposition centre-back intercepts and looks to counter. Now watch the box.",
+      "ball": {
+        "x": 80,
+        "y": 45
+      },
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 15,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 35,
+          "y": 20,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 30,
+          "y": 45,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 30,
+          "y": 70,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 45,
+          "y": 62,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-cdm",
+          "x": 45,
+          "y": 38,
+          "label": "DM",
+          "side": "us"
+        },
+        {
+          "id": "u-lcm",
+          "x": 65,
+          "y": 38,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-rcm",
+          "x": 65,
+          "y": 62,
+          "label": "CM",
+          "side": "us"
+        },
+        {
+          "id": "u-lw",
+          "x": 80,
+          "y": 15,
+          "label": "LW",
+          "side": "us"
+        },
+        {
+          "id": "u-st",
+          "x": 77,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-rw",
+          "x": 80,
+          "y": 85,
+          "label": "RW",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 95,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 83,
+          "y": 20,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 80,
+          "y": 45,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85,
+          "y": 60,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 83,
+          "y": 80,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-lm",
+          "x": 72,
+          "y": 20,
+          "label": "LM",
+          "side": "them"
+        },
+        {
+          "id": "o-lcm",
+          "x": 70,
+          "y": 40,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rcm",
+          "x": 70,
+          "y": 60,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rm",
+          "x": 72,
+          "y": 80,
+          "label": "RM",
+          "side": "them"
+        },
+        {
+          "id": "o-lst",
+          "x": 55,
+          "y": 45,
+          "label": "ST",
+          "side": "them"
+        },
+        {
+          "id": "o-rst",
+          "x": 55,
+          "y": 55,
+          "label": "ST",
+          "side": "them"
+        }
+      ],
+      "arrows": [],
+      "bands": [
+        {
+          "id": "bd-box",
+          "kind": "zone",
+          "rect": {
+            "x": 40,
+            "y": 33,
+            "w": 30,
+            "h": 34
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-5",
+      "title": "Suffocating the Counter",
+      "caption": "Nobody drops. The box instantly collapses on the ball carrier, suffocating the counter-attack.",
+      "ball": {
+        "x": 80,
+        "y": 45
+      },
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 15,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 35,
+          "y": 20,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 30,
+          "y": 45,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 30,
+          "y": 70,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 60,
+          "y": 55,
+          "label": "RB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-cdm",
+          "x": 65,
+          "y": 40,
+          "label": "DM",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-lcm",
+          "x": 75,
+          "y": 42,
+          "label": "CM",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-rcm",
+          "x": 70,
+          "y": 50,
+          "label": "CM",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-lw",
+          "x": 80,
+          "y": 15,
+          "label": "LW",
+          "side": "us"
+        },
+        {
+          "id": "u-st",
+          "x": 77,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-rw",
+          "x": 80,
+          "y": 85,
+          "label": "RW",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 95,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 83,
+          "y": 20,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 80,
+          "y": 45,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85,
+          "y": 60,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 83,
+          "y": 80,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-lm",
+          "x": 72,
+          "y": 20,
+          "label": "LM",
+          "side": "them"
+        },
+        {
+          "id": "o-lcm",
+          "x": 70,
+          "y": 40,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rcm",
+          "x": 70,
+          "y": 60,
+          "label": "CM",
+          "side": "them"
+        },
+        {
+          "id": "o-rm",
+          "x": 72,
+          "y": 80,
+          "label": "RM",
+          "side": "them"
+        },
+        {
+          "id": "o-lst",
+          "x": 55,
+          "y": 45,
+          "label": "ST",
+          "side": "them"
+        },
+        {
+          "id": "o-rst",
+          "x": 55,
+          "y": 55,
+          "label": "ST",
+          "side": "them"
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-4",
+          "kind": "run",
+          "from": {
+            "x": 65,
+            "y": 38
+          },
+          "to": {
+            "x": 73,
+            "y": 41
+          }
+        },
+        {
+          "id": "ar-5",
+          "kind": "run",
+          "from": {
+            "x": 45,
+            "y": 38
+          },
+          "to": {
+            "x": 63,
+            "y": 39
+          }
+        },
+        {
+          "id": "ar-6",
+          "kind": "run",
+          "from": {
+            "x": 65,
+            "y": 62
+          },
+          "to": {
+            "x": 68,
+            "y": 51
+          }
+        },
+        {
+          "id": "ar-7",
+          "kind": "run",
+          "from": {
+            "x": 45,
+            "y": 62
+          },
+          "to": {
+            "x": 58,
+            "y": 56
+          }
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-box",
+          "kind": "danger",
+          "rect": {
+            "x": 55,
+            "y": 35,
+            "w": 25,
+            "h": 25
+          }
+        }
+      ]
+    }
+  ]
+}
