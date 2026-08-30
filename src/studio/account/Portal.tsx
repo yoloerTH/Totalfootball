@@ -715,7 +715,7 @@ export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
           />
           <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {STARTERS.map((t) => (
-              <TemplateCard key={t.id} template={t} />
+              <TemplateCard key={t.id} template={t} hideCopyLink />
             ))}
           </ul>
         </>
@@ -767,7 +767,13 @@ function ShelfLabel({
   )
 }
 
-function TemplateCard({ template }: { template: Template }) {
+function TemplateCard({
+  template,
+  hideCopyLink,
+}: {
+  template: Template
+  hideCopyLink?: boolean
+}) {
   const { system, watch } = template
   const view = viewFor(system)
   const first = system.acts[0]
@@ -811,26 +817,30 @@ function TemplateCard({ template }: { template: Template }) {
           which would quietly cut the card's own link in half. The copy button
           has the same problem for the same reason — a <button> is interactive
           content too. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-ink-hair bg-paper/60 px-4 py-2.5">
-        {watch && (
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-[11px] font-black uppercase tracking-micro text-ink-faint">
-              Watch it
+      {(watch || !hideCopyLink) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-ink-hair bg-paper/60 px-4 py-2.5">
+          {watch && (
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-[11px] font-black uppercase tracking-micro text-ink-faint">
+                Watch it
+              </span>
+              {watch.instagram && (
+                <WatchLink href={watch.instagram} where="instagram" template={template} />
+              )}
+              {watch.facebook && (
+                <WatchLink href={watch.facebook} where="facebook" template={template} />
+              )}
             </span>
-            {watch.instagram && (
-              <WatchLink href={watch.instagram} where="instagram" template={template} />
-            )}
-            {watch.facebook && (
-              <WatchLink href={watch.facebook} where="facebook" template={template} />
-            )}
-          </span>
-        )}
-        {/* `ml-auto` rather than `justify-between`, so this sits right whether
-            or not there are watch links to its left. */}
-        <span className="ml-auto">
-          <CopyLink template={template} />
-        </span>
-      </div>
+          )}
+          {/* `ml-auto` rather than `justify-between`, so this sits right whether
+              or not there are watch links to its left. */}
+          {!hideCopyLink && (
+            <span className="ml-auto">
+              <CopyLink template={template} />
+            </span>
+          )}
+        </div>
+      )}
     </li>
   )
 }
