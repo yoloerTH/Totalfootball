@@ -126,24 +126,45 @@ const slugify = (s: string) =>
 
       // A route into the library, dropped in at the moment the system is named.
       // This is what makes a post a door rather than a page about a door.
-      const system = systemBySlug(block.slug)
-      if (!system) return null
-      return (
-        <a
-          href={`/library/${system.slug}/`}
-          class="group mt-10 flex items-center gap-5 rounded-2xl border border-ink-hair bg-surface/50 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/15 hover:shadow-paper sm:p-6"
-          data-reveal="rise"
-        >
-          <span class="min-w-0 flex-1">
-            <span class="micro">On the board</span>
-            <span class="mt-2.5 block text-lg font-black leading-tight">{system.title}</span>
-            <span class="mt-1.5 block text-[14px] leading-snug text-ink-soft">{block.label}</span>
-          </span>
-          <span class="shrink-0 text-[13px] font-semibold text-ink-faint transition-all duration-300 group-hover:translate-x-1 group-hover:text-ink">
-            {system.phases.length} phases →
-          </span>
-        </a>
-      )
+      if (block.t === 'system') {
+        const system = systemBySlug(block.slug)
+        if (!system) return null
+        return (
+          <a
+            href={`/library/${system.slug}/`}
+            class="group mt-10 flex items-center gap-5 rounded-2xl border border-ink-hair bg-surface/50 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/15 hover:shadow-paper sm:p-6"
+            data-reveal="rise"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="micro">On the board</span>
+              <span class="mt-2.5 block text-lg font-black leading-tight">{system.title}</span>
+              <span class="mt-1.5 block text-[14px] leading-snug text-ink-soft">{block.label}</span>
+            </span>
+            <span class="shrink-0 text-[13px] font-semibold text-ink-faint transition-all duration-300 group-hover:translate-x-1 group-hover:text-ink">
+              {system.phases.length} phases →
+            </span>
+          </a>
+        )
+      }
+
+      if (block.t === 'studio-cta') {
+        return (
+          <a
+            href="/studio/"
+            class="group mt-10 flex items-center gap-5 rounded-2xl border border-ink-hair bg-surface/50 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink/15 hover:shadow-paper sm:p-6"
+            data-reveal="rise"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="micro">In the Studio</span>
+              <span class="mt-2.5 block text-lg font-black leading-tight">{block.text}</span>
+              <span class="mt-1.5 block text-[14px] leading-snug text-ink-soft">{block.label}</span>
+            </span>
+            <span class="shrink-0 text-[13px] font-semibold text-ink-faint transition-all duration-300 group-hover:translate-x-1 group-hover:text-ink">
+              Open Studio →
+            </span>
+          </a>
+        )
+      }
     })
   }
 </div>

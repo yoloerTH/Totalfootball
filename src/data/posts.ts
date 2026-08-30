@@ -38,7 +38,7 @@
  */
 
 /** Blog topics. Deliberately NOT the library's themes: see note 2 above. */
-export type PostTopic = 'principles' | 'method'
+export type PostTopic = 'principles' | 'method' | 'product'
 
 export interface Topic {
   slug: PostTopic
@@ -58,6 +58,12 @@ export const TOPICS: Topic[] = [
     title: 'The method',
     blurb:
       'How this is made, and what the numbers said when we checked. Every frame drawn, nothing claimed that is not measured.',
+  },
+  {
+    slug: 'product',
+    title: 'Studio features',
+    blurb:
+      'Guides and insights on using the Studio to map your own sessions, from training gear to squad personalization.',
   },
 ]
 
@@ -85,6 +91,8 @@ export type Block =
   | { t: 'note'; text: string }
   /** A card into the library, in the flow. */
   | { t: 'system'; slug: string; label: string }
+  /** A call to action into the Studio. */
+  | { t: 'studio-cta'; text: string; label: string }
   /**
    * A board, in the flow. The whole reason this site can write prose at all: a
    * post that makes a claim about shape should show the shape.
@@ -490,6 +498,129 @@ export const POSTS: Post[] = [
       {
         t: 'p',
         text: 'The honest summary is that we made 36 of something before checking whether it worked. The library is what happened after we checked.',
+      },
+    ],
+  },
+
+  // ── product ─────────────────────────────────────────────────────────────
+  {
+    slug: 'designing-drills-with-digital-training-gear',
+    title: 'Moving Beyond X\'s and O\'s: Designing Drills with Digital Training Gear',
+    dek: 'Coaches are visual learners, but a tactical board with just arrows leaves too much to the imagination. Enter digital cones, mannequins, and hurdles.',
+    description:
+      'Discover how to design realistic football training sessions using digital training gear. Move beyond X\'s and O\'s to visually explain space, passing lanes, and drill mechanics.',
+    topic: 'product',
+    published: '2026-08-30',
+    updated: '2026-08-30',
+    systems: ['defending-in-a-back-four', 'the-pressing-trap', 'the-underlap'],
+    body: [
+      {
+        t: 'p',
+        text: 'When explaining a drill on a whiteboard, most coaches rely on crosses, circles, and a mess of overlapping arrows. It works for the person drawing it, but for the players looking at it, the physical constraints of the exercise—the width of a gate, the angle of a mannequin—are completely lost.',
+      },
+      {
+        t: 'p',
+        text: 'A digital tactical board should reflect the reality of the training pitch. If you use cones to mark a passing channel on the grass, you should use cones to mark it on the screen. That is why we added **training gear** directly into the Studio.',
+      },
+      { t: 'pull', text: 'If you use cones on the grass, use them on the screen.' },
+      { t: 'h2', text: 'Setting the Physical Constraints' },
+      {
+        t: 'p',
+        text: 'The problem with an empty green rectangle is scale. A player told to "drop into the pocket" might interpret that as two metres or ten metres. Placing a mannequin on the board instantly solves this. The mannequin acts as a visual anchor. It says, "this space is occupied, drop behind it."',
+      },
+      {
+        t: 'p',
+        text: 'Nineteen pieces of training kit—from marker cones and agility ladders to mini goals and strength gear—can now be dropped onto the board. You can size them, rotate them, and snap them into perfectly straight lines without fighting the interface.',
+      },
+      {
+        t: 'studio-cta',
+        text: 'Build your session with cones and mannequins',
+        label: 'The Studio is free and runs in your browser.'
+      },
+      { t: 'h2', text: 'Drills that Move' },
+      {
+        t: 'p',
+        text: 'Training gear in the Studio is not static decoration. It belongs to the phase, which means it travels. If a drill progresses and the playing area widens, you simply drag the cones out in the next phase. When you hit play, the cones slide to their new positions.',
+      },
+      {
+        t: 'p',
+        text: 'You are showing the transition between exercises, not just cutting to a new diagram. This is exactly how you manage a session in reality: "Pick up the blue cones and move them two yards wider."',
+      },
+      {
+        t: 'list',
+        items: [
+          '**Marker Cones:** Perfect for defining passing lanes, zones, and off-limit areas.',
+          '**Mannequins:** Essential for teaching body orientation and receiving behind a defender.',
+          '**Mini Goals:** Ideal for small-sided games and directional possession drills.',
+        ]
+      },
+      { t: 'h2', text: 'The Cognitive Load of Tactics' },
+      {
+        t: 'p',
+        text: 'A tactical board is a communication tool. The less your players have to decode, the faster they understand. By replacing abstract arrows with the exact gear they will see on the grass, you reduce their cognitive load.',
+      },
+      {
+        t: 'p',
+        text: 'They stop interpreting a drawing and start visualizing the pitch.',
+      },
+    ],
+  },
+
+  {
+    slug: 'player-images-digital-dressing-room',
+    title: 'Visualizing Roles: Why Player Images Fix Broken Tactics',
+    dek: 'A generic number 6 on a whiteboard is an abstract concept. But when a player sees their own face on the tactical board, they instantly understand their responsibility.',
+    description:
+      'Learn how to use personalized player images on a digital tactical board to reduce cognitive load and share clear, bespoke tactics directly to your squad\'s WhatsApp group.',
+    topic: 'product',
+    published: '2026-08-30',
+    updated: '2026-08-30',
+    systems: ['salida-lavolpiana', 'when-to-press', 'the-back-four-reset'],
+    body: [
+      {
+        t: 'p',
+        text: 'Before a match, the dressing room whiteboard is covered in magnets and hastily scrawled names. Coaches spend ten minutes pointing at a generic blue magnet and saying, "Liam, this is you, when they press here, you drop here."',
+      },
+      {
+        t: 'p',
+        text: 'The fundamental flaw is that players are expected to translate a generic diagram into personal instructions while simultaneously digesting the match plan. It is an unnecessary cognitive load. A digital board fixes this by allowing you to put the player\'s actual image on the counter.',
+      },
+      { t: 'pull', text: 'When they see their own face, they stop translating and start learning.' },
+      { t: 'h2', text: 'Personalization is Clarity' },
+      {
+        t: 'p',
+        text: 'Tactics fail when players hesitate. They hesitate because they aren\'t sure if a specific instruction applies to them. If you run a high press, assigning pressing triggers using player images removes all ambiguity.',
+      },
+      {
+        t: 'p',
+        text: 'In the Studio, you can drag a photograph onto a counter, set the face to display above or inside the counter, and generate a bespoke tactical map for your squad.',
+      },
+      {
+        t: 'studio-cta',
+        text: 'Upload your squad and build your team',
+        label: 'No installation required.'
+      },
+      { t: 'h2', text: 'The Sunday League WhatsApp Group' },
+      {
+        t: 'p',
+        text: 'Most amateur and semi-pro teams run on WhatsApp. The biggest advantage of a digital board is shareability. Instead of taking a blurry photo of a physical whiteboard, you can send a clean, animated link directly to the group chat on Friday evening.',
+      },
+      {
+        t: 'list',
+        items: [
+          '**Clear Formations:** Players click the link on their phone and immediately see the starting XI with their own faces.',
+          '**Animated Phases:** They press play and watch the shape shift from a 4-3-3 in possession to a 4-5-1 out of possession.',
+          '**No Confusion:** Because their face is on the board, they follow their own movement across every phase without needing to ask.',
+        ]
+      },
+      { t: 'h2', text: 'Privacy by Design' },
+      {
+        t: 'p',
+        text: 'If you want to share a system publicly on Twitter or a coaching forum, you don\'t want your under-14 squad\'s faces and names broadcast to the internet. That is why player images and names are stripped out automatically when you share a board anonymously, retaining only the tactical movement and kit colours.',
+      },
+      {
+        t: 'p',
+        text: 'You get the hyper-specific personalization for your private dressing room, and the clean, anonymous tactical shapes for the public square.',
       },
     ],
   },
