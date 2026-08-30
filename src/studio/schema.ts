@@ -261,6 +261,83 @@ export function carryForward(
   return out
 }
 
+export function carryForwardGear(
+  acts: Act[],
+  from: number,
+  id: string,
+  before: Partial<Gear>,
+  after: Partial<Gear>,
+): Act[] {
+  const keys = Object.keys(before) as (keyof Gear)[]
+  if (keys.length === 0) return acts
+  const same = (a: unknown, b: unknown) =>
+    typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b
+
+  const out = acts.slice()
+  for (let i = from + 1; i < out.length; i++) {
+    if (!out[i].gear) return out
+    const g = out[i].gear!.find((x) => x.id === id)
+    if (!g || !keys.every((k) => same(g[k], before[k]))) return out
+    out[i] = { ...out[i], gear: out[i].gear!.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+  }
+  return out
+}
+
+export function carryForwardArrow(
+  acts: Act[],
+  fromIdx: number,
+  id: string,
+  before: Partial<Arrow>,
+  after: Partial<Arrow>,
+): Act[] {
+  const keys = Object.keys(before) as (keyof Arrow)[]
+  if (keys.length === 0) return acts
+  const same = (a: unknown, b: unknown) => {
+    if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) < 1e-9
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+       return Math.abs((a as any).x - (b as any).x) < 1e-9 && Math.abs((a as any).y - (b as any).y) < 1e-9
+    }
+    return a === b
+  }
+
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const a = out[i].arrows.find((x) => x.id === id)
+    if (!a || !keys.every((k) => same(a[k], before[k]))) return out
+    out[i] = { ...out[i], arrows: out[i].arrows.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+  }
+  return out
+}
+
+export function carryForwardBand(
+  acts: Act[],
+  fromIdx: number,
+  id: string,
+  before: Partial<Band>,
+  after: Partial<Band>,
+): Act[] {
+  const keys = Object.keys(before) as (keyof Band)[]
+  if (keys.length === 0) return acts
+  const same = (a: unknown, b: unknown) => {
+    if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) < 1e-9
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+       const r1 = a as any, r2 = b as any
+       if ('w' in r1) {
+          return Math.abs(r1.x - r2.x) < 1e-9 && Math.abs(r1.y - r2.y) < 1e-9 && Math.abs(r1.w - r2.w) < 1e-9 && Math.abs(r1.h - r2.h) < 1e-9
+       }
+    }
+    return a === b
+  }
+
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const b = out[i].bands.find((x) => x.id === id)
+    if (!b || !keys.every((k) => same(b[k], before[k]))) return out
+    out[i] = { ...out[i], bands: out[i].bands.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+  }
+  return out
+}
+
 /** A field a coach's edit can travel across every act on. */
 export type PersonField = (typeof PERSON_FIELDS)[number]
 

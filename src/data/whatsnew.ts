@@ -56,6 +56,30 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'carry-gear',
+    date: '2026-08-31',
+    kind: 'new',
+    title: 'Equipment, zones, and lines carry forward to the next phases',
+    body: 'Just like players, when you move or resize a cone, a goal, a shaded zone, or a line you\'ve drawn, that change now automatically carries forward through the rest of the drill. You no longer have to fix the same item on every single phase after moving it once.',
+    where: 'Move tool, drag or resize items',
+  },
+  {
+    id: 'manual-camera',
+    date: '2026-08-31',
+    kind: 'new',
+    title: 'Frame the shot yourself with Manual camera',
+    body: 'A new Manual camera mode lets you frame the drill exactly how you want it, and it stays exactly there. It will not automatically pan or follow the ball, giving you complete control over what is visible on each phase.',
+    where: 'The Camera panel, choose Manual',
+  },
+  {
+    id: 'clone-selection',
+    date: '2026-08-31',
+    kind: 'new',
+    title: 'Duplicate multiple players and equipment at once',
+    body: 'You can now select multiple items on the board by dragging a box over them with the Move tool. Once selected, a single press duplicates them all together, keeping their layout intact. Perfect for mirroring a drill to the other side of the pitch without dragging players one by one.',
+    where: 'Move tool, drag on the grass',
+  },
+  {
     id: 'lineup-panel',
     date: '2026-08-29',
     kind: 'new',

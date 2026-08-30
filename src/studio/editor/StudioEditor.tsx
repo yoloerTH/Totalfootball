@@ -138,6 +138,9 @@ import {
   type BandShape,
   type Credit,
   carryForward,
+  carryForwardGear,
+  carryForwardArrow,
+  carryForwardBand,
   type Cue,
   type Shot,
   type GearMark,
@@ -796,6 +799,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     return first === -1 ? 0 : first
   })
   const [selection, setSelection] = useState<Selection>(null)
+  const [multiSelect, setMultiSelect] = useState<{ tokens: string[], gear: string[], balls: string[], texts: string[], marks: string[] } | null>(null)
+  const [marquee, setMarquee] = useState<{ from: {x: number, y: number}, to: {x: number, y: number} } | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   /**
    * The players picked so far for a hand-drawn block, in the order they were
@@ -1944,6 +1949,141 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides, edit],
   )
 
+  const beginMultiDrag = useCallback((e: React.PointerEvent) => {
+    const svg = svgRef.current
+    const source = act
+    if (!svg || !source || !multiSelect) return
+    e.stopPropagation()
+    e.preventDefault()
+
+    const down = clientToPercent(svg, view, e.clientX, e.clientY)
+    const grab = { x: down.x, y: down.y }
+    
+    const initTokens = source.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ id: t.id, x: t.x, y: t.y }))
+    const initGear = (source.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ id: g.id, x: g.x, y: g.y }))
+    const initBalls = ballsOf(source).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ id: b.id, x: b.x, y: b.y }))
+    const initTexts = (source.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ id: t.id, x: t.x, y: t.y }))
+    const initArrows = (source.arrows ?? []).filter(a => multiSelect.marks.includes(a.id)).map(a => ({ id: a.id, from: { ...a.from }, to: { ...a.to }, fromId: a.fromId, toId: a.toId }))
+    
+    bindGesture(
+      e.pointerId,
+      (ev) => {
+         const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
+         const dx = raw.x - grab.x
+         const dy = raw.y - grab.y
+         
+         patchAct('multi-drag', a => ({
+            ...a,
+            tokens: a.tokens.map(t => {
+               const init = initTokens.find(x => x.id === t.id)
+               return init ? { ...t, x: init.x + dx, y: init.y + dy } : t
+            }),
+            gear: (a.gear ?? []).map(g => {
+               const init = initGear.find(x => x.id === g.id)
+               return init ? { ...g, x: init.x + dx, y: init.y + dy } : g
+            }),
+            ...ballFields(ballsOf(a).map(b => {
+               const init = initBalls.find(x => x.id === b.id)
+               return init ? { ...b, x: init.x + dx, y: init.y + dy } : b
+            })),
+            texts: (a.texts ?? []).map(t => {
+               const init = initTexts.find(x => x.id === t.id)
+               return init ? { ...t, x: init.x + dx, y: init.y + dy } : t
+            }),
+            arrows: a.arrows.map(ar => {
+               const init = initArrows.find(x => x.id === ar.id)
+               if (!init) return ar
+               // the arrow renderer follows attached tokens automatically, so only translate if unattached,
+               // or if both token and arrow are moving, we translate it so the logical points match the visual ones
+               return { ...ar, from: { x: init.from.x + dx, y: init.from.y + dy }, to: { x: init.to.x + dx, y: init.to.y + dy } }
+            })
+         }))
+      },
+      () => {
+         if (carryRef.current) {
+            edit('multi-drag', (s) => {
+               const i = Math.min(actIndexRef.current, s.acts.length - 1)
+               const nowAct = s.acts[i]
+               if (!nowAct) return s
+               let newActs = s.acts
+               for (const t of initTokens) {
+                  const now = nowAct.tokens.find(x => x.id === t.id)
+                  if (now) {
+                     newActs = carryForward(newActs, i, t.id, { x: t.x, y: t.y }, { x: now.x, y: now.y })
+                  }
+               }
+               for (const g of initGear) {
+                  const now = nowAct.gear?.find(x => x.id === g.id)
+                  if (now) {
+                     newActs = carryForwardGear(newActs, i, g.id, { x: g.x, y: g.y }, { x: now.x, y: now.y })
+                  }
+               }
+               for (const a of initArrows) {
+                  const now = nowAct.arrows.find(x => x.id === a.id)
+                  if (now) {
+                     newActs = carryForwardArrow(newActs, i, a.id, { from: a.from, to: a.to, fromId: a.fromId, toId: a.toId }, { from: now.from, to: now.to, fromId: now.fromId, toId: now.toId })
+                  }
+               }
+               return { ...s, acts: newActs }
+            })
+         }
+         seal()
+      }
+    )
+  }, [act, multiSelect, view, patchAct, bindGesture, seal, edit])
+
+  const beginMarquee = useCallback((e: React.PointerEvent) => {
+    const svg = svgRef.current
+    const source = act
+    if (!svg || !source) return
+    e.preventDefault()
+    const from = clientToPercent(svg, view, e.clientX, e.clientY)
+    let to = from
+    setMarquee({ from, to })
+
+    bindGesture(
+      e.pointerId,
+      (ev) => {
+        to = clientToPercent(svg, view, ev.clientX, ev.clientY)
+        setMarquee({ from, to })
+      },
+      () => {
+        setMarquee(null)
+        const minX = Math.min(from.x, to.x)
+        const maxX = Math.max(from.x, to.x)
+        const minY = Math.min(from.y, to.y)
+        const maxY = Math.max(from.y, to.y)
+        
+        if (maxX - minX < 1 && maxY - minY < 1) {
+           setMultiSelect(null)
+           setSelection(null)
+           return
+        }
+        
+        const inBox = (x: number, y: number) => x >= minX && x <= maxX && y >= minY && y <= maxY
+        
+        const tokens = source.tokens.filter(t => inBox(t.x, t.y)).map(t => t.id)
+        const gear = (source.gear ?? []).filter(g => inBox(g.x, g.y)).map(g => g.id)
+        const balls = ballsOf(source).filter(b => inBox(b.x, b.y)).map(b => b.id)
+        const texts = (source.texts ?? []).filter(t => inBox(t.x, t.y)).map(t => t.id)
+        
+        const marks = (source.arrows ?? []).filter(a => {
+           const fromIn = a.fromId ? tokens.includes(a.fromId) : inBox(a.from.x, a.from.y)
+           const toIn = a.toId ? tokens.includes(a.toId) : inBox(a.to.x, a.to.y)
+           return fromIn && toIn
+        }).map(a => a.id)
+        
+        if (tokens.length || gear.length || balls.length || texts.length || marks.length) {
+           setMultiSelect({ tokens, gear, balls, texts, marks })
+           setSelection(null)
+        } else {
+           setMultiSelect(null)
+           setSelection(null)
+        }
+      }
+    )
+  }, [act, view, bindGesture])
+
   /**
    * Carry out an armed arrow tool: draw the mark, and pose the phase after it.
    *
@@ -2155,6 +2295,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
         () => {
           putGuides(NO_GUIDES)
+          if (carryRef.current) {
+            const was = source.gear?.find((g) => g.id === id)
+            edit(`gear:${id}:move`, (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const now = s.acts[i]?.gear?.find((g) => g.id === id)
+              if (!was || !now) return s
+              return {
+                ...s,
+                acts: carryForwardGear(s.acts, i, id, { x: was.x, y: was.y }, { x: now.x, y: now.y }),
+              }
+            })
+          }
           seal()
         },
       )
@@ -2233,11 +2385,23 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
         () => {
           setSnapId(null)
+          if (carryRef.current) {
+            const was = source.arrows.find((x) => x.id === id)
+            edit(`arrow:${id}:move`, (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const now = s.acts[i]?.arrows.find((x) => x.id === id)
+              if (!was || !now) return s
+              return {
+                ...s,
+                acts: carryForwardArrow(s.acts, i, id, { from: was.from, to: was.to, bend: was.bend, fromId: was.fromId, toId: was.toId }, { from: now.from, to: now.to, bend: now.bend, fromId: now.fromId, toId: now.toId }),
+              }
+            })
+          }
           seal()
         },
       )
     },
-    [act, bindGesture, view, patchAct, seal],
+    [act, bindGesture, view, patchAct, seal, edit],
   )
 
   /**
@@ -2419,10 +2583,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             bands: a2.bands.map((b) => (b.id === id ? { ...b, rect } : b)),
           }))
         },
-        () => seal(),
+        () => {
+          if (carryRef.current) {
+            const was = act?.bands.find((x) => x.id === id)
+            edit(`zone:${id}`, (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const now = s.acts[i]?.bands.find((x) => x.id === id)
+              if (!was || !now) return s
+              return {
+                ...s,
+                acts: carryForwardBand(s.acts, i, id, { rect: was.rect }, { rect: now.rect }),
+              }
+            })
+          }
+          seal()
+        },
       )
     },
-    [act, bindGesture, view, patchAct, seal],
+    [act, bindGesture, view, patchAct, seal, edit],
   )
 
   /**
@@ -3931,11 +4109,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   /** Change one field of the selected gear. Same clearing policy as the text. */
   const patchGear = (patch: Partial<GearMark>, label = 'gear-style') => {
-    if (!selectedMarkId) return
-    patchAct(label, (a) => ({
-      ...a,
-      gear: (a.gear ?? []).map((g) => (g.id === selectedMarkId ? { ...g, ...patch } : g)),
-    }))
+    if (!selectedMarkId || !selectedGear) return
+    const id = selectedMarkId
+    const before = Object.fromEntries(
+      Object.keys(patch).map((k) => [k, selectedGear[k as keyof GearMark]]),
+    ) as Partial<GearMark>
+    edit(label, (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, j) =>
+        j === i ? { ...a, gear: (a.gear ?? []).map((g) => (g.id === id ? { ...g, ...patch } : g)) } : a,
+      )
+      return { ...s, acts: carryRef.current ? carryForwardGear(acts, i, id, before, patch) : acts }
+    })
   }
 
   const duplicateSelectedGear = () => {
@@ -4036,10 +4221,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const patchBand = (what: string, patch: Partial<Band>) => {
     if (!selectedMarkId) return
-    patchAct(`band:${selectedMarkId}:${what}`, (a) => ({
-      ...a,
-      bands: a.bands.map((b) => (b.id === selectedMarkId ? { ...b, ...patch } : b)),
-    }))
+    const id = selectedMarkId
+    const before = Object.fromEntries(
+      Object.keys(patch).map((k) => [k, act?.bands.find((b) => b.id === id)?.[k as keyof Band]]),
+    ) as Partial<Band>
+    edit(`band:${id}:${what}`, (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, j) =>
+        j === i ? { ...a, bands: a.bands.map((b) => (b.id === id ? { ...b, ...patch } : b)) } : a,
+      )
+      return { ...s, acts: carryRef.current ? carryForwardBand(acts, i, id, before, patch) : acts }
+    })
   }
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
   const chosenPiece = SET_PIECE_BY_ID.get(setPieceId)
@@ -4499,34 +4691,38 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                   return
                 }
                 if (isArrowTool(tool)) {
-                  // Not a drag of the player: the same press-and-pull the grass
-                  // gets, told which counter it started on. Releasing without
-                  // travelling is the tap that arms or fires the action.
                   e.stopPropagation()
                   beginDraw(e, id)
                   return
+                }
+                if (multiSelect) {
+                   if (multiSelect.tokens.includes(id)) {
+                      e.stopPropagation()
+                      beginMultiDrag(e)
+                      return
+                   }
+                   setMultiSelect(null)
                 }
                 setSelection({ kind: 'token', id })
                 beginDrag({ kind: 'token', id }, e)
               }
         }
-        /* Marks are only pickable with the Move tool: a drawing tool has to be
-           able to start a new mark on top of one that is already there. */
         onArrowPointerDown={
           playing || drawing
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
-                /* Pressing an arrow that is already selected starts moving it;
-                   pressing an unselected one only selects it. Otherwise the
-                   click that picks a mark out of a crowded phase also nudges
-                   it, and a coach cannot select without editing. */
+                if (multiSelect) {
+                   if (multiSelect.marks.includes(id)) {
+                      beginMultiDrag(e)
+                      return
+                   }
+                   setMultiSelect(null)
+                }
                 if (selectedMarkId === id) beginArrowDrag(id, 'move', e)
                 else setSelection({ kind: 'mark', id })
               }
         }
-        /* Handles on the selected arrow only, and only with the Move tool —
-           the same bargain the zone's grips are on. */
         onArrowGripPointerDown={playing || drawing ? undefined : beginArrowDrag}
         onBandPointerDown={
           playing || drawing
@@ -4536,39 +4732,51 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 setSelection({ kind: 'mark', id })
               }
         }
-        /* The same bargain the arrow is on: the first press selects, the second
-           moves. On writing it matters more than anywhere else, because a text
-           mark's hit box is the whole block of words — the biggest target on
-           the board — and a coach clicking one to edit it must not find they
-           have shifted it half a metre in the process. */
         onTextPointerDown={
           playing || drawing
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
+                if (multiSelect) {
+                   if (multiSelect.texts.includes(id)) {
+                      beginMultiDrag(e)
+                      return
+                   }
+                   setMultiSelect(null)
+                }
                 if (selectedMarkId === id) beginTextDrag(id, e)
                 else setSelection({ kind: 'mark', id })
               }
         }
-        /* Gear is on the same first-press-selects bargain as the writing, and
-           needs it just as much: a mannequin is a big opaque target sitting
-           under the players, and a coach clicking one to turn it must not find
-           they have walked it two metres up the pitch. */
         onGearPointerDown={
           playing || drawing
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
+                if (multiSelect) {
+                   if (multiSelect.gear.includes(id)) {
+                      beginMultiDrag(e)
+                      return
+                   }
+                   setMultiSelect(null)
+                }
                 if (selectedMarkId === id) beginGearDrag(id, e)
                 else setSelection({ kind: 'mark', id })
               }
         }
-        /* Handles on the selected area only, and only with the Move tool. */
         onZonePointerDown={playing || drawing ? undefined : beginZoneDrag}
         onBallPointerDown={
           playing || drawing
             ? undefined
             : (id, e) => {
+                if (multiSelect) {
+                   if (multiSelect.balls.includes(id)) {
+                      e.stopPropagation()
+                      beginMultiDrag(e)
+                      return
+                   }
+                   setMultiSelect(null)
+                }
                 setSelection({ kind: 'mark', id })
                 beginDrag({ kind: 'ball', id }, e)
               }
@@ -4576,24 +4784,33 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         onBackgroundPointerDown={(e) => {
           if (playing) return
           if (isPickTool(tool)) {
-            // Pressing the grass finishes the line, the way pressing the grass
-            // finishes a polygon in every drawing tool anybody has used. Under
-            // two players it cancels instead; `commitBlockPick` decides which,
-            // so the rule lives in one place rather than in every caller.
             e.preventDefault()
             commitBlockPick()
             return
           }
           if (!drawing) {
             setSelection(null)
-            // Pressing the grass is a deselect, never the start of a text
-            // selection dragged across the board.
+            if (tool === 'select') {
+               beginMarquee(e)
+               return
+            }
             e.preventDefault()
             return
           }
           beginDraw(e)
         }}
       />
+      {marquee && (
+         <div
+           className="pointer-events-none absolute border-2 border-sky-400 bg-sky-400/20"
+           style={{
+              left: `${Math.min(marquee.from.x, marquee.to.x)}%`,
+              top: `${Math.min(marquee.from.y, marquee.to.y)}%`,
+              width: `${Math.abs(marquee.from.x - marquee.to.x)}%`,
+              height: `${Math.abs(marquee.from.y - marquee.to.y)}%`,
+           }}
+         />
+      )}
       </div>
 
       {/* Zoom UI Overlay */}
@@ -6932,6 +7149,71 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               </Button>
             </Tip>
           </div>
+        </Panel>
+      ) : multiSelect ? (
+        <Panel title={`${multiSelect.tokens.length + multiSelect.gear.length + multiSelect.balls.length + multiSelect.texts.length + multiSelect.marks.length} items selected`}>
+           <p className="text-[11px] leading-relaxed text-ink-faint">
+             {multiSelect.tokens.length} players, {multiSelect.gear.length} equipment, {multiSelect.balls.length} balls, {multiSelect.texts.length} texts, {multiSelect.marks.length} marks.
+           </p>
+           <div className="mt-3 flex gap-2">
+             <Tip text="Make a copy of these items." title="Duplicate" side="left">
+               <Button onClick={() => {
+                  patchAct('duplicate-multi', a => {
+                     const oldToNew = new Map<string, string>()
+                     const makeId = (prefix: string, old: string) => { const n = uid(prefix); oldToNew.set(old, n); return n }
+                     
+                     const newTokens = a.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ ...t, id: makeId('tk', t.id), x: t.x + 5, y: t.y + 5 }))
+                     const newGear = (a.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ ...g, id: makeId('gr', g.id), x: g.x + 5, y: g.y + 5 }))
+                     const newBalls = ballsOf(a).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ ...b, id: makeId('bl', b.id), x: b.x + 5, y: b.y + 5 }))
+                     const newTexts = (a.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ ...t, id: makeId('tx', t.id), x: t.x + 5, y: t.y + 5 }))
+                     const newArrows = a.arrows.filter(ar => multiSelect.marks.includes(ar.id)).map(ar => ({
+                        ...ar,
+                        id: makeId('ar', ar.id),
+                        from: { x: ar.from.x + 5, y: ar.from.y + 5 },
+                        to: { x: ar.to.x + 5, y: ar.to.y + 5 },
+                        fromId: ar.fromId && oldToNew.has(ar.fromId) ? oldToNew.get(ar.fromId) : undefined,
+                        toId: ar.toId && oldToNew.has(ar.toId) ? oldToNew.get(ar.toId) : undefined,
+                     }))
+                     
+                     setMultiSelect({
+                        tokens: newTokens.map(t => t.id),
+                        gear: newGear.map(g => g.id),
+                        balls: newBalls.map(b => b.id),
+                        texts: newTexts.map(t => t.id),
+                        marks: newArrows.map(a => a.id)
+                     })
+                     
+                     return {
+                       ...a,
+                       tokens: [...a.tokens, ...newTokens],
+                       gear: [...(a.gear ?? []), ...newGear],
+                       ...ballFields([...ballsOf(a), ...newBalls]),
+                       texts: [...(a.texts ?? []), ...newTexts],
+                       arrows: [...a.arrows, ...newArrows]
+                     }
+                  })
+                  seal()
+               }}>
+                 Duplicate
+               </Button>
+             </Tip>
+             <Tip text="Remove all selected items" title="Delete" side="left">
+               <Button variant="danger" onClick={() => {
+                  patchAct('delete-multi', a => ({
+                     ...a,
+                     tokens: a.tokens.filter(t => !multiSelect.tokens.includes(t.id)),
+                     gear: (a.gear ?? []).filter(g => !multiSelect.gear.includes(g.id)),
+                     ...ballFields(ballsOf(a).filter(b => !multiSelect.balls.includes(b.id))),
+                     texts: (a.texts ?? []).filter(t => !multiSelect.texts.includes(t.id)),
+                     arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id))
+                  }))
+                  seal()
+                  setMultiSelect(null)
+               }}>
+                 Take them off
+               </Button>
+             </Tip>
+           </div>
         </Panel>
       ) : (
         <Panel title="Nothing selected">

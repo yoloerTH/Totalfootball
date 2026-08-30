@@ -61,7 +61,7 @@ import { ballsOf, type Act, type Shot, type System } from './schema'
  */
 export type { Shot } from './schema'
 
-export type CameraMode = 'off' | 'follow'
+export type CameraMode = 'off' | 'follow' | 'manual'
 
 export const CAMERA_MODES: { id: CameraMode; label: string; hint: string }[] = [
   {
@@ -74,13 +74,18 @@ export const CAMERA_MODES: { id: CameraMode; label: string; hint: string }[] = [
     label: 'Follow the ball',
     hint: 'Pushes in on the ball and travels with it between phases, the way the videos are shot. A phase with no ball is framed on what is marked on it.',
   },
+  {
+    id: 'manual',
+    label: 'Manual',
+    hint: 'Frame the shot yourself on each phase by dragging the dashed camera box. It never automatically moves to follow the play.',
+  },
 ]
 
 export const DEFAULT_CAMERA: CameraMode = 'off'
 
 /** Coerce anything stored on a document — including nothing — to a live mode. */
 export function resolveCamera(id: string | undefined): CameraMode {
-  return id === 'follow' ? 'follow' : 'off'
+  return id === 'follow' ? 'follow' : id === 'manual' ? 'manual' : 'off'
 }
 
 // ── how far it goes ──────────────────────────────────────────────────────────
@@ -274,21 +279,10 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    * off, hand-drawn frame or not, because the whole point is to hold the
    * opening of a film still while the phases that carry the idea track.
    */
-  if (resolveCamera(act.camera ?? system.camera) !== 'follow') return null
-
-  /*
-   * A frame the coach drew wins outright, and skips every test below it.
-   *
-   * Including `WORTH_IT`: that rule exists to stop the DERIVATION creeping in
-   * by 4% and back out again on a phase it had nothing much to point at, which
-   * looks broken. A coach who has dragged a box to almost the size of the crop
-   * has said what they want, and quietly discarding it because the maths judged
-   * it not worth doing would be the tool arguing with them about their own
-   * board. `cameraRect` still bounds it, so "what they want" cannot mean a
-   * frame full of grass that is not there.
-   */
+  const mode = resolveCamera(act.camera ?? system.camera)
+  if (mode === 'off') return null
   if (act.shot) return act.shot
-
+  if (mode === 'manual') return cropRect(view)
   /*
    * SEVERAL BALLS MEANS THE COACH DRIVES.
    *
