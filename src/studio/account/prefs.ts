@@ -142,6 +142,10 @@ function reconcile(row: PrefsRow, local: Prefs): Prefs {
       // truthiness test, because the interesting value here is `false`.
       snap:
         !stored.snap && typeof remoteView.snap === 'boolean' ? remoteView.snap : local.view.snap,
+      // Same latch again. Left out of this merge it would typecheck, because
+      // the field is optional, and would silently never travel between devices.
+      carry:
+        !stored.carry && typeof remoteView.carry === 'boolean' ? remoteView.carry : local.view.carry,
     },
     /*
      * THE ACCOUNT WINS, and this is the one field where it wins outright.

@@ -212,6 +212,55 @@ export const PERSON_FIELDS = ['label', 'name', 'photo', 'playerId', 'bib'] as co
  */
 export const PHASE_FIELDS = ['x', 'y', 'cue', 'dim', 'benched'] as const
 
+/**
+ * Carry a phase edit forward, through the phases that were only HOLDING.
+ *
+ * ── WHY THIS IS NOT JUST `PERSON_FIELDS` WITH MORE FIELDS IN IT ─────────────
+ *
+ * Because the note above is right: widening a positional write to every act
+ * flattens a film into a still. A man standing at A on phase 15 and at B on
+ * phase 16 IS the run, and a rule that wrote A across the whole document would
+ * delete every run in it.
+ *
+ * But the complaint that produces this is real and it is not that (user,
+ * 2026-08-30). A coach fixes somebody's position on phase 15, moves on, and
+ * finds him back in the wrong place on 16, 17 and 18 — because those phases
+ * were duplicated from 15 while it was still wrong, and the man is not running
+ * anywhere in them. He is standing still, in three copies of a mistake.
+ *
+ * So the rule is neither "this phase" nor "every phase". It is THIS PHASE AND
+ * THE ONES STILL HOLDING IT: walk forward, and stop at the first phase where
+ * the man is somewhere else, because somewhere else is a pose somebody chose.
+ * A hold gets corrected, a run is never touched, and the difference between
+ * them is already written on the board in the only place it could be.
+ *
+ * Pure, and given the acts rather than the system, so the rule can be read and
+ * tested without an editor around it.
+ */
+export function carryForward(
+  acts: Act[],
+  from: number,
+  id: string,
+  before: Partial<Token>,
+  after: Partial<Token>,
+): Act[] {
+  const keys = Object.keys(before) as (keyof Token)[]
+  if (keys.length === 0) return acts
+  // Positions are copied structurally when a phase is duplicated, so they come
+  // back bit-identical. The tolerance is for a document that has been through a
+  // JSON round trip, not for "near enough" — 1e-9 of a pitch is a nanometre.
+  const same = (a: unknown, b: unknown) =>
+    typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b
+
+  const out = acts.slice()
+  for (let i = from + 1; i < out.length; i++) {
+    const t = out[i].tokens.find((x) => x.id === id)
+    if (!t || !keys.every((k) => same(t[k], before[k]))) return out
+    out[i] = { ...out[i], tokens: out[i].tokens.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+  }
+  return out
+}
+
 /** A field a coach's edit can travel across every act on. */
 export type PersonField = (typeof PERSON_FIELDS)[number]
 

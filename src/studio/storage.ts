@@ -383,6 +383,39 @@ export function readSnap(): boolean {
   }
 }
 
+/**
+ * Whether fixing somebody on one phase also fixes the phases still holding him.
+ *
+ * A workspace preference like the snap, not a document property: a board handed
+ * to an assistant must not carry the fact that whoever drew it edits this way.
+ * On by default, because the alternative — silently leaving three copies of a
+ * mistake behind the one you corrected — is the behaviour that got reported.
+ */
+const CARRY_KEY = 'tf.studio.carry'
+
+export const DEFAULT_CARRY = true
+
+export function readCarry(): boolean {
+  if (typeof localStorage === 'undefined') return DEFAULT_CARRY
+  try {
+    const raw = localStorage.getItem(scopedKey(CARRY_KEY))
+    return raw === null ? DEFAULT_CARRY : raw === 'on'
+  } catch {
+    return DEFAULT_CARRY
+  }
+}
+
+export function writeCarry(on: boolean): void {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(scopedKey(CARRY_KEY), on ? 'on' : 'off')
+    } catch {
+      // Same bargain as the snap: losing a view preference is survivable.
+    }
+  }
+  sink?.({ view: readView() })
+}
+
 export function writeSnap(on: boolean): void {
   if (typeof localStorage !== 'undefined') {
     try {
@@ -454,10 +487,12 @@ export interface ViewPrefs {
   strip: StripSize
   sections: Record<string, boolean>
   snap: boolean
+  /** Optional: an account synced before this preference existed has none. */
+  carry?: boolean
 }
 
 export function readView(): ViewPrefs {
-  return { strip: readStripSize(), sections: readSections(), snap: readSnap() }
+  return { strip: readStripSize(), sections: readSections(), snap: readSnap(), carry: readCarry() }
 }
 
 /**
@@ -474,6 +509,7 @@ export function hasStored(): {
   strip: boolean
   sections: boolean
   snap: boolean
+  carry: boolean
 } {
   const has = (base: string) => {
     try {
@@ -487,6 +523,7 @@ export function hasStored(): {
     strip: has(STRIP_KEY),
     sections: has(SECTIONS_KEY),
     snap: has(SNAP_KEY),
+    carry: has(CARRY_KEY),
   }
 }
 
@@ -528,6 +565,11 @@ export function applyPrefs(prefs: Partial<Prefs>): void {
       localStorage.setItem(scopedKey(STRIP_KEY), prefs.view.strip)
       localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(prefs.view.sections))
       localStorage.setItem(scopedKey(SNAP_KEY), prefs.view.snap ? 'on' : 'off')
+      // Guarded: an account that synced before this existed says nothing about
+      // it, and nothing is not the same as off.
+      if (typeof prefs.view.carry === 'boolean') {
+        localStorage.setItem(scopedKey(CARRY_KEY), prefs.view.carry ? 'on' : 'off')
+      }
     }
     if (prefs.last) {
       // Through the store rather than beside it: `lastOpened()` reads this

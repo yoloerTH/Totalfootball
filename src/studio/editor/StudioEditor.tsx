@@ -137,6 +137,7 @@ import {
   type BandKind,
   type BandShape,
   type Credit,
+  carryForward,
   type Cue,
   type Shot,
   type GearMark,
@@ -152,10 +153,12 @@ import { shouldAsk, shouldAskOnOpen, type FeedbackContext } from '../feedback'
 import { holdMs, moveMs } from '../pace'
 import { resolveAct, timelineAt, totalDuration, tweenActs } from '../tween'
 import {
+  readCarry,
   readGuide,
   readSnap,
   readStripSize,
   saveSystem,
+  writeCarry,
   writeGuide,
   writeSnap,
   writeStripSize,
@@ -959,6 +962,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * has landed is a line the coach will try to move. See ../board/align.ts.
    */
   const [snapOn, setSnapOn] = useState<boolean>(readSnap)
+  /*
+   * Whether correcting somebody here also corrects the phases still holding
+   * him. See `carryForward` in ../schema.ts for the rule, and ../storage.ts for
+   * why it is a workspace preference and not a property of the document.
+   *
+   * The ref is for the drag: a pointer gesture is bound once and read for the
+   * length of the drag, so a value closed over at bind time would be the one
+   * from before the coach last touched the switch.
+   */
+  const [carryOn, setCarryOn] = useState<boolean>(readCarry)
+  const carryRef = useRef(carryOn)
+  carryRef.current = carryOn
   const [guides, setGuides] = useState<SnapGuide[]>(NO_GUIDES)
   const [walkthrough, setWalkthrough] = useState(false)
   const [upgradesWalkthrough, setUpgradesWalkthrough] = useState(false)
@@ -1894,12 +1909,39 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               }
             })
           }
+
+          /*
+           * AND THE PHASES THAT WERE ONLY HOLDING HIM.
+           *
+           * ON RELEASE, ONCE. The move handler above runs per pointer event and
+           * the "before" it would compare against changes under it every frame;
+           * carrying from there would rewrite the tail of the film sixty times a
+           * second and compare each write against the previous one. Here there
+           * is exactly one before and one after, and `carryForward` decides how
+           * far it reaches. Same undo label as the drag, so the whole gesture is
+           * still one press of undo.
+           */
+          if (drag.kind === 'token' && carryRef.current) {
+            const was = source.tokens.find((t) => t.id === drag.id)
+            edit(`drag:${drag.id}`, (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const now = s.acts[i]?.tokens.find((t) => t.id === drag.id)
+              // A drag on or off the bench re-lays the whole strip. That is a
+              // different edit from moving a man on the grass, and it is not
+              // one to repeat down the film behind the coach's back.
+              if (!was || !now || Boolean(was.benched) !== Boolean(now.benched)) return s
+              return {
+                ...s,
+                acts: carryForward(s.acts, i, drag.id, { x: was.x, y: was.y }, { x: now.x, y: now.y }),
+              }
+            })
+          }
           seal()
           setDragging(null)
         },
       )
     },
-    [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides],
+    [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides, edit],
   )
 
   /**
@@ -3740,10 +3782,21 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const patchToken = (patch: Partial<Token>, label: string) => {
     if (!selectedToken) return
     const id = selectedToken.id
-    patchAct(`token:${label}`, (a) => ({
-      ...a,
-      tokens: a.tokens.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-    }))
+    /*
+     * What he was doing before this press, read off the phase in front of the
+     * coach. `carryForward` needs it to tell a hold from a pose: the phases
+     * that still say THIS are the ones that were only holding.
+     */
+    const before = Object.fromEntries(
+      Object.keys(patch).map((k) => [k, selectedToken[k as keyof Token]]),
+    ) as Partial<Token>
+    edit(`token:${label}`, (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, j) =>
+        j === i ? { ...a, tokens: a.tokens.map((t) => (t.id === id ? { ...t, ...patch } : t)) } : a,
+      )
+      return { ...s, acts: carryRef.current ? carryForward(acts, i, id, before, patch) : acts }
+    })
   }
 
   /**
@@ -4562,6 +4615,33 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             <path d="M12 2v20" strokeDasharray="3 3" strokeLinecap="round" />
             <rect x="6" y="4.5" width="12" height="4.5" rx="1.4" />
             <rect x="6" y="15" width="12" height="4.5" rx="1.4" />
+          </svg>
+        </button>
+        {/*
+         * Carrying forward, next to the snap for the same reason the snap is
+         * here: both are facts about how this coach works, not about the board.
+         */}
+        <button
+          data-help="carry"
+          onClick={() => {
+            const next = !carryOn
+            setCarryOn(next)
+            writeCarry(next)
+          }}
+          className={`flex h-7 w-7 items-center justify-center rounded hover:bg-white/20 active:bg-white/30 ${
+            carryOn ? 'bg-white/20' : 'opacity-55'
+          }`}
+          title={
+            carryOn
+              ? 'Carry forward: on. Moving a player here also moves him on the phases after this one that were holding him in the same place, and stops at the phase where he goes somewhere else.'
+              : 'Carry forward: off. A change lands on this phase only.'
+          }
+          aria-pressed={carryOn}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="5.5" cy="12" r="3.2" />
+            <circle cx="14" cy="12" r="2.4" strokeDasharray="2 2.2" />
+            <circle cx="20.5" cy="12" r="2.4" strokeDasharray="2 2.2" />
           </svg>
         </button>
         <div className="mx-1 h-4 w-px bg-white/20" />
