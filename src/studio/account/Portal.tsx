@@ -71,6 +71,7 @@ export default function Portal() {
   const [load, setLoad] = useState<Load>('working')
   const [claimed, setClaimed] = useState(0)
   const [folderSystem, setFolderSystem] = useState<CloudSystem | null>(null)
+  const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const { profile } = useProfile(user?.id)
 
   /*
@@ -445,14 +446,21 @@ export default function Portal() {
           {(() => {
             const folders = Array.from(new Set(systems.map((s) => s.system.folder).filter(Boolean))) as string[]
             folders.sort()
-            return (
-              <div className="mt-8 flex flex-col gap-12">
-                {folders.map((f) => (
-                  <div key={f}>
-                    <h3 className="mb-4 text-xl font-bold text-ink">{f}</h3>
+
+            if (activeFolder) {
+              return (
+                <div className="mt-8 flex flex-col gap-8">
+                  <div>
+                    <button
+                      onClick={() => setActiveFolder(null)}
+                      className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-ink-faint transition hover:text-ink"
+                    >
+                      ← Back to folders
+                    </button>
+                    <h2 className="mb-6 text-2xl font-black text-ink">{activeFolder}</h2>
                     <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
                       {systems
-                        .filter((s) => s.system.folder === f)
+                        .filter((s) => s.system.folder === activeFolder)
                         .map((row) => (
                           <Card
                             key={row.id}
@@ -466,9 +474,41 @@ export default function Portal() {
                         ))}
                     </ul>
                   </div>
-                ))}
+                </div>
+              )
+            }
+
+            return (
+              <div className="mt-8 flex flex-col gap-12">
+                {folders.length > 0 && (
+                  <div>
+                    <h3 className="mb-4 text-xl font-bold text-ink">Folders</h3>
+                    <ul className="grid list-none grid-cols-2 gap-4 p-0 sm:grid-cols-3 lg:grid-cols-4">
+                      {folders.map((f) => {
+                        const count = systems.filter((s) => s.system.folder === f).length;
+                        return (
+                          <li
+                            key={f}
+                            className="group flex cursor-pointer items-center gap-4 rounded-xl border border-ink-hair bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                            onClick={() => setActiveFolder(f)}
+                          >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink-hair text-ink-soft transition-colors group-hover:bg-ink group-hover:text-paper">
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                              </svg>
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                              <span className="truncate font-bold text-ink">{f}</span>
+                              <span className="text-xs text-ink-faint">{count} system{count === 1 ? '' : 's'}</span>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )}
                 <div>
-                  {folders.length > 0 && <h3 className="mb-4 text-xl font-bold text-ink">Uncategorised</h3>}
+                  <h3 className="mb-4 text-xl font-bold text-ink">{folders.length > 0 ? 'Uncategorised' : 'All systems'}</h3>
                   <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
                     <NewTile onClick={create} />
                     {systems

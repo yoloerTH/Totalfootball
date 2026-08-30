@@ -3938,6 +3938,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     }))
   }
 
+  const duplicateSelectedGear = () => {
+    if (!selectedGear) return
+    const id = uid('gear')
+    patchAct('duplicate-gear', (a) => ({
+      ...a,
+      gear: [
+        ...(a.gear ?? []),
+        { ...selectedGear, id, x: selectedGear.x + 2, y: selectedGear.y + 2 },
+      ],
+    }))
+    seal()
+    setSelection({ kind: 'mark', id })
+  }
+
   /**
    * Put a piece of gear on the board.
    *
@@ -6906,7 +6920,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </div>
           ) : null}
 
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
+            <Tip text="Make a copy of this piece of equipment." title="Duplicate" side="left">
+              <Button onClick={duplicateSelectedGear}>
+                Duplicate
+              </Button>
+            </Tip>
             <Tip text={HINT.deleteMark} title="Delete" side="left">
               <Button variant="danger" onClick={deleteSelection}>
                 Take it off
