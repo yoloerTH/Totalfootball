@@ -265,10 +265,10 @@ export function carryForwardGear(
   acts: Act[],
   from: number,
   id: string,
-  before: Partial<Gear>,
-  after: Partial<Gear>,
+  before: Partial<GearMark>,
+  after: Partial<GearMark>,
 ): Act[] {
-  const keys = Object.keys(before) as (keyof Gear)[]
+  const keys = Object.keys(before) as (keyof GearMark)[]
   if (keys.length === 0) return acts
   const same = (a: unknown, b: unknown) =>
     typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b
@@ -277,7 +277,7 @@ export function carryForwardGear(
   for (let i = from + 1; i < out.length; i++) {
     if (!out[i].gear) return out
     const g = out[i].gear!.find((x) => x.id === id)
-    if (!g || !keys.every((k) => same(g[k], before[k]))) return out
+    if (!g || !keys.every((k) => same((g as any)[k], (before as any)[k]))) return out
     out[i] = { ...out[i], gear: out[i].gear!.map((x) => (x.id === id ? { ...x, ...after } : x)) }
   }
   return out
@@ -303,7 +303,7 @@ export function carryForwardArrow(
   const out = acts.slice()
   for (let i = fromIdx + 1; i < out.length; i++) {
     const a = out[i].arrows.find((x) => x.id === id)
-    if (!a || !keys.every((k) => same(a[k], before[k]))) return out
+    if (!a || !keys.every((k) => same((a as any)[k], (before as any)[k]))) return out
     out[i] = { ...out[i], arrows: out[i].arrows.map((x) => (x.id === id ? { ...x, ...after } : x)) }
   }
   return out
@@ -332,7 +332,7 @@ export function carryForwardBand(
   const out = acts.slice()
   for (let i = fromIdx + 1; i < out.length; i++) {
     const b = out[i].bands.find((x) => x.id === id)
-    if (!b || !keys.every((k) => same(b[k], before[k]))) return out
+    if (!b || !keys.every((k) => same((b as any)[k], (before as any)[k]))) return out
     out[i] = { ...out[i], bands: out[i].bands.map((x) => (x.id === id ? { ...x, ...after } : x)) }
   }
   return out
