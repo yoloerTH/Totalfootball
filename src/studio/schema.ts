@@ -372,6 +372,69 @@ export function carryForwardAdd<K extends 'tokens' | 'gear' | 'arrows' | 'bands'
   return out
 }
 
+export function carryForwardText(
+  acts: Act[],
+  fromIdx: number,
+  id: string,
+  before: Partial<TextMark>,
+  after: Partial<TextMark>,
+): Act[] {
+  const keys = Object.keys(before) as (keyof TextMark)[]
+  if (keys.length === 0) return acts
+  const same = (a: unknown, b: unknown) =>
+    typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-9 : a === b
+
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    if (!out[i].texts) return out
+    const t = out[i].texts!.find((x) => x.id === id)
+    if (!t || !keys.every((k) => same((t as any)[k], (before as any)[k]))) return out
+    out[i] = { ...out[i], texts: out[i].texts!.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+  }
+  return out
+}
+
+export function carryForwardRemove<K extends 'tokens' | 'gear' | 'arrows' | 'bands' | 'texts'>(
+  acts: Act[],
+  fromIdx: number,
+  key: K,
+  id: string,
+): Act[] {
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const list = out[i][key]
+    if (!list) continue
+    out[i] = { ...out[i], [key]: (list as any[]).filter(x => x.id !== id) }
+  }
+  return out
+}
+
+export function carryForwardAddBall(
+  acts: Act[],
+  fromIdx: number,
+  ball: BallMark,
+): Act[] {
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const balls = ballsOf(out[i])
+    out[i] = { ...out[i], ...ballFields([...balls, ball]) }
+  }
+  return out
+}
+
+export function carryForwardRemoveBall(
+  acts: Act[],
+  fromIdx: number,
+  id: string,
+): Act[] {
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const balls = ballsOf(out[i])
+    out[i] = { ...out[i], ...ballFields(balls.filter(b => b.id !== id)) }
+  }
+  return out
+}
+
 /** A field a coach's edit can travel across every act on. */
 export type PersonField = (typeof PERSON_FIELDS)[number]
 

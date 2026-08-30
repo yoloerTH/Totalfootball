@@ -143,6 +143,10 @@ import {
   carryForwardBand,
   carryForwardShot,
   carryForwardAdd,
+  carryForwardText,
+  carryForwardRemove,
+  carryForwardAddBall,
+  carryForwardRemoveBall,
   type Cue,
   type Shot,
   type GearMark,
@@ -229,6 +233,7 @@ import {
   ConfirmButton,
   Field,
   GearPicker,
+  Modal,
   Panel,
   PicturePicker,
   Section,
@@ -241,6 +246,7 @@ import {
   Toggle,
 } from './ui'
 import { NEWEST_NEWS_ID, unseenNews } from '../../data/whatsnew'
+import { injectSequence } from '../inject'
 
 const CUES: Cue[] = ['PRESS', 'COVER', 'BALANCE', 'SPARE', 'JOCKEY', 'DROP']
 
@@ -1027,6 +1033,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const pendingWin = useRef<FeedbackContext | null>(null)
   const [makingVideo, setMakingVideo] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [injecting, setInjecting] = useState(false)
+  const [injectStart, setInjectStart] = useState(0)
+  const [injectEnd, setInjectEnd] = useState(0)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
   // have an interstitial thrown over their work. See ./SmallScreen.tsx.
   const [tooSmall, setTooSmall] = useState(false)
@@ -1576,20 +1585,27 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   }
 
   const addBall = () => {
-    patchAct('ball-add', (a) => {
+    edit('ball-add', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const a = s.acts[i]
       const balls = ballsOf(a)
-      return { ...a, ...ballFields([...balls, newBall(nextBallSpot(balls))]) }
+      const ball = newBall(nextBallSpot(balls))
+      const acts = s.acts.map((x, j) => (j === i ? { ...x, ...ballFields([...balls, ball]) } : x))
+      return { ...s, acts: carryRef.current ? carryForwardAddBall(acts, i, ball) : acts }
     })
     seal()
   }
 
   /** The selected one if a ball is selected, otherwise the last one added. */
   const removeBall = () => {
-    patchAct('ball-remove', (a) => {
+    edit('ball-remove', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const a = s.acts[i]
       const balls = ballsOf(a)
-      if (balls.length === 0) return a
+      if (balls.length === 0) return s
       const id = selectedBallId ?? balls[balls.length - 1].id
-      return { ...a, ...ballFields(balls.filter((b) => b.id !== id)) }
+      const acts = s.acts.map((x, j) => (j === i ? { ...x, ...ballFields(balls.filter((b) => b.id !== id)) } : x))
+      return { ...s, acts: carryRef.current ? carryForwardRemoveBall(acts, i, id) : acts }
     })
     if (selectedBallId) setSelection(null)
     seal()
@@ -1598,22 +1614,38 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const deleteSelection = useCallback((): boolean => {
     if (!selection) return false
     const { kind, id } = selection
-    patchAct('delete', (a) =>
-      kind === 'token'
-        ? { ...a, tokens: a.tokens.filter((t) => t.id !== id) }
-        : {
-            ...a,
-            ...ballFields(ballsOf(a).filter((b) => b.id !== id)),
-            arrows: a.arrows.filter((x) => x.id !== id),
-            bands: a.bands.filter((b) => b.id !== id),
-            texts: (a.texts ?? []).filter((x) => x.id !== id),
-            gear: (a.gear ?? []).filter((g) => g.id !== id),
-          },
-    )
+    edit('delete', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      let acts = s.acts.map((x, j) => {
+        if (j !== i) return x
+        return kind === 'token'
+          ? { ...x, tokens: x.tokens.filter((t) => t.id !== id) }
+          : {
+              ...x,
+              ...ballFields(ballsOf(x).filter((b) => b.id !== id)),
+              arrows: x.arrows.filter((ar) => ar.id !== id),
+              bands: x.bands.filter((b) => b.id !== id),
+              texts: (x.texts ?? []).filter((tx) => tx.id !== id),
+              gear: (x.gear ?? []).filter((g) => g.id !== id),
+            }
+      })
+      if (carryRef.current) {
+        if (kind === 'token') {
+          acts = carryForwardRemove(acts, i, 'tokens', id)
+        } else {
+          acts = carryForwardRemoveBall(acts, i, id)
+          acts = carryForwardRemove(acts, i, 'arrows', id)
+          acts = carryForwardRemove(acts, i, 'bands', id)
+          acts = carryForwardRemove(acts, i, 'texts', id)
+          acts = carryForwardRemove(acts, i, 'gear', id)
+        }
+      }
+      return { ...s, acts }
+    })
     seal()
     setSelection(null)
     return true
-  }, [selection, patchAct, seal])
+  }, [selection, edit, seal])
 
   // ── undo ───────────────────────────────────────────────────────────────────
   const undo = useCallback(() => {
@@ -3955,6 +3987,35 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     setSelection(null)
   }
 
+  const openInjectDialog = () => {
+    if (actIndex === 0) {
+      alert("You need to be on a later phase to repeat an earlier sequence.")
+      return
+    }
+    setInjectStart(0)
+    setInjectEnd(actIndex - 1)
+    setInjecting(true)
+  }
+
+  const runInject = () => {
+    if (injectStart < 0 || injectEnd > system.acts.length - 1 || injectStart > injectEnd) {
+      return
+    }
+
+    edit('inject-sequence', (s) => {
+      const targetAct = s.acts[actIndex]
+      const seqActs = s.acts.slice(injectStart, injectEnd + 1)
+      const newActs = injectSequence(targetAct, seqActs)
+      if (newActs.length === 0) return s
+      const acts = [...s.acts]
+      acts.splice(actIndex + 1, 0, ...newActs)
+      return { ...s, acts }
+    })
+    seal()
+    setInjecting(false)
+    setActIndex((i) => i + 1)
+    setSelection(null)
+  }
   const deleteAct = () => {
     if (system.acts.length <= 1) return
     edit('delete-phase', (s) => ({ ...s, acts: s.acts.filter((_, i) => i !== actIndex) }))
@@ -4129,11 +4190,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * it is next opened. Same policy the bands are on.
    */
   const patchText = (patch: Partial<TextMark>) => {
-    if (!selectedMarkId) return
-    patchAct('text-style', (a) => ({
-      ...a,
-      texts: (a.texts ?? []).map((x) => (x.id === selectedMarkId ? { ...x, ...patch } : x)),
-    }))
+    if (!selectedMarkId || !selectedText) return
+    const id = selectedMarkId
+    const before = Object.fromEntries(
+      Object.keys(patch).map((k) => [k, selectedText[k as keyof TextMark]]),
+    ) as Partial<TextMark>
+    edit('text-style', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, j) =>
+        j === i ? { ...a, texts: (a.texts ?? []).map((x) => (x.id === id ? { ...x, ...patch } : x)) } : a,
+      )
+      return { ...s, acts: carryRef.current ? carryForwardText(acts, i, id, before, patch) : acts }
+    })
   }
 
   /** Change one field of the selected gear. Same clearing policy as the text. */
@@ -5233,6 +5301,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         <Tip text={HINT.copyPhase} title={`Duplicate ${PHASE.one}`} side="top">
           <Button onClick={duplicateAct} aria-label={`Make a copy of this ${PHASE.one}`} className="!px-2">
             ⧉<span className="hidden lg:inline">Copy</span>
+          </Button>
+        </Tip>
+        <Tip text="Repeat the sequence from Phase 1 mapped to the current players' positions" title="Repeat Drill" side="top">
+          <Button onClick={openInjectDialog} aria-label="Repeat the sequence from Phase 1" className="!px-2">
+            ↻<span className="hidden lg:inline">Repeat</span>
           </Button>
         </Tip>
         <Tip text={HINT.deletePhase} title={`Delete ${PHASE.one}`} side="top">
@@ -7262,15 +7335,30 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
              </Tip>
              <Tip text="Remove all selected items" title="Delete" side="left">
                <Button variant="danger" onClick={() => {
-                  patchAct('delete-multi', a => ({
-                     ...a,
-                     tokens: a.tokens.filter(t => !multiSelect.tokens.includes(t.id)),
-                     gear: (a.gear ?? []).filter(g => !multiSelect.gear.includes(g.id)),
-                     ...ballFields(ballsOf(a).filter(b => !multiSelect.balls.includes(b.id))),
-                     texts: (a.texts ?? []).filter(t => !multiSelect.texts.includes(t.id)),
-                     arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id)),
-                     bands: a.bands.filter(b => !multiSelect.marks.includes(b.id))
-                  }))
+                  edit('delete-multi', s => {
+                     const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+                     let acts = s.acts.map((a, j) => j === idx ? {
+                       ...a,
+                       tokens: a.tokens.filter(t => !multiSelect.tokens.includes(t.id)),
+                       gear: (a.gear ?? []).filter(g => !multiSelect.gear.includes(g.id)),
+                       ...ballFields(ballsOf(a).filter(b => !multiSelect.balls.includes(b.id))),
+                       texts: (a.texts ?? []).filter(t => !multiSelect.texts.includes(t.id)),
+                       arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id)),
+                       bands: a.bands.filter(b => !multiSelect.marks.includes(b.id))
+                     } : a)
+
+                     if (carryRef.current) {
+                        for (const id of multiSelect.tokens) acts = carryForwardRemove(acts, idx, 'tokens', id)
+                        for (const id of multiSelect.gear) acts = carryForwardRemove(acts, idx, 'gear', id)
+                        for (const id of multiSelect.balls) acts = carryForwardRemoveBall(acts, idx, id)
+                        for (const id of multiSelect.texts) acts = carryForwardRemove(acts, idx, 'texts', id)
+                        for (const id of multiSelect.marks) {
+                           acts = carryForwardRemove(acts, idx, 'arrows', id)
+                           acts = carryForwardRemove(acts, idx, 'bands', id)
+                        }
+                     }
+                     return { ...s, acts }
+                  })
                   seal()
                   setMultiSelect(null)
                }}>
@@ -7343,13 +7431,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                     type="button"
                     aria-label={`Delete this ${m.name.toLowerCase()}`}
                     onClick={() => {
-                      patchAct('delete-mark', (a) => ({
-                        ...a,
-                        arrows: a.arrows.filter((x) => x.id !== m.id),
-                        bands: a.bands.filter((b) => b.id !== m.id),
-                        texts: (a.texts ?? []).filter((x) => x.id !== m.id),
-                        gear: (a.gear ?? []).filter((g) => g.id !== m.id),
-                      }))
+                      edit('delete-mark', (s) => {
+                        const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+                        let acts = s.acts.map((a, j) => j === idx ? {
+                          ...a,
+                          arrows: a.arrows.filter((x) => x.id !== m.id),
+                          bands: a.bands.filter((b) => b.id !== m.id),
+                          texts: (a.texts ?? []).filter((x) => x.id !== m.id),
+                          gear: (a.gear ?? []).filter((g) => g.id !== m.id),
+                        } : a)
+
+                        if (carryRef.current) {
+                           acts = carryForwardRemove(acts, idx, 'arrows', m.id)
+                           acts = carryForwardRemove(acts, idx, 'bands', m.id)
+                           acts = carryForwardRemove(acts, idx, 'texts', m.id)
+                           acts = carryForwardRemove(acts, idx, 'gear', m.id)
+                        }
+                        return { ...s, acts }
+                      })
                       seal()
                       if (selectedMarkId === m.id) setSelection(null)
                     }}
@@ -7494,6 +7593,59 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             if (guideRef.current.newsSeen !== NEWEST_NEWS_ID) openNews()
           }}
         />
+      )}
+      {injecting && (
+        <Modal
+          title="Repeat Sequence"
+          label="Repeat a sequence of phases"
+          onClose={() => setInjecting(false)}
+          footer={
+            <div className="flex justify-end gap-3 p-4">
+              <Button variant="ghost" onClick={() => setInjecting(false)}>
+                Cancel
+              </Button>
+              <Button variant="solid" onClick={runInject}>
+                Inject Drill
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-6 p-4">
+            <p className="text-sm text-ink-soft">
+              Choose the sequence of phases you want to extract and map to your current players.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <label className="text-[13px] font-semibold text-ink">From Phase</label>
+                <select
+                  className="w-full rounded-md border border-ink-hair bg-transparent px-3 py-1.5 text-sm focus:border-tf-red focus:outline-none focus:ring-1 focus:ring-tf-red"
+                  value={injectStart}
+                  onChange={(e) => setInjectStart(parseInt(e.target.value, 10))}
+                >
+                  {system.acts.slice(0, actIndex).map((a, i) => (
+                    <option key={i} value={i}>
+                      Phase {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1 space-y-2">
+                <label className="text-[13px] font-semibold text-ink">To Phase</label>
+                <select
+                  className="w-full rounded-md border border-ink-hair bg-transparent px-3 py-1.5 text-sm focus:border-tf-red focus:outline-none focus:ring-1 focus:ring-tf-red"
+                  value={injectEnd}
+                  onChange={(e) => setInjectEnd(parseInt(e.target.value, 10))}
+                >
+                  {system.acts.slice(0, actIndex).map((a, i) => (
+                    <option key={i} value={i} disabled={i < injectStart}>
+                      Phase {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
       {sharing && (
         <ShareDialog
