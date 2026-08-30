@@ -52,6 +52,8 @@ import {
   type CloudSystem,
 } from './cloud'
 import { Modal, Button } from '../editor/ui'
+import { ExportDialog } from '../editor/ExportDialog'
+import { VideoDialog } from '../editor/VideoDialog'
 import { useProfile, putProfile } from './profile'
 
 type Load = 'working' | 'ready' | 'local-only'
@@ -97,6 +99,7 @@ export default function Portal() {
    * panel goes back to being an offer. See GAPS in ./completion.ts.
    */
   const [completion, setCompletion] = useState<Completion | null>(null)
+  const [exportSystem, setExportSystem] = useState<{ row: CloudSystem; mode: 'images' | 'video' } | null>(null)
 
   // Signed out: go and sign in, and come back here afterwards.
   useEffect(() => {
@@ -457,6 +460,7 @@ export default function Portal() {
                             onDuplicate={() => void duplicate(row)}
                             onRename={(t) => void rename(row, t)}
                             onFolderClick={() => setFolderSystem(row)}
+                            onExport={() => setExportSystem({ row, mode: 'images' })}
                             onDelete={() => void remove(row)}
                           />
                         ))}
@@ -476,6 +480,7 @@ export default function Portal() {
                           onDuplicate={() => void duplicate(row)}
                           onRename={(t) => void rename(row, t)}
                           onFolderClick={() => setFolderSystem(row)}
+                          onExport={() => setExportSystem({ row, mode: 'images' })}
                           onDelete={() => void remove(row)}
                         />
                       ))}
@@ -519,6 +524,35 @@ export default function Portal() {
             writeGuide({ profileNudgeOff: true })
             setNudge(null)
           }}
+        />
+      )}
+
+      {exportSystem?.mode === 'images' && (
+        <ExportDialog
+          system={exportSystem.row.system}
+          actIndex={0}
+          identity={true}
+          onIdentity={() => {}}
+          identityIsDefault={true}
+          unsigned={false}
+          onSaved={() => setExportSystem(null)}
+          onSwitchMode={(mode) => setExportSystem({ row: exportSystem!.row, mode: mode === 'image' ? 'images' : 'video' })}
+          onClose={() => setExportSystem(null)}
+        />
+      )}
+      {exportSystem?.mode === 'video' && (
+        <VideoDialog
+          system={exportSystem.row.system}
+          identity={true}
+          onIdentity={() => {}}
+          identityIsDefault={true}
+          unsigned={false}
+          onHold={() => {}}
+          onMove={() => {}}
+          onPaceCommit={() => {}}
+          onSaved={() => setExportSystem(null)}
+          onSwitchMode={(mode) => setExportSystem({ row: exportSystem!.row, mode: mode === 'image' ? 'images' : 'video' })}
+          onClose={() => setExportSystem(null)}
         />
       )}
     </div>
@@ -982,12 +1016,14 @@ function Card({
   onDuplicate,
   onRename,
   onFolderClick,
+  onExport,
   onDelete,
 }: {
   row: CloudSystem
   onDuplicate: () => void
   onRename: (title: string) => void
   onFolderClick: (current: string) => void
+  onExport: () => void
   onDelete: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -1033,6 +1069,7 @@ function Card({
       <div className="flex flex-1 flex-col border-t border-ink-hair p-4">
         {editing ? (
           <input
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -1085,7 +1122,7 @@ function Card({
           no hover, and opacity does not take a button out of the tab order
           anyway, so the trade it was making was not one it was getting.
         */}
-        <div className="mt-3 flex items-center gap-1 pt-1 text-ink-faint transition-colors group-focus-within:text-ink-soft group-hover:text-ink-soft">
+        <div className="mt-3 flex flex-wrap items-center gap-1 pt-1 text-ink-faint transition-colors group-focus-within:text-ink-soft group-hover:text-ink-soft">
           <Small onClick={() => setEditing(true)}>Rename</Small>
           <Small onClick={() => onFolderClick(row.system.folder || '')}>
             Folder
@@ -1100,6 +1137,7 @@ function Card({
               Delete
             </Small>
           )}
+          <Small onClick={onExport}>Export</Small>
         </div>
       </div>
     </li>

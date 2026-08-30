@@ -71,6 +71,7 @@ export function ExportDialog({
   identityIsDefault,
   unsigned,
   onSaved,
+  onSwitchMode,
   onClose,
 }: {
   system: System
@@ -82,6 +83,7 @@ export function ExportDialog({
   unsigned: boolean
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
+  onSwitchMode?: (mode: 'image' | 'video') => void
   onClose: () => void
 }) {
   const [shape, setShape] = useState<ImageShape['id']>(DEFAULT_IMAGE_SHAPE)
@@ -217,6 +219,19 @@ export function ExportDialog({
       }
     >
       <>
+        {onSwitchMode && (
+          <div className="mb-6">
+            <Segmented
+              label="Export Format"
+              value="image"
+              onChange={(v) => onSwitchMode(v as 'image' | 'video')}
+              options={[
+                { value: 'image', label: 'Images & PDF' },
+                { value: 'video', label: 'Video' },
+              ]}
+            />
+          </div>
+        )}
         {/* ── images ── */}
         <h3 className="text-micro uppercase tracking-micro text-ink-faint">{EXPORT.imagesTitle}</h3>
         <p className="mt-1 text-[11px] leading-snug text-ink-faint">{EXPORT.imagesBody}</p>

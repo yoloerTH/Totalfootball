@@ -5308,6 +5308,41 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           <p className="mt-2 text-[11px] leading-snug text-ink-faint">
             <span className="text-ink-soft">{grid.hint}</span> {grid.useFor}
           </p>
+
+          <div className="mt-4 flex gap-4">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label className="text-xs font-semibold text-ink-soft">Color</label>
+              <input
+                type="color"
+                className="h-8 w-full cursor-pointer rounded bg-transparent p-0"
+                value={system.gridTone ?? '#ffffff'}
+                onChange={(e) => edit('gridTone', (s) => ({ ...s, gridTone: e.target.value }))}
+                onBlur={seal}
+              />
+            </div>
+            <div className="flex-1">
+              <Slider
+                label="Opacity"
+                min={0.1}
+                max={1.0}
+                step={0.1}
+                value={system.gridOpacity ?? 0.5}
+                onChange={(v) => edit('gridOpacity', (s) => ({ ...s, gridOpacity: v }))}
+                onCommit={seal}
+                readout={`${Math.round((system.gridOpacity ?? 0.5) * 100)}%`}
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <Toggle
+              checked={Boolean(system.hideGoals)}
+              onChange={(v) => {
+                edit('hideGoals', (s) => ({ ...s, hideGoals: v }))
+                seal()
+              }}
+              label="Hide fixed goals"
+            />
+          </div>
         </Panel>
         )}
 

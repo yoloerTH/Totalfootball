@@ -943,6 +943,12 @@ export interface System {
    * values fall back to the plain pitch in `resolveGrid()`.
    */
   grid?: string
+  /** Color of the pitch markings/grid */
+  gridTone?: string
+  /** Opacity of the pitch markings/grid (0 to 1) */
+  gridOpacity?: number
+  /** Whether to hide the fixed goals on the pitch */
+  hideGoals?: boolean
   /**
    * Whether the film moves, and how.
    *

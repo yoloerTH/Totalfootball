@@ -47,6 +47,7 @@ export function VideoDialog({
   onMove,
   onPaceCommit,
   onSaved,
+  onSwitchMode,
   onClose,
 }: {
   system: System
@@ -71,6 +72,7 @@ export function VideoDialog({
   onPaceCommit: () => void
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
+  onSwitchMode?: (mode: 'image' | 'video') => void
   onClose: () => void
 }) {
   const [shape, setShape] = useState<VideoShape['id']>('landscape')
@@ -210,6 +212,19 @@ export function VideoDialog({
       }
     >
       <>
+        {onSwitchMode && (
+          <div className="mb-6">
+            <Segmented
+              label="Export Format"
+              value="video"
+              onChange={(v) => onSwitchMode(v as 'image' | 'video')}
+              options={[
+                { value: 'image', label: 'Images & PDF' },
+                { value: 'video', label: 'Video' },
+              ]}
+            />
+          </div>
+        )}
         {!supported ? (
           <>
             <p className="rounded-lg bg-paper p-3 text-[12px] leading-relaxed text-ink-soft">

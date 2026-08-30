@@ -135,6 +135,8 @@ interface Props {
    */
   turned?: boolean
   goalHref?: string
+  gridTone?: string
+  gridOpacity?: number
   /**
    * Paint a coned training area instead of a pitch. See `TrainingArea`.
    *
@@ -154,7 +156,7 @@ interface Props {
  */
 const TRAINING_TURF = 40
 
-export function Pitch({ idp, texture = false, grid, turned = false, goalHref, area }: Props) {
+export function Pitch({ idp, texture = false, grid, turned = false, goalHref, gridTone, gridOpacity, area }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
   const ruled = resolveGrid(grid)
@@ -163,7 +165,6 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, ar
   // Only the top edge of each box is needed; the height comes from MARK.
   const penY0 = MID - MARK.penWidth / 2
   const sixY0 = MID - MARK.sixWidth / 2
-  const goalY0 = MID - MARK.goalWidth / 2
   
   // Goals from perspective assets need to be scaled up slightly to match the visual weight of flat lines
   const GOAL_IMG_W = MARK.goalWidth * 1.25
@@ -300,8 +301,8 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, ar
       {!area && (ruled.lines.length > 0 || ruled.cells.length > 0) && (
         // Named in the DOM so the smoke test can count what was ruled without
         // guessing at a stroke colour. See scripts/smoke-studio.mjs.
-        <g pointerEvents="none" data-grid={ruled.id}>
-          <g fill="none" stroke={p.lineSoft} strokeWidth={LINE * 0.7} strokeLinecap="butt">
+        <g pointerEvents="none" data-grid={ruled.id} opacity={gridOpacity ?? 1}>
+          <g fill="none" stroke={gridTone ?? p.lineSoft} strokeWidth={LINE * 0.7} strokeLinecap="butt">
             {ruled.lines.map((l, i) => (
               <line key={i} x1={u(l.x1)} y1={u(l.y1)} x2={u(l.x2)} y2={u(l.y2)} />
             ))}
@@ -314,7 +315,7 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, ar
               transform={turned ? `rotate(90 ${u(c.x)} ${u(c.y)})` : undefined}
               textAnchor="middle"
               dominantBaseline="central"
-              fill={p.lineSoft}
+              fill={gridTone ?? p.lineSoft}
               fontFamily="Inter Variable, Inter, system-ui, sans-serif"
               fontSize={u(3.4)}
               fontWeight={700}

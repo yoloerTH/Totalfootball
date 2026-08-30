@@ -414,8 +414,10 @@ export function Board({
             idp={idp}
             texture={texture}
             grid={system.grid}
+            gridTone={system.gridTone}
+            gridOpacity={system.gridOpacity}
             turned={Boolean(view.vertical)}
-            goalHref={gearHrefs ? gearHrefs['mini-goal'] : resolveGear('mini-goal')?.src}
+            goalHref={system.hideGoals ? undefined : (gearHrefs ? gearHrefs['mini-goal'] : resolveGear('mini-goal')?.src)}
             area={view.area}
           />
         </g>
