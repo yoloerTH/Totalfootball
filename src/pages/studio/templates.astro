@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import PitchGround from '../../components/visual/PitchGround.astro'
+import { OursToStartFrom } from '../../studio/account/Portal'
+---
+
+<BaseLayout
+  title="Templates"
+  description="Systems built for the Total Football films, ready to open and edit."
+  path="/studio/templates/"
+  noindex
+>
+  <div class="relative isolate min-h-[80vh] bg-paper">
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[24rem] overflow-hidden">
+      <PitchGround />
+    </div>
+
+    <div class="shell py-14">
+      <OursToStartFrom fullPage client:only="react" />
+    </div>
+  </div>
+</BaseLayout>

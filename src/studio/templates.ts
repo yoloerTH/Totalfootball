@@ -80,6 +80,7 @@ import type { System } from './schema'
 import beatingTheTwoManPress from '../../content/systems/beating-the-two-man-press.json'
 import escapingPressingTrap from '../../content/systems/escaping-pressing-trap.json'
 import overloadToIsolate from '../../content/systems/overload-to-isolate.json'
+import the235BuildUp from '../../content/systems/the-2-3-5-build-up.json'
 import theFalseNine from '../../content/systems/the-false-nine.json'
 import thePress4141 from '../../content/systems/the-4-1-4-1-press.json'
 import theThirdManRun from '../../content/systems/the-third-man-run.json'
@@ -129,6 +130,17 @@ export interface Template {
 const doc = (json: unknown): System => json as System
 
 export const TEMPLATES: Template[] = [
+  {
+    id: 'the-2-3-5-build-up',
+    teaches:
+      'Two against two at the back, three against four in midfield. How pushing both full backs inside forces the front two to pick their poison.',
+    official: true,
+    watch: {
+      instagram: 'https://www.instagram.com/reel/DcqJjyBIMo-/',
+      facebook: 'https://www.facebook.com/share/r/1Bq3ccZYSP/',
+    },
+    system: doc(the235BuildUp),
+  },
   {
     id: 'y-passing-drill',
     teaches:

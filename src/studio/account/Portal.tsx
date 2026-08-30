@@ -673,7 +673,9 @@ function DownToOurs() {
 const OFFICIAL = TEMPLATES.filter((t) => t.official)
 const STARTERS = TEMPLATES.filter((t) => !t.official)
 
-function OursToStartFrom() {
+export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
+  const officialToShow = fullPage ? OFFICIAL : OFFICIAL.slice(0, 3)
+
   return (
     <section id="start-from-ours" className="mt-20 scroll-mt-12 border-t border-ink-hair pt-12">
       <h2 className="text-section font-black tracking-display text-ink">Or start from one of ours</h2>
@@ -682,7 +684,7 @@ function OursToStartFrom() {
         rewrite the words, keep what is useful.
       </p>
 
-      {OFFICIAL.length > 0 && (
+      {officialToShow.length > 0 && (
         <>
           <ShelfLabel
             branded
@@ -690,22 +692,34 @@ function OursToStartFrom() {
             note="The documents the videos were rendered from, not a copy of them."
           />
           <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {OFFICIAL.map((t) => (
+            {officialToShow.map((t) => (
+              <TemplateCard key={t.id} template={t} />
+            ))}
+          </ul>
+          
+          {!fullPage && OFFICIAL.length > 3 && (
+            <div className="mt-6 flex">
+              <a href="/studio/templates/" className="btn btn-ghost font-semibold">
+                See all {OFFICIAL.length} official systems →
+              </a>
+            </div>
+          )}
+        </>
+      )}
+
+      {STARTERS.length > 0 && (
+        <>
+          <ShelfLabel
+            title="Built for the films"
+            note="Shorter, and a good place to start if you have not used the board before."
+          />
+          <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            {STARTERS.map((t) => (
               <TemplateCard key={t.id} template={t} />
             ))}
           </ul>
         </>
       )}
-
-      <ShelfLabel
-        title="Built for the films"
-        note="Shorter, and a good place to start if you have not used the board before."
-      />
-      <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {STARTERS.map((t) => (
-          <TemplateCard key={t.id} template={t} />
-        ))}
-      </ul>
     </section>
   )
 }
