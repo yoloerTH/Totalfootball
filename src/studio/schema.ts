@@ -338,6 +338,40 @@ export function carryForwardBand(
   return out
 }
 
+export function carryForwardShot(
+  acts: Act[],
+  fromIdx: number,
+  before: Shot | undefined,
+  after: Shot | undefined,
+): Act[] {
+  const same = (a: Shot | undefined, b: Shot | undefined) => {
+    if (!a && !b) return true
+    if (!a || !b) return false
+    return Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.y - b.y) < 1e-9 && Math.abs(a.w - b.w) < 1e-9 && Math.abs(a.h - b.h) < 1e-9
+  }
+
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    if (!same(out[i].shot, before)) return out
+    out[i] = { ...out[i], shot: after }
+  }
+  return out
+}
+
+export function carryForwardAdd<K extends 'tokens' | 'gear' | 'arrows' | 'bands' | 'texts'>(
+  acts: Act[],
+  fromIdx: number,
+  key: K,
+  item: NonNullable<Act[K]>[number],
+): Act[] {
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    const list = out[i][key] ?? []
+    out[i] = { ...out[i], [key]: [...(list as any[]), item] }
+  }
+  return out
+}
+
 /** A field a coach's edit can travel across every act on. */
 export type PersonField = (typeof PERSON_FIELDS)[number]
 

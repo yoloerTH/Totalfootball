@@ -141,6 +141,8 @@ import {
   carryForwardGear,
   carryForwardArrow,
   carryForwardBand,
+  carryForwardShot,
+  carryForwardAdd,
   type Cue,
   type Shot,
   type GearMark,
@@ -2504,10 +2506,24 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             },
           }))
         },
-        () => seal(),
+        () => {
+          if (carryRef.current) {
+            const was = act?.shot
+            edit('frame', (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const now = s.acts[i]?.shot
+              if (!now) return s
+              return {
+                ...s,
+                acts: carryForwardShot(s.acts, i, was, now),
+              }
+            })
+          }
+          seal()
+        },
       )
     },
-    [bindGesture, view, patchAct, seal, tightest],
+    [act, bindGesture, view, patchAct, seal, tightest, edit],
   )
 
   /**
@@ -2799,14 +2815,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                */
               const fromId = snapTarget(view, from, source.tokens) ?? undefined
               const toId = snapTarget(view, to, source.tokens, fromId) ?? undefined
-              patchAct('arrow', (a) => ({
-                ...a,
-                arrows: [
-                  ...a.arrows,
-                  { id: uid('ar'), kind: tool, from, to, ...(fromId ? { fromId } : null), ...(toId ? { toId } : null) },
-                ],
-              }))
-              seal()
+              const id = uid('ar')
+              const arrow = { id, kind: tool, from, to, ...(fromId ? { fromId } : null), ...(toId ? { toId } : null) }
+              edit('arrow', (s) => {
+                const i = Math.min(actIndexRef.current, s.acts.length - 1)
+                const acts = s.acts.map((a, j) => (j === i ? { ...a, arrows: [...a.arrows, arrow] } : a))
+                return {
+                  ...s,
+                  acts: carryRef.current ? carryForwardAdd(acts, i, 'arrows', arrow) : acts,
+                }
+              })
+              setSelection({ kind: 'mark', id })
             } else if (!isActionTool(tool)) {
               /*
                * A LINE THAT NEVER TRAVELLED IS NOTHING, and is dropped here.
@@ -2851,11 +2870,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             // for the same reason the arrow's threshold above does.
             const sliver = 4 / zoom
             if (Math.abs(to.x - from.x) > sliver && Math.abs(to.y - from.y) > sliver) {
-              patchAct('zone', (a) => ({
-                ...a,
-                bands: [...a.bands, { id: uid('bd'), kind: tool, rect: rectOf(from, to) }],
-              }))
-              seal()
+              const id = uid('bd')
+              const band = { id, kind: tool, rect: rectOf(from, to) } as Band
+              edit('zone', (s) => {
+                const i = Math.min(actIndexRef.current, s.acts.length - 1)
+                const acts = s.acts.map((a, j) => (j === i ? { ...a, bands: [...a.bands, band] } : a))
+                return {
+                  ...s,
+                  acts: carryRef.current ? carryForwardAdd(acts, i, 'bands', band) : acts,
+                }
+              })
+              setSelection({ kind: 'mark', id })
             }
           } else if (isTextTool(tool)) {
             /*
@@ -2878,11 +2903,15 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
              * would freeze today's house style into every note ever placed.
              */
             const id = uid('tx')
-            patchAct('text', (a) => ({
-              ...a,
-              texts: [...(a.texts ?? []), { id, x: from.x, y: from.y, text: '', size: 'm' }],
-            }))
-            seal()
+            const textMark = { id, x: from.x, y: from.y, text: '', size: 'm' } as const
+            edit('text', (s) => {
+              const i = Math.min(actIndexRef.current, s.acts.length - 1)
+              const acts = s.acts.map((a, j) => (j === i ? { ...a, texts: [...(a.texts ?? []), textMark] } : a))
+              return {
+                ...s,
+                acts: carryRef.current ? carryForwardAdd(acts, i, 'texts', textMark) : acts,
+              }
+            })
             setSelection({ kind: 'mark', id })
           }
           setPending(null)
@@ -4167,19 +4196,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     const id = uid('gr')
     const n = (act.gear ?? []).length
     const STEP = 7
-    patchAct('gear:add', (a) => ({
-      ...a,
-      gear: [
-        ...(a.gear ?? []),
-        {
-          id,
-          kind,
-          x: Math.min(92, Math.max(8, 50 + ((n % 5) - 2) * STEP)),
-          y: Math.min(92, Math.max(8, 42 + (Math.floor(n / 5) % 3) * STEP)),
-        },
-      ],
-    }))
-    seal()
+    const gear = {
+      id,
+      kind,
+      x: Math.min(92, Math.max(8, 50 + ((n % 5) - 2) * STEP)),
+      y: Math.min(92, Math.max(8, 42 + (Math.floor(n / 5) % 3) * STEP)),
+    }
+    edit('gear:add', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, j) => (j === i ? { ...a, gear: [...(a.gear ?? []), gear] } : a))
+      return {
+        ...s,
+        acts: carryRef.current ? carryForwardAdd(acts, i, 'gear', gear) : acts,
+      }
+    })
     setSelection({ kind: 'mark', id })
   }
 
@@ -7157,42 +7187,75 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            </p>
            <div className="mt-3 flex gap-2">
              <Tip text="Make a copy of these items." title="Duplicate" side="left">
-               <Button onClick={() => {
-                  patchAct('duplicate-multi', a => {
-                     const oldToNew = new Map<string, string>()
-                     const makeId = (prefix: string, old: string) => { const n = uid(prefix); oldToNew.set(old, n); return n }
-                     
-                     const newTokens = a.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ ...t, id: makeId('tk', t.id), x: t.x + 5, y: t.y + 5 }))
-                     const newGear = (a.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ ...g, id: makeId('gr', g.id), x: g.x + 5, y: g.y + 5 }))
-                     const newBalls = ballsOf(a).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ ...b, id: makeId('bl', b.id), x: b.x + 5, y: b.y + 5 }))
-                     const newTexts = (a.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ ...t, id: makeId('tx', t.id), x: t.x + 5, y: t.y + 5 }))
-                     const newArrows = a.arrows.filter(ar => multiSelect.marks.includes(ar.id)).map(ar => ({
-                        ...ar,
-                        id: makeId('ar', ar.id),
-                        from: { x: ar.from.x + 5, y: ar.from.y + 5 },
-                        to: { x: ar.to.x + 5, y: ar.to.y + 5 },
-                        fromId: ar.fromId && oldToNew.has(ar.fromId) ? oldToNew.get(ar.fromId) : undefined,
-                        toId: ar.toId && oldToNew.has(ar.toId) ? oldToNew.get(ar.toId) : undefined,
-                     }))
-                     
-                     setMultiSelect({
-                        tokens: newTokens.map(t => t.id),
-                        gear: newGear.map(g => g.id),
-                        balls: newBalls.map(b => b.id),
-                        texts: newTexts.map(t => t.id),
-                        marks: newArrows.map(a => a.id)
-                     })
-                     
-                     return {
-                       ...a,
-                       tokens: [...a.tokens, ...newTokens],
-                       gear: [...(a.gear ?? []), ...newGear],
-                       ...ballFields([...ballsOf(a), ...newBalls]),
-                       texts: [...(a.texts ?? []), ...newTexts],
-                       arrows: [...a.arrows, ...newArrows]
-                     }
+                <Button onClick={() => {
+                  edit('duplicate-multi', s => {
+                    const i = Math.min(actIndexRef.current, s.acts.length - 1)
+                    const a = s.acts[i]
+                    if (!a) return s
+
+                    const oldToNew = new Map<string, string>()
+                    const makeId = (prefix: string, old: string) => { const n = uid(prefix); oldToNew.set(old, n); return n }
+                    
+                    const newTokens = a.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ ...t, id: makeId('tk', t.id), x: t.x + 5, y: t.y + 5 }))
+                    const newGear = (a.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ ...g, id: makeId('gr', g.id), x: g.x + 5, y: g.y + 5 }))
+                    const newBalls = ballsOf(a).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ ...b, id: makeId('bl', b.id), x: b.x + 5, y: b.y + 5 }))
+                    const newTexts = (a.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ ...t, id: makeId('tx', t.id), x: t.x + 5, y: t.y + 5 }))
+                    const newArrows = a.arrows.filter(ar => multiSelect.marks.includes(ar.id)).map(ar => ({
+                      ...ar,
+                      id: makeId('ar', ar.id),
+                      from: { x: ar.from.x + 5, y: ar.from.y + 5 },
+                      to: { x: ar.to.x + 5, y: ar.to.y + 5 },
+                      fromId: ar.fromId && oldToNew.has(ar.fromId) ? oldToNew.get(ar.fromId) : undefined,
+                      toId: ar.toId && oldToNew.has(ar.toId) ? oldToNew.get(ar.toId) : undefined,
+                    }))
+                    const newBands = a.bands.filter(b => multiSelect.marks.includes(b.id)).map(b => {
+                      const nid = makeId('bd', b.id)
+                      if (b.kind === 'block') {
+                        return { ...b, id: nid, throughTokens: (b.throughTokens ?? []).map(tid => oldToNew.has(tid) ? oldToNew.get(tid)! : tid) } as Band
+                      } else {
+                        if (b.rect) {
+                          return { ...b, id: nid, rect: { ...b.rect, x: Math.min(100, Math.max(0, b.rect.x + 5)), y: Math.min(100, Math.max(0, b.rect.y + 5)) } } as Band
+                        }
+                        return { ...b, id: nid } as Band
+                      }
+                    })
+                    
+                    setMultiSelect({
+                      tokens: newTokens.map(t => t.id),
+                      gear: newGear.map(g => g.id),
+                      balls: newBalls.map(b => b.id),
+                      texts: newTexts.map(t => t.id),
+                      marks: [...newArrows.map(a => a.id), ...newBands.map(b => b.id)]
+                    })
+                    
+                    const newAct = {
+                      ...a,
+                      tokens: [...a.tokens, ...newTokens],
+                      gear: [...(a.gear ?? []), ...newGear],
+                      ...ballFields([...ballsOf(a), ...newBalls]),
+                      texts: [...(a.texts ?? []), ...newTexts],
+                      arrows: [...a.arrows, ...newArrows],
+                      bands: [...a.bands, ...newBands]
+                    }
+
+                    const acts = s.acts.map((act, j) => (j === i ? newAct : act))
+                    if (!carryRef.current) return { ...s, acts }
+                    
+                    // Carry forward all added elements
+                    let carriedActs = acts
+                    for (const t of newTokens) carriedActs = carryForwardAdd(carriedActs, i, 'tokens' as any, t)
+                    for (const g of newGear) carriedActs = carryForwardAdd(carriedActs, i, 'gear', g)
+                    for (const t of newTexts) carriedActs = carryForwardAdd(carriedActs, i, 'texts', t)
+                    for (const ar of newArrows) carriedActs = carryForwardAdd(carriedActs, i, 'arrows', ar)
+                    for (const bd of newBands) carriedActs = carryForwardAdd(carriedActs, i, 'bands', bd)
+                    
+                    // For balls, they are a flat object property, not an array. We can't carryForwardAdd them.
+                    // But wait, balls are tokens! We can't use carryForwardAdd for balls easily without specific logic.
+                    // Usually they are stored as `ball: { x, y }` or `ball2`. We can just skip balls for carry-forward,
+                    // as they aren't fully arrays.
+
+                    return { ...s, acts: carriedActs }
                   })
-                  seal()
                }}>
                  Duplicate
                </Button>
@@ -7205,7 +7268,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                      gear: (a.gear ?? []).filter(g => !multiSelect.gear.includes(g.id)),
                      ...ballFields(ballsOf(a).filter(b => !multiSelect.balls.includes(b.id))),
                      texts: (a.texts ?? []).filter(t => !multiSelect.texts.includes(t.id)),
-                     arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id))
+                     arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id)),
+                     bands: a.bands.filter(b => !multiSelect.marks.includes(b.id))
                   }))
                   seal()
                   setMultiSelect(null)
