@@ -4319,6 +4319,40 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     setSelection({ kind: 'mark', id })
   }
 
+  const duplicateSelectedText = () => {
+    if (!selectedText) return
+    const id = uid('tx')
+    patchAct('duplicate-text', (a) => ({
+      ...a,
+      texts: [
+        ...(a.texts ?? []),
+        { ...selectedText, id, x: selectedText.x + 2, y: selectedText.y + 2 },
+      ],
+    }))
+    seal()
+    setSelection({ kind: 'mark', id })
+  }
+
+  const duplicateSelectedBand = () => {
+    if (!selectedBand) return
+    const id = uid('bd')
+    patchAct('duplicate-band', (a) => {
+      let duplicatedBand = { ...selectedBand, id }
+      if (duplicatedBand.rect) {
+        duplicatedBand.rect = { ...duplicatedBand.rect, x: Math.min(100, Math.max(0, duplicatedBand.rect.x + 2)), y: Math.min(100, Math.max(0, duplicatedBand.rect.y + 2)) }
+      }
+      return {
+        ...a,
+        bands: [
+          ...(a.bands ?? []),
+          duplicatedBand,
+        ],
+      }
+    })
+    seal()
+    setSelection({ kind: 'mark', id })
+  }
+
   /**
    * Put a piece of gear on the board.
    *
@@ -4995,6 +5029,154 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            }}
          />
       )}
+      {(() => {
+        if (!multiSelect || !rendered) return null
+        let minX = 100, minY = 100, maxX = 0, maxY = 0
+        let found = false
+        const add = (x: number, y: number) => {
+          minX = Math.min(minX, x)
+          minY = Math.min(minY, y)
+          maxX = Math.max(maxX, x)
+          maxY = Math.max(maxY, y)
+          found = true
+        }
+        rendered.tokens.filter(t => multiSelect.tokens.includes(t.id)).forEach(t => add(t.x, t.y))
+        ;(rendered.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).forEach(g => add(g.x, g.y))
+        ballsOf(rendered as any).filter(b => multiSelect.balls.includes(b.id)).forEach(b => add(b.x, b.y))
+        ;(rendered.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).forEach(t => add(t.x, t.y))
+        rendered.arrows.filter(a => multiSelect.marks.includes(a.id)).forEach(a => {
+          add(a.from.x, a.from.y)
+          add(a.to.x, a.to.y)
+        })
+        rendered.bands.filter(b => multiSelect.marks.includes(b.id)).forEach(b => {
+          if (b.rect) {
+            add(b.rect.x, b.rect.y)
+            add(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
+          }
+        })
+
+        if (!found) return null
+        return (
+          <div
+            className="absolute flex items-center gap-1.5 rounded-lg bg-ink/90 p-1.5 shadow-lg backdrop-blur-sm pointer-events-auto"
+            style={{
+              left: `${(minX + maxX) / 2}%`,
+              top: `${minY}%`,
+              transform: `translate(-50%, calc(-100% - 12px)) scale(${1 / workspaceZoom})`,
+              transformOrigin: 'bottom center',
+              zIndex: 60,
+            }}
+          >
+            <Tip text="Make a copy of these items" title="Duplicate" side="top">
+              <button
+                className="flex items-center gap-1 rounded bg-paper/10 px-2 py-1 text-[11px] font-bold text-paper hover:bg-paper/20 active:bg-paper/30 transition-colors"
+                onClick={() => {
+                  edit('duplicate-multi', s => {
+                    const i = Math.min(actIndexRef.current, s.acts.length - 1)
+                    const a = s.acts[i]
+                    if (!a) return s
+
+                    const oldToNew = new Map<string, string>()
+                    const makeId = (prefix: string, old: string) => { const n = uid(prefix); oldToNew.set(old, n); return n }
+                    
+                    const newTokens = a.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ ...t, id: makeId('tk', t.id), x: t.x + 5, y: t.y + 5 }))
+                    const newGear = (a.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ ...g, id: makeId('gr', g.id), x: g.x + 5, y: g.y + 5 }))
+                    const newBalls = ballsOf(a).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ ...b, id: makeId('bl', b.id), x: b.x + 5, y: b.y + 5 }))
+                    const newTexts = (a.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ ...t, id: makeId('tx', t.id), x: t.x + 5, y: t.y + 5 }))
+                    const newArrows = a.arrows.filter(ar => multiSelect.marks.includes(ar.id)).map(ar => ({
+                      ...ar,
+                      id: makeId('ar', ar.id),
+                      from: { x: ar.from.x + 5, y: ar.from.y + 5 },
+                      to: { x: ar.to.x + 5, y: ar.to.y + 5 },
+                      fromId: ar.fromId && oldToNew.has(ar.fromId) ? oldToNew.get(ar.fromId) : undefined,
+                      toId: ar.toId && oldToNew.has(ar.toId) ? oldToNew.get(ar.toId) : undefined,
+                    }))
+                    const newBands = a.bands.filter(b => multiSelect.marks.includes(b.id)).map(b => {
+                      const nid = makeId('bd', b.id)
+                      if (b.kind === 'block') {
+                        return { ...b, id: nid, throughTokens: (b.throughTokens ?? []).map(tid => oldToNew.has(tid) ? oldToNew.get(tid)! : tid) } as Band
+                      } else {
+                        if (b.rect) {
+                          return { ...b, id: nid, rect: { ...b.rect, x: Math.min(100, Math.max(0, b.rect.x + 5)), y: Math.min(100, Math.max(0, b.rect.y + 5)) } } as Band
+                        }
+                        return { ...b, id: nid } as Band
+                      }
+                    })
+                    
+                    setMultiSelect({
+                      tokens: newTokens.map(t => t.id),
+                      gear: newGear.map(g => g.id),
+                      balls: newBalls.map(b => b.id),
+                      texts: newTexts.map(t => t.id),
+                      marks: [...newArrows.map(a => a.id), ...newBands.map(b => b.id)]
+                    })
+                    
+                    const newAct = {
+                      ...a,
+                      tokens: [...a.tokens, ...newTokens],
+                      gear: [...(a.gear ?? []), ...newGear],
+                      ...ballFields([...ballsOf(a), ...newBalls]),
+                      texts: [...(a.texts ?? []), ...newTexts],
+                      arrows: [...a.arrows, ...newArrows],
+                      bands: [...a.bands, ...newBands]
+                    }
+                    
+                    let carriedActs = s.acts.map((x, j) => j === i ? newAct : x)
+                    if (!carryRef.current) return { ...s, acts: carriedActs }
+                    
+                    for (const tk of newTokens) carriedActs = carryForwardAdd(carriedActs, i, 'tokens', tk)
+                    for (const gr of newGear) carriedActs = carryForwardAdd(carriedActs, i, 'gear', gr)
+                    for (const tx of newTexts) carriedActs = carryForwardAdd(carriedActs, i, 'texts', tx)
+                    for (const ar of newArrows) carriedActs = carryForwardAdd(carriedActs, i, 'arrows', ar)
+                    for (const bd of newBands) carriedActs = carryForwardAdd(carriedActs, i, 'bands', bd)
+
+                    return { ...s, acts: carriedActs }
+                  })
+                  seal()
+                }}
+              >
+                Duplicate
+              </button>
+            </Tip>
+            <div className="h-4 w-px bg-paper/20 mx-0.5" />
+            <Tip text="Remove all selected items" title="Delete" side="top">
+              <button
+                className="flex items-center gap-1 rounded bg-rose-500/90 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-500 active:bg-rose-600 transition-colors"
+                onClick={() => {
+                  edit('delete-multi', s => {
+                    const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+                    let acts = s.acts.map((a, j) => j === idx ? {
+                      ...a,
+                      tokens: a.tokens.filter(t => !multiSelect.tokens.includes(t.id)),
+                      gear: (a.gear ?? []).filter(g => !multiSelect.gear.includes(g.id)),
+                      ...ballFields(ballsOf(a).filter(b => !multiSelect.balls.includes(b.id))),
+                      texts: (a.texts ?? []).filter(t => !multiSelect.texts.includes(t.id)),
+                      arrows: a.arrows.filter(ar => !multiSelect.marks.includes(ar.id)),
+                      bands: a.bands.filter(b => !multiSelect.marks.includes(b.id))
+                    } : a)
+
+                    if (carryRef.current) {
+                      for (const id of multiSelect.tokens) acts = carryForwardRemove(acts, idx, 'tokens', id)
+                      for (const id of multiSelect.gear) acts = carryForwardRemove(acts, idx, 'gear', id)
+                      for (const id of multiSelect.balls) acts = carryForwardRemoveBall(acts, idx, id)
+                      for (const id of multiSelect.texts) acts = carryForwardRemove(acts, idx, 'texts', id)
+                      for (const id of multiSelect.marks) {
+                        acts = carryForwardRemove(acts, idx, 'arrows', id)
+                        acts = carryForwardRemove(acts, idx, 'bands', id)
+                      }
+                    }
+                    return { ...s, acts }
+                  })
+                  seal()
+                  setMultiSelect(null)
+                }}
+              >
+                Delete
+              </button>
+            </Tip>
+          </div>
+        )
+      })()}
       </div>
 
       {/* Zoom UI Overlay */}
@@ -7055,7 +7237,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             </Tip>
           )}
 
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
+            <Tip text="Make a copy of this area." title="Duplicate" side="left">
+              <Button onClick={duplicateSelectedBand}>
+                Duplicate
+              </Button>
+            </Tip>
             <Tip text={HINT.deleteMark} title="Delete" side="left">
               <Button variant="danger" onClick={deleteSelection}>
                 Delete this area
@@ -7196,7 +7383,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             Turn it to write along a touchline or up a channel. Level reads best for everything else.
           </p>
 
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
+            <Tip text="Make a copy of this text." title="Duplicate" side="left">
+              <Button onClick={duplicateSelectedText}>
+                Duplicate
+              </Button>
+            </Tip>
             <Tip text={HINT.deleteMark} title="Delete" side="left">
               <Button variant="danger" onClick={deleteSelection}>
                 Delete this text
