@@ -52,6 +52,7 @@ import { IMAGE_ACCEPT, bust, imageUrl, removeImage, uploadImage, type ImageKind 
 import { BIO_MAX, LINKS_MAX, ROLES, normaliseHandle, profileFaults } from './identity'
 import KitEditor from './KitEditor'
 import SquadEditor from './SquadEditor'
+import TeamMembers from './TeamMembers'
 
 /**
  * 'unreadable' IS A STATE OF THE PAGE AND NOT OF THE SAVE, and it is new.
@@ -1019,6 +1020,12 @@ export default function Settings() {
       >
         {user && <SquadEditor owner={user.id} />}
       </Section>
+
+      <Section id="team" title="Team Members">
+        <TeamMembers />
+      </Section>
+
+      <hr className="my-12 border-t-2 border-ink-hair" />
 
       {/* ── 5. what leaves with the work ──────────────────────────────────── */}
 

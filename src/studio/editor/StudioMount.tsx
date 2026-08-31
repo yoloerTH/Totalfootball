@@ -50,7 +50,7 @@ import type { System } from '../schema'
 
 export default function StudioMount() {
   const { status, user } = useSession()
-  const [state, setState] = useState<{ id: string; initial: System } | null>(null)
+  const [state, setState] = useState<{ id: string; initial: System; canEdit?: boolean } | null>(null)
 
   /*
    * The studio needs an account.
@@ -87,7 +87,7 @@ export default function StudioMount() {
      * below needs and cannot infer: a copy has a `?s=` of its own to be given,
      * even when the coach arrived with one in the address bar.
      */
-    const open = async (): Promise<{ id: string; initial: System; copied: boolean }> => {
+    const open = async (): Promise<{ id: string; initial: System; copied: boolean; canEdit?: boolean }> => {
       /*
        * ── FIRST, AND ABOVE THE `?t=` BRANCH THAT RETURNS EARLY ───────────────
        *
@@ -141,7 +141,7 @@ export default function StudioMount() {
            * silently was not. See ../account/cloud.ts.
            */
           const initial = profile ? withProfile(copy, creditOnly(profile)) : copy
-          return { id: newSystemId(), initial, copied: true }
+          return { id: newSystemId(), initial, copied: true, canEdit: true }
         }
       }
 
@@ -168,19 +168,19 @@ export default function StudioMount() {
        * row, because the save carries the version it was loaded at.
        */
       const remote = await loadCloudSystem(id, user.id)
-      if (remote) return { id, initial: remote, copied: false }
+      if (remote) return { id, initial: remote.system, copied: false, canEdit: remote.canEdit }
       const local = loadSystem(id)
-      if (local) return { id, initial: local, copied: false }
+      if (local) return { id, initial: local, copied: false, canEdit: true }
       // A brand new board for a coach we already know something about opens in
       // their colours and already signed. See `withProfile`.
       const { profile } = await hydrateProfile(user.id)
       const blank = newSystem()
-      return { id, initial: profile ? withProfile(blank, profile) : blank, copied: false }
+      return { id, initial: profile ? withProfile(blank, profile) : blank, copied: false, canEdit: true }
     }
 
-    void open().then(({ id, initial, copied }) => {
+    void open().then(({ id, initial, copied, canEdit }) => {
       if (!live) return
-      setState({ id, initial })
+      setState({ id, initial, canEdit })
       // Keep the URL pointing at the system being edited, so a reload or a
       // shared link comes back to the same board rather than starting over.
       //
@@ -210,5 +210,5 @@ export default function StudioMount() {
     )
   }
 
-  return <StudioEditor systemId={state.id} initial={state.initial} />
+  return <StudioEditor systemId={state.id} initial={state.initial} locked={state.canEdit === false} />
 }

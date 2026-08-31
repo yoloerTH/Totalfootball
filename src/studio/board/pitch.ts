@@ -656,6 +656,25 @@ export function toPercent(v: PitchView, mx: number, my: number): { x: number; y:
 }
 
 /**
+ * Converts a pitch percent coordinate (x: 0-100% of length, y: 0-100% of width)
+ * into a screen percent coordinate (x: 0-100% from left of the visual crop,
+ * y: 0-100% from top of the visual crop), correctly handling upright and flipped
+ * views, and padding.
+ *
+ * This is required for drawing HTML overlays (like marquee boxes) that match
+ * the visual rotation of the pitch on screen.
+ */
+export function toScreenPercent(v: PitchView, p: { x: number; y: number }): { x: number; y: number } {
+  const m = toMetres(v, p.x, p.y)
+  const u = metresToUnits(v, m.x, m.y)
+  const r = cropRect(v)
+  return {
+    x: ((u.x - r.x) / r.w) * 100,
+    y: ((u.y - r.y) / r.h) * 100,
+  }
+}
+
+/**
  * Re-express a percent coordinate from one view in another.
  *
  * The bridge that makes changing pitch view non-destructive. Percent is

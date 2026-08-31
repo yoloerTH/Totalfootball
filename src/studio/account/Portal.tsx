@@ -72,6 +72,8 @@ export default function Portal() {
   const [claimed, setClaimed] = useState(0)
   const [folderSystem, setFolderSystem] = useState<CloudSystem | null>(null)
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
+  const [editingFolder, setEditingFolder] = useState(false)
+  const [folderDraft, setFolderDraft] = useState('')
   const { profile } = useProfile(user?.id)
 
   /*
@@ -141,7 +143,7 @@ export default function Portal() {
       return
     }
     const local = listSystems()
-    setSystems(local.map((l) => ({ id: l.id, system: l.system, updated: l.updated })))
+    setSystems(local.map((l) => ({ id: l.id, system: l.system, updated: l.updated, owner: user?.id || '' })))
     setLoad(local.length ? 'local-only' : 'ready')
   }, [])
 
@@ -307,6 +309,40 @@ export default function Portal() {
     [user],
   )
 
+  const renameFolder = useCallback(
+    async (oldName: string, newName: string) => {
+      if (!user || !newName.trim() || oldName === newName) return
+      const trimmed = newName.trim()
+
+      if (profile) {
+        const nextFolders = profile.folders.map((f) => (f === oldName ? trimmed : f))
+        if (!nextFolders.includes(trimmed) && !profile.folders.includes(oldName)) {
+          nextFolders.push(trimmed)
+        }
+        const nextProfile = { ...profile, folders: Array.from(new Set(nextFolders)) }
+        putProfile(nextProfile)
+        void saveProfile(nextProfile, user.id)
+      }
+
+      const affected = systems.filter((r) => r.system.folder === oldName)
+      
+      setSystems((s) =>
+        s.map((r) =>
+          r.system.folder === oldName ? { ...r, system: { ...r.system, folder: trimmed } } : r,
+        )
+      )
+      
+      affected.forEach((row) => {
+        const next = { ...row.system, folder: trimmed }
+        saveSystem(row.id, next)
+        void saveCloudSystem(row.id, next, user.id)
+      })
+
+      setActiveFolder(trimmed)
+    },
+    [user, profile, systems],
+  )
+
   const remove = useCallback(
     async (row: CloudSystem) => {
       if (!user) return
@@ -444,10 +480,15 @@ export default function Portal() {
       ) : (
         <>
           {(() => {
-            const folders = Array.from(new Set(systems.map((s) => s.system.folder).filter(Boolean))) as string[]
+            const mySystems = systems.filter((s) => !s.owner || s.owner === user?.id)
+            const sharedSystems = systems.filter((s) => s.owner && s.owner !== user?.id)
+            
+            const folders = Array.from(new Set(mySystems.map((s) => s.system.folder).filter(Boolean))) as string[]
             folders.sort()
+            const allFolders = sharedSystems.length > 0 ? ['Shared with you', ...folders] : folders
 
             if (activeFolder) {
+              const isSharedFolder = activeFolder === 'Shared with you'
               return (
                 <div className="mt-8 flex flex-col gap-8">
                   <div>
@@ -457,19 +498,53 @@ export default function Portal() {
                     >
                       ← Back to folders
                     </button>
-                    <h2 className="mb-6 text-2xl font-black text-ink">{activeFolder}</h2>
+                    {!isSharedFolder && editingFolder ? (
+                      <input
+                        autoFocus
+                        value={folderDraft}
+                        onChange={(e) => setFolderDraft(e.target.value)}
+                        onBlur={() => {
+                          setEditingFolder(false)
+                          if (folderDraft && folderDraft !== activeFolder) {
+                            void renameFolder(activeFolder, folderDraft)
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur()
+                          if (e.key === 'Escape') {
+                            setFolderDraft(activeFolder)
+                            setEditingFolder(false)
+                          }
+                        }}
+                        className="mb-6 w-full max-w-sm rounded-md border border-ink-hair bg-paper px-2 py-1 text-2xl font-black text-ink outline-none focus:border-ink/25"
+                      />
+                    ) : (
+                      <div className="mb-6 flex items-center gap-3 group">
+                        <h2 className="text-2xl font-black text-ink">{activeFolder}</h2>
+                        {!isSharedFolder && (
+                          <button
+                            onClick={() => {
+                              setFolderDraft(activeFolder)
+                              setEditingFolder(true)
+                            }}
+                            className="rounded-md px-2 py-1 text-sm font-bold text-ink-faint opacity-0 transition group-hover:opacity-100 hover:bg-ink-hair hover:text-ink focus-visible:opacity-100"
+                          >
+                            Rename
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-                      {systems
-                        .filter((s) => s.system.folder === activeFolder)
+                      {(isSharedFolder ? sharedSystems : mySystems.filter((s) => s.system.folder === activeFolder))
                         .map((row) => (
                           <Card
                             key={row.id}
                             row={row}
                             onDuplicate={() => void duplicate(row)}
                             onRename={(t) => void rename(row, t)}
-                            onFolderClick={() => setFolderSystem(row)}
+                            onFolderClick={isSharedFolder ? undefined : () => setFolderSystem(row)}
                             onExport={() => setExportSystem({ row, mode: 'images' })}
-                            onDelete={() => void remove(row)}
+                            onDelete={isSharedFolder ? undefined : () => void remove(row)}
                           />
                         ))}
                     </ul>
@@ -479,13 +554,14 @@ export default function Portal() {
             }
 
             return (
-              <div className="mt-8 flex flex-col gap-12">
-                {folders.length > 0 && (
+              <div className="mt-8 flex flex-col gap-10">
+                {allFolders.length > 0 && (
                   <div>
                     <h3 className="mb-4 text-xl font-bold text-ink">Folders</h3>
                     <ul className="grid list-none grid-cols-2 gap-4 p-0 sm:grid-cols-3 lg:grid-cols-4">
-                      {folders.map((f) => {
-                        const count = systems.filter((s) => s.system.folder === f).length;
+                      {allFolders.map((f) => {
+                        const isSharedFolder = f === 'Shared with you'
+                        const count = isSharedFolder ? sharedSystems.length : mySystems.filter((s) => s.system.folder === f).length;
                         return (
                           <li
                             key={f}
@@ -493,9 +569,18 @@ export default function Portal() {
                             onClick={() => setActiveFolder(f)}
                           >
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-ink-hair text-ink-soft transition-colors group-hover:bg-ink group-hover:text-paper">
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-                              </svg>
+                              {isSharedFolder ? (
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="9" cy="7" r="4"></circle>
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                              ) : (
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                                </svg>
+                              )}
                             </div>
                             <div className="flex flex-col overflow-hidden">
                               <span className="truncate font-bold text-ink">{f}</span>
@@ -511,7 +596,7 @@ export default function Portal() {
                   <h3 className="mb-4 text-xl font-bold text-ink">{folders.length > 0 ? 'Uncategorised' : 'All systems'}</h3>
                   <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
                     <NewTile onClick={create} />
-                    {systems
+                    {mySystems
                       .filter((s) => !s.system.folder)
                       .map((row) => (
                         <Card
@@ -1086,9 +1171,9 @@ function Card({
   row: CloudSystem
   onDuplicate: () => void
   onRename: (title: string) => void
-  onFolderClick: (current: string) => void
+  onFolderClick?: (current: string) => void
   onExport: () => void
-  onDelete: () => void
+  onDelete?: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(row.system.title)
@@ -1188,18 +1273,22 @@ function Card({
         */}
         <div className="mt-3 flex flex-wrap items-center gap-1 pt-1 text-ink-faint transition-colors group-focus-within:text-ink-soft group-hover:text-ink-soft">
           <Small onClick={() => setEditing(true)}>Rename</Small>
-          <Small onClick={() => onFolderClick(row.system.folder || '')}>
-            Folder
-          </Small>
+          {onFolderClick && (
+            <Small onClick={() => onFolderClick(row.system.folder || '')}>
+              Folder
+            </Small>
+          )}
           <Small onClick={onDuplicate}>Duplicate</Small>
-          {confirming ? (
-            <Small danger onClick={onDelete}>
-              Yes, delete it
-            </Small>
-          ) : (
-            <Small danger onClick={() => setConfirming(true)}>
-              Delete
-            </Small>
+          {onDelete && (
+            confirming ? (
+              <Small danger onClick={onDelete}>
+                Yes, delete it
+              </Small>
+            ) : (
+              <Small danger onClick={() => setConfirming(true)}>
+                Delete
+              </Small>
+            )
           )}
           <Small onClick={onExport}>Export</Small>
         </div>

@@ -28,6 +28,7 @@ export interface CloudSystem {
   system: System
   /** ISO, from the database's own clock — see the trigger in 005. */
   updated: string
+  owner: string
 }
 
 const TABLE = 'studio_systems'
@@ -72,41 +73,53 @@ export async function listCloudSystems(owner: string): Promise<CloudSystem[] | n
   if (!supabase || !owner) return null
   const { data, error } = await supabase
     .from(TABLE)
-    .select('id, doc, updated_at')
-    // ASK FOR YOUR OWN, RATHER THAN TRUSTING RLS TO MEAN THAT.
-    //
-    // RLS is still the boundary and this filter is not what makes it safe. It
-    // is what stops the query CHANGING MEANING when a policy is added later:
-    // `loadProfile` was written exactly like this, and the day supabase/012
-    // gave studio_profiles a public read, "my profile" silently became "every
-    // published profile" and the client broke in a way nobody could see. There
-    // is no public policy on this table today. There was none on that one
-    // either, once.
-    .eq('owner', owner)
+    .select('id, doc, updated_at, owner')
+    // We don't filter by owner anymore, RLS takes care of returning systems 
+    // you own OR systems you are a collaborator on.
     .order('updated_at', { ascending: false })
   if (error || !data) return null
   return data.map((row) => {
     const id = row.id as string
     const updated = row.updated_at as string
     versions.set(id, updated)
-    return { id, system: migrate(row.doc as System), updated }
+    return { id, system: migrate(row.doc as System), updated, owner: row.owner as string }
   })
 }
 
-export async function loadCloudSystem(id: string, owner: string): Promise<System | null> {
+export async function loadCloudSystem(id: string, owner: string): Promise<{ system: System; canEdit: boolean } | null> {
   const supabase = db()
   if (!supabase || !owner) return null
   const { data, error } = await supabase
     .from(TABLE)
-    .select('doc, updated_at')
-    // The primary key in supabase/005 is (owner, id), so an id on its own does
-    // not name a row. See `listCloudSystems` for why the filter is written out.
-    .eq('owner', owner)
+    .select('doc, updated_at, owner')
+    // RLS ensures we only load systems we own or are collaborators on.
+    // The ID is effectively globally unique, so we don't need to filter by owner.
     .eq('id', id)
     .maybeSingle()
   if (error || !data) return null
   versions.set(id, data.updated_at as string)
-  return migrate(data.doc as System)
+
+  let canEdit = data.owner === owner
+  if (!canEdit) {
+    // Check if we have edit access via team or project collaboration
+    const [teamRes, collabRes] = await Promise.all([
+      supabase.from('studio_team_members')
+        .select('can_edit_systems')
+        .eq('owner_id', data.owner)
+        .eq('member_id', owner)
+        .eq('status', 'accepted')
+        .maybeSingle(),
+      supabase.from('studio_system_collaborators')
+        .select('can_edit')
+        .eq('system_id', id)
+        .eq('member_id', owner)
+        .eq('status', 'accepted')
+        .maybeSingle()
+    ])
+    canEdit = (teamRes.data?.can_edit_systems) || (collabRes.data?.can_edit) || false
+  }
+
+  return { system: migrate(data.doc as System), canEdit }
 }
 
 /**
@@ -148,10 +161,8 @@ export async function saveCloudSystem(
   const { data, error } = await supabase.rpc('studio_systems_save', {
     p_id: id,
     p_doc: system,
-    // Absent for a system this session has never read — a brand new board. The
-    // function treats that as "insert if it does not exist, refuse if it does",
-    // which is the safe reading of a client that cannot name a version.
     p_base: versions.get(id) ?? null,
+    p_owner: owner,
   })
   if (error || !data) return 'failed'
 
@@ -660,4 +671,59 @@ export async function loadPublicProfile(handle: string): Promise<PublicProfile |
           .slice(0, 5)
       : [],
   }
+}
+
+// ── saved sequences ─────────────────────────────────────────────────────────
+
+/**
+ * Cloud persistence for saved sequences.
+ *
+ * Same shape as the systems CRUD above — own-row filter, defensive returns,
+ * no throws. Simpler because sequences do not need version guards: a coach
+ * editing a sequence on two machines is not a real case (they are edited
+ * at save time and never again), so last-write-wins is correct.
+ */
+
+const SEQ_TABLE = 'studio_sequences'
+
+export interface CloudSequence {
+  id: string
+  doc: Record<string, unknown>
+  updated: string
+}
+
+export async function listCloudSequences(owner: string): Promise<CloudSequence[] | null> {
+  const supabase = db()
+  if (!supabase || !owner) return null
+  const { data, error } = await supabase
+    .from(SEQ_TABLE)
+    .select('id, doc, updated_at')
+    .eq('owner', owner)
+    .order('updated_at', { ascending: false })
+  if (error || !data) return null
+  return data.map((row) => ({
+    id: row.id as string,
+    doc: row.doc as Record<string, unknown>,
+    updated: row.updated_at as string,
+  }))
+}
+
+export async function saveCloudSequence(
+  id: string,
+  doc: Record<string, unknown>,
+  owner: string,
+): Promise<boolean> {
+  const supabase = db()
+  if (!supabase || !owner) return false
+  const { error } = await supabase
+    .from(SEQ_TABLE)
+    .upsert({ id, owner, doc }, { onConflict: 'owner,id' })
+  return !error
+}
+
+export async function deleteCloudSequence(id: string, owner: string): Promise<boolean> {
+  const supabase = db()
+  if (!supabase || !owner) return false
+  const { error } = await supabase.from(SEQ_TABLE).delete().eq('owner', owner).eq('id', id)
+  return !error
 }

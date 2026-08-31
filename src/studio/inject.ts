@@ -32,15 +32,11 @@ function matchItems<T, U>(
   return result
 }
 
-/**
- * Injects a sequence of acts into a target act.
- * Returns an array of newly created acts, starting with a realignment phase
- * and followed by the cloned sequence acts.
- */
 export function injectSequence(
   targetAct: Act,
   sequenceActs: Act[],
-  selectedTokenIds?: string[] | null
+  selectedTokenIds?: string[] | null,
+  includeRealignment: boolean = true
 ): Act[] {
   if (sequenceActs.length === 0) return []
 
@@ -72,11 +68,8 @@ export function injectSequence(
     totalDy += m.target.y - m.source.y
   }
 
-  // If the majority of matched players have different IDs from the original sequence,
-  // we assume the drill is being applied to a NEW set of players in a new location.
   const isNewSetOfPlayers = samePlayersMatchCount < tokenMatches.length / 2
 
-  // Only apply an offset if it's a new set of players
   const avgDx = isNewSetOfPlayers && tokenMatches.length > 0 ? totalDx / tokenMatches.length : 0
   const avgDy = isNewSetOfPlayers && tokenMatches.length > 0 ? totalDy / tokenMatches.length : 0
 
@@ -114,7 +107,6 @@ export function injectSequence(
     }
   }
 
-  // Helper to clone an act with remapped tokens and balls
   const cloneAct = (sourceAct: Act, title: string, isRealignment: boolean): Act => {
     const newTokens = targetAct.tokens.map(targetToken => {
       let sourceId: string | undefined
@@ -129,8 +121,8 @@ export function injectSequence(
         const sourceToken = sourceAct.tokens.find(t => t.id === sourceId)
         if (sourceToken) {
           return {
-            ...targetToken, // PERSON_FIELDS and ROLE_FIELDS
-            x: sourceToken.x + avgDx, // PHASE_FIELDS shifted only if new players
+            ...targetToken, 
+            x: sourceToken.x + avgDx, 
             y: sourceToken.y + avgDy,
             cue: sourceToken.cue,
             dim: sourceToken.dim,
@@ -140,6 +132,16 @@ export function injectSequence(
       }
       return targetToken
     })
+
+    for (const sourceToken of sourceAct.tokens) {
+      if (!tokenMapping.has(sourceToken.id)) {
+        newTokens.push({
+          ...sourceToken,
+          x: sourceToken.x + avgDx,
+          y: sourceToken.y + avgDy,
+        })
+      }
+    }
 
     const newBalls = targetBalls.map(targetBall => {
       let sourceId: string | undefined
@@ -158,6 +160,16 @@ export function injectSequence(
       return targetBall
     })
 
+    for (const sourceBall of ballsOf(sourceAct)) {
+      if (!ballMapping.has(sourceBall.id)) {
+        newBalls.push({
+          ...sourceBall,
+          x: sourceBall.x + avgDx,
+          y: sourceBall.y + avgDy,
+        })
+      }
+    }
+
     const newArrows = sourceAct.arrows.map(a => ({
       ...a,
       id: arrowIdMap.get(a.id)!,
@@ -173,14 +185,10 @@ export function injectSequence(
         : undefined
     }))
 
-    // Use the original equipment from targetAct. 
-    // This perfectly preserves all equipment and texts exactly as they are without duplicates.
     let finalTexts = [...(targetAct.texts || [])]
     let finalGear = [...(targetAct.gear || [])]
 
-    // If the sequence is applied to a new set of players, we also clone the sequence's gear/texts
-    // using consistent new IDs, and append them to the current gear/texts.
-    if (isNewSetOfPlayers) {
+    if (isNewSetOfPlayers || tokenMatches.length === 0) {
       const clonedTexts = (sourceAct.texts || []).map(txt => ({
         ...txt,
         id: textIdMap.get(txt.id)!,
@@ -198,14 +206,14 @@ export function injectSequence(
     }
 
     return {
-      ...sourceAct,
+      ...targetAct,
       id: uid('act'),
       title,
       caption: isRealignment ? 'Players reset to starting positions' : sourceAct.caption,
       tokens: newTokens,
       ...ballFields(newBalls),
-      arrows: isRealignment ? [] : newArrows,
-      bands: isRealignment ? [] : newBands,
+      arrows: isRealignment ? newArrows : [...targetAct.arrows, ...newArrows],
+      bands: isRealignment ? newBands : [...targetAct.bands, ...newBands],
       texts: finalTexts,
       gear: finalGear,
       shot: sourceAct.shot,
@@ -213,15 +221,14 @@ export function injectSequence(
     }
   }
 
-  // 3. Generate the Acts
   const injectedActs: Act[] = []
 
-  // Realignment Phase (moves mapped players to SeqAct 0's shifted positions)
-  injectedActs.push(cloneAct(seqFirst, 'Realignment', true))
+  if (includeRealignment) {
+    injectedActs.push(cloneAct(seqFirst, 'Realignment', true))
+  }
 
-  // Drill Phases
   for (let i = 0; i < sequenceActs.length; i++) {
-    injectedActs.push(cloneAct(sequenceActs[i], `Repeat: ${sequenceActs[i].title}`, false))
+    injectedActs.push(cloneAct(sequenceActs[i], sequenceActs[i].title, false))
   }
 
   return injectedActs

@@ -1051,6 +1051,8 @@ export type NamePlace = 'above' | 'below'
 export type PhotoPlace = 'above' | 'inside'
 
 export interface System {
+  editingSequenceId?: string;
+
   /** Schema version, so stored documents can be migrated in place. */
   v: 1
   title: string

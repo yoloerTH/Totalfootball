@@ -161,7 +161,7 @@ export function wipeScope(who: string | null): void {
  * and not just the ones adoption cared about. A key added to the studio and not
  * added here is a key that survives a sign-out.
  */
-const LEGACY = ['tf-studio:v1', 'tf-studio:guide:v1', 'tf.studio.sections', 'tf.studio.strip']
+const LEGACY = ['tf-studio:v1', 'tf-studio:guide:v1', 'tf.studio.sections', 'tf.studio.strip', 'tf-studio:sequences:v1']
 
 const ADOPTED_KEY = 'tf-studio:owner:adopted'
 

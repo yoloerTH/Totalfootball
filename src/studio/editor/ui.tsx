@@ -765,6 +765,7 @@ export function Modal({
   children,
   footer,
   width = 'md',
+  hidden,
 }: {
   title: string
   subtitle?: React.ReactNode
@@ -775,9 +776,11 @@ export function Modal({
   /** Pinned under the scrolling body. Where Done and the action button go. */
   footer?: React.ReactNode
   width?: 'md' | 'lg'
+  hidden?: boolean
 }) {
   return (
     <div
+      style={{ display: hidden ? 'none' : undefined }}
       className="fixed inset-0 z-[80] flex justify-center overflow-y-auto overscroll-contain bg-ink/55 p-0 sm:p-4"
       role="dialog"
       aria-modal="true"

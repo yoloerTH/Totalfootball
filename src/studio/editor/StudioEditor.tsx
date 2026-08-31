@@ -68,6 +68,7 @@ import {
   resolveGrid,
   toMetres,
   toPercent,
+  toScreenPercent,
   toUnits,
   unitsToPercent,
   viewFor,
@@ -213,6 +214,7 @@ import {
 } from './guide'
 import { useHistory } from './history'
 import { ShareDialog } from './ShareDialog'
+import { CollaboratorsDialog } from './CollaboratorsDialog'
 import { SignInPanel, SignInPill, SignInWall } from './SignInWall'
 import { SmallScreen, isSmallScreen } from './SmallScreen'
 import { ThemeToggle } from './ThemeToggle'
@@ -247,6 +249,12 @@ import {
 } from './ui'
 import { NEWEST_NEWS_ID, unseenNews } from '../../data/whatsnew'
 import { injectSequence } from '../inject'
+import { SaveSequenceDialog } from './SaveSequenceDialog'
+import { ApplySequenceDialog } from './ApplySequenceDialog'
+import { SequencePanel } from './SequencePanel'
+import type { SavedSequence, SequenceRegion } from '../sequences'
+import { saveSequence, loadSequence, captureSequence } from '../sequences'
+import { saveCloudSequence } from '../account/cloud'
 
 const CUES: Cue[] = ['PRESS', 'COVER', 'BALANCE', 'SPARE', 'JOCKEY', 'DROP']
 
@@ -885,6 +893,41 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   /** Is the sign-in sheet up? Only ever true on a locked board. */
   const [wall, setWall] = useState(false)
+  const [showSaveSequence, setShowSaveSequence] = useState(false)
+  const [showApplySequence, setShowApplySequence] = useState<SavedSequence | null>(null)
+  const [drawingRegion, setDrawingRegion] = useState(false)
+  const [sequenceRegion, setSequenceRegion] = useState<SequenceRegion | null>(null)
+
+  const handleSaveSequenceClick = async () => {
+    if (system.editingSequenceId) {
+      const oldSeq = loadSequence(system.editingSequenceId)
+      if (oldSeq) {
+        const seq = captureSequence(
+          oldSeq.name,
+          system.acts,
+          0,
+          system.acts.length - 1,
+          system.pitch,
+          system.area,
+          oldSeq.region,
+          null, // all tokens
+          system.teams
+        )
+        // Overwrite the existing sequence ID to act as an update
+        seq.id = oldSeq.id
+
+        saveSequence(seq)
+        if (user?.id) {
+          await saveCloudSequence(seq.id, seq as unknown as Record<string, unknown>, user.id)
+        }
+        
+        // Show a quick native alert to confirm since we bypassed the UI
+        alert('Sequence updated successfully!')
+        return
+      }
+    }
+    setShowSaveSequence(true)
+  }
 
   /**
    * Somebody reached for something they cannot have.
@@ -1007,11 +1050,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   useEffect(() => {
     const handle = () => {
       setNews(false)
-      setHelpTopic('repeat-drill')
+      setHelpTopic('save-sequence')
       setHelp(true)
     }
-    window.addEventListener('start-guide-repeat-drill', handle)
-    return () => window.removeEventListener('start-guide-repeat-drill', handle)
+    window.addEventListener('start-guide-save-sequence', handle)
+    return () => window.removeEventListener('start-guide-save-sequence', handle)
   }, [])
   const [news, setNews] = useState(false)
   /**
@@ -1031,6 +1074,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     return g.seen ? unseenNews(g.newsSeen).map((e) => e.id) : []
   })
   const [sharing, setSharing] = useState(false)
+  const [collaborating, setCollaborating] = useState(false)
   const [feedback, setFeedback] = useState<FeedbackContext | null>(null)
   /*
    * A win that has happened but has not been acted on yet.
@@ -1044,9 +1088,6 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const pendingWin = useRef<FeedbackContext | null>(null)
   const [makingVideo, setMakingVideo] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [injecting, setInjecting] = useState(false)
-  const [injectStart, setInjectStart] = useState(0)
-  const [injectEnd, setInjectEnd] = useState(0)
   // Evaluated once, on mount: a desktop coach narrowing their window should not
   // have an interstitial thrown over their work. See ./SmallScreen.tsx.
   const [tooSmall, setTooSmall] = useState(false)
@@ -2201,6 +2242,34 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       }
     )
   }, [act, view, bindGesture])
+
+  const beginRegionDraw = useCallback((e: React.PointerEvent) => {
+    const svg = svgRef.current
+    if (!svg) return
+    e.preventDefault()
+    const from = clientToPercent(svg, view, e.clientX, e.clientY)
+    let to = from
+    setMarquee({ from, to })
+
+    bindGesture(
+      e.pointerId,
+      (ev) => {
+        to = clientToPercent(svg, view, ev.clientX, ev.clientY)
+        setMarquee({ from, to })
+      },
+      () => {
+        setMarquee(null)
+        const x = Math.min(from.x, to.x)
+        const y = Math.min(from.y, to.y)
+        const w = Math.abs(from.x - to.x)
+        const h = Math.abs(from.y - to.y)
+        if (w > 1 && h > 1) {
+          setSequenceRegion({ x, y, w, h })
+        }
+        setDrawingRegion(false)
+      }
+    )
+  }, [view, bindGesture])
 
   /**
    * Carry out an armed arrow tool: draw the mark, and pose the phase after it.
@@ -4071,36 +4140,6 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     setSelection(null)
   }
 
-  const openInjectDialog = () => {
-    if (actIndex === 0) {
-      alert("You need to be on a later phase to repeat an earlier sequence.")
-      return
-    }
-    setInjectStart(0)
-    setInjectEnd(actIndex - 1)
-    setInjecting(true)
-  }
-
-  const runInject = () => {
-    if (injectStart < 0 || injectEnd > system.acts.length - 1 || injectStart > injectEnd) {
-      return
-    }
-
-    edit('inject-sequence', (s) => {
-      const targetAct = s.acts[actIndex]
-      const seqActs = s.acts.slice(injectStart, injectEnd + 1)
-      const selectedTokens = multiSelect ? multiSelect.tokens : null
-      const newActs = injectSequence(targetAct, seqActs, selectedTokens)
-      if (newActs.length === 0) return s
-      const acts = [...s.acts]
-      acts.splice(actIndex + 1, 0, ...newActs)
-      return { ...s, acts }
-    })
-    seal()
-    setInjecting(false)
-    setActIndex((i) => i + 1)
-    setSelection(null)
-  }
   const deleteAct = () => {
     if (system.acts.length <= 1) return
     edit('delete-phase', (s) => ({ ...s, acts: s.acts.filter((_, i) => i !== actIndex) }))
@@ -4746,6 +4785,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           <Button onClick={openShare}>Share</Button>
         </Tip>
 
+        <Tip text="Invite others to edit this project" title="Collaborate" side="bottom">
+          <Button onClick={() => setCollaborating(true)}>Collaborate</Button>
+        </Tip>
+
         <Tip text={HINT.video} title="Video" side="bottom" help="video">
           <Button onClick={() => setMakingVideo(true)}>Video</Button>
         </Tip>
@@ -4883,7 +4926,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         /* Withheld while a drawing tool is armed, for the same reason marks
            are: a coach dragging out a zone across the frame's edge must not
            have the camera grab the gesture instead. */
-        onFramePointerDown={playing || drawing ? undefined : beginFrameDrag}
+        onFramePointerDown={playing || drawing || drawingRegion ? undefined : beginFrameDrag}
         /* The snap target wins while an arrow end is in the air: it is the
            counter the coach is acting on, and it is the one thing on the board
            that tells them the end is about to attach rather than land. */
@@ -4899,7 +4942,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            clicking counters — and a click on one picks it for the line instead
            of starting a drag. Every other drawing tool takes them away. */
         onTokenPointerDown={
-          playing || dragging_tool
+          playing || dragging_tool || drawingRegion
             ? undefined
             : (id, e) => {
                 if (isPickTool(tool)) {
@@ -4926,7 +4969,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               }
         }
         onArrowPointerDown={
-          playing || drawing
+          playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
@@ -4941,9 +4984,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 else setSelection({ kind: 'mark', id })
               }
         }
-        onArrowGripPointerDown={playing || drawing ? undefined : beginArrowDrag}
+        onArrowGripPointerDown={playing || drawing || drawingRegion ? undefined : beginArrowDrag}
         onBandPointerDown={
-          playing || drawing
+          playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
@@ -4951,7 +4994,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               }
         }
         onTextPointerDown={
-          playing || drawing
+          playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
@@ -4967,7 +5010,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               }
         }
         onGearPointerDown={
-          playing || drawing
+          playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
                 e.stopPropagation()
@@ -4982,9 +5025,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 else setSelection({ kind: 'mark', id })
               }
         }
-        onZonePointerDown={playing || drawing ? undefined : beginZoneDrag}
+        onZonePointerDown={playing || drawing || drawingRegion ? undefined : beginZoneDrag}
         onBallPointerDown={
-          playing || drawing
+          playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
                 if (multiSelect) {
@@ -5001,6 +5044,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         }
         onBackgroundPointerDown={(e) => {
           if (playing) return
+          if (drawingRegion) {
+             e.preventDefault()
+             beginRegionDraw(e)
+             return
+          }
           if (isPickTool(tool)) {
             e.preventDefault()
             commitBlockPick()
@@ -5019,25 +5067,26 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         }}
       />
       {marquee && (
-         <div
-           className="pointer-events-none absolute border-2 border-sky-400 bg-sky-400/20"
-           style={{
-              left: `${Math.min(marquee.from.x, marquee.to.x)}%`,
-              top: `${Math.min(marquee.from.y, marquee.to.y)}%`,
-              width: `${Math.abs(marquee.from.x - marquee.to.x)}%`,
-              height: `${Math.abs(marquee.from.y - marquee.to.y)}%`,
-           }}
-         />
+        <div
+          className="pointer-events-none absolute border-2 border-sky-400 bg-sky-400/20"
+          style={{
+             left: `${Math.min(toScreenPercent(view, marquee.from).x, toScreenPercent(view, marquee.to).x)}%`,
+             top: `${Math.min(toScreenPercent(view, marquee.from).y, toScreenPercent(view, marquee.to).y)}%`,
+             width: `${Math.abs(toScreenPercent(view, marquee.from).x - toScreenPercent(view, marquee.to).x)}%`,
+             height: `${Math.abs(toScreenPercent(view, marquee.from).y - toScreenPercent(view, marquee.to).y)}%`,
+          }}
+        />
       )}
       {(() => {
         if (!multiSelect || !rendered) return null
         let minX = 100, minY = 100, maxX = 0, maxY = 0
         let found = false
-        const add = (x: number, y: number) => {
-          minX = Math.min(minX, x)
-          minY = Math.min(minY, y)
-          maxX = Math.max(maxX, x)
-          maxY = Math.max(maxY, y)
+        const add = (px: number, py: number) => {
+          const sp = toScreenPercent(view, { x: px, y: py })
+          minX = Math.min(minX, sp.x)
+          minY = Math.min(minY, sp.y)
+          maxX = Math.max(maxX, sp.x)
+          maxY = Math.max(maxY, sp.y)
           found = true
         }
         rendered.tokens.filter(t => multiSelect.tokens.includes(t.id)).forEach(t => add(t.x, t.y))
@@ -5056,6 +5105,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         })
 
         if (!found) return null
+
         return (
           <div
             className="absolute flex items-center gap-1.5 rounded-lg bg-ink/90 p-1.5 shadow-lg backdrop-blur-sm pointer-events-auto"
@@ -5571,9 +5621,9 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             ⧉<span className="hidden lg:inline">Copy</span>
           </Button>
         </Tip>
-        <Tip text="Repeat the sequence from Phase 1 mapped to the current players' positions" title="Repeat Drill" side="top" help="repeatDrill">
-          <Button onClick={openInjectDialog} aria-label="Repeat the sequence from Phase 1" className="!px-2">
-            ↻<span className="hidden lg:inline">Repeat</span>
+        <Tip text={system.editingSequenceId ? "Update this saved sequence" : "Save these phases as a reusable sequence"} title={system.editingSequenceId ? "Update Sequence" : "Save Sequence"} side="top">
+          <Button onClick={handleSaveSequenceClick} aria-label={system.editingSequenceId ? "Update Sequence" : "Save Sequence"} className="!px-2">
+            ↓<span className="hidden lg:inline">{system.editingSequenceId ? "Update Sequence" : "Save Sequence"}</span>
           </Button>
         </Tip>
         <Tip text={HINT.deletePhase} title={`Delete ${PHASE.one}`} side="top">
@@ -6759,6 +6809,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         </Panel>
       </Section>
 
+      <Section title={DRAWER.sequences} hint="Your saved phase patterns">
+        <SequencePanel onApply={setShowApplySequence} />
+      </Section>
+
       <Section title={DRAWER.system} hint="Start over">
         <Panel title="This system">
           <Tip text={HINT.reset} title="Start over">
@@ -7876,58 +7930,58 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           }}
         />
       )}
-      {injecting && (
-        <Modal
-          title="Repeat Sequence"
-          label="Repeat a sequence of phases"
-          onClose={() => setInjecting(false)}
-          footer={
-            <div className="flex justify-end gap-3 p-4">
-              <Button variant="ghost" onClick={() => setInjecting(false)}>
-                Cancel
-              </Button>
-              <Button variant="solid" onClick={runInject}>
-                Inject Drill
-              </Button>
-            </div>
-          }
-        >
-          <div className="space-y-6 p-4">
-            <p className="text-sm text-ink-soft">
-              Choose the sequence of phases you want to extract and map to your current players.
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 space-y-2">
-                <label className="text-[13px] font-semibold text-ink">From Phase</label>
-                <select
-                  className="w-full rounded-md border border-ink-hair bg-transparent px-3 py-1.5 text-sm focus:border-tf-red focus:outline-none focus:ring-1 focus:ring-tf-red"
-                  value={injectStart}
-                  onChange={(e) => setInjectStart(parseInt(e.target.value, 10))}
-                >
-                  {system.acts.slice(0, actIndex).map((a, i) => (
-                    <option key={i} value={i}>
-                      Phase {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1 space-y-2">
-                <label className="text-[13px] font-semibold text-ink">To Phase</label>
-                <select
-                  className="w-full rounded-md border border-ink-hair bg-transparent px-3 py-1.5 text-sm focus:border-tf-red focus:outline-none focus:ring-1 focus:ring-tf-red"
-                  value={injectEnd}
-                  onChange={(e) => setInjectEnd(parseInt(e.target.value, 10))}
-                >
-                  {system.acts.slice(0, actIndex).map((a, i) => (
-                    <option key={i} value={i} disabled={i < injectStart}>
-                      Phase {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </Modal>
+      {showSaveSequence && (
+        <SaveSequenceDialog
+          hidden={drawingRegion}
+          region={sequenceRegion}
+          onDrawRegion={() => setDrawingRegion(true)}
+          system={system}
+          actIndex={actIndex}
+          selectedTokenIds={multiSelect ? multiSelect.tokens : null}
+          onSave={async (seq) => {
+            saveSequence(seq)
+            const p = user?.id
+            if (p) await saveCloudSequence(seq.id, seq as unknown as Record<string, unknown>, p)
+            setShowSaveSequence(false)
+            setSequenceRegion(null)
+          }}
+          onClose={() => {
+            setShowSaveSequence(false)
+            setSequenceRegion(null)
+          }}
+        />
+      )}
+      {showApplySequence && (
+        <ApplySequenceDialog
+          sequence={showApplySequence}
+          system={system}
+          actIndex={actIndex}
+          selectedTokenIds={multiSelect ? multiSelect.tokens : null}
+          onApply={(acts, insertAt, replaceCount, seqTeams) => {
+            edit('apply-sequence', (s) => {
+              const newActs = [...s.acts]
+              newActs.splice(insertAt, replaceCount, ...acts)
+
+              const newTeams = { ...s.teams }
+              if (seqTeams) {
+                // To persist colors as captured, apply the sequence's teams.
+                // We only apply 'them' if the sequence had a distinct 'them' color,
+                // and we set 'us' to make sure the sequence matches exactly.
+                newTeams.us = seqTeams.us
+                if (seqTeams.them) {
+                  newTeams.them = seqTeams.them
+                }
+              }
+
+              return { ...s, acts: newActs, teams: newTeams }
+            })
+            seal()
+            setActIndex(insertAt + acts.length - 1)
+            setSelection(null)
+            setShowApplySequence(null)
+          }}
+          onClose={() => setShowApplySequence(null)}
+        />
       )}
       {sharing && (
         <ShareDialog
@@ -7944,6 +7998,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             recordWin('share')
           }}
           onClose={closeExport}
+        />
+      )}
+      {collaborating && (
+        <CollaboratorsDialog
+          systemId={systemId}
+          onClose={() => setCollaborating(false)}
         />
       )}
       {makingVideo && (
@@ -7996,7 +8056,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           the print sheet below it. See src/styles/global.css. */}
       <div className="tf-screen flex h-[100dvh] flex-col bg-paper-deep text-ink">
         {toolbar}
-        <main className="flex shrink-0 select-none flex-col items-center gap-2 p-3">
+        <main className="flex shrink-0 select-none flex-col items-center gap-2 p-3 relative">
+          {drawingRegion && (
+            <div className="absolute top-2 z-50 rounded-full bg-ink/90 px-3 py-1.5 text-xs font-bold text-paper shadow-lift">
+              Draw a rectangle to select area
+            </div>
+          )}
           <div className="flex h-[36dvh] min-h-[180px] w-full items-center justify-center">{boardStage}</div>
           {boardLine}
         </main>
@@ -8066,7 +8131,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           {setupPanel}
         </aside>
 
-        <main className="flex min-w-0 flex-1 select-none flex-col items-center justify-center gap-3 overflow-hidden p-6">
+        <main className="flex min-w-0 flex-1 select-none flex-col items-center justify-center gap-3 overflow-hidden p-6 relative">
+          {drawingRegion && (
+            <div className="absolute top-4 z-50 rounded-full bg-ink/90 px-4 py-2 text-sm font-bold text-paper shadow-lift">
+              Draw a rectangle on the pitch to select the area
+            </div>
+          )}
           {boardStage}
           {boardLine}
         </main>

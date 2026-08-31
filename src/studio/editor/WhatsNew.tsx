@@ -89,7 +89,7 @@ const KIND_CLASS: Record<NewsKind, string> = {
 }
 
 function Entry({ entry, unread }: { entry: NewsEntry; unread: boolean }) {
-  const isSpecial = entry.id === 'repeat-drill'
+  const isSpecial = !!entry.ctaText
   
   return (
     <li className={`border-t border-ink-hair px-4 py-3.5 first:border-t-0 ${isSpecial ? 'bg-gold/5 rounded-xl outline outline-1 outline-gold m-2' : ''}`}>
@@ -115,16 +115,26 @@ function Entry({ entry, unread }: { entry: NewsEntry; unread: boolean }) {
       {isSpecial ? (
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>
-          <button 
-            type="button" 
-            className="rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] hover:bg-gold/90 transition-colors"
-            onClick={() => {
-              // Trigger a global custom event to launch the guide
-              window.dispatchEvent(new CustomEvent('start-guide-repeat-drill'))
-            }}
-          >
-            Read the guide
-          </button>
+          {entry.ctaAction?.startsWith('/') ? (
+            <a
+              href={entry.ctaAction}
+              className="inline-flex items-center justify-center rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] no-underline transition-colors hover:bg-gold/90"
+            >
+              {entry.ctaText}
+            </a>
+          ) : (
+            <button 
+              type="button" 
+              className="rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] transition-colors hover:bg-gold/90"
+              onClick={() => {
+                if (entry.ctaAction) {
+                  window.dispatchEvent(new CustomEvent(entry.ctaAction))
+                }
+              }}
+            >
+              {entry.ctaText}
+            </button>
+          )}
         </div>
       ) : (
         <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>

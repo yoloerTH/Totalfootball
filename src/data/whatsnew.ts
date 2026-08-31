@@ -51,17 +51,33 @@ export interface NewsEntry {
   body: string
   /** Where to go and press it, named exactly as the studio labels it. */
   where: string
+  /** Optional button text for a custom call to action (e.g. 'Read the guide'). */
+  ctaText?: string
+  /** Optional href (starts with /) or event name for the CTA. */
+  ctaAction?: string
 }
 
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
-    id: 'repeat-drill',
+    id: 'team-collaboration',
     date: '2026-08-31',
     kind: 'new',
-    title: 'Repeat your drills easily',
-    body: 'You can now repeat a drill sequence on your players. Just tap the Repeat button on the phase strip, pick the phases to run again, and your players will seamlessly return to their marks to run it a second time. Equipment and spacing stay perfectly intact. Read the guide for a quick walkthrough!',
-    where: 'Repeat, on the phase strip',
+    title: 'Work together with your coaching staff',
+    body: 'You can now invite other coaches to view or edit your entire collection, or collaborate on a specific system directly. When they accept, they get instant access straight from their dashboard. You decide exactly what they can see or edit, from boards to sequences. Say goodbye to taking screenshots for your assistants.',
+    where: 'Team Members in Personal Settings, or the Collaborators button up top',
+    ctaText: 'Manage your team',
+    ctaAction: '/studio/settings',
+  },
+  {
+    id: 'save-sequence',
+    date: '2026-08-31',
+    kind: 'new',
+    title: 'Create and reuse your own sequences',
+    body: 'The Repeat tool has become the new Create Sequence feature! You can now capture any phase sequence and save it into your own private library. Pick the exact area of the pitch or just grab the whole movement, and inject it into any other system whenever you need it. Everything from players to equipment and zones is perfectly preserved.',
+    where: 'Create Sequence, on the phase strip, or Sequences in the sidebar',
+    ctaText: 'Read the guide',
+    ctaAction: 'start-guide-save-sequence',
   },
   {
     id: 'carry-gear',

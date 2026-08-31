@@ -39,6 +39,7 @@
 import { useEffect } from 'react'
 import { Mark } from '../viewer/Mark'
 import { Button } from './ui'
+import { useSession } from '../account/session'
 
 /** One place, so the three pieces can never drift into disagreeing. */
 export const WALL = {
@@ -48,6 +49,14 @@ export const WALL = {
     'You are looking at the real studio, holding one of our published systems. Watch it as long as you like. Building takes a free account.',
   cta: 'Sign in or create an account',
   foot: 'Free. One press with Google. Both of these systems are waiting on the other side.',
+} as const
+
+export const READONLY_WALL = {
+  eyebrow: 'Shared with you',
+  title: 'View-only access',
+  body: 'You are looking at a system that was shared with you. You have permission to view it and watch it play, but you cannot make edits.',
+  cta: 'Got it',
+  foot: 'Changes are disabled for this board.',
 } as const
 
 /** Never `?next=`: see the note at the top of this file. */
@@ -66,6 +75,9 @@ export const LOGIN_HREF = '/studio/login/'
  * Escape, or from the button that says so.
  */
 export function SignInWall({ onClose }: { onClose: () => void }) {
+  const { status } = useSession()
+  const content = status === 'in' ? READONLY_WALL : WALL
+
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', key)
@@ -77,7 +89,7 @@ export function SignInWall({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto bg-ink/55 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={WALL.title}
+      aria-label={content.title}
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* A sheet from the bottom on a phone, a card in the middle on a desktop.
@@ -102,28 +114,41 @@ export function SignInWall({ onClose }: { onClose: () => void }) {
           <span className="text-[13px] font-black tracking-display">Total Football</span>
         </div>
 
-        <p className="mt-5 micro text-ink-faint">{WALL.eyebrow}</p>
-        <h2 className="mt-2.5 text-xl font-black tracking-display text-ink">{WALL.title}</h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{WALL.body}</p>
+        <p className="mt-5 micro text-ink-faint">{content.eyebrow}</p>
+        <h2 className="mt-2.5 text-xl font-black tracking-display text-ink">{content.title}</h2>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{content.body}</p>
 
-        <a
-          href={LOGIN_HREF}
-          className="mt-5 flex w-full items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-black text-paper transition-colors hover:bg-ink/85"
-        >
-          {WALL.cta}
-        </a>
+        {status === 'in' ? (
+          <button
+            onClick={onClose}
+            className="mt-5 flex w-full items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-black text-paper transition-colors hover:bg-ink/85"
+          >
+            {content.cta}
+          </button>
+        ) : (
+          <a
+            href={LOGIN_HREF}
+            className="mt-5 flex w-full items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-black text-paper transition-colors hover:bg-ink/85"
+          >
+            {content.cta}
+          </a>
+        )}
 
-        <p className="mt-3 text-center text-[12px] leading-relaxed text-ink-faint">{WALL.foot}</p>
+        <p className="mt-3 text-center text-[12px] leading-relaxed text-ink-faint">{content.foot}</p>
 
-        {/* Deliberately the quietest thing in the card, and deliberately still
-            here. See the note above about this never being a paywall. */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 w-full text-center text-[12px] font-bold text-ink-faint transition-colors hover:text-ink-soft"
-        >
-          Keep watching
-        </button>
+        {status !== 'in' && (
+          <>
+            {/* Deliberately the quietest thing in the card, and deliberately still
+                here. See the note above about this never being a paywall. */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-4 w-full text-center text-[12px] font-bold text-ink-faint transition-colors hover:text-ink-soft"
+            >
+              Keep watching
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -142,6 +167,14 @@ export function SignInWall({ onClose }: { onClose: () => void }) {
  * half-persuaded does with it.
  */
 export function SignInPill() {
+  const { status } = useSession()
+  if (status === 'in') {
+    return (
+      <span className="shrink-0 rounded-md bg-ink-hair px-2.5 py-1.5 text-xs font-bold text-ink-soft">
+        Read only
+      </span>
+    )
+  }
   return (
     <a
       href={LOGIN_HREF}
@@ -164,6 +197,24 @@ export function SignInPill() {
  * reached for and the two that most obviously belong to somebody.
  */
 export function SignInPanel({ onOpen }: { onOpen: () => void }) {
+  const { status } = useSession()
+  if (status === 'in') {
+    return (
+      <div className="border-b border-ink-hair bg-paper/60 p-4">
+        <div className="flex items-center gap-2.5 text-ink">
+          <Mark size={24} />
+          <p className="micro text-ink-faint">{READONLY_WALL.eyebrow}</p>
+        </div>
+        <p className="mt-2.5 text-[13px] font-bold leading-snug text-ink">
+          Press Play, or step through the phases below. This board is read only.
+        </p>
+        <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
+          You only have view access to this system. Ask the owner for edit access if you need to make changes.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="border-b border-ink-hair bg-paper/60 p-4">
       {/* Inline, where the sheet stacks it: this card sits at the head of a

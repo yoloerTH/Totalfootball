@@ -877,6 +877,7 @@ export const DRAWER = {
   phase: `On this ${PHASE.one}`,
   film: 'The film',
   system: 'This system',
+  sequences: 'My Sequences',
 } as const
 
 export type HelpGroupId = 'board' | 'marks' | 'phases' | 'kit' | 'share' | 'new'
@@ -1174,15 +1175,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     target: { anchor: 'phaseStrip', name: `the strip of ${PHASE.many}` },
   },
   {
-    id: 'repeat-drill',
+    id: 'save-sequence',
     group: 'phases',
-    label: 'Repeating a drill sequence',
-    terms: ['repeat', 'loop', 'again', 'second set', 'same thing', 'copy sequence', 'duplicate drill'],
+    label: 'Saving and reusing sequences',
+    terms: ['sequence', 'save', 'reuse', 'library', 'repeat', 'loop', 'again', 'second set', 'same thing', 'copy sequence', 'duplicate drill', 'my sequences'],
     body: [
-      'You can repeat a whole sequence of movements without redrawing it.',
-      'Tap Repeat, and the players will seamlessly reset to their starting positions to run the drill again. The equipment stays exactly where it is.',
+      'Save a range of phases as a named sequence in your personal library.',
+      'You can capture the whole pitch or just a region of it. Sequences are saved without player names, so they work with any squad.',
+      'Apply a saved sequence to any system: auto-fill creates new phases, or insert at a range to place it into specific phases with the remaining ones holding static.',
     ],
-    target: { anchor: 'repeatDrill', name: 'the Repeat button' },
+    target: { drawer: DRAWER.sequences, anchor: 'My Sequences', name: 'My Sequences' },
   },
   {
     id: 'pace',
