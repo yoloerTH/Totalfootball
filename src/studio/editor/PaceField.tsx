@@ -111,6 +111,7 @@ export function PaceField({
       {onPaceMode && (
         <div>
           <Segmented
+            label="Pace mode"
             value={system.paceMode ?? 'curve'}
             onChange={(v) => onPaceMode(v as 'curve' | 'linear')}
             options={[

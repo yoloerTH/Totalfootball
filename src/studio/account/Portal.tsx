@@ -674,6 +674,7 @@ export default function Portal() {
           unsigned={false}
           onHold={() => {}}
           onMove={() => {}}
+          onPaceMode={() => {}}
           onPaceCommit={() => {}}
           onSaved={() => setExportSystem(null)}
           onSwitchMode={(mode) => setExportSystem({ row: exportSystem!.row, mode: mode === 'image' ? 'images' : 'video' })}
