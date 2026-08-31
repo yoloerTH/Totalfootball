@@ -256,7 +256,21 @@ export function carryForward(
   for (let i = from + 1; i < out.length; i++) {
     const t = out[i].tokens.find((x) => x.id === id)
     if (!t || !keys.every((k) => same(t[k], before[k]))) return out
-    out[i] = { ...out[i], tokens: out[i].tokens.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+    const newAct = { ...out[i], tokens: out[i].tokens.map((x) => (x.id === id ? { ...x, ...after } : x)) }
+    
+    if (typeof before.x === 'number' && typeof after.x === 'number' && typeof before.y === 'number' && typeof after.y === 'number') {
+       const dx = after.x - before.x
+       const dy = after.y - before.y
+       newAct.arrows = newAct.arrows.map(a => {
+          if (a.fromId !== id && a.toId !== id) return a
+          const next = { ...a, from: { ...a.from }, to: { ...a.to } }
+          if (a.fromId === id) { next.from.x += dx; next.from.y += dy }
+          if (a.toId === id) { next.to.x += dx; next.to.y += dy }
+          return next
+       })
+    }
+    
+    out[i] = newAct
   }
   return out
 }

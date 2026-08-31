@@ -1174,6 +1174,17 @@ export const HELP_TOPICS: HelpTopic[] = [
     target: { anchor: 'phaseStrip', name: `the strip of ${PHASE.many}` },
   },
   {
+    id: 'repeat-drill',
+    group: 'phases',
+    label: 'Repeating a drill sequence',
+    terms: ['repeat', 'loop', 'again', 'second set', 'same thing', 'copy sequence', 'duplicate drill'],
+    body: [
+      'You can repeat a whole sequence of movements without redrawing it.',
+      'Tap Repeat, and the players will seamlessly reset to their starting positions to run the drill again. The equipment stays exactly where it is.',
+    ],
+    target: { anchor: 'repeatDrill', name: 'the Repeat button' },
+  },
+  {
     id: 'pace',
     group: 'phases',
     label: 'How fast it runs',

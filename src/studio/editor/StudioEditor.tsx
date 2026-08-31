@@ -1002,6 +1002,17 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * right relationship between them.
    */
   const [help, setHelp] = useState(false)
+  const [helpTopic, setHelpTopic] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handle = () => {
+      setNews(false)
+      setHelpTopic('repeat-drill')
+      setHelp(true)
+    }
+    window.addEventListener('start-guide-repeat-drill', handle)
+    return () => window.removeEventListener('start-guide-repeat-drill', handle)
+  }, [])
   const [news, setNews] = useState(false)
   /**
    * Which what's-new entries carry a "not read yet" marker, decided once on
@@ -1729,6 +1740,21 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         e.preventDefault()
         goToPhase(actIndexRef.current + 1)
       }
+      
+      const target = e.target as HTMLElement | null
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      if (!isInput) {
+         const k = e.key.toLowerCase()
+         if (k === 'v') setTool('select')
+         else if (k === 'p') setTool('pass')
+         else if (k === 'r') setTool('run')
+         else if (k === 'c') setTool('carry')
+         else if (k === 'd') setTool('press')
+         else if (k === 's') setTool('switch')
+         else if (k === 't') setTool('text')
+         else if (k === 'b') setTool('block')
+         else if (k === 'z') setTool('zone')
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -1817,12 +1843,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * drag to the spot it started from.
    */
   const alignablesFor = useCallback(
-    (source: Act, exceptId: string): Alignable[] =>
-      [
+    (source: Act, exceptId: string | string[]): Alignable[] => {
+      const excepts = Array.isArray(exceptId) ? exceptId : [exceptId]
+      return [
         ...source.tokens.map((t) => ({ id: t.id, x: t.x, y: t.y })),
         ...ballsOf(source).map((b) => ({ id: b.id, x: b.x, y: b.y })),
         ...(source.gear ?? []).map((g) => ({ id: g.id, x: g.x, y: g.y })),
-      ].filter((a) => a.id !== exceptId),
+      ].filter((a) => !excepts.includes(a.id))
+    },
     [],
   )
 
@@ -1983,28 +2011,53 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides, edit],
   )
 
-  const beginMultiDrag = useCallback((e: React.PointerEvent) => {
+  const beginMultiDrag = useCallback((e: React.PointerEvent, id: string) => {
     const svg = svgRef.current
     const source = act
     if (!svg || !source || !multiSelect) return
     e.stopPropagation()
     e.preventDefault()
 
-    const down = clientToPercent(svg, view, e.clientX, e.clientY)
-    const grab = { x: down.x, y: down.y }
-    
     const initTokens = source.tokens.filter(t => multiSelect.tokens.includes(t.id)).map(t => ({ id: t.id, x: t.x, y: t.y }))
     const initGear = (source.gear ?? []).filter(g => multiSelect.gear.includes(g.id)).map(g => ({ id: g.id, x: g.x, y: g.y }))
     const initBalls = ballsOf(source).filter(b => multiSelect.balls.includes(b.id)).map(b => ({ id: b.id, x: b.x, y: b.y }))
     const initTexts = (source.texts ?? []).filter(t => multiSelect.texts.includes(t.id)).map(t => ({ id: t.id, x: t.x, y: t.y }))
     const initArrows = (source.arrows ?? []).filter(a => multiSelect.marks.includes(a.id)).map(a => ({ id: a.id, from: { ...a.from }, to: { ...a.to }, fromId: a.fromId, toId: a.toId }))
+    const initBands = (source.bands ?? []).filter(b => multiSelect.marks.includes(b.id) && b.rect).map(b => ({ id: b.id, rect: { ...b.rect! } }))
     
+    let base = initTokens.find(x => x.id === id) || initGear.find(x => x.id === id) || initBalls.find(x => x.id === id) || initTexts.find(x => x.id === id)
+    if (!base && initArrows.find(x => x.id === id)) {
+       const ar = initArrows.find(x => x.id === id)!
+       base = { id, x: ar.from.x, y: ar.from.y }
+    } else if (!base && initBands.find(x => x.id === id)) {
+       const bd = initBands.find(x => x.id === id)!
+       base = { id, x: bd.rect.x + bd.rect.w / 2, y: bd.rect.y + bd.rect.h / 2 }
+    }
+
+    const down = clientToPercent(svg, view, e.clientX, e.clientY)
+    const grab = base ? clampToBoard(down.x, down.y) : { x: down.x, y: down.y }
+    const tolM = snapTolerance(svg)
+    const exceptIds = [...multiSelect.tokens, ...multiSelect.gear, ...multiSelect.balls, ...multiSelect.texts, ...multiSelect.marks]
+    const mates = alignablesFor(source, exceptIds)
+
     bindGesture(
       e.pointerId,
       (ev) => {
          const raw = clientToPercent(svg, view, ev.clientX, ev.clientY)
-         const dx = raw.x - grab.x
-         const dy = raw.y - grab.y
+         let dx = raw.x - grab.x
+         let dy = raw.y - grab.y
+         
+         if (base) {
+            const q = clampToBoard(raw.x, raw.y)
+            const p = snapMove(
+               clampToBoard(base.x + (q.x - grab.x), base.y + (q.y - grab.y)),
+               mates,
+               tolM,
+               ev.altKey
+            )
+            dx = p.x - base.x
+            dy = p.y - base.y
+         }
          
          patchAct('multi-drag', a => ({
             ...a,
@@ -2030,10 +2083,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                // the arrow renderer follows attached tokens automatically, so only translate if unattached,
                // or if both token and arrow are moving, we translate it so the logical points match the visual ones
                return { ...ar, from: { x: init.from.x + dx, y: init.from.y + dy }, to: { x: init.to.x + dx, y: init.to.y + dy } }
+            }),
+            bands: a.bands.map(bd => {
+               const init = initBands.find(x => x.id === bd.id)
+               if (!init || !bd.rect) return bd
+               return { ...bd, rect: { ...bd.rect, x: init.rect.x + dx, y: init.rect.y + dy } }
             })
          }))
       },
       () => {
+         putGuides(NO_GUIDES)
          if (carryRef.current) {
             edit('multi-drag', (s) => {
                const i = Math.min(actIndexRef.current, s.acts.length - 1)
@@ -2058,13 +2117,19 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                      newActs = carryForwardArrow(newActs, i, a.id, { from: a.from, to: a.to, fromId: a.fromId, toId: a.toId }, { from: now.from, to: now.to, fromId: now.fromId, toId: now.toId })
                   }
                }
+               for (const b of initBands) {
+                  const now = nowAct.bands.find(x => x.id === b.id)
+                  if (now) {
+                     newActs = carryForwardBand(newActs, i, b.id, { rect: b.rect }, { rect: now.rect })
+                  }
+               }
                return { ...s, acts: newActs }
             })
          }
          seal()
       }
     )
-  }, [act, multiSelect, view, patchAct, bindGesture, seal, edit])
+  }, [act, multiSelect, view, patchAct, bindGesture, seal, edit, alignablesFor, snapMove, putGuides])
 
   const beginMarquee = useCallback((e: React.PointerEvent) => {
     const svg = svgRef.current
@@ -2075,18 +2140,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     let to = from
     setMarquee({ from, to })
 
-    bindGesture(
-      e.pointerId,
-      (ev) => {
-        to = clientToPercent(svg, view, ev.clientX, ev.clientY)
-        setMarquee({ from, to })
-      },
-      () => {
-        setMarquee(null)
-        const minX = Math.min(from.x, to.x)
-        const maxX = Math.max(from.x, to.x)
-        const minY = Math.min(from.y, to.y)
-        const maxY = Math.max(from.y, to.y)
+    const updateSelection = (currentTo: {x: number, y: number}) => {
+        const minX = Math.min(from.x, currentTo.x)
+        const maxX = Math.max(from.x, currentTo.x)
+        const minY = Math.min(from.y, currentTo.y)
+        const maxY = Math.max(from.y, currentTo.y)
         
         if (maxX - minX < 1 && maxY - minY < 1) {
            setMultiSelect(null)
@@ -2094,18 +2152,32 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            return
         }
         
-        const inBox = (x: number, y: number) => x >= minX && x <= maxX && y >= minY && y <= maxY
+        const tol = 1.5
+        const inBox = (x: number, y: number) => x >= minX - tol && x <= maxX + tol && y >= minY - tol && y <= maxY + tol
         
         const tokens = source.tokens.filter(t => inBox(t.x, t.y)).map(t => t.id)
         const gear = (source.gear ?? []).filter(g => inBox(g.x, g.y)).map(g => g.id)
         const balls = ballsOf(source).filter(b => inBox(b.x, b.y)).map(b => b.id)
         const texts = (source.texts ?? []).filter(t => inBox(t.x, t.y)).map(t => t.id)
         
-        const marks = (source.arrows ?? []).filter(a => {
+        const arrowMarks = (source.arrows ?? []).filter(a => {
            const fromIn = a.fromId ? tokens.includes(a.fromId) : inBox(a.from.x, a.from.y)
            const toIn = a.toId ? tokens.includes(a.toId) : inBox(a.to.x, a.to.y)
-           return fromIn && toIn
+           return fromIn || toIn
         }).map(a => a.id)
+        
+        const bandMarks = (source.bands ?? []).filter(b => {
+           if (b.throughTokens) {
+               return b.throughTokens.some(tid => tokens.includes(tid))
+           } else if (b.rect) {
+               const cx = b.rect.x + b.rect.w / 2
+               const cy = b.rect.y + b.rect.h / 2
+               return inBox(cx, cy) || inBox(b.rect.x, b.rect.y) || inBox(b.rect.x + b.rect.w, b.rect.y + b.rect.h)
+           }
+           return false
+        }).map(b => b.id)
+        
+        const marks = [...arrowMarks, ...bandMarks]
         
         if (tokens.length || gear.length || balls.length || texts.length || marks.length) {
            setMultiSelect({ tokens, gear, balls, texts, marks })
@@ -2114,6 +2186,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            setMultiSelect(null)
            setSelection(null)
         }
+    }
+
+    bindGesture(
+      e.pointerId,
+      (ev) => {
+        to = clientToPercent(svg, view, ev.clientX, ev.clientY)
+        setMarquee({ from, to })
+        updateSelection(to)
+      },
+      () => {
+        setMarquee(null)
+        updateSelection(to)
       }
     )
   }, [act, view, bindGesture])
@@ -4005,7 +4089,8 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     edit('inject-sequence', (s) => {
       const targetAct = s.acts[actIndex]
       const seqActs = s.acts.slice(injectStart, injectEnd + 1)
-      const newActs = injectSequence(targetAct, seqActs)
+      const selectedTokens = multiSelect ? multiSelect.tokens : null
+      const newActs = injectSequence(targetAct, seqActs, selectedTokens)
       if (newActs.length === 0) return s
       const acts = [...s.acts]
       acts.splice(actIndex + 1, 0, ...newActs)
@@ -4760,6 +4845,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         /* Wide while posing with the shot outlined on top; the real push-in
            happens on Play. See `showFrame` in ../board/Board.tsx. */
         showFrame={!playing}
+        multiSelect={multiSelect}
         /* Withheld while a drawing tool is armed, for the same reason marks
            are: a coach dragging out a zone across the frame's edge must not
            have the camera grab the gesture instead. */
@@ -4796,7 +4882,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 if (multiSelect) {
                    if (multiSelect.tokens.includes(id)) {
                       e.stopPropagation()
-                      beginMultiDrag(e)
+                      beginMultiDrag(e, id)
                       return
                    }
                    setMultiSelect(null)
@@ -4812,7 +4898,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 e.stopPropagation()
                 if (multiSelect) {
                    if (multiSelect.marks.includes(id)) {
-                      beginMultiDrag(e)
+                      beginMultiDrag(e, id)
                       return
                    }
                    setMultiSelect(null)
@@ -4837,7 +4923,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 e.stopPropagation()
                 if (multiSelect) {
                    if (multiSelect.texts.includes(id)) {
-                      beginMultiDrag(e)
+                      beginMultiDrag(e, id)
                       return
                    }
                    setMultiSelect(null)
@@ -4853,7 +4939,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 e.stopPropagation()
                 if (multiSelect) {
                    if (multiSelect.gear.includes(id)) {
-                      beginMultiDrag(e)
+                      beginMultiDrag(e, id)
                       return
                    }
                    setMultiSelect(null)
@@ -4870,7 +4956,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 if (multiSelect) {
                    if (multiSelect.balls.includes(id)) {
                       e.stopPropagation()
-                      beginMultiDrag(e)
+                      beginMultiDrag(e, id)
                       return
                    }
                    setMultiSelect(null)
@@ -5303,7 +5389,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             ⧉<span className="hidden lg:inline">Copy</span>
           </Button>
         </Tip>
-        <Tip text="Repeat the sequence from Phase 1 mapped to the current players' positions" title="Repeat Drill" side="top">
+        <Tip text="Repeat the sequence from Phase 1 mapped to the current players' positions" title="Repeat Drill" side="top" help="repeatDrill">
           <Button onClick={openInjectDialog} aria-label="Repeat the sequence from Phase 1" className="!px-2">
             ↻<span className="hidden lg:inline">Repeat</span>
           </Button>
@@ -7562,7 +7648,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       <HelpRing />
       {help && (
         <HelpPanel
-          onClose={() => setHelp(false)}
+          initialTopic={helpTopic}
+          onClose={() => {
+            setHelpTopic(null)
+            setHelp(false)
+          }}
           onWalkthrough={() => {
             setHelp(false)
             setWalkthrough(true)

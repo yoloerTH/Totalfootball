@@ -56,6 +56,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'repeat-drill',
+    date: '2026-08-31',
+    kind: 'new',
+    title: 'Repeat your drills easily',
+    body: 'You can now repeat a drill sequence on your players. Just tap the Repeat button on the phase strip, pick the phases to run again, and your players will seamlessly return to their marks to run it a second time. Equipment and spacing stay perfectly intact. Read the guide for a quick walkthrough!',
+    where: 'Repeat, on the phase strip',
+  },
+  {
     id: 'carry-gear',
     date: '2026-08-31',
     kind: 'new',

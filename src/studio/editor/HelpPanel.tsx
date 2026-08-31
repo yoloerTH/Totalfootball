@@ -106,17 +106,19 @@ export function HelpPanel({
   onClose,
   onWalkthrough,
   onNews,
+  initialTopic,
 }: {
   onClose: () => void
   onWalkthrough: () => void
   onNews: () => void
+  initialTopic?: string | null
 }) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
-  const [group, setGroup] = useState<HelpGroupId | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [group, setGroup] = useState<HelpGroupId | null>(initialTopic ? HELP_TOPICS.find(t => t.id === initialTopic)?.group || null : null)
+  const [openId, setOpenId] = useState<string | null>(initialTopic || null)
   /** Set when Show me could not find its control. See the header. */
   const [miss, setMiss] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   // Focused on open. This panel is a search box first, and a search box that
   // needs to be clicked before it can be typed in has wasted the press that

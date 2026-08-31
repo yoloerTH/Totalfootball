@@ -214,6 +214,7 @@ interface Props {
    * path by which a working line can end up in a film.
    */
   guides?: SnapGuide[]
+  multiSelect?: { tokens: string[], marks: string[], gear: string[], balls: string[], texts: string[] } | null
   className?: string
   svgRef?: React.Ref<SVGSVGElement>
 }
@@ -294,6 +295,7 @@ export function Board({
   idp,
   texture = false,
   showFrame = false,
+  multiSelect = null,
   activeTokenId = null,
   activeMarkId = null,
   onTokenPointerDown,
@@ -441,7 +443,7 @@ export function Board({
                 pts={pts}
                 close={b.close === 'shape' ? 'shape' : defendedGoal(through[0]?.side ?? 'us', view)}
                 label={b.label}
-                active={activeMarkId === b.id}
+                active={multiSelect ? multiSelect.marks.includes(b.id) : activeMarkId === b.id}
                 band={b}
                 onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
               />
@@ -467,7 +469,7 @@ export function Board({
                 kind={b.kind}
                 rect={box}
                 label={b.label}
-                active={activeMarkId === b.id}
+                active={multiSelect ? multiSelect.marks.includes(b.id) : activeMarkId === b.id}
                 band={b}
                 onPointerDown={onBandPointerDown ? (e) => onBandPointerDown(b.id, e) : undefined}
               />
@@ -515,7 +517,7 @@ export function Board({
                * is the same cost plus a mystery. See `inlineGear` in ../gear.ts.
                */
               href={gearHrefs ? gearHrefs[g.kind] : resolveGear(g.kind)?.src}
-              active={activeMarkId === g.id}
+              active={multiSelect ? multiSelect.gear.includes(g.id) : activeMarkId === g.id}
               onPointerDown={onGearPointerDown ? (e) => onGearPointerDown(g.id, e) : undefined}
             />
           </g>
@@ -563,7 +565,7 @@ export function Board({
                 b={ub}
                 bend={a.bend}
                 label={a.label}
-                active={activeMarkId === a.id}
+                active={multiSelect ? multiSelect.marks.includes(a.id) : activeMarkId === a.id}
                 onPointerDown={pickable ? (e) => onArrowPointerDown!(a.id, e) : undefined}
               />
             </g>
@@ -636,7 +638,7 @@ export function Board({
                  * output is unchanged.
                  */
                 scale={(t.scale ?? 1) * (system.tokenSize ?? 1) * (view.counter ?? 1)}
-                active={activeTokenId === t.id}
+                active={multiSelect ? multiSelect.tokens.includes(t.id) : activeTokenId === t.id}
               />
             </g>
           )
@@ -681,7 +683,7 @@ export function Board({
                 mark={t}
                 cx={q.x}
                 cy={q.y}
-                active={activeMarkId === t.id}
+                active={multiSelect ? multiSelect.texts.includes(t.id) : activeMarkId === t.id}
                 onPointerDown={
                   onTextPointerDown ? (e) => onTextPointerDown(t.id, e) : undefined
                 }

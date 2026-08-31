@@ -89,8 +89,10 @@ const KIND_CLASS: Record<NewsKind, string> = {
 }
 
 function Entry({ entry, unread }: { entry: NewsEntry; unread: boolean }) {
+  const isSpecial = entry.id === 'repeat-drill'
+  
   return (
-    <li className="border-t border-ink-hair px-4 py-3.5 first:border-t-0">
+    <li className={`border-t border-ink-hair px-4 py-3.5 first:border-t-0 ${isSpecial ? 'bg-gold/5 rounded-xl outline outline-1 outline-gold m-2' : ''}`}>
       <div className="mb-1.5 flex items-center gap-2">
         <span
           className={`rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${KIND_CLASS[entry.kind]}`}
@@ -109,7 +111,24 @@ function Entry({ entry, unread }: { entry: NewsEntry; unread: boolean }) {
       </div>
       <h3 className="mb-1 text-sm font-black leading-snug tracking-display text-ink">{entry.title}</h3>
       <p className="mb-2 text-[13px] leading-relaxed text-ink-soft">{entry.body}</p>
-      <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>
+      
+      {isSpecial ? (
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>
+          <button 
+            type="button" 
+            className="rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] hover:bg-gold/90 transition-colors"
+            onClick={() => {
+              // Trigger a global custom event to launch the guide
+              window.dispatchEvent(new CustomEvent('start-guide-repeat-drill'))
+            }}
+          >
+            Read the guide
+          </button>
+        </div>
+      ) : (
+        <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>
+      )}
     </li>
   )
 }
