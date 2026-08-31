@@ -67,6 +67,7 @@ const VARS = {
   'DRAWER.phase': 'On this phase',
   'DRAWER.film': 'The film',
   'DRAWER.system': 'This system',
+  'DRAWER.sequences': 'My Sequences',
   TEXT_TOOL_ID: 'text',
 }
 
