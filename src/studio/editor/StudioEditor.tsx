@@ -421,6 +421,7 @@ function remapSystem(s: System, pitch: System['pitch']): System {
   return {
     ...s,
     pitch,
+    pitchLines: (s.pitchLines ?? []).map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
     acts: s.acts.map((a) => ({
       ...a,
       tokens: a.tokens.map((t) => ({ ...t, ...rp(t) })),

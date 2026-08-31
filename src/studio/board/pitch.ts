@@ -577,7 +577,14 @@ function cropCentre(v: PitchView): { cx: number; cy: number } {
 export function metresToUnits(v: PitchView, mx: number, my: number): { x: number; y: number } {
   const x = mx * U
   const y = my * U
-  if (!v.vertical) return { x, y }
+  if (!v.vertical) {
+    if (v.flip) {
+      const { cx, cy } = cropCentre(v)
+      return { x: cx - (x - cx), y: cy - (y - cy) }
+    }
+    return { x, y }
+  }
+
   const { cx, cy } = cropCentre(v)
   const dx = x - cx
   const dy = y - cy
@@ -587,7 +594,13 @@ export function metresToUnits(v: PitchView, mx: number, my: number): { x: number
 
 /** Final SVG units → metres. The inverse of `metresToUnits`. */
 export function unitsToMetres(v: PitchView, ux: number, uy: number): { x: number; y: number } {
-  if (!v.vertical) return { x: ux / U, y: uy / U }
+  if (!v.vertical) {
+    if (v.flip) {
+      const { cx, cy } = cropCentre(v)
+      return { x: (cx - (ux - cx)) / U, y: (cy - (uy - cy)) / U }
+    }
+    return { x: ux / U, y: uy / U }
+  }
   const { cx, cy } = cropCentre(v)
   const dx = ux - cx
   const dy = uy - cy
@@ -616,7 +629,13 @@ export function viewBox(v: PitchView): string {
  * Returns undefined for the horizontal views, which is the common case.
  */
 export function boardTransform(v: PitchView): string | undefined {
-  if (!v.vertical) return undefined
+  if (!v.vertical) {
+    if (v.flip) {
+      const { cx, cy } = cropCentre(v)
+      return `rotate(180 ${cx} ${cy})`
+    }
+    return undefined
+  }
   const { cx, cy } = cropCentre(v)
   return `rotate(${v.flip ? 90 : -90} ${cx} ${cy})`
 }
