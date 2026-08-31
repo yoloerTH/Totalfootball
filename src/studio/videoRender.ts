@@ -279,7 +279,9 @@ function frameView(view: PitchView, frame: Frame): PitchView {
   const gap = (a: number) => Math.abs(Math.log(a / want))
   const flat = (lenX + PAD * 2) / (lenY + PAD * 2)
   const theirs = view.vertical ? 1 / flat : flat
-  const turn = gap(1 / theirs) + 0.15 < gap(theirs)
+  // Never turn a training grid: its bench is baked into the Y axis at the bottom,
+  // so standing it upright would put the coach and substitutes on the right sideline.
+  const turn = !view.area && gap(1 / theirs) + 0.15 < gap(theirs)
   const upright = turn ? !view.vertical : Boolean(view.vertical)
 
   // The crop in SCREEN terms. Upright swaps which pitch axis is which: the
