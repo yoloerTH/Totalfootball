@@ -241,7 +241,9 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
    * bare tween want.
    */
   const relax = system ? moveRelax(system) : 0
-  const t = easeHouse(Math.min(1, Math.max(0, p)), relax)
+  const clampedP = Math.min(1, Math.max(0, p))
+  const isLinear = system?.paceMode === 'linear'
+  const t = isLinear ? clampedP : easeHouse(clampedP, relax)
   const byId = new Map(to.tokens.map((tok) => [tok.id, tok]))
   const fromIds = new Set(from.tokens.map((tok) => tok.id))
 
@@ -288,7 +290,8 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
 
   for (const b of to.tokens) {
     if (fromIds.has(b.id)) continue
-    const k = easeHouse(span(p, 0.55, 1), relax)
+    const spanP = span(p, 0.55, 1)
+    const k = isLinear ? spanP : easeHouse(spanP, relax)
     tokens.push({
       ...b,
       opacity: span(p, 0.55, 0.85),

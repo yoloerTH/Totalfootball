@@ -22,7 +22,7 @@
  */
 
 import { PACE } from './guide'
-import { Slider } from './ui'
+import { Segmented, Slider } from './ui'
 import {
   HOLD_STEP_MS,
   MAX_HOLD_MS,
@@ -54,6 +54,7 @@ export function PaceField({
   system,
   onHold,
   onMove,
+  onPaceMode,
   onCommit,
 }: {
   system: System
@@ -61,6 +62,7 @@ export function PaceField({
   onHold: (ms: number) => void
   /** Milliseconds. Slowing this also relaxes the curve — see ../pace.ts. */
   onMove: (ms: number) => void
+  onPaceMode?: (mode: 'curve' | 'linear') => void
   /** The drag has landed — close the undo entry. */
   onCommit?: () => void
 }) {
@@ -105,6 +107,22 @@ export function PaceField({
          */}
         <Footnote>{move <= MIN_MOVE_MS ? PACE.moveFloor : PACE.moveEven}</Footnote>
       </div>
+
+      {onPaceMode && (
+        <div>
+          <Segmented
+            value={system.paceMode ?? 'curve'}
+            onChange={(v) => onPaceMode(v as 'curve' | 'linear')}
+            options={[
+              { value: 'curve', label: 'Curve' },
+              { value: 'linear', label: 'Linear' }
+            ]}
+          />
+          <Footnote>
+            Curve eases in and out quickly. Linear provides a straightforward, even speed.
+          </Footnote>
+        </div>
+      )}
 
       <p className="text-[11px] leading-snug text-ink-faint">
         {PACE.line(hold / 1000, move / 1000, film, system.acts.length)}

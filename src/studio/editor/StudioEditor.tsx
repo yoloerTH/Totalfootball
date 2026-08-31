@@ -6827,6 +6827,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               system={system}
               onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
               onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
+              onPaceMode={(mode) => edit('pace', (sys) => ({ ...sys, paceMode: mode }))}
               onCommit={seal}
             />
           </Tip>
@@ -8046,6 +8047,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           unsigned={unsigned}
           onHold={(ms) => edit('pace', (sys) => ({ ...sys, hold: ms }))}
           onMove={(ms) => edit('pace', (sys) => ({ ...sys, move: ms }))}
+          onPaceMode={(mode) => edit('pace', (sys) => ({ ...sys, paceMode: mode }))}
           onPaceCommit={seal}
           onSaved={() => recordWin('video')}
           onClose={closeExport}

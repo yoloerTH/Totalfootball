@@ -60,6 +60,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'pace-mode-linear',
+    date: '2026-09-01',
+    kind: 'new',
+    title: 'Linear movement option for player pace',
+    body: 'You can now choose whether players and the ball move across the pitch in a smooth curve or in a straightforward, linear motion. While the standard curve gives a natural fast-start, slow-settle feel, the linear mode keeps the movement steady throughout the phase. Perfect for when you need a constant, predictable speed to teach timing.',
+    where: 'The Pace panel',
+  },
+  {
     id: 'team-collaboration',
     date: '2026-08-31',
     kind: 'new',

@@ -45,6 +45,7 @@ export function VideoDialog({
   unsigned,
   onHold,
   onMove,
+  onPaceMode,
   onPaceCommit,
   onSaved,
   onSwitchMode,
@@ -69,6 +70,7 @@ export function VideoDialog({
    */
   onHold: (ms: number) => void
   onMove: (ms: number) => void
+  onPaceMode: (mode: 'curve' | 'linear') => void
   onPaceCommit: () => void
   /** A file was actually written. Not "Save was pressed" — see `start`. */
   onSaved?: () => void
@@ -287,7 +289,7 @@ export function VideoDialog({
               </p>
 
               <div className="mt-4 border-t border-ink-hair pt-3">
-                <PaceField system={system} onHold={onHold} onMove={onMove} onCommit={onPaceCommit} />
+                <PaceField system={system} onHold={onHold} onMove={onMove} onPaceMode={onPaceMode} onCommit={onPaceCommit} />
               </div>
 
               <div className="mt-3 border-t border-ink-hair pt-3">

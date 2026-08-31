@@ -1234,6 +1234,12 @@ export interface System {
    */
   move?: number
   /**
+   * Whether the player movement follows the 'curve' (fast departure, long settle)
+   * or a more 'linear' straightforward movement.
+   * Undefined means 'curve'.
+   */
+  paceMode?: 'curve' | 'linear'
+  /**
    * How the two shapes share the board once an opposition is on it.
    *
    * Undefined or false — the default, and what every system saved before this
