@@ -192,7 +192,7 @@ export function wrapEmail({
 <!-- Preheader. The trailing entities stop Gmail padding the preview line
      with whatever text happens to come next in the body. -->
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(preheader)}</div>
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${'&#8199;&#65279;&#847; '.repeat(30)}</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${'&nbsp;&zwnj;'.repeat(100)}</div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${PAPER};background-image:repeating-linear-gradient(90deg,${PAPER} 0 108px,#104324 108px 216px);">
 <tr><td align="center" style="padding:32px 16px 44px;">

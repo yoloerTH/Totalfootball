@@ -1060,6 +1060,8 @@ export interface System {
   subtitle?: string
   /** Optional folder to organise the system. */
   folder?: string
+  /** Lines that are locked to the pitch and visible across all phases. */
+  pitchLines?: Arrow[]
   pitch: PitchViewId
   /**
    * The coned rectangle a session is run in — only on a training board.

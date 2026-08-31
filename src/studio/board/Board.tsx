@@ -524,7 +524,7 @@ export function Board({
         )
       })}
 
-      {act.arrows.map((a) => {
+      {[...(system.pitchLines ?? []), ...act.arrows].map((a) => {
         /*
          * An end bound to a player is read off the tokens THIS RENDER is
          * drawing, which mid-tween are the blended positions. That is what
@@ -550,12 +550,13 @@ export function Board({
          * `grabbable` is false on a share link, in the video render and all
          * through playback — so what is exported is what was asked for.
          */
-        const shown = grabbable ? Math.max(a.opacity, 0.3) : a.opacity
+        const op = a.opacity ?? 1
+        const shown = grabbable ? Math.max(op, 0.3) : op
         /*
          * And an arrow drawn at nothing stops being pickable, or it would go on
          * swallowing presses on the grass it is invisibly lying across.
          */
-        const pickable = onArrowPointerDown && (a.opacity > 0.02 || grabbable)
+        const pickable = onArrowPointerDown && (op > 0.02 || grabbable)
         return (
           <g key={a.id}>
             <g opacity={shown}>

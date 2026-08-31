@@ -1596,7 +1596,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   // ── selection ──────────────────────────────────────────────────────────────
   const selectedToken = selection?.kind === 'token' ? (act?.tokens.find((t) => t.id === selection.id) ?? null) : null
   const selectedMarkId = selection?.kind === 'mark' ? selection.id : null
-  const selectedArrow = selectedMarkId ? (act?.arrows.find((a) => a.id === selectedMarkId) ?? null) : null
+  const selectedArrow = selectedMarkId ? (act?.arrows.find((a) => a.id === selectedMarkId) ?? system.pitchLines?.find((a) => a.id === selectedMarkId) ?? null) : null
   const selectedBand = selectedMarkId ? (act?.bands.find((b) => b.id === selectedMarkId) ?? null) : null
   const selectedText = selectedMarkId
     ? ((act?.texts ?? []).find((t) => t.id === selectedMarkId) ?? null)
@@ -1692,7 +1692,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           acts = carryForwardRemove(acts, i, 'gear', id)
         }
       }
-      return { ...s, acts }
+      return { ...s, acts, pitchLines: (s.pitchLines ?? []).filter((ar) => ar.id !== id) }
     })
     seal()
     setSelection(null)
@@ -4298,10 +4298,33 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   const patchMark = (patch: Partial<Arrow>) => {
     if (!selectedMarkId) return
-    patchAct('mark', (a) => ({
-      ...a,
-      arrows: a.arrows.map((x) => (x.id === selectedMarkId ? { ...x, ...patch } : x)),
-    }))
+    edit('mark', (s) => {
+      const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((a, i) => (i === idx ? { ...a, arrows: a.arrows.map((x) => (x.id === selectedMarkId ? { ...x, ...patch } : x)) } : a))
+      return { ...s, acts, pitchLines: (s.pitchLines ?? []).map((x) => (x.id === selectedMarkId ? { ...x, ...patch } : x)) }
+    })
+  }
+
+  const togglePitchLine = () => {
+    if (!selectedMarkId || !selectedArrow) return
+    edit('toggle-pitch-line', (s) => {
+      const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+      const isPitchLine = (s.pitchLines ?? []).some((l) => l.id === selectedMarkId)
+
+      let newPitchLines = [...(s.pitchLines ?? [])]
+      let acts = [...s.acts]
+      let currentAct = { ...acts[idx] }
+
+      if (isPitchLine) {
+        newPitchLines = newPitchLines.filter((l) => l.id !== selectedMarkId)
+        currentAct.arrows = [...currentAct.arrows, selectedArrow]
+      } else {
+        currentAct.arrows = currentAct.arrows.filter((a) => a.id !== selectedMarkId)
+        newPitchLines = [...newPitchLines, selectedArrow]
+      }
+      acts[idx] = currentAct
+      return { ...s, acts, pitchLines: newPitchLines }
+    })
   }
 
   /**
@@ -7075,6 +7098,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               Delete this arrow
             </Button>
           </Tip>
+          {selectedArrow.kind === 'line' && (
+            <Tip text="Lock to pitch (visible on all phases and immune to mass deletion)" title="Lock to Pitch" side="left">
+              <Button onClick={togglePitchLine}>
+                {(system.pitchLines ?? []).some((l) => l.id === selectedMarkId) ? 'Unlock from pitch' : 'Lock to pitch'}
+              </Button>
+            </Tip>
+          )}
         </Panel>
       ) : selectedBand ? (
         /*
