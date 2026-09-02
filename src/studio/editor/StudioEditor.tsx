@@ -149,6 +149,7 @@ import {
   carryForwardRemove,
   carryForwardAddBall,
   carryForwardRemoveBall,
+  carryForwardTrackingBall,
   type Cue,
   type Shot,
   type GearMark,
@@ -1673,6 +1674,16 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       return { ...s, acts: carryRef.current ? carryForwardRemoveBall(acts, i, id) : acts }
     })
     if (selectedBallId) setSelection(null)
+    seal()
+  }
+
+  const trackThisBall = () => {
+    if (!selectedBallId) return
+    edit('track-ball', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const acts = s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: selectedBallId } : x))
+      return { ...s, acts: carryRef.current ? carryForwardTrackingBall(acts, i, selectedBallId) : acts }
+    })
     seal()
   }
 
@@ -6730,6 +6741,13 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 {selectedBallId ? 'Remove this ball' : 'Remove ball'}
               </Button>
             </Tip>
+            {selectedBallId && ballsHere.length > 1 && (
+              <Tip text="Camera will follow this ball while there are multiple match balls on the pitch." title="Track this ball">
+                <Button onClick={trackThisBall} active={act.trackingBallId === selectedBallId}>
+                  {act.trackingBallId === selectedBallId ? 'Tracking this ball' : 'Track this ball'}
+                </Button>
+              </Tip>
+            )}
             <Tip text={HINT.addPlayer} title="Add a player">
               <Button onClick={() => addPlayer('us')}>+ Player</Button>
             </Tip>

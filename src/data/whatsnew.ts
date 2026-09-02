@@ -60,6 +60,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'track-reference-ball',
+    date: '2026-09-02',
+    kind: 'new',
+    title: 'Choose which ball the camera tracks',
+    body: 'When you have multiple match balls on the pitch, you can now choose exactly which one the camera should follow. Select a ball and press Track this ball to make it the reference ball. The camera will stay on it through the phases until you choose another.',
+    where: 'Track this ball, in the Players panel with a ball selected',
+  },
+  {
     id: 'sequence-place-mirror',
     date: '2026-09-02',
     kind: 'better',

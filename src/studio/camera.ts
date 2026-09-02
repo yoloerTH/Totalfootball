@@ -239,8 +239,13 @@ function interest(act: Act): Pt[] {
   const at = (x: number, y: number) => pts.push({ x, y })
 
   const balls = ballsOf(act)
-  if (balls.length === 1) {
-    at(balls[0].x, balls[0].y)
+  let trackedBall = balls.length === 1 ? balls[0] : null
+  if (balls.length > 1 && act.trackingBallId) {
+    trackedBall = balls.find(b => b.id === act.trackingBallId) ?? null
+  }
+  
+  if (trackedBall) {
+    at(trackedBall.x, trackedBall.y)
     return pts
   }
 
@@ -297,7 +302,10 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    * which is what manual means. With none drawn the phase plays wide, and wide
    * is the honest picture of a drill with balls all over it.
    */
-  if (ballsOf(act).length > 1) return null
+  const balls = ballsOf(act)
+  const hasTrackedBall = balls.length === 1 || (balls.length > 1 && act.trackingBallId && balls.some(b => b.id === act.trackingBallId))
+  
+  if (balls.length > 1 && !hasTrackedBall) return null
 
   const pts = interest(act)
   /*
@@ -309,7 +317,7 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    * whole reason a ball phase no longer needs its neighbours for scale: the
    * frame is a fixed size the coach chose, panning to wherever the ball is.
    */
-  if (pts.length < (ballsOf(act).length === 1 ? 1 : 2)) return null
+  if (pts.length < (hasTrackedBall ? 1 : 2)) return null
 
   let x0 = Infinity
   let y0 = Infinity

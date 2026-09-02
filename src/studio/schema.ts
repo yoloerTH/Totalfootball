@@ -449,6 +449,18 @@ export function carryForwardRemoveBall(
   return out
 }
 
+export function carryForwardTrackingBall(
+  acts: Act[],
+  fromIdx: number,
+  trackingBallId: string | undefined,
+): Act[] {
+  const out = acts.slice()
+  for (let i = fromIdx + 1; i < out.length; i++) {
+    out[i] = { ...out[i], trackingBallId }
+  }
+  return out
+}
+
 /** A field a coach's edit can travel across every act on. */
 export type PersonField = (typeof PERSON_FIELDS)[number]
 
@@ -920,6 +932,11 @@ export interface Act {
    * `ballsOf` reads those through `ball` above.
    */
   balls?: BallMark[]
+  /**
+   * The ID of the ball to track when there are multiple match balls.
+   * If unset when there are multiple balls, the camera goes wide.
+   */
+  trackingBallId?: string
   arrows: Arrow[]
   bands: Band[]
   /**
