@@ -42,10 +42,20 @@
  * and the reasoning behind it.
  */
 
-import type { Act, Arrow, Band, BallMark, GearMark, TextMark, Token, TeamStyle } from './schema'
+import type { Act, TeamStyle } from './schema'
 import { uid, ballsOf, ballFields } from './schema'
 import type { PitchViewId, SessionArea } from './board/pitch'
-import { viewFor, remap } from './board/pitch'
+import { viewFor } from './board/pitch'
+import type { MarkTransform } from './board/transform'
+import {
+  KEEP,
+  compose,
+  intoRegion,
+  mapAct,
+  mirrorTransform,
+  outOfRegion,
+  viewTransform,
+} from './board/transform'
 import { scopedKey } from './scope'
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -137,10 +147,7 @@ export function normaliseToRegion(
   point: { x: number; y: number },
   region: SequenceRegion,
 ): { x: number; y: number } {
-  return {
-    x: ((point.x - region.x) / region.w) * 100,
-    y: ((point.y - region.y) / region.h) * 100,
-  }
+  return intoRegion(region).point(point)
 }
 
 /**
@@ -153,10 +160,7 @@ export function denormaliseFromRegion(
   point: { x: number; y: number },
   region: SequenceRegion,
 ): { x: number; y: number } {
-  return {
-    x: region.x + (point.x / 100) * region.w,
-    y: region.y + (point.y / 100) * region.h,
-  }
+  return outOfRegion(region).point(point)
 }
 
 /**
@@ -180,57 +184,44 @@ function insideRegion(
 }
 
 /**
- * Normalise a single act's contents to a region.
+ * Clip a single act to a region, then normalise it into that region's space.
  *
- * Filters marks to those inside the region, then shifts their coordinates
- * into region-local space (0–100 within the rect).
+ * TWO STEPS, AND ONLY THE FIRST IS HERE. The clipping — which marks belong to
+ * the drill the coach drew a box round — is the judgement, and it is written
+ * out below. The coordinate shift is `intoRegion` in ./board/transform.ts, the
+ * same walk every other coordinate change in the studio goes through, so a
+ * field added to `Act` cannot arrive here carrying its old numbers.
  */
 function normaliseAct(act: Act, region: SequenceRegion): Act {
-  const rp = (p: { x: number; y: number }) => normaliseToRegion(p, region)
-
-  const tokens = act.tokens
-    .filter((t) => insideRegion(t, region))
-    .map((t) => ({ ...t, ...rp(t) }))
-
+  const tokens = act.tokens.filter((t) => insideRegion(t, region))
   const tokenIds = new Set(tokens.map((t) => t.id))
 
-  const balls = ballsOf(act)
-    .filter((b) => insideRegion(b, region))
-    .map((b) => ({ ...b, ...rp(b) }))
+  const balls = ballsOf(act).filter((b) => insideRegion(b, region))
 
   // Keep arrows that have at least one end inside the region or bound to
   // a token that survived the filter.
-  const arrows = act.arrows
-    .filter((a) => {
-      const fromIn = insideRegion(a.from, region) || (a.fromId && tokenIds.has(a.fromId))
-      const toIn = insideRegion(a.to, region) || (a.toId && tokenIds.has(a.toId))
-      return fromIn || toIn
-    })
-    .map((a) => ({ ...a, from: rp(a.from), to: rp(a.to) }))
+  const arrows = act.arrows.filter((a) => {
+    const fromIn = insideRegion(a.from, region) || (a.fromId && tokenIds.has(a.fromId))
+    const toIn = insideRegion(a.to, region) || (a.toId && tokenIds.has(a.toId))
+    return fromIn || toIn
+  })
 
-  const bands = act.bands
-    .filter((b) => {
-      if (b.rect) return insideRegion({ x: b.rect.x + b.rect.w / 2, y: b.rect.y + b.rect.h / 2 }, region)
-      // Block bands: keep if any of their through-tokens survived.
-      if (b.throughTokens) return b.throughTokens.some((id) => tokenIds.has(id))
-      return false
-    })
-    .map((b) => {
-      if (!b.rect) return b
-      const tl = rp({ x: b.rect.x, y: b.rect.y })
-      const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
-      return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
-    })
+  const bands = act.bands.filter((b) => {
+    if (b.rect) {
+      return insideRegion(
+        { x: b.rect.x + b.rect.w / 2, y: b.rect.y + b.rect.h / 2 },
+        region,
+      )
+    }
+    // Block bands: keep if any of their through-tokens survived.
+    if (b.throughTokens) return b.throughTokens.some((id) => tokenIds.has(id))
+    return false
+  })
 
-  const texts = (act.texts ?? [])
-    .filter((t) => insideRegion(t, region))
-    .map((t) => ({ ...t, ...rp(t) }))
+  const texts = (act.texts ?? []).filter((t) => insideRegion(t, region))
+  const gear = (act.gear ?? []).filter((g) => insideRegion(g, region))
 
-  const gear = (act.gear ?? [])
-    .filter((g) => insideRegion(g, region))
-    .map((g) => ({ ...g, ...rp(g) }))
-
-  return {
+  const clipped: Act = {
     ...act,
     tokens,
     ...ballFields(balls),
@@ -238,7 +229,17 @@ function normaliseAct(act: Act, region: SequenceRegion): Act {
     bands,
     texts: texts.length > 0 ? texts : undefined,
     gear: gear.length > 0 ? gear : undefined,
+    /*
+     * THE CAMERA FRAME DOES NOT COME WITH IT. `shot` frames the phase it was
+     * drawn on, and a sequence is a pattern that will be dropped somewhere else
+     * on somebody else's board — carrying it would hand every system the
+     * sequence is applied to a camera instruction the coach never gave. The
+     * whole-pitch capture keeps it, because there the phases ARE the phases.
+     */
+    shot: undefined,
   }
+
+  return mapAct(intoRegion(region), clipped)
 }
 
 /**
@@ -383,92 +384,91 @@ export function captureSequence(
 // ── apply helpers ────────────────────────────────────────────────────────────
 
 /**
- * Remap a sequence's acts from their source pitch view to a target view.
+ * How the coach wants a sequence laid down on THIS board.
  *
- * If the sequence was captured with a region, the coordinates are first
- * denormalised from region-local space, then remapped between views. If
- * no target region is provided, they land at the position the region
- * occupied on the source view, remapped into the target.
+ * All three are optional and all three default to "as captured", so applying a
+ * sequence with no options is the plain behaviour it always had.
+ */
+export interface SequencePlacement {
+  /**
+   * A rectangle of the target board to fit the sequence into.
+   *
+   * Only meaningful for a region-captured sequence, which is stored normalised
+   * to its own box (0–100 inside it). Absent means the box it came out of.
+   */
+  region?: SequenceRegion
+  /**
+   * Mirror across the pitch's WIDTH: the left wing becomes the right wing.
+   *
+   * What a coach means by "put it on the other side" nearly every time. Named
+   * for the flank rather than for a screen direction because percent y is
+   * across the width on every board, upright or flat, while "horizontal" swaps
+   * meaning between them. See `mirrorTransform` in ./board/transform.ts.
+   */
+  flanks?: boolean
+  /** Mirror along the pitch's LENGTH: the attacking end becomes the defending one. */
+  ends?: boolean
+}
+
+/**
+ * The transform that takes a sequence's stored coordinates onto a target board.
+ *
+ * ── THE ORDER IS THE WHOLE OF IT ─────────────────────────────────────────────
+ *
+ * A region-captured sequence is stored in ITS OWN box, 0–100, with no view in
+ * the numbers at all — that is what normalising did. So it goes straight out
+ * into the target box and the view never enters: the coach chose where, and
+ * where is where they drew it.
+ *
+ * A whole-pitch capture is stored in the SOURCE view's percent, so it has to be
+ * re-expressed against the target crop before anything else touches it.
+ *
+ * The mirror is LAST in both cases, and it must be: it reflects about the
+ * centre of the space the marks are now in. Mirroring a region-captured drill
+ * before it is placed would reflect it about the middle of its own little box
+ * and then drop it, unmoved, exactly where it was going anyway.
+ *
+ * Exported so the check script and the editor's preview can ask for the same
+ * transform the apply will use, rather than each working it out again.
+ */
+export function placementTransform(
+  sequence: SavedSequence,
+  targetPitch: PitchViewId,
+  targetArea?: SessionArea,
+  placement?: SequencePlacement,
+): MarkTransform {
+  const toView = viewFor({ pitch: targetPitch, area: targetArea })
+  const mirror = mirrorTransform(toView, {
+    ends: placement?.ends,
+    flanks: placement?.flanks,
+  })
+
+  if (sequence.region) {
+    const box = placement?.region ?? sequence.region
+    return compose(outOfRegion(box), mirror)
+  }
+
+  const fromView = viewFor({ pitch: sequence.sourcePitch, area: sequence.sourceArea })
+  return compose(viewTransform(fromView, toView), mirror)
+}
+
+/**
+ * Remap a sequence's acts onto a target board, mirrored and placed as asked.
+ *
+ * One transform, applied by the one walk. The three hand-written coordinate
+ * loops this function used to contain — denormalise, remap, and a third in the
+ * editor — are `placementTransform` and `mapAct` now, which is what makes
+ * mirroring a two-line change rather than a fourth copy of the same loop.
  */
 export function remapSequenceActs(
   sequence: SavedSequence,
   targetPitch: PitchViewId,
   targetArea?: SessionArea,
-  targetRegion?: SequenceRegion,
+  placement?: SequencePlacement,
 ): Act[] {
-  const fromView = viewFor({ pitch: sequence.sourcePitch, area: sequence.sourceArea })
-  const toView = viewFor({ pitch: targetPitch, area: targetArea })
-
-  return sequence.acts.map((act) => {
-    // Step 1: denormalise from region if the sequence was region-captured.
-    let working = act
-    if (sequence.region) {
-      const region = targetRegion ?? sequence.region
-      working = denormaliseAct(working, region)
-    }
-
-    // Step 2: remap between pitch views if they differ.
-    if (fromView !== toView && !sequence.region) {
-      // Full-pitch capture: direct remap.
-      working = remapAct(working, fromView, toView)
-    }
-    // If region-captured, the denormalisation already placed coordinates
-    // in the target's percent space (through the target region), so no
-    // further remap is needed — the coach chose WHERE on this pitch.
-
-    return working
-  })
-}
-
-/**
- * Denormalise a single act from region-local space back to crop-percent.
- */
-function denormaliseAct(act: Act, region: SequenceRegion): Act {
-  const rp = (p: { x: number; y: number }) => denormaliseFromRegion(p, region)
-
-  return {
-    ...act,
-    tokens: act.tokens.map((t) => ({ ...t, ...rp(t) })),
-    ...ballFields(ballsOf(act).map((b) => ({ ...b, ...rp(b) }))),
-    arrows: act.arrows.map((a) => ({ ...a, from: rp(a.from), to: rp(a.to) })),
-    bands: act.bands.map((b) => {
-      if (!b.rect) return b
-      const tl = rp({ x: b.rect.x, y: b.rect.y })
-      const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
-      return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
-    }),
-    texts: act.texts?.map((t) => ({ ...t, ...rp(t) })),
-    gear: act.gear?.map((g) => ({ ...g, ...rp(g) })),
-  }
-}
-
-/**
- * Remap a single act's coordinates from one pitch view to another.
- *
- * Uses the same `remap()` as `remapSystem` in StudioEditor.tsx —
- * metres are the bridge between two percent-of-crop spaces.
- */
-function remapAct(
-  act: Act,
-  from: ReturnType<typeof viewFor>,
-  to: ReturnType<typeof viewFor>,
-): Act {
-  const rp = (p: { x: number; y: number }) => remap(from, to, p.x, p.y)
-
-  return {
-    ...act,
-    tokens: act.tokens.map((t) => ({ ...t, ...rp(t) })),
-    ...ballFields(ballsOf(act).map((b) => ({ ...b, ...rp(b) }))),
-    arrows: act.arrows.map((a) => ({ ...a, from: rp(a.from), to: rp(a.to) })),
-    bands: act.bands.map((b) => {
-      if (!b.rect) return b
-      const tl = rp({ x: b.rect.x, y: b.rect.y })
-      const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
-      return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
-    }),
-    texts: act.texts?.map((t) => ({ ...t, ...rp(t) })),
-    gear: act.gear?.map((g) => ({ ...g, ...rp(g) })),
-  }
+  const t = placementTransform(sequence, targetPitch, targetArea, placement)
+  if (t === KEEP) return sequence.acts
+  return sequence.acts.map((act) => mapAct(t, act))
 }
 
 /**

@@ -64,7 +64,6 @@ import {
   cropRect,
   inBench,
   presetFor,
-  remap,
   resolveGrid,
   toMetres,
   toPercent,
@@ -74,6 +73,8 @@ import {
   viewFor,
 } from '../board/pitch'
 import type { PitchView, SessionArea } from '../board/pitch'
+import type { MarkIds } from '../board/transform'
+import { mapMarks, mapSystem, shift, viewTransform } from '../board/transform'
 import { readableText, darken } from '../board/palette'
 import {
   PITCH_SURFACES,
@@ -248,7 +249,6 @@ import {
   Toggle,
 } from './ui'
 import { NEWEST_NEWS_ID, unseenNews } from '../../data/whatsnew'
-import { injectSequence } from '../inject'
 import { SaveSequenceDialog } from './SaveSequenceDialog'
 import { ApplySequenceDialog } from './ApplySequenceDialog'
 import { SequencePanel } from './SequencePanel'
@@ -409,6 +409,15 @@ function withEdits(placed: Token[], previous: Token[], keepLabel = true): Token[
  * pitch picker, and applying a set piece — which changes the view and poses the
  * board in one go, and would otherwise have to change the view, wait a render
  * for `system.pitch` to catch up, and then pose against a stale crop.
+ *
+ * ── THE WALK IS NOT HERE ANY MORE ──────────────────────────────────────────
+ *
+ * It is `mapSystem` in ../board/transform.ts, and this is a two-line caller.
+ * The walk used to be written out here, and separately in ../sequences.ts three
+ * more times, and the four copies had drifted: this one never carried `texts`,
+ * `gear` or `act.shot`, so changing from the full pitch to their box moved the
+ * player standing on the penalty spot correctly and left the cone beside him
+ * 7.8 metres away, off the pitch. One walk, one place to add a field to.
  */
 function remapSystem(s: System, pitch: System['pitch']): System {
   // `viewFor` and not `PITCH_VIEWS[id]`: the training board's crop is derived
@@ -417,24 +426,7 @@ function remapSystem(s: System, pitch: System['pitch']): System {
   const from = viewFor(s)
   const to = viewFor({ pitch, area: s.area })
   if (from === to) return s.pitch === pitch ? s : { ...s, pitch }
-  const rp = (p: { x: number; y: number }) => remap(from, to, p.x, p.y)
-  return {
-    ...s,
-    pitch,
-    pitchLines: (s.pitchLines ?? []).map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
-    acts: s.acts.map((a) => ({
-      ...a,
-      tokens: a.tokens.map((t) => ({ ...t, ...rp(t) })),
-      ...ballFields(ballsOf(a).map((b) => ({ ...b, ...rp(b) }))),
-      arrows: a.arrows.map((ar) => ({ ...ar, from: rp(ar.from), to: rp(ar.to) })),
-      bands: a.bands.map((b) => {
-        if (!b.rect) return b
-        const tl = rp({ x: b.rect.x, y: b.rect.y })
-        const br = rp({ x: b.rect.x + b.rect.w, y: b.rect.y + b.rect.h })
-        return { ...b, rect: { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } }
-      }),
-    })),
-  }
+  return { ...mapSystem(viewTransform(from, to), s), pitch }
 }
 
 /**
@@ -817,6 +809,26 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   })
   const [selection, setSelection] = useState<Selection>(null)
   const [multiSelect, setMultiSelect] = useState<{ tokens: string[], gear: string[], balls: string[], texts: string[], marks: string[] } | null>(null)
+  /**
+   * The sequence that was just dropped, and the phases it occupies.
+   *
+   * ── WHY A DRAG NEEDS TO KNOW THIS ──────────────────────────────────────────
+   *
+   * A saved sequence is several phases of one pattern, and it lands selected so
+   * the coach can slide it where they want it. `beginMultiDrag` moves marks on
+   * the phase that is on screen — which is right for every other selection, and
+   * wrong for this one: sliding phase 1 of a drill and leaving phases 2 and 3
+   * behind tears the pattern in half. So while a placement is live, the drag
+   * carries its offset across the whole run.
+   *
+   * It is validated at use rather than cleared everywhere: `placedSpan` below
+   * only answers when the current selection is still exactly the marks that
+   * landed and the coach is still inside the run. Any other selection, any
+   * other phase, and the ordinary drag applies. That is one check in one place
+   * instead of a `setPlaced(null)` beside every `setMultiSelect(null)` in the
+   * file, one of which would eventually be forgotten.
+   */
+  const [placed, setPlaced] = useState<{ from: number; to: number; ids: MarkIds } | null>(null)
   const [marquee, setMarquee] = useState<{ from: {x: number, y: number}, to: {x: number, y: number} } | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   /**
@@ -2053,6 +2065,29 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [act, bindGesture, view, patchAct, markGuide, seal, alignablesFor, snapMove, putGuides, edit],
   )
 
+  /**
+   * The run of phases a drag should reach, or null for an ordinary one.
+   *
+   * Answers only while the selection is still, exactly, the marks a sequence
+   * apply put on the board, and only from inside the run those marks occupy. A
+   * coach who clicks away, marquees something else, or scrolls out of the drill
+   * gets the normal single-phase drag with no way to be surprised by this.
+   */
+  const placedSpan = useCallback(() => {
+    if (!placed) return null
+    if (actIndex < placed.from || actIndex > placed.to) return null
+    if (!multiSelect) return null
+    const same = (a: string[], b: string[]) =>
+      a.length === b.length && a.every((x) => b.includes(x))
+    const ok =
+      same(multiSelect.tokens, placed.ids.tokens) &&
+      same(multiSelect.gear, placed.ids.gear) &&
+      same(multiSelect.balls, placed.ids.balls) &&
+      same(multiSelect.texts, placed.ids.texts) &&
+      same(multiSelect.marks, placed.ids.marks)
+    return ok ? placed : null
+  }, [placed, multiSelect, actIndex])
+
   const beginMultiDrag = useCallback((e: React.PointerEvent, id: string) => {
     const svg = svgRef.current
     const source = act
@@ -2082,6 +2117,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     const exceptIds = [...multiSelect.tokens, ...multiSelect.gear, ...multiSelect.balls, ...multiSelect.texts, ...multiSelect.marks]
     const mates = alignablesFor(source, exceptIds)
 
+    // The offset the drag actually landed on, kept out here so the end handler
+    // can carry the same move onto the drill's other phases. See `placedSpan`.
+    const span = placedSpan()
+    let lastDx = 0
+    let lastDy = 0
+
     bindGesture(
       e.pointerId,
       (ev) => {
@@ -2100,7 +2141,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             dx = p.x - base.x
             dy = p.y - base.y
          }
-         
+
+         lastDx = dx
+         lastDy = dy
+
          patchAct('multi-drag', a => ({
             ...a,
             tokens: a.tokens.map(t => {
@@ -2135,7 +2179,25 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       },
       () => {
          putGuides(NO_GUIDES)
-         if (carryRef.current) {
+         if (span && (lastDx !== 0 || lastDy !== 0)) {
+            /*
+             * A DROPPED SEQUENCE MOVES AS ONE, and this is instead of the
+             * carry-forward below rather than as well as it. Carry-forward
+             * propagates a CORRECTION down the film and stops at the first
+             * phase where the mark is somewhere else — exactly right for
+             * fixing a player's position, and exactly wrong here, because a
+             * drill's whole point is that the marks ARE somewhere else on the
+             * next phase. It would move phase one and stop.
+             */
+            const t = shift(lastDx, lastDy)
+            const here = actIndexRef.current
+            edit('multi-drag', (s) => ({
+               ...s,
+               acts: s.acts.map((a, i) =>
+                  i >= span.from && i <= span.to && i !== here ? mapMarks(t, a, span.ids) : a,
+               ),
+            }))
+         } else if (carryRef.current) {
             edit('multi-drag', (s) => {
                const i = Math.min(actIndexRef.current, s.acts.length - 1)
                const nowAct = s.acts[i]
@@ -2171,7 +2233,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
          seal()
       }
     )
-  }, [act, multiSelect, view, patchAct, bindGesture, seal, edit, alignablesFor, snapMove, putGuides])
+  }, [act, multiSelect, view, patchAct, bindGesture, seal, edit, alignablesFor, snapMove, putGuides, placedSpan])
 
   const beginMarquee = useCallback((e: React.PointerEvent) => {
     const svg = svgRef.current
@@ -7994,27 +8056,44 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           system={system}
           actIndex={actIndex}
           selectedTokenIds={multiSelect ? multiSelect.tokens : null}
-          onApply={(acts, insertAt, replaceCount, seqTeams) => {
+          onApply={({ acts, insertAt, replaceCount, added, teams: seqTeams }) => {
             edit('apply-sequence', (s) => {
               const newActs = [...s.acts]
               newActs.splice(insertAt, replaceCount, ...acts)
 
-              const newTeams = { ...s.teams }
-              if (seqTeams) {
-                // To persist colors as captured, apply the sequence's teams.
-                // We only apply 'them' if the sequence had a distinct 'them' color,
-                // and we set 'us' to make sure the sequence matches exactly.
-                newTeams.us = seqTeams.us
-                if (seqTeams.them) {
-                  newTeams.them = seqTeams.them
-                }
-              }
+              /*
+               * THE KIT IS ONLY TOUCHED WHEN THE COACH ASKED. This used to
+               * repaint both sides of the whole system on every apply, which is
+               * the largest possible way for a drill dropped in one corner to
+               * "affect what is already there" — the dialog now asks, and hands
+               * back null unless the answer was yes.
+               */
+              const newTeams = seqTeams
+                ? { ...s.teams, us: seqTeams.us, ...(seqTeams.them ? { them: seqTeams.them } : {}) }
+                : s.teams
 
               return { ...s, acts: newActs, teams: newTeams }
             })
             seal()
-            setActIndex(insertAt + acts.length - 1)
+            // The FIRST phase of the drill, not the last: the coach is about to
+            // slide it into place and has to be looking at the pose they saved,
+            // not at the end of it.
+            setActIndex(insertAt)
             setSelection(null)
+            /*
+             * IT LANDS SELECTED. `added` is exactly the marks the apply put on
+             * the board, in the shape the marquee produces, so the group drag
+             * that already exists picks the drill up with no new gesture — and
+             * `placed` below tells that drag to carry the move across every
+             * phase the drill occupies rather than only the one on screen.
+             */
+            if (added) {
+              setMultiSelect(added)
+              setPlaced({ from: insertAt, to: insertAt + acts.length - 1, ids: added })
+            } else {
+              setMultiSelect(null)
+              setPlaced(null)
+            }
             setShowApplySequence(null)
           }}
           onClose={() => setShowApplySequence(null)}

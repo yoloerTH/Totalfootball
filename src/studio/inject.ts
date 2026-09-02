@@ -216,8 +216,16 @@ export function injectSequence(
       bands: isRealignment ? newBands : [...targetAct.bands, ...newBands],
       texts: finalTexts,
       gear: finalGear,
-      shot: sourceAct.shot,
-      camera: sourceAct.camera
+      /*
+       * THE BOARD'S FRAME WINS. These used to be taken from the sequence
+       * unconditionally, which meant applying a drill silently replaced a
+       * camera frame the coach had drawn on that phase with one captured on a
+       * different board months earlier — a change that is invisible in the
+       * editor and only shows up in the exported film. The sequence's frame is
+       * still used where there is nothing to overwrite.
+       */
+      shot: targetAct.shot ?? sourceAct.shot,
+      camera: targetAct.camera ?? sourceAct.camera
     }
   }
 
@@ -232,4 +240,183 @@ export function injectSequence(
   }
 
   return injectedActs
+}
+
+/* ── ADDING A SEQUENCE WITHOUT DISTURBING THE BOARD ────────────────────────── */
+
+/**
+ * Which marks an apply put on the board, so the caller can select them.
+ *
+ * The shape `multiSelect` in ../editor/StudioEditor.tsx already uses, on
+ * purpose: the coach's next move after dropping a drill is to slide it into
+ * place, and handing the editor exactly the ids it selects with a marquee means
+ * the group drag it already has works on the thing that just landed, with no
+ * second gesture and no second implementation of dragging.
+ */
+export interface AddedMarks {
+  tokens: string[]
+  gear: string[]
+  balls: string[]
+  texts: string[]
+  marks: string[]
+}
+
+const emptyAdded = (): AddedMarks => ({ tokens: [], gear: [], balls: [], texts: [], marks: [] })
+
+/**
+ * Fresh ids for a whole sequence, consistent across its own phases.
+ *
+ * A sequence carries ids from capture, and a coach who applies the same drill
+ * twice to one system would otherwise get two sets of marks claiming to be the
+ * same objects — the tween engine would see one player teleporting between the
+ * two copies on Play. Fresh per apply, stable within it, which is what makes a
+ * token on phase 1 and the same token on phase 3 the same person.
+ */
+function freshen(acts: Act[]): { acts: Act[]; added: AddedMarks } {
+  const maps = {
+    tk: new Map<string, string>(),
+    gr: new Map<string, string>(),
+    bl: new Map<string, string>(),
+    tx: new Map<string, string>(),
+    ar: new Map<string, string>(),
+    bd: new Map<string, string>(),
+  }
+  const take = (m: Map<string, string>, prefix: string, id: string) => {
+    let next = m.get(id)
+    if (!next) {
+      next = uid(prefix)
+      m.set(id, next)
+    }
+    return next
+  }
+
+  const out = acts.map((a) => ({
+    ...a,
+    id: uid('act'),
+    tokens: a.tokens.map((t) => ({ ...t, id: take(maps.tk, 'tk', t.id) })),
+    ...ballFields(ballsOf(a).map((b) => ({ ...b, id: take(maps.bl, 'bl', b.id) }))),
+    arrows: a.arrows.map((ar) => ({
+      ...ar,
+      id: take(maps.ar, 'ar', ar.id),
+      // An end BOUND to a player has to follow that player into his new id, and
+      // an end bound to somebody the sequence does not contain is dropped to the
+      // grass it already names — the coordinates are kept current for exactly
+      // this (see `Arrow.fromId` in ../schema.ts), so the arrow survives as a
+      // mark on the pitch rather than snapping onto a stranger who happens to
+      // hold that id on the board it is landing on.
+      fromId: ar.fromId ? maps.tk.get(ar.fromId) : undefined,
+      toId: ar.toId ? maps.tk.get(ar.toId) : undefined,
+    })),
+    bands: a.bands.map((b) => ({
+      ...b,
+      id: take(maps.bd, 'bd', b.id),
+      throughTokens: b.throughTokens
+        ?.map((id) => maps.tk.get(id))
+        .filter((id): id is string => Boolean(id)),
+    })),
+    texts: a.texts?.map((t) => ({ ...t, id: take(maps.tx, 'tx', t.id) })),
+    gear: a.gear?.map((g) => ({ ...g, id: take(maps.gr, 'gr', g.id) })),
+  }))
+
+  return {
+    acts: out,
+    added: {
+      tokens: [...maps.tk.values()],
+      gear: [...maps.gr.values()],
+      balls: [...maps.bl.values()],
+      texts: [...maps.tx.values()],
+      marks: [...maps.ar.values(), ...maps.bd.values()],
+    },
+  }
+}
+
+/**
+ * Lay a sequence onto a board WITHOUT touching anything already on it.
+ *
+ * ── WHY THIS IS NOT `injectSequence` ────────────────────────────────────────
+ *
+ * `injectSequence` above matches the drill's players to the players already
+ * standing on the phase and moves those players into the drill. That is a real
+ * thing a coach wants — "my actual back four runs this" — and it is why it is
+ * still here. It is also the wrong default, because most of the time a saved
+ * sequence is a PATTERN being added to a board that is already a system, and
+ * matching it by proximity picks up whichever eleven men happen to be nearest
+ * and teleports them into a rondo (user, 2026-09-02).
+ *
+ * So this is the other half: the sequence arrives as its OWN counters, arrows,
+ * cones and zones, with fresh ids, and every mark already on the phase is
+ * returned byte-identical. Nothing is matched, nothing is moved, nothing is
+ * deleted. Where it lands is decided before it gets here, by
+ * `placementTransform` in ../sequences.ts, which is the coach's own answer
+ * rather than one inferred from an average of the men it displaced.
+ *
+ * ── ONE PHASE OF THE SEQUENCE PER PHASE OF THE BOARD ────────────────────────
+ *
+ * `bases` is the run of board phases the drill will occupy, already in the
+ * order they will appear. Each one keeps its own marks and gains the sequence's
+ * pose for that beat. A run longer than the sequence holds its last pose, which
+ * is what `buildRangeActs` means by a static hold, and it is done here rather
+ * than after so the held phases keep the board's own content too.
+ *
+ * ── TITLES ──────────────────────────────────────────────────────────────────
+ *
+ * `naming` is 'sequence' when the phases are NEW — they are the drill's phases
+ * and they should read as the drill — and 'board' when the sequence is being
+ * laid over phases the coach already wrote, where the title on screen is theirs
+ * and overwriting it would be the tool editing their words.
+ */
+export function addSequence(
+  bases: Act[],
+  sequenceActs: Act[],
+  naming: 'sequence' | 'board' = 'sequence',
+): { acts: Act[]; added: AddedMarks } {
+  if (sequenceActs.length === 0 || bases.length === 0) {
+    return { acts: bases, added: emptyAdded() }
+  }
+
+  const { acts: seq, added } = freshen(sequenceActs)
+
+  const acts = bases.map((base, i) => {
+    const held = i >= seq.length
+    const src = held ? seq[seq.length - 1] : seq[i]
+
+    return {
+      ...base,
+      id: uid('act'),
+      title: naming === 'sequence' ? (held ? 'Hold' : src.title) : base.title,
+      caption: naming === 'sequence' ? (held ? '' : src.caption) : base.caption,
+      tokens: [...base.tokens, ...src.tokens],
+      ...ballFields([...ballsOf(base), ...ballsOf(src)]),
+      // A hold has no arrows: an arrow is a movement, and nothing is moving on a
+      // phase that repeats the last pose. The BOARD's own arrows stay either
+      // way — they are not ours to strip.
+      arrows: [...base.arrows, ...(held ? [] : src.arrows)],
+      bands: [...base.bands, ...src.bands],
+      texts: mergeMarks(base.texts, src.texts),
+      gear: mergeMarks(base.gear, src.gear),
+      /*
+       * THE CAMERA STAYS THE BOARD'S. `shot` and `camera` are instructions
+       * about how to film this phase, and a drill dropped into the corner of a
+       * system has no business reframing it. The one exception is a phase that
+       * has no frame of its own to keep, on which the sequence's is strictly
+       * more information than the nothing that was there.
+       */
+      shot: base.shot ?? (naming === 'sequence' ? src.shot : undefined),
+      camera: base.camera ?? (naming === 'sequence' ? src.camera : undefined),
+    }
+  })
+
+  return { acts, added }
+}
+
+/**
+ * Two optional mark lists into one, staying undefined when both were.
+ *
+ * `texts` and `gear` are absent on every act written before they existed, and
+ * writing `[]` onto one puts a change into the diff of a document nobody
+ * edited. See `Act.texts` in ../schema.ts.
+ */
+function mergeMarks<T>(a: T[] | undefined, b: T[] | undefined): T[] | undefined {
+  if (!a && !b) return undefined
+  return [...(a ?? []), ...(b ?? [])]
 }

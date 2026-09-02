@@ -1182,7 +1182,9 @@ export const HELP_TOPICS: HelpTopic[] = [
     body: [
       'Save a range of phases as a named sequence in your personal library.',
       'You can capture the whole pitch or just a region of it. Sequences are saved without player names, so they work with any squad.',
-      'Apply a saved sequence to any system: auto-fill creates new phases, or insert at a range to place it into specific phases with the remaining ones holding static.',
+      'Applying one asks two things. Add alongside brings the sequence in as its own counters and leaves everything already on the board exactly where it is; Cast my players moves your nearest players into it instead.',
+      'Swap flanks mirrors it across the pitch, so a pattern drawn down the left runs down the right. Swap ends mirrors it along the pitch.',
+      'It lands selected, so you can drag it straight to where you want it. Dragging moves it on every phase it runs over, not just the one you are looking at.',
     ],
     target: { drawer: DRAWER.sequences, anchor: 'My Sequences', name: 'My Sequences' },
   },

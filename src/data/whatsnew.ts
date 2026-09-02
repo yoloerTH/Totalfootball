@@ -60,6 +60,22 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'sequence-place-mirror',
+    date: '2026-09-02',
+    kind: 'better',
+    title: 'Drop a sequence anywhere, on either flank',
+    body: 'Applying a saved sequence no longer disturbs the board you drop it on. It arrives as its own counters, with everything already on the phase left exactly where it is, and it lands selected so you can drag it straight to the patch of grass you want. There are two mirrors as well: swap flanks to run the same pattern down the other side, or swap ends to turn it round.',
+    where: 'Apply, on a sequence in My Sequences',
+  },
+  {
+    id: 'view-switch-marks',
+    date: '2026-09-02',
+    kind: 'fixed',
+    title: 'Cones and labels stay put when you change pitch view',
+    body: 'Switching between pitch views used to move your equipment, your written notes and any camera frame you had drawn, while moving the players correctly. They now all stay on the grass you put them on, on every view.',
+    where: 'The board, in the pitch view picker',
+  },
+  {
     id: 'pace-mode-linear',
     date: '2026-09-01',
     kind: 'new',
