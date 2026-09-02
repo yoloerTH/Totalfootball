@@ -3985,13 +3985,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       let n = 1
       while (taken.has(`${side}-X${n}`)) n++
       const id = `${side}-X${n}`
+      const idx = Math.min(actIndexRef.current, s.acts.length - 1)
+      const token = { id, x: 50, y: 50, label: String(n), side }
+      
+      const acts = s.acts.map((a, i) =>
+        i === idx
+          ? { ...a, tokens: [...a.tokens, token] }
+          : a,
+      )
+      
       return {
         ...s,
-        acts: s.acts.map((a, i) =>
-          i === actIndex
-            ? { ...a, tokens: [...a.tokens, { id, x: 50, y: 50, label: String(n), side }] }
-            : a,
-        ),
+        acts: carryRef.current ? carryForwardAdd(acts, idx, 'tokens', token) : acts
       }
     })
     seal()
