@@ -661,7 +661,7 @@ export function Board({
                 cy={q.y}
                 href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
                 size={system.matchBallSize}
-                angle={system.matchBallAngle}
+                angle={(system.matchBallAngle ?? 0) + (b.angle ?? 0)}
               />
             </g>
           )

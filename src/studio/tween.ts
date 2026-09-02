@@ -85,6 +85,7 @@ export interface RenderGear extends GearMark {
 
 export interface RenderBall extends BallMark {
   opacity: number
+  angle?: number
 }
 
 export interface RenderAct {
@@ -242,7 +243,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
    */
   const relax = system ? moveRelax(system) : 0
   const clampedP = Math.min(1, Math.max(0, p))
-  const isLinear = system?.paceMode === 'linear'
+  const isLinear = (system?.paceMode ?? 'linear') === 'linear'
   const t = isLinear ? clampedP : easeHouse(clampedP, relax)
   const byId = new Map(to.tokens.map((tok) => [tok.id, tok]))
   const fromIds = new Set(from.tokens.map((tok) => tok.id))
@@ -335,7 +336,11 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
       ? rider.bend
       : bendOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
     const at = travel(a, b, bend, t, view)
-    balls.push({ id: a.id, x: at.x, y: at.y, opacity: 1 })
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const dist = Math.hypot(dx, dy)
+    const angle = dist * t * 15
+    balls.push({ id: a.id, x: at.x, y: at.y, opacity: 1, angle })
   }
   for (const b of toBalls) {
     if (fromBalls.some((x) => x.id === b.id)) continue
