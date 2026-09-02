@@ -855,6 +855,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * the moment that is the right drawing. Touching the control pins it.
    */
   const [blockClose, setBlockClose] = useState<'auto' | 'goal' | 'shape'>('auto')
+  const [pickingReferenceBall, setPickingReferenceBall] = useState(false)
   const [dragging, setDragging] = useState<{ kind: 'token' | 'ball'; id: string } | null>(null)
   const [pending, setPending] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null)
   /*
@@ -1677,15 +1678,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     seal()
   }
 
-  const trackThisBall = () => {
-    if (!selectedBallId) return
-    edit('track-ball', (s) => {
-      const i = Math.min(actIndexRef.current, s.acts.length - 1)
-      const acts = s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: selectedBallId } : x))
-      return { ...s, acts: carryRef.current ? carryForwardTrackingBall(acts, i, selectedBallId) : acts }
-    })
-    seal()
-  }
+
 
   const deleteSelection = useCallback((): boolean => {
     if (!selection) return false
@@ -5047,6 +5040,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           playing || dragging_tool || drawingRegion
             ? undefined
             : (id, e) => {
+                if (pickingReferenceBall) {
+                  setPickingReferenceBall(false)
+                  return
+                }
                 if (isPickTool(tool)) {
                   e.stopPropagation()
                   e.preventDefault()
@@ -5132,6 +5129,18 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           playing || drawing || drawingRegion
             ? undefined
             : (id, e) => {
+                if (pickingReferenceBall) {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  setPickingReferenceBall(false)
+                  edit('track-ball', (s) => {
+                    const i = Math.min(actIndexRef.current, s.acts.length - 1)
+                    const acts = s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: id } : x))
+                    return { ...s, acts: carryRef.current ? carryForwardTrackingBall(acts, i, id) : acts }
+                  })
+                  seal()
+                  return
+                }
                 if (multiSelect) {
                    if (multiSelect.balls.includes(id)) {
                       e.stopPropagation()
@@ -5146,6 +5155,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         }
         onBackgroundPointerDown={(e) => {
           if (playing) return
+          if (pickingReferenceBall) {
+             e.preventDefault()
+             setPickingReferenceBall(false)
+             return
+          }
           if (drawingRegion) {
              e.preventDefault()
              beginRegionDraw(e)
@@ -6154,6 +6168,19 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 <Button onClick={trackFromStart}>Track from the start</Button>
               </Tip>
             )}
+            {ballsHere.length > 1 && camera === 'follow' && (
+              <Tip
+                text="Click this, then pick a ball on the pitch to set it as the reference ball for the camera."
+                title="Track a specific ball"
+              >
+                <Button
+                  onClick={() => setPickingReferenceBall(!pickingReferenceBall)}
+                  active={pickingReferenceBall}
+                >
+                  {pickingReferenceBall ? 'Select a ball...' : 'Track a specific ball'}
+                </Button>
+              </Tip>
+            )}
           </div>
           {phaseCameraSet && (
             <p className="mt-2 text-[11px] leading-snug text-ink-faint">
@@ -6741,13 +6768,6 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 {selectedBallId ? 'Remove this ball' : 'Remove ball'}
               </Button>
             </Tip>
-            {selectedBallId && ballsHere.length > 1 && (
-              <Tip text="Camera will follow this ball while there are multiple match balls on the pitch." title="Track this ball">
-                <Button onClick={trackThisBall} active={act.trackingBallId === selectedBallId}>
-                  {act.trackingBallId === selectedBallId ? 'Tracking this ball' : 'Track this ball'}
-                </Button>
-              </Tip>
-            )}
             <Tip text={HINT.addPlayer} title="Add a player">
               <Button onClick={() => addPlayer('us')}>+ Player</Button>
             </Tip>

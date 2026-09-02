@@ -64,8 +64,8 @@ export const WHATS_NEW: NewsEntry[] = [
     date: '2026-09-02',
     kind: 'new',
     title: 'Choose which ball the camera tracks',
-    body: 'When you have multiple match balls on the pitch, you can now choose exactly which one the camera should follow. Select a ball and press Track this ball to make it the reference ball. The camera will stay on it through the phases until you choose another.',
-    where: 'Track this ball, in the Players panel with a ball selected',
+    body: 'When you have multiple match balls on the pitch, you can now choose exactly which one the camera should follow. Go to the Camera panel and press Track a specific ball, then choose the ball on the board. The camera will stay on it through the phases until you choose another.',
+    where: 'Track a specific ball, in the Camera panel',
   },
   {
     id: 'sequence-place-mirror',
