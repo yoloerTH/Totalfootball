@@ -120,6 +120,7 @@ export const CAMERA_PUSHES: {
   label: string
   hint: string
   tightest: number
+  widest: number
   margin: number
 }[] = [
   /*
@@ -137,12 +138,40 @@ export const CAMERA_PUSHES: {
    * out as hard as the floor would have quietly turned Gentle into Fixed on
    * half the phases in a film. The floor is the honest control for "show me
    * more"; the margin is only there to keep the subject off the edge.
+   *
+   * ── WHY THERE IS A CEILING AS WELL AS A FLOOR ──────────────────────────────
+   *
+   * `tightest` alone is a floor, and a floor can only ever push the frame OUT.
+   * That made the setting mean something on a phase with a small subject and
+   * nothing at all on a phase with a big one: once the box the phase asks for
+   * is wider than the floor, the floor stops binding and every setting returns
+   * the same frame. Measured on a full pitch, a phase whose marks ran corner to
+   * corner came out WIDE on all three — a coach could pick Close, watch nothing
+   * happen, and have no way to tell the control was inert (user, 2026-09-02).
+   *
+   * `widest` is the other half of the same control. The frame is now bounded on
+   * both sides, so every setting says something about every phase:
+   *
+   *                       floor        ceiling      a spread phase, on a full
+   *                       (small       (big         pitch, comes out at
+   *                        subject)     subject)
+   *   Gentle              80%          97%          wide, as it always did
+   *   Standard            68%          81%          90m instead of 97m
+   *   Close               56%          63%          70m instead of giving up
+   *
+   * The ceiling EATS THE MARGIN FIRST, which is what makes it safe: the box it
+   * is capping is the subject plus `margin` metres of grass on every side, so
+   * the first thing a tighter ceiling costs is the padding, and only a phase
+   * drawn corner to corner loses anything the coach actually drew. That is the
+   * bargain "Close" names, and Gentle's 97% is deliberately above WORTH_IT so
+   * the calm setting is not quietly turned into a camera by its own ceiling.
    */
   {
     id: 'gentle',
     label: 'Gentle',
     hint: 'Barely moves. Keeps most of the pitch in shot and drifts towards the action.',
     tightest: 0.8,
+    widest: 0.97,
     margin: 15,
   },
   {
@@ -150,6 +179,7 @@ export const CAMERA_PUSHES: {
     label: 'Standard',
     hint: 'Frames the phase with room around it. The middle setting, and a safe one.',
     tightest: 0.68,
+    widest: 0.81,
     margin: 12,
   },
   {
@@ -157,6 +187,7 @@ export const CAMERA_PUSHES: {
     label: 'Close',
     hint: 'Pushes right in on what each phase is about. The way the videos are cut.',
     tightest: 0.56,
+    widest: 0.63,
     margin: 10,
   },
 ]
@@ -171,12 +202,26 @@ export function resolvePush(id: string | undefined): (typeof CAMERA_PUSHES)[numb
 // ── deriving a shot ──────────────────────────────────────────────────────────
 
 /*
- * TIGHTEST and MARGIN used to live here as two constants. They are now the two
+ * TIGHTEST and MARGIN used to live here as two constants. They are now three
  * columns of CAMERA_PUSHES above, because they are the whole of what a coach is
  * choosing when they pick how hard the camera pushes, and having them in one
- * table is what makes that choice one line to read rather than two numbers to
- * find. Nothing else about the derivation changed.
+ * table is what makes that choice one line to read rather than three numbers to
+ * find.
  */
+
+/**
+ * The two bounds a frame is held between, which is all `cameraRect` needs.
+ *
+ * A TYPE rather than two number arguments, and that is load-bearing. When the
+ * floor was passed on its own, every caller had to remember to fetch it and
+ * pass it, and adding the ceiling beside it would have been four more chances
+ * to thread one and forget the other — which is exactly how the setting ended
+ * up half-wired the first time. One object cannot be half-passed.
+ */
+export interface CameraFrame {
+  tightest: number
+  widest: number
+}
 
 /**
  * Under this much push-in, don't bother.
@@ -227,15 +272,58 @@ interface Pt {
  *
  * `at` is the index of the phase the live choice was made on, or -1 for none.
  */
+function inherited<T>(
+  acts: Act[],
+  index: number,
+  read: (a: Act) => T | null | undefined,
+): { value: T | null; at: number } {
+  for (let i = Math.min(index, acts.length - 1); i >= 0; i--) {
+    const chosen = read(acts[i])
+    if (chosen !== undefined) return { value: chosen, at: i }
+  }
+  return { value: null, at: -1 }
+}
+
 export function referenceBallChoice(
   acts: Act[],
   index: number,
 ): { id: string | null; at: number } {
-  for (let i = Math.min(index, acts.length - 1); i >= 0; i--) {
-    const chosen = acts[i].trackingBallId
-    if (chosen !== undefined) return { id: chosen, at: i }
-  }
-  return { id: null, at: -1 }
+  const { value, at } = inherited(acts, index, (a) => a.trackingBallId)
+  return { id: value, at }
+}
+
+/**
+ * HOW HARD THE CAMERA PUSHES IN, from this phase on.
+ *
+ * The same walk, the same three states and the same argument as the reference
+ * ball above — read that one for why it looks backwards. A coach who sets Close
+ * on phase 5 is saying "from here it is close", not "phase 5 is close", and
+ * going back to change phase 1 afterwards must not undo them.
+ *
+ * `null` means "from here, whatever the DOCUMENT says" — which is the setting
+ * the film had before anybody touched a phase, and the way back to it.
+ * `at` is -1 when no phase has chosen, and the document's setting is the answer.
+ */
+export function pushChoice(acts: Act[], index: number): { id: CameraPush | null; at: number } {
+  const { value, at } = inherited(acts, index, (a) => a.push)
+  return { id: value, at }
+}
+
+/**
+ * The push in force on one phase: the phase's inherited choice, or the
+ * document's setting when no phase has made one.
+ *
+ * THE ONE WAY TO ASK. `resolvePush(system.push)` is the document's answer and
+ * is now only correct for a film where no phase has chosen — reading it
+ * directly is how a per-phase setting silently stops applying to the frame that
+ * is actually drawn. Everything that needs a push for a PHASE comes through
+ * here, including the exporters, which reach it through `RenderAct.frame`.
+ */
+export function pushAt(system: System | undefined, act: Act): (typeof CAMERA_PUSHES)[number] {
+  if (!system) return resolvePush(undefined)
+  const i = system.acts.findIndex((a) => a.id === act.id)
+  const chosen = i < 0 ? (act.push ?? null) : pushChoice(system.acts, i).id
+  return resolvePush(chosen ?? system.push)
 }
 
 /**
@@ -418,7 +506,8 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
   // The margin is real grass, so it is converted per axis: the same fifteen
   // metres is a bigger slice of a crop that is only half a pitch long than of a
   // full one, and a fixed percentage would breathe differently on every view.
-  const margin = resolvePush(system.push).margin
+  const push = pushAt(system, act)
+  const margin = push.margin
   const mx = (margin / (view.x1 - view.x0)) * 100
   const my = (margin / (view.y1 - view.y0)) * 100
 
@@ -429,10 +518,18 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
     h: y1 - y0 + my * 2,
   }
 
-  // Judged on the frame this actually produces, not on the box asked for: a
-  // wide flat box on a tall crop fits to the full width and moves nothing.
+  /*
+   * Judged on the frame this actually produces, not on the box asked for: a
+   * wide flat box on a tall crop fits to the full width and moves nothing.
+   *
+   * ON THIS PHASE'S PUSH, which it was not before. The test used to run at the
+   * default floor whatever the coach had chosen, so a phase was declared not
+   * worth moving on a frame that Close was never going to draw. With a ceiling
+   * in the table that is the difference between Close pushing in on a spread
+   * phase and Close doing nothing at all on it.
+   */
   const crop = cropRect(view)
-  return cameraRect(view, shot).w >= crop.w * WORTH_IT ? null : shot
+  return cameraRect(view, shot, push).w >= crop.w * WORTH_IT ? null : shot
 }
 
 /**
@@ -481,18 +578,19 @@ export function cameraRect(
   view: PitchView,
   shot: Shot | null,
   /**
-   * The floor on the frame, as a fraction of the crop.
+   * The floor and the ceiling on the frame, as fractions of the crop.
    *
    * Passed rather than read off a system, because half this function's callers
    * do not have one: `Board.tsx` outlines a frame, the editor drags one, and
    * both of those are working on a view and a box. Defaulted to the gentle
    * setting so a caller that does not care gets the calm answer.
    *
-   * It bounds a coach's HAND-DRAWN frame too, and that is on purpose. The cap
-   * is not a rule about the derivation, it is a rule about the picture: below
-   * it there is not enough pitch on screen to tell where you are.
+   * Both bounds apply to a coach's HAND-DRAWN frame too, and that is on
+   * purpose. They are not rules about the derivation, they are rules about the
+   * picture: below the floor there is not enough pitch on screen to tell where
+   * you are, and above the ceiling the coach chose a push that is not happening.
    */
-  tightest: number = CAMERA_PUSHES[0].tightest,
+  push: CameraFrame = CAMERA_PUSHES[0],
 ): { x: number; y: number; w: number; h: number } {
   const crop = cropRect(view)
   if (!shot) return crop
@@ -512,8 +610,17 @@ export function cameraRect(
 
   const aspect = crop.w / crop.h
   let w = Math.max(bx1 - bx0, (by1 - by0) * aspect)
-  // Never tighter than the cap, never wider than there is grass for.
-  w = Math.min(Math.max(w, crop.w * tightest), crop.w)
+  /*
+   * Never tighter than the floor, never wider than the ceiling, and never wider
+   * than there is grass for.
+   *
+   * The floor is applied FIRST and the ceiling second, so on a setting whose
+   * two bounds are close together the ceiling wins — which is the right way
+   * round. Too wide is a push that did not happen; too tight is a frame with
+   * nothing recognisable in it, and only one of those is worth protecting
+   * against at the cost of the other.
+   */
+  w = Math.min(Math.max(w, crop.w * push.tightest), crop.w * push.widest, crop.w)
   const h = w / aspect
 
   const cx = (bx0 + bx1) / 2
@@ -528,8 +635,8 @@ export function cameraRect(
 }
 
 /** The viewBox a board draws through. Falls back to the whole crop. */
-export function cameraViewBox(view: PitchView, shot: Shot | null, tightest?: number): string {
-  const r = cameraRect(view, shot, tightest)
+export function cameraViewBox(view: PitchView, shot: Shot | null, push?: CameraFrame): string {
+  const r = cameraRect(view, shot, push)
   return `${r.x} ${r.y} ${r.w} ${r.h}`
 }
 
@@ -539,8 +646,8 @@ export function cameraViewBox(view: PitchView, shot: Shot | null, tightest?: num
  * For the editor's read-out. "1.6x" means nothing to anybody; "48 metres
  * across" is a distance a coach can picture, because they have stood on it.
  */
-export function frameMetres(view: PitchView, shot: Shot | null, tightest?: number): number {
-  const r = cameraRect(view, shot, tightest)
+export function frameMetres(view: PitchView, shot: Shot | null, push?: CameraFrame): number {
+  const r = cameraRect(view, shot, push)
   // Upright views stand the pitch on its end, so the frame's width is measured
   // along the pitch's short axis either way — units are units, and U is the
   // only conversion. Capped at the pitch so padding is not reported as grass.

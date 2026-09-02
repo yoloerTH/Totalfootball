@@ -18,9 +18,21 @@
  * Run: node --import ./scripts/lib/ts.mjs scripts/check-camera.mjs
  */
 
-import { referenceBallChoice, referenceBallId, trackedBall, shotFor } from '../src/studio/camera.ts'
+import {
+  CAMERA_PUSHES,
+  cameraRect,
+  frameMetres,
+  pushAt,
+  pushChoice,
+  referenceBallChoice,
+  referenceBallId,
+  resolvePush,
+  shotFor,
+  trackedBall,
+} from '../src/studio/camera.ts'
+import { resolveAct, tweenActs } from '../src/studio/tween.ts'
 import { ballsOf, ballFields, forgetTrackedBall } from '../src/studio/schema.ts'
-import { viewFor } from '../src/studio/board/pitch.ts'
+import { cropRect, viewFor, U } from '../src/studio/board/pitch.ts'
 
 const faults = []
 const fail = (group, line) => faults.push({ group, line })
@@ -29,8 +41,14 @@ const fail = (group, line) => faults.push({ group, line })
 
 const BALLS = ['A', 'B', 'C']
 
-/** One phase, carrying the named balls, spread across the middle of the board. */
-const act = (id, balls, trackingBallId) => ({
+/**
+ * One phase, carrying the named balls, spread across the middle of the board.
+ *
+ * `extra` is spread LAST so a case can hand the phase arrows or a hand-drawn
+ * frame. It is the fourth argument and not a fourth field on every call because
+ * most of these cases are about balls and would carry an empty object each.
+ */
+const act = (id, balls, trackingBallId, extra) => ({
   id,
   title: id,
   caption: '',
@@ -39,6 +57,7 @@ const act = (id, balls, trackingBallId) => ({
   bands: [],
   ...ballFields(balls.map((b, i) => ({ id: b, x: 30 + i * 15, y: 40 + i * 8 }))),
   ...(trackingBallId === undefined ? {} : { trackingBallId }),
+  ...extra,
 })
 
 /** A film of `n` phases, all carrying every ball, with `choices` written on. */
@@ -238,8 +257,204 @@ const expectOn = (group, system, i, want) => {
   if (silent !== null) fail('phase outside the document', `an orphan phase naming nothing resolved to ball ${silent.id} — with ${BALLS.length} balls and no choice of its own it must be wide.`)
 }
 
+/* ══ THE PUSH ══════════════════════════════════════════════════════════════
+ *
+ * How hard the camera goes in, and from which phase. Two things are claimed
+ * here: that the three settings actually differ on every shape of phase, which
+ * they did not before there was a ceiling, and that a setting made part way
+ * through a film governs from there on and no earlier.
+ */
+
+const crop = cropRect(view)
+const metres = (w) => w / U
+
+/** A phase whose marks span `spread` percent of the crop, with no ball. */
+const spread = (id, s) =>
+  act(id, [], undefined, {
+    arrows: [{ id: 'a', from: { x: 50 - s / 2, y: 50 - s / 2 }, to: { x: 50 + s / 2, y: 50 + s / 2 } }],
+  })
+
+const filmOf = (acts, push) => ({ id: 'sys', title: 'check', camera: 'follow', push, acts })
+
+/*
+ * The braced arrow is not a style slip and neither is the order of these two.
+ * Every test below is scoped in a bare `{ … }` block, and this file has no
+ * semicolons — so an arrow whose body is a parenthesised object, sitting
+ * directly above one of those blocks, reads to the TypeScript parser as an
+ * arrow head looking for its `=>`. Ending on a `}` cannot be misread.
+ */
+
+/** The frame one phase is shot through, in metres, or null when it stays wide. */
+const frameOf = (system, i) => {
+  const a = system.acts[i]
+  const shot = shotFor(system, a, view)
+  if (!shot) return null
+  return frameMetres(view, shot, pushAt(system, a))
+}
+
+/* ── 13 · every setting says something about every phase ───────────────────
+ * The defect that started this: `tightest` is a floor, so on a phase whose
+ * subject is already wider than the floor it stopped binding and Standard and
+ * Close returned the same frame — or both gave up and went wide.
+ */
+{
+  const shapes = { 'a tracked ball': act('p', BALLS, 'A'), 'marks across half the pitch': spread('p', 50), 'marks corner to corner': spread('p', 84) }
+  for (const [name, a] of Object.entries(shapes)) {
+    const got = {}
+    for (const p of CAMERA_PUSHES) got[p.id] = frameOf(filmOf([a], p.id), 0)
+    for (const [x, y] of [['standard', 'close'], ['gentle', 'standard']]) {
+      if (got[x] === null && got[y] === null) {
+        fail('every setting counts', `on ${name}, ${x} and ${y} both go wide, so neither setting does anything. One of them must produce a frame.`)
+      } else if (got[x] !== null && got[y] !== null && Math.abs(got[x] - got[y]) < 3) {
+        fail('every setting counts', `on ${name}, ${x} is ${got[x].toFixed(0)}m and ${y} is ${got[y].toFixed(0)}m — ${Math.abs(got[x] - got[y]).toFixed(1)}m apart, which nobody can see. They must differ by at least 3m.`)
+      }
+    }
+  }
+}
+
+/* ── 14 · the numbers the settings were chosen for ─────────────────────────
+ * Quoted to the coach when the ceiling was agreed, so they are pinned here.
+ * A tracked ball is bounded by the FLOOR and must not have moved at all; a
+ * spread phase is bounded by the CEILING and is the whole point of the change.
+ */
+{
+  const want = [
+    ['a tracked ball', act('p', BALLS, 'A'), { gentle: 89, standard: 75, close: 62 }],
+    ['marks corner to corner', spread('p', 84), { gentle: null, standard: 90, close: 70 }],
+  ]
+  for (const [name, a, table] of want) {
+    for (const p of CAMERA_PUSHES) {
+      const got = frameOf(filmOf([a], p.id), 0)
+      const w = table[p.id]
+      if (w === null) {
+        if (got !== null) fail('the agreed numbers', `${p.id} on ${name} is ${got.toFixed(0)}m — it must stay wide.`)
+      } else if (got === null) {
+        fail('the agreed numbers', `${p.id} on ${name} goes wide — it must be about ${w}m across.`)
+      } else if (Math.abs(got - w) > 1.5) {
+        fail('the agreed numbers', `${p.id} on ${name} is ${got.toFixed(1)}m — it must be ${w}m, within 1.5m.`)
+      }
+    }
+  }
+}
+
+/* ── 15 · the frame stays between its two bounds ───────────────────────────
+ * On every shape of phase and every setting, including a frame the coach drew
+ * by hand, which the bounds govern as well.
+ */
+{
+  const boxes = [null, { x: 50, y: 50, w: 4, h: 4 }, { x: 50, y: 50, w: 96, h: 96 }, { x: 12, y: 88, w: 30, h: 30 }]
+  for (const p of CAMERA_PUSHES) {
+    for (const box of boxes) {
+      if (!box) continue
+      const w = cameraRect(view, box, p).w
+      if (w < crop.w * p.tightest - 0.01) fail('the frame stays in its bounds', `${p.id} drew a frame ${metres(w).toFixed(1)}m across on a hand box of ${box.w}% — its floor is ${metres(crop.w * p.tightest).toFixed(1)}m.`)
+      if (w > crop.w * p.widest + 0.01) fail('the frame stays in its bounds', `${p.id} drew a frame ${metres(w).toFixed(1)}m across on a hand box of ${box.w}% — its ceiling is ${metres(crop.w * p.widest).toFixed(1)}m.`)
+    }
+    if (!(p.tightest < p.widest)) fail('the frame stays in its bounds', `${p.id} has tightest ${p.tightest} and widest ${p.widest} — the floor must be below the ceiling.`)
+  }
+  for (let i = 1; i < CAMERA_PUSHES.length; i++) {
+    const a = CAMERA_PUSHES[i - 1]
+    const b = CAMERA_PUSHES[i]
+    if (!(b.tightest < a.tightest && b.widest < a.widest && b.margin <= a.margin)) {
+      fail('the frame stays in its bounds', `${b.id} is not tighter than ${a.id} on every column (floors ${a.tightest}/${b.tightest}, ceilings ${a.widest}/${b.widest}, margins ${a.margin}/${b.margin}). The table must run wide to close.`)
+    }
+  }
+}
+
+/* ── 16 · a push set part way through governs from there ───────────────────
+ * The headline claim, and the same one the reference ball makes.
+ */
+{
+  const s = filmOf([spread('p1', 60), spread('p2', 60), spread('p3', 60), spread('p4', 60)], 'gentle')
+  s.acts[2] = { ...s.acts[2], push: 'close' }
+  for (let i = 0; i < 4; i++) {
+    const want = i < 2 ? 'gentle' : 'close'
+    const got = pushAt(s, s.acts[i]).id
+    if (got !== want) fail('set part way through', `p${i + 1} is on ${got} — with close set on p3 it must be ${want}.`)
+  }
+}
+
+/* ── 17 · a later choice owns the tail, and an earlier edit cannot take it ── */
+{
+  const acts = [spread('p1', 60), spread('p2', 60), spread('p3', 60), spread('p4', 60), spread('p5', 60)]
+  const s = filmOf(acts, 'gentle')
+  s.acts[0] = { ...s.acts[0], push: 'standard' }
+  s.acts[3] = { ...s.acts[3], push: 'close' }
+  const check = (system, want, group) => {
+    for (let i = 0; i < want.length; i++) {
+      const got = pushAt(system, system.acts[i]).id
+      if (got !== want[i]) fail(group, `p${i + 1} is on ${got} — it must be ${want[i]}.`)
+    }
+  }
+  check(s, ['standard', 'standard', 'standard', 'close', 'close'], 'two pushes')
+  const edited = { ...s, acts: s.acts.map((a, i) => (i === 0 ? { ...a, push: 'gentle' } : a)) }
+  check(edited, ['gentle', 'gentle', 'gentle', 'close', 'close'], 'earlier push edit')
+}
+
+/* ── 18 · the three states, and the document underneath them ───────────────
+ * `null` is "back to the document's setting, from here" — the way out of a
+ * choice without the phase before it putting it straight back.
+ */
+{
+  const s = filmOf([spread('p1', 60), spread('p2', 60), spread('p3', 60), spread('p4', 60)], 'gentle')
+  s.acts[0] = { ...s.acts[0], push: 'close' }
+  s.acts[2] = { ...s.acts[2], push: null }
+  const want = ['close', 'close', 'gentle', 'gentle']
+  for (let i = 0; i < 4; i++) {
+    const got = pushAt(s, s.acts[i]).id
+    if (got !== want[i]) fail('the three states', `p${i + 1} is on ${got} — with close on p1 and null on p3 it must be ${want[i]}.`)
+  }
+  const c = pushChoice(s.acts, 3)
+  if (c.id !== null || c.at !== 2) fail('the three states', `p4 reports its push was decided at { id: ${c.id}, at: ${c.at} } — the live choice is the null on p3, so it must read { id: null, at: 2 }.`)
+}
+
+/* ── 19 · a film with no per-phase push is the film it always was ──────────
+ * Every document saved before `Act.push` existed, on every setting.
+ */
+{
+  for (const p of CAMERA_PUSHES) {
+    const s = filmOf([act('p1', BALLS, 'A'), spread('p2', 60)], p.id)
+    for (let i = 0; i < 2; i++) {
+      const got = pushAt(s, s.acts[i])
+      if (got.id !== p.id) fail('legacy films', `a film set to ${p.id} with nothing on its phases reads ${got.id} at p${i + 1} — it must read the document's setting.`)
+      const direct = resolvePush(p.id)
+      const a = frameMetres(view, shotFor(s, s.acts[i], view), got)
+      const b = frameMetres(view, shotFor(s, s.acts[i], view), direct)
+      if (Math.abs(a - b) > 0.001) fail('legacy films', `p${i + 1} on ${p.id} is shot ${a.toFixed(2)}m through the phase's push and ${b.toFixed(2)}m through the document's. They must be the same frame.`)
+    }
+  }
+}
+
+/* ── 20 · the bounds ride on the pose and travel with it ───────────────────
+ * `Board` draws through `RenderAct.frame`, so a per-phase push that does not
+ * reach the pose is a setting the picture never hears about. Mid-move it must
+ * be BETWEEN the two phases' bounds, or the camera jumps on the cut.
+ */
+{
+  const s = filmOf([spread('p1', 60), spread('p2', 60)], 'gentle')
+  s.acts[1] = { ...s.acts[1], push: 'close' }
+  for (let i = 0; i < 2; i++) {
+    const got = resolveAct(s.acts[i], s).frame
+    const want = pushAt(s, s.acts[i])
+    if (got.tightest !== want.tightest || got.widest !== want.widest) {
+      fail('the pose carries the bounds', `p${i + 1} poses with bounds ${got.tightest}/${got.widest} — its push is ${want.id}, which is ${want.tightest}/${want.widest}.`)
+    }
+  }
+  const lo = resolvePush('gentle')
+  const hi = resolvePush('close')
+  let last = lo.tightest + 1
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+    const f = tweenActs(s.acts[0], s.acts[1], t, s).frame
+    if (f.tightest > lo.tightest + 1e-9 || f.tightest < hi.tightest - 1e-9) {
+      fail('the pose carries the bounds', `at t=${t} the blended floor is ${f.tightest} — it must lie between ${hi.tightest} and ${lo.tightest}.`)
+    }
+    if (f.tightest > last + 1e-9) fail('the pose carries the bounds', `at t=${t} the blended floor rose to ${f.tightest} from ${last} — a move from gentle to close must tighten all the way through.`)
+    last = f.tightest
+  }
+}
+
 if (faults.length === 0) {
-  console.log('camera check: 12 claims about the reference ball, across choices, edits, deletions, legacy documents and orphan phases. All clear.')
+  console.log('camera check: 20 claims about the camera — which ball it follows and how hard it pushes in — across choices, edits, deletions, legacy documents, hand-drawn frames and blended poses. All clear.')
   process.exit(0)
 }
 const groups = [...new Set(faults.map((f) => f.group))]

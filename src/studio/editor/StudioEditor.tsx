@@ -103,9 +103,10 @@ import {
   CAMERA_PUSHES,
   cameraRect,
   frameMetres,
+  pushAt,
+  pushChoice,
   referenceBallChoice,
   resolveCamera,
-  resolvePush,
   viewMetres,
   type CameraMode,
   type CameraPush,
@@ -1395,16 +1396,20 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    */
   const shotRef = useRef<Shot | null>(null)
   const view = viewFor(system)
+  const act = system.acts[Math.min(actIndex, system.acts.length - 1)]
   /*
-   * How close this system's camera is allowed to get, as a fraction of the crop.
+   * How close THIS PHASE's camera is allowed to get, and how wide it may stay.
    *
    * Read once here and passed to every camera call in this file, so the outline
    * the coach drags, the metres the panel reads out and the frame the film is
-   * shot through are all bounded by the same number. Splitting them is how a
-   * preview starts promising a shot the video does not keep.
+   * shot through are all bounded by the same pair of numbers. Splitting them is
+   * how a preview starts promising a shot the video does not keep.
+   *
+   * The PHASE's, not the document's: the push can be set from a phase on (see
+   * `Act.push` in ../schema.ts), so reading `system.push` here would bound the
+   * coach's board by a setting three phases back.
    */
-  const tightest = resolvePush(system.push).tightest
-  const act = system.acts[Math.min(actIndex, system.acts.length - 1)]
+  const pushHere = pushAt(system, act)
 
   /*
    * ── THE COACH'S OWN KIT AND CREST, ON A BOARD THAT ALREADY EXISTS ─────────
@@ -1707,6 +1712,42 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     edit('track-ball', (s) => {
       const i = Math.min(actIndexRef.current, s.acts.length - 1)
       return { ...s, acts: s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: id } : x)) }
+    })
+    seal()
+  }
+
+  /*
+   * ── HOW HARD THE CAMERA PUSHES IN, FROM HERE ──────────────────────────────
+   *
+   * The same shape as `setReferenceBall` above, and for the same reason: a
+   * coach who picks Close while standing on phase 5 means "from here it is
+   * close". It used to write `System.push` and change the whole film from the
+   * first frame, which is why picking it on a later phase looked like it had
+   * not worked at all (user, 2026-09-02).
+   *
+   * `null` puts this phase back on the document's setting, from here.
+   */
+  const setPushFromHere = (id: CameraPush | null | undefined) => {
+    edit('push', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      return { ...s, acts: s.acts.map((x, j) => (j === i ? { ...x, push: id } : x)) }
+    })
+    seal()
+  }
+
+  /**
+   * Back to one push for the whole film, at whatever this phase is on.
+   *
+   * The analogue of Track from the start, and the way out of a film that has
+   * accumulated four different pushes down its length. It writes the current
+   * setting onto the DOCUMENT before clearing the phases, so the film keeps the
+   * look the coach is looking at rather than snapping back to gentle.
+   */
+  const pushAllThrough = () => {
+    edit('push', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      const id = pushAt(s, s.acts[i]).id
+      return { ...s, push: id, acts: s.acts.map((a) => ({ ...a, push: undefined })) }
     })
     seal()
   }
@@ -2721,7 +2762,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       e.stopPropagation()
       e.preventDefault()
 
-      const start = cameraRect(view, shotRef.current, tightest)
+      const start = cameraRect(view, shotRef.current, pushHere)
       const crop = cropRect(view)
       const down = clientToPercent(svg, view, e.clientX, e.clientY)
       const downU = toUnits(view, down.x, down.y)
@@ -2810,7 +2851,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         },
       )
     },
-    [act, bindGesture, view, patchAct, seal, tightest, edit],
+    [act, bindGesture, view, patchAct, seal, pushHere, edit],
   )
 
   /**
@@ -4658,7 +4699,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const grid = resolveGrid(system.grid)
   const camera = resolveCamera(system.camera)
   const cameraMode = CAMERA_MODES.find((c) => c.id === camera) ?? CAMERA_MODES[0]
-  const push = resolvePush(system.push)
+  const push = pushHere
+  // Where the push was last decided, for the line under the control. -1 means
+  // nobody has decided at a phase and the document's setting is what is running.
+  const pushSet = pushChoice(system.acts, actIndex)
+  const phasePushSet = system.acts.some((a) => a.push !== undefined)
   // Where the tracking starts, for the control below the camera mode. The first
   // phase NOT pinned off is the answer, and no pins at all means phase one.
   const trackingFrom = system.acts.findIndex((a) => a.camera !== 'off')
@@ -4711,7 +4756,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     same(system.teams.us.alt, profile?.kitAlt) &&
     same(system.teams.us.pattern ?? 'solid', profile?.kitPattern || 'solid')
   // Read out in metres of grass rather than as a zoom factor — see ../camera.ts.
-  const frameWide = frameMetres(view, rendered.shot, tightest)
+  const frameWide = frameMetres(view, rendered.shot, rendered.frame)
   const viewWide = viewMetres(view)
   const formationGroups = useMemo(
     () =>
@@ -6336,18 +6381,50 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                * not have to find it under a heading that says Fixed.
                */}
               <div className="mt-3 border-t border-ink-hair pt-3">
-                <Field label="How far it pushes in">
+                <Field label={`How far it pushes in, from this ${PHASE.one} on`}>
                   <Segmented
                     label="How far it pushes in"
                     value={push.id}
-                    onChange={(id: CameraPush) => {
-                      edit('push', (s) => ({ ...s, push: id }))
-                      seal()
-                    }}
+                    onChange={(id: CameraPush) => setPushFromHere(id)}
                     options={CAMERA_PUSHES.map((c) => ({ value: c.id, label: c.label }))}
                   />
                 </Field>
                 <p className="-mt-1 text-[11px] leading-snug text-ink-faint">{push.hint}</p>
+                <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
+                  {pushSet.at >= 0 ? (
+                    <>
+                      Set on {PHASE.one}{' '}
+                      <span className="font-bold text-ink-soft">{pushSet.at + 1}</span>, and it runs
+                      from there to the next {PHASE.one} that changes it. Earlier {PHASE.many} keep
+                      what they were on.
+                    </>
+                  ) : (
+                    <>
+                      Every {PHASE.one} is shot this way. Change it further into the film and only
+                      the {PHASE.many} from there on move.
+                    </>
+                  )}
+                </p>
+                {phasePushSet && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {act.push !== undefined && (
+                      <Tip
+                        text={`Takes this ${PHASE.one} out of the decision, so it goes back to following whatever the ${PHASE.many} before it are on.`}
+                        title="Clear the choice here"
+                      >
+                        <Button onClick={() => setPushFromHere(undefined)}>
+                          Clear the choice here
+                        </Button>
+                      </Tip>
+                    )}
+                    <Tip
+                      text={`Puts the whole film on ${push.label}, and forgets every per-${PHASE.one} choice.`}
+                      title="Same push all through"
+                    >
+                      <Button onClick={pushAllThrough}>Same push all through</Button>
+                    </Tip>
+                  </div>
+                )}
               </div>
 
               <p className="mt-2 text-[11px] leading-snug text-ink-faint">

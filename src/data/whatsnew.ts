@@ -60,6 +60,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'push-per-phase',
+    date: '2026-09-02',
+    kind: 'better',
+    title: 'How far the camera pushes in, set where you want it',
+    body: 'Two things were wrong with the push. It only had teeth on a tight phase: once the marks on a phase spread out, Standard and Close landed on the same frame, and on the widest phases all three gave up and shot wide, so picking Close did nothing at all. The frame is now held between a floor and a ceiling instead of only a floor, so every setting says something about every phase. A phase whose marks run corner to corner is 90 metres across on Standard and 70 on Close, where before it was wide on both. A phase following the ball is unchanged. The setting is also per phase now: pick it standing on phase 5 and it runs from phase 5 to the end, and the phases before it keep what they were on. The panel says which phase decided it, and Same push all through puts the whole film back on one setting.',
+    where: 'How far it pushes in, in the Camera panel',
+  },
+  {
     id: 'track-reference-ball',
     date: '2026-09-02',
     kind: 'new',

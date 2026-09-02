@@ -948,6 +948,25 @@ export interface Act {
    */
   balls?: BallMark[]
   /**
+   * HOW HARD THE CAMERA PUSHES IN, FROM THIS PHASE ON.
+   *
+   * The document's `System.push` is the film's setting and stays that. This is
+   * the same choice made at a phase, and it reaches every phase after it the
+   * way the reference ball below does — one write, read backwards. The argument
+   * for that shape is at `referenceBallId` in ./camera.ts and applies word for
+   * word here: a coach who picks Close on phase 5 means "from here it is
+   * close", and going back to phase 1 afterwards must not undo them.
+   *
+   *  · undefined — this phase said nothing; inherit the choice before it.
+   *  · a push id — from here on, push in that hard.
+   *  · null      — from here on, go back to whatever the DOCUMENT says.
+   *
+   * Undefined on every phase of every film written before this existed, which
+   * reads as the document's setting throughout — exactly what those films
+   * already did. See `pushAt` in ./camera.ts, which is the only way to ask.
+   */
+  push?: CameraPush | null
+  /**
    * WHICH BALL THE CAMERA FOLLOWS, FROM THIS PHASE ON.
    *
    * Not "the ball this phase tracks" — the ball every phase from here to the

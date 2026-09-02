@@ -15,7 +15,7 @@
  */
 
 import { viewFor } from './board/pitch'
-import { lerpShot, shotFor, type Shot } from './camera'
+import { lerpShot, pushAt, shotFor, type CameraFrame, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
 import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
 import { ballsOf, type Act, type Arrow, type Band, type BallMark, type GearMark, type System, type TextMark, type Token } from './schema'
@@ -109,6 +109,19 @@ export interface RenderAct {
    * — see the note at the top of ../camera.ts.
    */
   shot: Shot | null
+  /**
+   * The bounds the shot is held between on this phase — the resolved push.
+   *
+   * It rides here for the same reason `shot` does, and it HAS to now that the
+   * push can be set per phase: `Board` draws the viewBox and had been fetching
+   * the document's setting itself, which was correct only while there was one
+   * setting for the whole film. A phase-level choice read at the top of the
+   * document is a choice that never reaches the frame.
+   *
+   * Always present, unlike `shot`. There is no such thing as a phase with no
+   * bounds — a board with no camera is bounded by the crop and draws it.
+   */
+  frame: CameraFrame
 }
 
 /**
@@ -123,6 +136,20 @@ export interface RenderAct {
 function shotOf(system: System | undefined, act: Act): Shot | null {
   if (!system) return null
   return shotFor(system, act, viewFor(system))
+}
+
+/**
+ * The frame bounds for one act.
+ *
+ * No system means the gentle setting rather than nothing, which is the one
+ * place this differs from `shotOf` above: the editor poses with no system and
+ * must still be bounded, because those bounds also govern the frame a coach
+ * DRAGS. A hand-drawn frame that could be pulled tighter than any setting
+ * allows is a frame the film will not reproduce.
+ */
+function frameOf(system: System | undefined, act: Act): CameraFrame {
+  const p = pushAt(system, act)
+  return { tightest: p.tightest, widest: p.widest }
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -200,6 +227,7 @@ export function resolveAct(act: Act, system?: System): RenderAct {
     texts: (act.texts ?? []).map((t) => ({ ...t, opacity: 1 })),
     gear: (act.gear ?? []).map((g) => ({ ...g, opacity: 1 })),
     shot: shotOf(system, act),
+    frame: frameOf(system, act),
   }
 }
 
@@ -431,8 +459,23 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   // The camera travels on the same curve as the players, so the push-in and
   // the move arrive together instead of the frame chasing the ball.
   const shot = lerpShot(shotOf(system, from), shotOf(system, to), t)
+  /*
+   * The BOUNDS travel too, on the same curve.
+   *
+   * A film that goes Standard on phase 3 and Close on phase 4 changes what the
+   * frame is allowed to be halfway through a move. Snapping the bounds at the
+   * cut would jump the camera on the first frame of the move and then have it
+   * travel from the wrong place; blending them means the tighten is part of the
+   * same gesture as the pan, which is what a camera operator does.
+   */
+  const a = frameOf(system, from)
+  const b = frameOf(system, to)
+  const frame: CameraFrame = {
+    tightest: lerp(a.tightest, b.tightest, t),
+    widest: lerp(a.widest, b.widest, t),
+  }
 
-  return { tokens, balls, arrows, bands, texts, gear, shot }
+  return { tokens, balls, arrows, bands, texts, gear, shot, frame }
 }
 
 /**

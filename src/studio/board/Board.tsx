@@ -46,7 +46,7 @@ import {
   viewFor,
 } from './pitch'
 import type { PitchView } from './pitch'
-import { cameraRect, cameraViewBox, resolvePush } from '../camera'
+import { cameraRect, cameraViewBox } from '../camera'
 import { Pitch } from './PitchMarkings'
 import { Ball, Token } from './Token'
 import { Arrow, BlockBand, GearProp, TextNote, Zone, arrowGeometry, arrowRim } from './Overlays'
@@ -338,8 +338,14 @@ export function Board({
   // How close this system's camera is allowed to get. It bounds the drawn
   // outline for the same reason it bounds the film: below it there is not
   // enough pitch on screen to tell where you are. See ../camera.ts.
-  const tightest = resolvePush(system.push).tightest
-  const frame = showFrame && act.shot ? cameraRect(view, act.shot, tightest) : null
+  /*
+   * The pose's own bounds, not the document's. The push can be set per phase
+   * (see `Act.push` in ../schema.ts), and it arrives here on the RenderAct
+   * already resolved and already blended mid-move — which is the only way the
+   * editor, the viewer, the print sheet and both exporters get it right at once.
+   */
+  const push = act.frame
+  const frame = showFrame && act.shot ? cameraRect(view, act.shot, push) : null
   // A grip, in board units. Proportional to the crop so it is the same size on
   // screen whether the system is a full pitch or a penalty box.
   const grip = crop.w * 0.026
@@ -373,7 +379,7 @@ export function Board({
     <SurfaceContext.Provider value={surface.palette}>
     <svg
       ref={svgRef}
-      viewBox={cameraViewBox(view, shot, tightest)}
+      viewBox={cameraViewBox(view, shot, push)}
       className={className}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
