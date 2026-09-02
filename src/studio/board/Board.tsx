@@ -131,6 +131,15 @@ interface Props {
   /** Passing this makes the ball draggable; without it the ball is inert. */
   onBallPointerDown?: (id: string, e: React.PointerEvent<SVGGElement>) => void
   /**
+   * The ball the camera is following on this phase, ringed in gold.
+   *
+   * Editor only, exactly like `guides`, and for the same reason: it is the tool
+   * showing its working, not football. The viewer, the print sheet and both
+   * exporters pass nothing, so a ring cannot reach a film. See `Ball` in
+   * ./Token.tsx for why the choice needs drawing at all.
+   */
+  trackedBallId?: string | null
+  /**
    * Pressing a piece of writing: selects it, and starts dragging it.
    *
    * Withheld exactly like every other mark handler while a tool is drawing —
@@ -309,6 +318,7 @@ export function Board({
   gearHrefs,
   onZonePointerDown,
   onBallPointerDown,
+  trackedBallId = null,
   onBackgroundPointerDown,
   onFramePointerDown,
   ballHref,
@@ -662,6 +672,7 @@ export function Board({
                 href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
                 size={system.matchBallSize}
                 angle={(system.matchBallAngle ?? 0) + (b.angle ?? 0)}
+                tracked={trackedBallId === b.id}
               />
             </g>
           )

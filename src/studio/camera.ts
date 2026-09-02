@@ -52,7 +52,7 @@
 
 import { PITCH, U, cropRect, toMetres, toUnits } from './board/pitch'
 import type { PitchView } from './board/pitch'
-import { ballsOf, type Act, type Shot, type System } from './schema'
+import { ballsOf, type Act, type BallMark, type Shot, type System } from './schema'
 
 /*
  * `Shot` itself lives in ./schema.ts, because a coach can now draw one by hand
@@ -194,12 +194,101 @@ interface Pt {
 }
 
 /**
+ * WHICH BALL THE CAMERA IS FOLLOWING, on a phase that has several.
+ *
+ * ── WHY IT LOOKS BACKWARDS INSTEAD OF BEING WRITTEN FORWARDS ────────────────
+ *
+ * `Act.trackingBallId` is not "the ball this phase tracks". It is "FROM this
+ * phase on, track this ball" — a choice made once, on the phase the coach made
+ * it on, and written nowhere else. Every later phase inherits it by finding it
+ * here.
+ *
+ * The obvious alternative — stamp the id onto this act and every act after it —
+ * is what this replaced, and it loses the coach's work. Pick ball A on phase 1,
+ * ball B on phase 5, then go back and change phase 1 to ball C: the stamp runs
+ * to the end of the film and phase 5's choice is gone, silently, on an edit
+ * that was only supposed to touch the opening. Reading backwards cannot do
+ * that. The nearest choice at or before the phase wins, so an earlier edit
+ * governs exactly the phases that have not made a choice of their own.
+ *
+ * THREE STATES, and the middle one is why this is `string | null | undefined`:
+ *
+ *  · undefined — this phase said nothing. Inherit whatever came before it.
+ *  · a string  — from here on, follow that ball.
+ *  · null      — from here on, follow NO particular ball. This is how a coach
+ *                takes the reference off again without the phase before it
+ *                putting it straight back, and it is the reason `undefined`
+ *                could not be made to mean both "nothing said" and "none
+ *                wanted".
+ *
+ * A document written by the version that stamped forwards reads back the same
+ * through here: a run of identical ids resolves to that id at every phase in
+ * the run, which is what the run meant.
+ *
+ * `at` is the index of the phase the live choice was made on, or -1 for none.
+ */
+export function referenceBallChoice(
+  acts: Act[],
+  index: number,
+): { id: string | null; at: number } {
+  for (let i = Math.min(index, acts.length - 1); i >= 0; i--) {
+    const chosen = acts[i].trackingBallId
+    if (chosen !== undefined) return { id: chosen, at: i }
+  }
+  return { id: null, at: -1 }
+}
+
+/**
+ * The chosen ball's id at this phase, without asking where it was chosen.
+ *
+ * `at` is not decoration on the answer, it is the other half of it: the panel
+ * that says "following this ball" has to be able to say WHERE that was decided,
+ * or a coach standing on phase 9 wondering why the camera is on the wrong ball
+ * has nowhere to go to change it. Both come out of one walk so the sentence on
+ * screen and the shot in the film cannot disagree about which choice is live.
+ */
+export function referenceBallId(acts: Act[], index: number): string | null {
+  return referenceBallChoice(acts, index).id
+}
+
+/**
+ * The ball this phase's camera follows, or null to leave the phase wide.
+ *
+ * The phase is located in the DOCUMENT by id rather than by object identity,
+ * because the pose the exporters and the viewer hold is rebuilt rather than
+ * passed through — see ../tween.ts. A phase that is not in the document at all
+ * (a preview, one mid-insert) falls back to reading its own field, which is the
+ * only honest answer available without the film around it.
+ *
+ * ONE BALL ON THE PHASE STILL WINS ON ITS OWN. That is what every document did
+ * before any of this existed and it must not need a choice to keep doing it. It
+ * is also the graceful answer when the chosen ball is not on this phase — the
+ * coach picked one that has since been taken off, or one that only appears
+ * later — because following the only ball there is beats a camera that silently
+ * gives up on a phase with an obvious subject.
+ */
+export function trackedBall(system: System, act: Act): BallMark | null {
+  const balls = ballsOf(act)
+  if (balls.length === 0) return null
+
+  const i = system.acts.findIndex((a) => a.id === act.id)
+  const wanted = i < 0 ? (act.trackingBallId ?? null) : referenceBallId(system.acts, i)
+  if (wanted) {
+    const hit = balls.find((b) => b.id === wanted)
+    if (hit) return hit
+  }
+
+  return balls.length === 1 ? balls[0] : null
+}
+
+/**
  * What this phase is ABOUT, in percent-of-crop.
  *
  * THE BALL IS THE SUBJECT, AND WHEN THERE IS ONE IT IS THE ONLY SUBJECT.
  *
- * ONE ball. A phase with several is handled by `shotFor` before it reaches
- * here — there is no single subject to be had, so the camera goes manual.
+ * ONE ball, resolved by `trackedBall` and handed in. A phase with several and
+ * no choice made is handled by `shotFor` before it reaches here — there is no
+ * single subject to be had, so the camera goes manual.
  *
  * This used to read every mark on the board — arrows, cues, writing, gear,
  * zones — and frame the box that held them all. On a phase whose marks sit
@@ -234,18 +323,12 @@ interface Pt {
  * must not guess at, and the margin (see MARGIN in CAMERA_PUSHES) is wider than
  * any single piece of gear or line of type.
  */
-function interest(act: Act): Pt[] {
+function interest(act: Act, tracked: BallMark | null): Pt[] {
   const pts: Pt[] = []
   const at = (x: number, y: number) => pts.push({ x, y })
 
-  const balls = ballsOf(act)
-  let trackedBall = balls.length === 1 ? balls[0] : null
-  if (balls.length > 1 && act.trackingBallId) {
-    trackedBall = balls.find(b => b.id === act.trackingBallId) ?? null
-  }
-  
-  if (trackedBall) {
-    at(trackedBall.x, trackedBall.y)
+  if (tracked) {
+    at(tracked.x, tracked.y)
     return pts
   }
 
@@ -289,25 +372,27 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
   if (act.shot) return act.shot
   if (mode === 'manual') return cropRect(view)
   /*
-   * SEVERAL BALLS MEANS THE COACH DRIVES.
+   * SEVERAL BALLS MEANS THE COACH DRIVES, UNTIL THE COACH NAMES ONE.
    *
    * A camera that follows the ball needs there to be a ball to follow. Put six
-   * out for a rondo and there is no answer to "which one" that is not a guess:
-   * framing the box that holds them all is the whole pitch again, and picking
-   * one is the tool deciding what the phase is about on a phase where the coach
-   * has said it is about all of them.
+   * out for a rondo and there is no answer to "which one" that the tool can
+   * work out for itself: framing the box that holds them all is the whole pitch
+   * again, and picking one for them is the tool deciding what the phase is
+   * about on a phase where the coach has said it is about all of them.
    *
-   * So it hands the frame back. `act.shot` above is the frame a coach drew, and
-   * on a multi-ball phase it is the only thing that will move the camera —
-   * which is what manual means. With none drawn the phase plays wide, and wide
-   * is the honest picture of a drill with balls all over it.
+   * So it hands the frame back — unless the coach has said which one, which is
+   * what `trackedBall` reads. Then there IS an answer to "which one", it is
+   * theirs, and the camera follows it exactly as it follows a lone ball.
+   *
+   * With several balls and nothing named, `act.shot` above is the frame a coach
+   * drew and it is the only thing that will move the camera — which is what
+   * manual means. With none drawn the phase plays wide, and wide is the honest
+   * picture of a drill with balls all over it.
    */
-  const balls = ballsOf(act)
-  const hasTrackedBall = balls.length === 1 || (balls.length > 1 && act.trackingBallId && balls.some(b => b.id === act.trackingBallId))
-  
-  if (balls.length > 1 && !hasTrackedBall) return null
+  const tracked = trackedBall(system, act)
+  if (ballsOf(act).length > 1 && !tracked) return null
 
-  const pts = interest(act)
+  const pts = interest(act, tracked)
   /*
    * A phase about shape rather than about the ball, with nothing marked on it.
    * Staying wide is the honest answer; there is nothing here to point at.
@@ -317,7 +402,7 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
    * whole reason a ball phase no longer needs its neighbours for scale: the
    * frame is a fixed size the coach chose, panning to wherever the ball is.
    */
-  if (pts.length < (hasTrackedBall ? 1 : 2)) return null
+  if (pts.length < (tracked ? 1 : 2)) return null
 
   let x0 = Infinity
   let y0 = Infinity

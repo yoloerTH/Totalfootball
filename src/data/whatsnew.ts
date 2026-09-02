@@ -63,8 +63,8 @@ export const WHATS_NEW: NewsEntry[] = [
     id: 'track-reference-ball',
     date: '2026-09-02',
     kind: 'new',
-    title: 'Choose which ball the camera tracks',
-    body: 'When you have multiple match balls on the pitch, you can now choose exactly which one the camera should follow. Go to the Camera panel and press Track a specific ball, then choose the ball on the board. The camera will stay on it through the phases until you choose another.',
+    title: 'Choose which ball the camera follows',
+    body: 'Put six balls out for a rondo and the camera used to give up and shoot the whole pitch, because it had no way of knowing which one the drill is about. Now you can tell it. In the Camera panel press Track a specific ball, then click the ball you mean, and it is ringed in gold so you can see at a glance which one the shot is on. The choice runs from that phase to the end of the film, and it is only a choice about that phase onwards: pick a different ball later and the phases before it keep the one they had. The panel tells you which ball is being followed and which phase decided it, so a camera on the wrong ball is one click from being fixed at the phase that set it.',
     where: 'Track a specific ball, in the Camera panel',
   },
   {

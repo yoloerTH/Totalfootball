@@ -634,6 +634,7 @@ export function Ball({
   href,
   size = 1,
   angle = 0,
+  tracked = false,
 }: {
   idp: string
   cx: number
@@ -642,9 +643,23 @@ export function Ball({
   href?: string
   size?: number
   angle?: number
+  /**
+   * The ball the camera is following, ringed in gold.
+   *
+   * EDITOR ONLY, and the reason it is drawn at all is that the choice is
+   * otherwise invisible. Six identical balls on a rondo and one of them is the
+   * subject of the shot: without the ring the coach has no way to tell which,
+   * so the way to check the camera is on the right ball is to play the film and
+   * watch where it goes. The ring is the answer to "is it tracking that one?".
+   *
+   * Nothing else passes it — the viewer, the print sheet and both exporters
+   * leave it false, so a working mark cannot reach a film.
+   */
+  tracked?: boolean
 }) {
   const r = u(BALL_R * size)
   const gid = `${idp}-ball`
+  const p = useSurface()
   return (
     <g transform={angle ? `rotate(${angle} ${cx} ${cy})` : undefined}>
       <defs>
@@ -666,6 +681,30 @@ export function Ball({
         ry={r * 0.82}
         fill={`url(#${gid}-contact)`}
       />
+      {/*
+       * The camera's ring. Dashed and OUTSIDE the ball, the same gold the
+       * selected counter wears, so it reads as the tool marking the ball rather
+       * than as anything drawn on it — a solid ring at this size would look
+       * like part of the ball's own markings.
+       *
+       * Counter-rotated: the ball spins on a pass (see `angle`), and a dashed
+       * ring spinning with it is a ball with a propeller on it.
+       */}
+      {tracked && (
+        <g transform={angle ? `rotate(${-angle} ${cx} ${cy})` : undefined}>
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r * 2}
+            fill="none"
+            stroke={p.gold}
+            strokeWidth={r * 0.24}
+            strokeDasharray={`${r * 0.62} ${r * 0.5}`}
+            strokeLinecap="round"
+            opacity={0.95}
+          />
+        </g>
+      )}
       {href ? (
         // The asset is square and centred on the ball (see ../balls.ts), so the
         // bounding box IS the ball and no preserveAspectRatio fudge is needed.

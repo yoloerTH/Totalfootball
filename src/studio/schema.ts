@@ -449,16 +449,31 @@ export function carryForwardRemoveBall(
   return out
 }
 
-export function carryForwardTrackingBall(
-  acts: Act[],
-  fromIdx: number,
-  trackingBallId: string | undefined,
-): Act[] {
-  const out = acts.slice()
-  for (let i = fromIdx + 1; i < out.length; i++) {
-    out[i] = { ...out[i], trackingBallId }
-  }
-  return out
+/**
+ * Take a deleted ball out of every camera choice that named it.
+ *
+ * There is no `carryForwardTrackingBall` beside this and there must not be one.
+ * A tracking choice already reaches every later phase on its own — see
+ * `referenceBallId` in ./camera.ts — so stamping it forwards would write the
+ * same answer forty times and destroy any choice a later phase had made.
+ *
+ * This is the one edit that does have to travel, and it travels because the
+ * SUBJECT is gone rather than because the choice was: a phase pointing at a
+ * ball that is no longer on the board is a camera instruction nobody can see,
+ * read or correct. Cleared to `undefined` — nothing said — so the phase goes
+ * back to inheriting, rather than to `null`, which would assert that the coach
+ * wanted no reference here and would block an earlier choice from reaching the
+ * rest of the film.
+ *
+ * Only where the ball is actually gone. Deleting one ball off ONE phase leaves
+ * the same ball, and the same choice, standing on every other phase it is on.
+ */
+export function forgetTrackedBall(acts: Act[], id: string): Act[] {
+  return acts.map((a) => {
+    if (a.trackingBallId !== id) return a
+    if (ballsOf(a).some((b) => b.id === id)) return a
+    return { ...a, trackingBallId: undefined }
+  })
 }
 
 /** A field a coach's edit can travel across every act on. */
@@ -933,10 +948,21 @@ export interface Act {
    */
   balls?: BallMark[]
   /**
-   * The ID of the ball to track when there are multiple match balls.
-   * If unset when there are multiple balls, the camera goes wide.
+   * WHICH BALL THE CAMERA FOLLOWS, FROM THIS PHASE ON.
+   *
+   * Not "the ball this phase tracks" — the ball every phase from here to the
+   * next choice tracks. It is written on the phase the coach made the choice
+   * on and on no other, and read back by walking backwards; the argument for
+   * that, and for all three states, is at `referenceBallId` in ./camera.ts.
+   *
+   *  · undefined — this phase said nothing; inherit the choice before it.
+   *  · a string  — a `BallMark.id`. From here on, follow that ball.
+   *  · null      — from here on, follow no particular ball.
+   *
+   * It only decides anything on a phase carrying SEVERAL balls. One ball is its
+   * own answer, and no balls is a phase about something else.
    */
-  trackingBallId?: string
+  trackingBallId?: string | null
   arrows: Arrow[]
   bands: Band[]
   /**

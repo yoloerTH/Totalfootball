@@ -103,6 +103,7 @@ import {
   CAMERA_PUSHES,
   cameraRect,
   frameMetres,
+  referenceBallChoice,
   resolveCamera,
   resolvePush,
   viewMetres,
@@ -149,7 +150,7 @@ import {
   carryForwardRemove,
   carryForwardAddBall,
   carryForwardRemoveBall,
-  carryForwardTrackingBall,
+  forgetTrackedBall,
   type Cue,
   type Shot,
   type GearMark,
@@ -1672,13 +1673,43 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
       if (balls.length === 0) return s
       const id = selectedBallId ?? balls[balls.length - 1].id
       const acts = s.acts.map((x, j) => (j === i ? { ...x, ...ballFields(balls.filter((b) => b.id !== id)) } : x))
-      return { ...s, acts: carryRef.current ? carryForwardRemoveBall(acts, i, id) : acts }
+      const left = carryRef.current ? carryForwardRemoveBall(acts, i, id) : acts
+      // A camera pointed at a ball nobody can see is an instruction the coach
+      // cannot read or correct, so the ball takes its choice with it.
+      return { ...s, acts: forgetTrackedBall(left, id) }
     })
     if (selectedBallId) setSelection(null)
     seal()
   }
 
-
+  /*
+   * ── WHICH BALL THE CAMERA FOLLOWS ─────────────────────────────────────────
+   *
+   * Written on THIS phase and on no other. It reaches every phase after it by
+   * being read backwards from there — see `referenceBallChoice` in ../camera.ts
+   * — which is what makes "change it on a later phase and only the later ones
+   * move" true without this function knowing anything about later phases.
+   *
+   * It deliberately does not consult the carry-forward switch. That switch is
+   * for edits that are a POSE — where a man stands, whether he is dimmed — and
+   * whether they should travel is a real question every time. This is not a
+   * pose, it is an instruction to the camera with "from here on" written into
+   * its meaning, and a choice that stopped at one phase out of forty would be a
+   * camera that changed its mind on the next cut for no reason a coach could
+   * see.
+   *
+   *  · an id      — follow that ball, from here.
+   *  · null       — follow no particular ball, from here.
+   *  · undefined  — this phase stops saying anything, and goes back to
+   *                 inheriting whatever the phases before it decided.
+   */
+  const setReferenceBall = (id: string | null | undefined) => {
+    edit('track-ball', (s) => {
+      const i = Math.min(actIndexRef.current, s.acts.length - 1)
+      return { ...s, acts: s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: id } : x)) }
+    })
+    seal()
+  }
 
   const deleteSelection = useCallback((): boolean => {
     if (!selection) return false
@@ -1709,7 +1740,11 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           acts = carryForwardRemove(acts, i, 'gear', id)
         }
       }
-      return { ...s, acts, pitchLines: (s.pitchLines ?? []).filter((ar) => ar.id !== id) }
+      return {
+        ...s,
+        acts: forgetTrackedBall(acts, id),
+        pitchLines: (s.pitchLines ?? []).filter((ar) => ar.id !== id),
+      }
     })
     seal()
     setSelection(null)
@@ -3388,11 +3423,38 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     ? 'move'
     : dragging || pending
       ? 'dragging'
-      : isPickTool(tool)
+      : isPickTool(tool) || pickingReferenceBall
         ? 'pick'
         : drawing
           ? 'draw'
           : 'move'
+
+  /*
+   * An armed ball pick must not outlive the phase it was armed on.
+   *
+   * The choice is written on ONE phase, so an arm that survived a phase change
+   * would write it on the wrong one — the coach presses on phase 3, walks to
+   * phase 7 to look at something, clicks a ball there, and phase 7 quietly
+   * becomes the phase that decides the camera for the rest of the film. Arming
+   * a drawing tool or pressing Play drops it for the ordinary reason: the
+   * pointer now means something else.
+   */
+  useEffect(() => {
+    setPickingReferenceBall(false)
+  }, [actIndex, playing, tool])
+
+  // Escape is the way out of every armed state in the studio, and this is one.
+  useEffect(() => {
+    if (!pickingReferenceBall) return
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      setPickingReferenceBall(false)
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [pickingReferenceBall])
+
 
   // ── team + shape actions ───────────────────────────────────────────────────
 
@@ -4602,6 +4664,25 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
   const trackingFrom = system.acts.findIndex((a) => a.camera !== 'off')
   const phaseCameraSet = system.acts.some((a) => a.camera !== undefined)
   /*
+   * ── THE BALL THE CAMERA IS ON, FOR THIS PHASE ─────────────────────────────
+   *
+   * `phaseCamera`, not `camera`. The one above is the DOCUMENT's setting, which
+   * is the right thing for the segmented control to show. Whether there is a
+   * ball to choose is a question about the shot this phase will actually get,
+   * and a phase pinned off by Start tracking here gets none — offering to pick
+   * its reference ball would be offering to steer a camera that is not running.
+   *
+   * `referenceHere` is the chosen ball IF IT IS ON THIS PHASE. Null with an id
+   * still set means the coach chose a ball that has since left the board, which
+   * the panel says out loud rather than showing a control with nothing under
+   * it. See `referenceBallChoice` in ../camera.ts.
+   */
+  const phaseCamera = resolveCamera(act.camera ?? system.camera)
+  const reference = referenceBallChoice(system.acts, actIndex)
+  const referenceHere = reference.id ? (ballsHere.find((b) => b.id === reference.id) ?? null) : null
+  const chosenOnThisPhase = act.trackingBallId !== undefined
+  const canChooseBall = phaseCamera === 'follow' && ballsHere.length > 1
+  /*
    * Whether the board already wears the profile's kit.
    *
    * Compared case-insensitively on the four fields the kit actually is. It only
@@ -5018,6 +5099,10 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
            happens on Play. See `showFrame` in ../board/Board.tsx. */
         showFrame={!playing}
         multiSelect={multiSelect}
+        /* Which ball the camera is on, ringed. Editor only — see `trackedBallId`
+           in ../board/Board.tsx. Withheld unless this phase actually follows a
+           chosen one, so a lone ball is never ringed for nothing. */
+        trackedBallId={canChooseBall ? (referenceHere?.id ?? null) : null}
         /* Withheld while a drawing tool is armed, for the same reason marks
            are: a coach dragging out a zone across the frame's edge must not
            have the camera grab the gesture instead. */
@@ -5040,7 +5125,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           playing || dragging_tool || drawingRegion
             ? undefined
             : (id, e) => {
+                // Armed for a ball and given a player: the coach missed, or
+                // changed their mind. Either way it is a cancel, and it must
+                // not fall through into picking the man up.
                 if (pickingReferenceBall) {
+                  e.stopPropagation()
+                  e.preventDefault()
                   setPickingReferenceBall(false)
                   return
                 }
@@ -5130,15 +5220,12 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
             ? undefined
             : (id, e) => {
                 if (pickingReferenceBall) {
+                  // Picked, not grabbed: the press must not also start dragging
+                  // the ball the coach only meant to point at.
                   e.stopPropagation()
                   e.preventDefault()
                   setPickingReferenceBall(false)
-                  edit('track-ball', (s) => {
-                    const i = Math.min(actIndexRef.current, s.acts.length - 1)
-                    const acts = s.acts.map((x, j) => (j === i ? { ...x, trackingBallId: id } : x))
-                    return { ...s, acts: carryRef.current ? carryForwardTrackingBall(acts, i, id) : acts }
-                  })
-                  seal()
+                  setReferenceBall(id)
                   return
                 }
                 if (multiSelect) {
@@ -6168,17 +6255,37 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
                 <Button onClick={trackFromStart}>Track from the start</Button>
               </Tip>
             )}
-            {ballsHere.length > 1 && camera === 'follow' && (
+            {canChooseBall && (
               <Tip
-                text="Click this, then pick a ball on the pitch to set it as the reference ball for the camera."
+                text={`Press this, then click a ball on the board. That ball is the one the camera follows, on this ${PHASE.one} and every ${PHASE.one} after it, until another choice is made further on. Escape backs out.`}
                 title="Track a specific ball"
               >
                 <Button
                   onClick={() => setPickingReferenceBall(!pickingReferenceBall)}
                   active={pickingReferenceBall}
                 >
-                  {pickingReferenceBall ? 'Select a ball...' : 'Track a specific ball'}
+                  {pickingReferenceBall
+                    ? 'Click a ball'
+                    : referenceHere
+                      ? 'Track a different ball'
+                      : 'Track a specific ball'}
                 </Button>
+              </Tip>
+            )}
+            {canChooseBall && chosenOnThisPhase && (
+              <Tip
+                text={`Takes this ${PHASE.one} out of the decision. It goes back to following whatever the ${PHASE.many} before it chose, and so does everything after it.`}
+                title="Clear the choice here"
+              >
+                <Button onClick={() => setReferenceBall(undefined)}>Clear the choice here</Button>
+              </Tip>
+            )}
+            {canChooseBall && !chosenOnThisPhase && referenceHere && (
+              <Tip
+                text={`Stops following any one ball, from this ${PHASE.one} on. Everything before it keeps the ball it was given.`}
+                title="Stop following one"
+              >
+                <Button onClick={() => setReferenceBall(null)}>Stop following one</Button>
               </Tip>
             )}
           </div>
@@ -6187,6 +6294,36 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
               Tracking starts at {PHASE.one}{' '}
               <span className="font-bold text-ink-soft">{Math.max(0, trackingFrom) + 1}</span>.
               Everything before it is shot wide.
+            </p>
+          )}
+
+          {canChooseBall && (
+            <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+              {referenceHere ? (
+                <>
+                  Following the{' '}
+                  <span className="font-bold text-ink-soft">ball ringed in gold</span>
+                  {chosenOnThisPhase ? (
+                    <> from this {PHASE.one} on.</>
+                  ) : (
+                    <>
+                      , chosen on {PHASE.one}{' '}
+                      <span className="font-bold text-ink-soft">{reference.at + 1}</span>.
+                    </>
+                  )}
+                </>
+              ) : reference.id ? (
+                <>
+                  The ball this {PHASE.one} was following is not on it any more, so it is shot
+                  wide. Pick another one.
+                </>
+              ) : (
+                <>
+                  <span className="font-bold text-ink-soft">{ballsHere.length} balls</span> and none
+                  chosen, so this {PHASE.one} is shot wide. Pick one and every {PHASE.one} after it
+                  follows the same ball.
+                </>
+              )}
             </p>
           )}
 
