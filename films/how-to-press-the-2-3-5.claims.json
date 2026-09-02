@@ -1,0 +1,143 @@
+[
+ {
+  "act": 7,
+  "kind": "count",
+  "text": "2 v 3",
+  "where": {
+   "x": [
+    ">",
+    78
+   ]
+  },
+  "themFirst": false
+ },
+ {
+  "act": 8,
+  "kind": "count",
+  "text": "4 v 5",
+  "where": {
+   "x": [
+    "<",
+    62
+   ],
+   "outfield": true
+  },
+  "themFirst": false
+ },
+ {
+  "act": 9,
+  "kind": "count",
+  "text": "2 v 3",
+  "where": {
+   "x": [
+    ">",
+    78
+   ]
+  },
+  "themFirst": false
+ },
+ {
+  "act": 9,
+  "kind": "count",
+  "text": "4 v 5",
+  "where": {
+   "x": [
+    "<",
+    62
+   ],
+   "outfield": true
+  },
+  "themFirst": false
+ },
+ {
+  "act": 13,
+  "kind": "distance",
+  "a": "us-ST",
+  "b": "ball",
+  "metres": 16.62,
+  "text": "17 M FROM THE BALL"
+ },
+ {
+  "act": 23,
+  "kind": "distance",
+  "a": "us-ST",
+  "b": "us-CF",
+  "metres": 8.16,
+  "text": "8 M APART"
+ },
+ {
+  "act": 32,
+  "kind": "distance",
+  "a": "us-LCM",
+  "b": {
+   "x": 100,
+   "y": 50
+  },
+  "metres": 30.5,
+  "text": "31 M FROM GOAL"
+ },
+ {
+  "act": 39,
+  "kind": "distance",
+  "a": "them-CDM",
+  "b": "ball",
+  "metres": 24.5,
+  "text": "THEIR PIVOT IS 24 M AWAY"
+ },
+ {
+  "act": 42,
+  "kind": "count",
+  "text": "4 v 2",
+  "where": {
+   "x": [
+    "between",
+    60,
+    82
+   ]
+  },
+  "themFirst": false
+ },
+ {
+  "act": 47,
+  "kind": "count",
+  "text": "4 v 5",
+  "where": {
+   "x": [
+    "<",
+    62
+   ],
+   "outfield": true
+  },
+  "themFirst": false
+ },
+ {
+  "act": 48,
+  "kind": "count",
+  "text": "5 v 5",
+  "where": {
+   "x": [
+    "<",
+    62
+   ],
+   "outfield": true
+  },
+  "themFirst": false
+ },
+ {
+  "act": 50,
+  "kind": "count",
+  "text": "3 v 2 THE OTHER WAY",
+  "where": {
+   "y": [
+    ">",
+    60
+   ],
+   "x": [
+    "<",
+    82
+   ],
+   "outfield": true
+  },
+  "themFirst": true
+ }
+]
