@@ -53,7 +53,8 @@ async function rest(path, init = {}) {
     },
   })
   if (!res.ok) throw new Error(`supabase ${path} ${res.status}: ${await res.text()}`)
-  return res.status === 204 ? null : res.json()
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
