@@ -1,5 +1,3 @@
-import type { Config } from '@netlify/functions'
-
 const page = (status: number, heading: string, message: string) =>
   new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -70,4 +68,4 @@ export default async (request: Request) => {
   )
 }
 
-export const config: Config = { path: '/api/vote' }
+export const config = { path: '/api/vote' }
