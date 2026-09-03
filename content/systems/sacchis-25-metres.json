@@ -10,8 +10,8 @@
   "matchBall": "trionda",
   "camera": "follow",
   "push": "gentle",
-  "hold": 2600,
-  "move": 1400,
+  "hold": 0,
+  "move": 1000,
   "keepShape": true,
   "teams": {
     "us": {
@@ -247,7 +247,235 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "gentle"
+    },
+    {
+      "id": "act-45m",
+      "title": "What everybody else did",
+      "caption": "Everybody else defended 45 metres. Sacchi refused to defend more than 25.",
+      "notes": "Italian football in 1987 defended a much bigger piece of grass than this. A deep back line, a libero behind it to clean up, and forty-five metres of open pitch between the last defender and the centre-forward. Sacchi did not invent pressing. He halved the distance it had to be done over, which is what made it survivable.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 11.43,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 23.81,
+          "y": 14.71,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 23.81,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 23.81,
+          "y": 58.82,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 23.81,
+          "y": 80.88,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 45.71,
+          "y": 14.71,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 44.76,
+          "y": 38.24,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 44.76,
+          "y": 61.76,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 45.71,
+          "y": 82.35,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 66.67,
+          "y": 39.71,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 66.67,
+          "y": 60.29,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-rb",
+          "x": 83.81,
+          "y": 11.76,
+          "label": "RB",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-rcb",
+          "x": 85.71,
+          "y": 38.24,
+          "label": "CB",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-lcb",
+          "x": 85.71,
+          "y": 61.76,
+          "label": "CB",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-lb",
+          "x": 83.81,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-6",
+          "x": 76.19,
+          "y": 50,
+          "label": "6",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-8",
+          "x": 68.57,
+          "y": 29.41,
+          "label": "8",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-10",
+          "x": 68.57,
+          "y": 70.59,
+          "label": "10",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-rw",
+          "x": 57.14,
+          "y": 11.76,
+          "label": "RW",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-9",
+          "x": 55.24,
+          "y": 50,
+          "label": "9",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-lw",
+          "x": 57.14,
+          "y": 88.24,
+          "label": "LW",
+          "side": "them",
+          "dim": true
+        }
+      ],
+      "ball": {
+        "x": 85.71,
+        "y": 38.24
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 85.71,
+          "y": 38.24
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-old-measure",
+          "kind": "line",
+          "from": {
+            "x": 23.81,
+            "y": 94.85
+          },
+          "to": {
+            "x": 66.67,
+            "y": 94.85
+          },
+          "label": "45 metres"
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-old",
+          "kind": "zone",
+          "rect": {
+            "x": 23.81,
+            "y": 0,
+            "w": 42.86,
+            "h": 100
+          },
+          "tone": "grey",
+          "strength": "soft",
+          "edge": "dashed"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-old",
+          "x": 30.48,
+          "y": 19.12,
+          "text": "Everybody else defended\nforty-five metres.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "gentle"
     },
     {
       "id": "act-references",
@@ -507,7 +735,251 @@
           "align": "left",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "standard"
+    },
+    {
+      "id": "act-move-as-one",
+      "title": "One body",
+      "caption": "The ball moves 16 metres. All eleven move it with it.",
+      "notes": "The ball is played square across their two centre-backs and the entire block slides with it, the same distance, in the same direction, at the same moment. The shape does not change. This is the drill Milan did without a ball, on a rope, for hours, and it is the reason nobody in the block ever has to run to recover.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 24.76,
+          "y": 55.88,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 49.52,
+          "y": 26.47,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 49.52,
+          "y": 48.53,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 49.52,
+          "y": 69.12,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 49.52,
+          "y": 91.18,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 60.95,
+          "y": 26.47,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 60,
+          "y": 50,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 60,
+          "y": 67.65,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 60.95,
+          "y": 91.18,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 73.33,
+          "y": 50,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 73.33,
+          "y": 67.65,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 80.95,
+          "y": 11.76,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 83.81,
+          "y": 38.24,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 83.81,
+          "y": 61.76,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 80.95,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 77.14,
+          "y": 58.82,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 66.67,
+          "y": 32.35,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 66.67,
+          "y": 67.65,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 57.14,
+          "y": 10.29,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 53.33,
+          "y": 38.24,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 55.24,
+          "y": 94.12,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 83.81,
+        "y": 61.76
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 83.81,
+          "y": 61.76
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-across",
+          "kind": "pass",
+          "from": {
+            "x": 83.81,
+            "y": 38.24
+          },
+          "to": {
+            "x": 83.81,
+            "y": 61.76
+          },
+          "fromId": "o-rcb",
+          "toId": "o-lcb",
+          "label": "16 metres"
+        },
+        {
+          "id": "ar-slide-back",
+          "kind": "run",
+          "from": {
+            "x": 49.52,
+            "y": 39.71
+          },
+          "to": {
+            "x": 49.52,
+            "y": 47.06
+          },
+          "opacity": 0.6
+        },
+        {
+          "id": "ar-slide-mid",
+          "kind": "run",
+          "from": {
+            "x": 60,
+            "y": 41.18
+          },
+          "to": {
+            "x": 60,
+            "y": 48.53
+          },
+          "opacity": 0.6
+        },
+        {
+          "id": "ar-slide-top",
+          "kind": "run",
+          "from": {
+            "x": 73.33,
+            "y": 41.18
+          },
+          "to": {
+            "x": 73.33,
+            "y": 48.53
+          },
+          "opacity": 0.6
+        }
+      ],
+      "bands": [],
+      "texts": [
+        {
+          "id": "tx-one-body",
+          "x": 32.38,
+          "y": 17.65,
+          "text": "One body.\nNot eleven players.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "gentle"
     },
     {
       "id": "act-shut",
@@ -741,13 +1213,245 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "standard"
+    },
+    {
+      "id": "act-dive-in",
+      "title": "What it costs if one man goes",
+      "caption": "If one man goes early, the pass goes past him and the block has a hole in it.",
+      "notes": "This is the failure the whole system is built to avoid, and it is worth showing because it is the only way to explain why the pressing looks so patient. The nine commits, gets there half a second early, and the centre-back plays into the space he left. Nobody behind him has moved, so the hole is real. Sacchi fined it.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 26.67,
+          "y": 47.06,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 52.38,
+          "y": 14.71,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 52.38,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 52.38,
+          "y": 57.35,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 52.38,
+          "y": 77.94,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 63.81,
+          "y": 16.18,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 62.86,
+          "y": 38.24,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 62.86,
+          "y": 55.88,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 63.81,
+          "y": 77.94,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 81.43,
+          "y": 38.24,
+          "label": "9",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-10",
+          "x": 75.24,
+          "y": 55.88,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 11.76,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 83.81,
+          "y": 38.24,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 83.81,
+          "y": 63.24,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 75.24,
+          "y": 47.06,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 68.57,
+          "y": 30.88,
+          "label": "8",
+          "side": "them",
+          "cue": "SPARE"
+        },
+        {
+          "id": "o-10",
+          "x": 69.52,
+          "y": 66.18,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 59.05,
+          "y": 10.29,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 56.19,
+          "y": 48.53,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 59.05,
+          "y": 89.71,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 83.81,
+        "y": 38.24
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 83.81,
+          "y": 38.24
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-dive",
+          "kind": "press",
+          "from": {
+            "x": 77.14,
+            "y": 38.24
+          },
+          "to": {
+            "x": 80.48,
+            "y": 38.24
+          }
+        },
+        {
+          "id": "ar-through",
+          "kind": "pass",
+          "from": {
+            "x": 83.81,
+            "y": 38.24
+          },
+          "to": {
+            "x": 70,
+            "y": 31.62
+          },
+          "opacity": 0.8
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-hole",
+          "kind": "danger",
+          "rect": {
+            "x": 60.95,
+            "y": 17.65,
+            "w": 19.05,
+            "h": 29.41
+          },
+          "tone": "red",
+          "strength": "normal",
+          "edge": "solid",
+          "label": "the hole"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-cost",
+          "x": 34.29,
+          "y": 76.47,
+          "text": "One man dives in.\nThe system is gone.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "close"
     },
     {
       "id": "act-trigger",
       "title": "The trigger is the pass to the full-back",
       "caption": "One pass. Eleven minds. The whole side leans before it arrives.",
-      "notes": "The press was not started by a whistle or by a mistake. It was started by a specific pass — out to the full-back, the weakest passer on the pitch, in the narrowest part of it. The side moves on the pass, not on the reception.",
+      "notes": "The press was not started by a whistle or by a mistake. It was started by a specific pass, out to the full-back, the weakest passer on the pitch, in the narrowest part of it. The side moves on the pass, not on the reception.",
       "tokens": [
         {
           "id": "u-gk",
@@ -961,7 +1665,266 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "standard"
+    },
+    {
+      "id": "act-in-the-air",
+      "title": "The half second before",
+      "caption": "Six men are already moving. The ball has not landed.",
+      "notes": "This is the frame that separates the system from a hard-working team. The ball is still travelling and the trap is already three-quarters built. Nobody is reacting to the full-back receiving it, because by then it is too late to arrive together.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 29.52,
+          "y": 47.06,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 61.9,
+          "y": 14.71,
+          "label": "LB",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-lcb",
+          "x": 56.19,
+          "y": 33.82,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 56.19,
+          "y": 55.88,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 56.19,
+          "y": 76.47,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 71.9,
+          "y": 14.71,
+          "label": "LM",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-6",
+          "x": 71.43,
+          "y": 29.41,
+          "label": "6",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-8",
+          "x": 65.24,
+          "y": 51.47,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 64.76,
+          "y": 72.06,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 79.05,
+          "y": 29.41,
+          "label": "9",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-10",
+          "x": 74.76,
+          "y": 52.94,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 10.29,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85.24,
+          "y": 39.71,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 64.71,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 78.1,
+          "y": 44.12,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 68.1,
+          "y": 38.24,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 73.33,
+          "y": 64.71,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 66.67,
+          "y": 8.82,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 58.1,
+          "y": 47.06,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 61.9,
+          "y": 89.71,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 82.86,
+        "y": 25
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 82.86,
+          "y": 25
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-flight",
+          "kind": "pass",
+          "from": {
+            "x": 85.24,
+            "y": 39.71
+          },
+          "to": {
+            "x": 81.9,
+            "y": 10.29
+          },
+          "opacity": 0.5
+        },
+        {
+          "id": "ar-lean-lb",
+          "kind": "run",
+          "from": {
+            "x": 54.29,
+            "y": 13.24
+          },
+          "to": {
+            "x": 60.95,
+            "y": 14.71
+          },
+          "opacity": 0.7
+        },
+        {
+          "id": "ar-lean-lm",
+          "kind": "run",
+          "from": {
+            "x": 67.62,
+            "y": 14.71
+          },
+          "to": {
+            "x": 71.43,
+            "y": 14.71
+          },
+          "opacity": 0.7
+        },
+        {
+          "id": "ar-lean-6",
+          "kind": "run",
+          "from": {
+            "x": 64.76,
+            "y": 36.76
+          },
+          "to": {
+            "x": 70.48,
+            "y": 30.15
+          },
+          "opacity": 0.7
+        },
+        {
+          "id": "ar-lean-rm",
+          "kind": "run",
+          "from": {
+            "x": 65.71,
+            "y": 75
+          },
+          "to": {
+            "x": 64.76,
+            "y": 72.06
+          },
+          "opacity": 0.7
+        }
+      ],
+      "bands": [],
+      "texts": [
+        {
+          "id": "tx-air",
+          "x": 38.1,
+          "y": 20.59,
+          "text": "The ball has not\nlanded yet.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "close"
     },
     {
       "id": "act-trap",
@@ -1024,8 +1987,8 @@
         },
         {
           "id": "u-8",
-          "x": 65.71,
-          "y": 48.53,
+          "x": 66.67,
+          "y": 50,
           "label": "8",
           "side": "us",
           "cue": "BALANCE"
@@ -1118,7 +2081,7 @@
         },
         {
           "id": "o-9",
-          "x": 54.29,
+          "x": 60.95,
           "y": 45.59,
           "label": "9",
           "side": "them"
@@ -1172,8 +2135,8 @@
           "id": "ar-trap-6",
           "kind": "press",
           "from": {
-            "x": 65.71,
-            "y": 38.24
+            "x": 66.67,
+            "y": 41.18
           },
           "to": {
             "x": 71.43,
@@ -1207,7 +2170,276 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "close"
+    },
+    {
+      "id": "act-four-dead",
+      "title": "Four ways out, all of them shut",
+      "caption": "Back, inside, down the line, or the winger. There is a man on all four.",
+      "notes": "A press is only a press when it takes the options away rather than the time. The full-back has four passes available and every one of them arrives at a Milan player, so he has the ball, the touchline, and nothing to do with either.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 31.43,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 72.38,
+          "y": 11.76,
+          "label": "LB",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-lcb",
+          "x": 60.95,
+          "y": 32.35,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 60.95,
+          "y": 54.41,
+          "label": "CB",
+          "side": "us",
+          "cue": "SPARE"
+        },
+        {
+          "id": "u-rb",
+          "x": 60.95,
+          "y": 75,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 78.1,
+          "y": 10.29,
+          "label": "LM",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-6",
+          "x": 75.24,
+          "y": 25,
+          "label": "6",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-8",
+          "x": 66.67,
+          "y": 48.53,
+          "label": "8",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-rm",
+          "x": 63.81,
+          "y": 64.71,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 81.9,
+          "y": 32.35,
+          "label": "9",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-10",
+          "x": 75.24,
+          "y": 52.94,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 80.95,
+          "y": 5.88,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 86.67,
+          "y": 38.24,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 66.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 79.05,
+          "y": 44.12,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 70.48,
+          "y": 39.71,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 75.24,
+          "y": 63.24,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 73.33,
+          "y": 5.88,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 61.9,
+          "y": 44.12,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 62.86,
+          "y": 89.71,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 80.95,
+        "y": 5.88
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 80.95,
+          "y": 5.88
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-opt-wing",
+          "kind": "pass",
+          "from": {
+            "x": 80.95,
+            "y": 5.88
+          },
+          "to": {
+            "x": 73.33,
+            "y": 5.88
+          },
+          "fromId": "o-rb",
+          "toId": "o-rw",
+          "opacity": 0.45
+        },
+        {
+          "id": "ar-opt-back",
+          "kind": "pass",
+          "from": {
+            "x": 80.95,
+            "y": 5.88
+          },
+          "to": {
+            "x": 86.67,
+            "y": 38.24
+          },
+          "fromId": "o-rb",
+          "toId": "o-rcb",
+          "opacity": 0.45
+        },
+        {
+          "id": "ar-opt-in",
+          "kind": "pass",
+          "from": {
+            "x": 80.95,
+            "y": 5.88
+          },
+          "to": {
+            "x": 79.05,
+            "y": 44.12
+          },
+          "fromId": "o-rb",
+          "toId": "o-6",
+          "opacity": 0.45
+        },
+        {
+          "id": "ar-opt-long",
+          "kind": "pass",
+          "from": {
+            "x": 80.95,
+            "y": 5.88
+          },
+          "to": {
+            "x": 64.76,
+            "y": 29.41
+          },
+          "fromId": "o-rb",
+          "opacity": 0.45
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-trap",
+          "kind": "danger",
+          "rect": {
+            "x": 68.57,
+            "y": 0,
+            "w": 22.86,
+            "h": 32.35
+          },
+          "tone": "red",
+          "strength": "normal",
+          "edge": "solid"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-dead",
+          "x": 40,
+          "y": 23.53,
+          "text": "Four ways out.\nAll four are shut.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "close"
     },
     {
       "id": "act-concede",
@@ -1269,8 +2501,8 @@
         },
         {
           "id": "u-8",
-          "x": 65.71,
-          "y": 48.53,
+          "x": 66.67,
+          "y": 50,
           "label": "8",
           "side": "us",
           "cue": "BALANCE"
@@ -1363,7 +2595,7 @@
         },
         {
           "id": "o-9",
-          "x": 54.29,
+          "x": 60.95,
           "y": 45.59,
           "label": "9",
           "side": "them"
@@ -1432,7 +2664,7 @@
           "label": "the side we concede"
         },
         {
-          "id": "bd-trap2",
+          "id": "bd-trap",
           "kind": "danger",
           "rect": {
             "x": 68.57,
@@ -1456,91 +2688,350 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "gentle"
     },
     {
-      "id": "act-line-steps",
-      "title": "Attacking their attack",
-      "caption": "The four go together. 8 metres, on a call, and the pass is behind them.",
-      "notes": "Baresi calls it and the four go together. Offside stopped being a way of surviving a ball over the top and became a way of taking possession back: the line steps, the pass is already gone, and the ball is ours in their half rather than a duel in ours. The grass behind is not defended by anybody. It is defended by the law.",
+      "id": "act-switch-arrives",
+      "title": "He plays it, and it still does not work",
+      "caption": "The ball travels 54 metres. The block travels 20, and gets there first.",
+      "notes": "The honest version of the trade. He does find the switch and it does arrive. But a ball that spends that long in the air is a ball the block has time to travel with, and the man who receives it on the far touchline has a Milan player on him before he can take a second touch. The far side was never free. It was only far.",
       "tokens": [
         {
           "id": "u-gk",
-          "x": 33.33,
-          "y": 50,
+          "x": 31.43,
+          "y": 58.82,
           "label": "GK",
           "side": "us"
         },
         {
           "id": "u-lb",
-          "x": 66.67,
-          "y": 14.71,
+          "x": 64.76,
+          "y": 26.47,
           "label": "LB",
-          "side": "us",
-          "cue": "BALANCE"
+          "side": "us"
         },
         {
           "id": "u-lcb",
-          "x": 66.67,
-          "y": 35.29,
+          "x": 59.05,
+          "y": 50,
           "label": "CB",
-          "side": "us",
-          "cue": "BALANCE"
+          "side": "us"
         },
         {
           "id": "u-rcb",
-          "x": 66.67,
-          "y": 55.88,
+          "x": 59.05,
+          "y": 70.59,
           "label": "CB",
           "side": "us",
           "cue": "BALANCE"
         },
         {
           "id": "u-rb",
-          "x": 66.67,
-          "y": 76.47,
+          "x": 62.86,
+          "y": 88.24,
           "label": "RB",
-          "side": "us",
-          "cue": "BALANCE"
+          "side": "us"
         },
         {
           "id": "u-lm",
-          "x": 76.19,
-          "y": 14.71,
+          "x": 70.48,
+          "y": 29.41,
           "label": "LM",
           "side": "us"
         },
         {
           "id": "u-6",
-          "x": 74.29,
-          "y": 35.29,
+          "x": 68.57,
+          "y": 47.06,
           "label": "6",
           "side": "us"
         },
         {
           "id": "u-8",
+          "x": 66.67,
+          "y": 66.18,
+          "label": "8",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "u-rm",
           "x": 74.29,
-          "y": 60.29,
+          "y": 82.35,
+          "label": "RM",
+          "side": "us",
+          "cue": "PRESS"
+        },
+        {
+          "id": "u-9",
+          "x": 78.1,
+          "y": 47.06,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 76.19,
+          "y": 64.71,
+          "label": "10",
+          "side": "us",
+          "cue": "COVER"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 14.71,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85.71,
+          "y": 41.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 67.65,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 81.9,
+          "y": 55.88,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 76.19,
+          "y": 23.53,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 78.1,
+          "y": 73.53,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 68.57,
+          "y": 11.76,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 62.86,
+          "y": 38.24,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 66.67,
+          "y": 94.12,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 81.9,
+        "y": 88.24
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 81.9,
+          "y": 88.24
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-switch",
+          "kind": "switch",
+          "from": {
+            "x": 81.9,
+            "y": 8.82
+          },
+          "to": {
+            "x": 81.9,
+            "y": 88.24
+          },
+          "bend": 0.35,
+          "opacity": 0.55
+        },
+        {
+          "id": "ar-travel-rm",
+          "kind": "run",
+          "from": {
+            "x": 60.95,
+            "y": 58.82
+          },
+          "to": {
+            "x": 73.33,
+            "y": 80.88
+          },
+          "opacity": 0.8
+        },
+        {
+          "id": "ar-travel-8",
+          "kind": "run",
+          "from": {
+            "x": 66.67,
+            "y": 50
+          },
+          "to": {
+            "x": 66.67,
+            "y": 64.71
+          },
+          "opacity": 0.6
+        },
+        {
+          "id": "ar-travel-rcb",
+          "kind": "run",
+          "from": {
+            "x": 57.14,
+            "y": 52.94
+          },
+          "to": {
+            "x": 59.05,
+            "y": 69.12
+          },
+          "opacity": 0.6
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-covered",
+          "kind": "zone",
+          "rect": {
+            "x": 60.95,
+            "y": 61.76,
+            "w": 34.29,
+            "h": 38.24
+          },
+          "tone": "green",
+          "strength": "soft",
+          "edge": "dashed"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-arrives",
+          "x": 40,
+          "y": 20.59,
+          "text": "It arrives.\nSo do we.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "gentle"
+    },
+    {
+      "id": "act-goes-long",
+      "title": "The one ball he has left",
+      "caption": "He cannot go back, inside or down the line. So he loads the only ball left.",
+      "notes": "The back four has squared up at 62 metres and the centre-forward has dropped onto the last man to stay legal. He is onside. Everything up to this point has been about removing the short passes, and it has worked: the only ball left is the one over the top, which is the ball this defence wants him to choose.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 32.38,
+          "y": 48.53,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 59.05,
+          "y": 17.65,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 59.05,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-rcb",
+          "x": 59.05,
+          "y": 58.82,
+          "label": "CB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-rb",
+          "x": 59.05,
+          "y": 79.41,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 76.19,
+          "y": 13.24,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 72.38,
+          "y": 29.41,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 66.67,
+          "y": 50,
           "label": "8",
           "side": "us"
         },
         {
           "id": "u-rm",
-          "x": 75.24,
-          "y": 77.94,
+          "x": 62.86,
+          "y": 67.65,
           "label": "RM",
           "side": "us"
         },
         {
           "id": "u-9",
           "x": 80.95,
-          "y": 30.88,
+          "y": 29.41,
           "label": "9",
           "side": "us"
         },
         {
           "id": "u-10",
-          "x": 79.05,
+          "x": 75.24,
           "y": 52.94,
           "label": "10",
           "side": "us"
@@ -1554,7 +3045,237 @@
         },
         {
           "id": "o-rb",
-          "x": 80.95,
+          "x": 81.9,
+          "y": 8.82,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85.71,
+          "y": 38.24,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 66.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 79.05,
+          "y": 44.12,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 70.48,
+          "y": 41.18,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 75.24,
+          "y": 63.24,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 73.33,
+          "y": 5.88,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 60.95,
+          "y": 45.59,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 66.67,
+          "y": 88.24,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 81.9,
+        "y": 8.82
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 81.9,
+          "y": 8.82
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-offside-line",
+          "kind": "line",
+          "from": {
+            "x": 59.05,
+            "y": 4.41
+          },
+          "to": {
+            "x": 59.05,
+            "y": 95.59
+          }
+        },
+        {
+          "id": "ar-long",
+          "kind": "pass",
+          "from": {
+            "x": 81.9,
+            "y": 8.82
+          },
+          "to": {
+            "x": 47.62,
+            "y": 44.12
+          },
+          "opacity": 0.4,
+          "label": "the only ball left"
+        }
+      ],
+      "bands": [],
+      "texts": [
+        {
+          "id": "tx-onside",
+          "x": 57.14,
+          "y": 45.59,
+          "text": "ONSIDE\nBY 2",
+          "size": "s",
+          "look": "halo",
+          "align": "center",
+          "weight": "black",
+          "tone": "green"
+        },
+        {
+          "id": "tx-only-ball",
+          "x": 38.1,
+          "y": 20.59,
+          "text": "He has one ball left.\nOver the top.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "standard"
+    },
+    {
+      "id": "act-line-steps",
+      "title": "Attacking their attack",
+      "caption": "The four go together. 8 metres, on one call, before the ball is struck.",
+      "notes": "Baresi calls it and the four go together, before the ball is struck rather than after it, because the law judges where the attacker stands at the moment of the pass. The centre-forward turns and runs back and does not get there. Offside stopped being a way of surviving a ball over the top and became a way of taking possession back.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 33.33,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 66.67,
+          "y": 17.65,
+          "label": "LB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-lcb",
+          "x": 66.67,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-rcb",
+          "x": 66.67,
+          "y": 58.82,
+          "label": "CB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-rb",
+          "x": 66.67,
+          "y": 79.41,
+          "label": "RB",
+          "side": "us",
+          "cue": "BALANCE"
+        },
+        {
+          "id": "u-lm",
+          "x": 76.19,
+          "y": 14.71,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 73.33,
+          "y": 30.88,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 72.38,
+          "y": 51.47,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 68.57,
+          "y": 69.12,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 81.9,
+          "y": 30.88,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 78.1,
+          "y": 54.41,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
           "y": 8.82,
           "label": "RB",
           "side": "them"
@@ -1590,27 +3311,300 @@
         {
           "id": "o-8",
           "x": 72.38,
-          "y": 44.12,
+          "y": 41.18,
           "label": "8",
           "side": "them"
         },
         {
           "id": "o-10",
-          "x": 71.43,
-          "y": 67.65,
+          "x": 76.19,
+          "y": 63.24,
           "label": "10",
           "side": "them"
         },
         {
           "id": "o-rw",
-          "x": 75.24,
+          "x": 73.33,
           "y": 5.88,
           "label": "RW",
           "side": "them"
         },
         {
           "id": "o-9",
-          "x": 54.29,
+          "x": 64.76,
+          "y": 45.59,
+          "label": "9",
+          "side": "them"
+        },
+        {
+          "id": "o-lw",
+          "x": 68.57,
+          "y": 88.24,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 81.9,
+        "y": 8.82
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 81.9,
+          "y": 8.82
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-offside-line",
+          "kind": "line",
+          "from": {
+            "x": 66.67,
+            "y": 4.41
+          },
+          "to": {
+            "x": 66.67,
+            "y": 92.65
+          }
+        },
+        {
+          "id": "ar-step-lb",
+          "kind": "run",
+          "from": {
+            "x": 59.05,
+            "y": 17.65
+          },
+          "to": {
+            "x": 65.71,
+            "y": 17.65
+          }
+        },
+        {
+          "id": "ar-step-lcb",
+          "kind": "run",
+          "from": {
+            "x": 59.05,
+            "y": 36.76
+          },
+          "to": {
+            "x": 65.71,
+            "y": 36.76
+          }
+        },
+        {
+          "id": "ar-step-rcb",
+          "kind": "run",
+          "from": {
+            "x": 59.05,
+            "y": 58.82
+          },
+          "to": {
+            "x": 65.71,
+            "y": 58.82
+          }
+        },
+        {
+          "id": "ar-step-rb",
+          "kind": "run",
+          "from": {
+            "x": 59.05,
+            "y": 79.41
+          },
+          "to": {
+            "x": 65.71,
+            "y": 79.41
+          }
+        },
+        {
+          "id": "ar-chase",
+          "kind": "run",
+          "from": {
+            "x": 60.95,
+            "y": 48.53
+          },
+          "to": {
+            "x": 63.81,
+            "y": 47.06
+          },
+          "opacity": 0.7
+        }
+      ],
+      "bands": [],
+      "texts": [
+        {
+          "id": "tx-offside",
+          "x": 61.9,
+          "y": 50,
+          "text": "OFFSIDE\nBY 2",
+          "size": "s",
+          "look": "halo",
+          "align": "center",
+          "weight": "black",
+          "tone": "red"
+        },
+        {
+          "id": "tx-rule",
+          "x": 38.1,
+          "y": 20.59,
+          "text": "Offside is not a defence.\nIt is an attack.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "standard"
+    },
+    {
+      "id": "act-flag",
+      "title": "Two metres",
+      "caption": "At the moment the pass leaves, he is 2 metres the wrong side of it.",
+      "notes": "The pass leaves and the ball runs through into grass that belongs to nobody. He is not thirteen metres out and stranded, he is two metres out and beaten, which is what the trap is for: it is decided by a call and a stride, not by a mistake.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 33.33,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 66.67,
+          "y": 17.65,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 66.67,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 66.67,
+          "y": 58.82,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 66.67,
+          "y": 79.41,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 77.14,
+          "y": 16.18,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 74.29,
+          "y": 32.35,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 73.33,
+          "y": 52.94,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 69.52,
+          "y": 70.59,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 82.86,
+          "y": 32.35,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 79.05,
+          "y": 55.88,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 8.82,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 86.67,
+          "y": 39.71,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 66.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 79.05,
+          "y": 44.12,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 72.38,
+          "y": 41.18,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 76.19,
+          "y": 63.24,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 73.33,
+          "y": 5.88,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 64.76,
           "y": 45.59,
           "label": "9",
           "side": "them",
@@ -1618,73 +3612,265 @@
         },
         {
           "id": "o-lw",
-          "x": 62.86,
-          "y": 89.71,
+          "x": 68.57,
+          "y": 88.24,
           "label": "LW",
           "side": "them"
         }
       ],
       "ball": {
-        "x": 60.95,
+        "x": 47.62,
         "y": 45.59
       },
       "balls": [
         {
           "id": "ball-1",
-          "x": 60.95,
+          "x": 47.62,
           "y": 45.59
         }
       ],
       "arrows": [
         {
-          "id": "ar-offside",
+          "id": "ar-offside-line",
           "kind": "line",
           "from": {
             "x": 66.67,
-            "y": 2.94
+            "y": 4.41
           },
           "to": {
             "x": 66.67,
-            "y": 97.06
+            "y": 92.65
           }
         },
         {
-          "id": "ar-step-top",
-          "kind": "run",
-          "from": {
-            "x": 59.05,
-            "y": 14.71
-          },
-          "to": {
-            "x": 65.71,
-            "y": 14.71
-          }
-        },
-        {
-          "id": "ar-step-bot",
-          "kind": "run",
-          "from": {
-            "x": 59.05,
-            "y": 76.47
-          },
-          "to": {
-            "x": 65.71,
-            "y": 76.47
-          }
-        },
-        {
-          "id": "ar-late",
+          "id": "ar-too-late",
           "kind": "pass",
           "from": {
-            "x": 80.95,
+            "x": 81.9,
             "y": 8.82
           },
           "to": {
-            "x": 59.05,
-            "y": 45.59
+            "x": 49.52,
+            "y": 44.12
           },
-          "opacity": 0.55,
+          "opacity": 0.5,
           "label": "too late"
+        }
+      ],
+      "bands": [],
+      "texts": [
+        {
+          "id": "tx-offside",
+          "x": 60.95,
+          "y": 45.59,
+          "text": "OFFSIDE\nBY 2",
+          "size": "m",
+          "look": "halo",
+          "align": "center",
+          "weight": "black",
+          "tone": "red"
+        }
+      ],
+      "push": "close"
+    },
+    {
+      "id": "act-risk",
+      "title": "Seventy metres, and one goalkeeper",
+      "caption": "70 metres behind the line, and one goalkeeper in it. That is the price.",
+      "notes": "The price, on its own frame, because a system that only shows what it wins is a sales pitch. There is more grass behind this back four than most sides defend in total, and one man in it. It is not defended by a sweeper. It is defended by a law and by four players agreeing, every single time, on when to move.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 33.33,
+          "y": 48.53,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 66.67,
+          "y": 17.65,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 66.67,
+          "y": 36.76,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 66.67,
+          "y": 58.82,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 66.67,
+          "y": 79.41,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 75.24,
+          "y": 17.65,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 73.33,
+          "y": 33.82,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 72.38,
+          "y": 54.41,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 68.57,
+          "y": 70.59,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 80.95,
+          "y": 33.82,
+          "label": "9",
+          "side": "us"
+        },
+        {
+          "id": "u-10",
+          "x": 78.1,
+          "y": 55.88,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 11.76,
+          "label": "RB",
+          "side": "them"
+        },
+        {
+          "id": "o-rcb",
+          "x": 85.71,
+          "y": 39.71,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 84.76,
+          "y": 66.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 81.9,
+          "y": 88.24,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 79.05,
+          "y": 45.59,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 72.38,
+          "y": 42.65,
+          "label": "8",
+          "side": "them"
+        },
+        {
+          "id": "o-10",
+          "x": 76.19,
+          "y": 64.71,
+          "label": "10",
+          "side": "them"
+        },
+        {
+          "id": "o-rw",
+          "x": 74.29,
+          "y": 7.35,
+          "label": "RW",
+          "side": "them"
+        },
+        {
+          "id": "o-9",
+          "x": 64.76,
+          "y": 45.59,
+          "label": "9",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-lw",
+          "x": 68.57,
+          "y": 88.24,
+          "label": "LW",
+          "side": "them"
+        }
+      ],
+      "ball": {
+        "x": 35.24,
+        "y": 48.53
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 35.24,
+          "y": 48.53
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-offside-line",
+          "kind": "line",
+          "from": {
+            "x": 66.67,
+            "y": 4.41
+          },
+          "to": {
+            "x": 66.67,
+            "y": 92.65
+          }
+        },
+        {
+          "id": "ar-behind",
+          "kind": "line",
+          "from": {
+            "x": 2.86,
+            "y": 94.85
+          },
+          "to": {
+            "x": 66.67,
+            "y": 94.85
+          },
+          "label": "70 metres"
         }
       ],
       "bands": [
@@ -1699,33 +3885,33 @@
           },
           "tone": "grey",
           "strength": "soft",
-          "edge": "dashed",
-          "label": "70 metres, and one goalkeeper"
+          "edge": "dashed"
         }
       ],
       "texts": [
         {
           "id": "tx-offside",
-          "x": 47.62,
-          "y": 32.35,
-          "text": "OFFSIDE",
-          "size": "m",
+          "x": 60.95,
+          "y": 45.59,
+          "text": "OFFSIDE\nBY 2",
+          "size": "s",
           "look": "halo",
           "align": "center",
           "weight": "black",
           "tone": "red"
         },
         {
-          "id": "tx-rule",
+          "id": "tx-nobody",
           "x": 28.57,
-          "y": 76.47,
-          "text": "Offside is not a defence.\nIt is an attack.",
+          "y": 20.59,
+          "text": "Nobody is defending it.\nThe law is.",
           "size": "s",
           "look": "plate",
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "gentle"
     },
     {
       "id": "act-win",
@@ -1882,15 +4068,15 @@
         },
         {
           "id": "o-9",
-          "x": 55.24,
-          "y": 44.12,
+          "x": 66.67,
+          "y": 47.06,
           "label": "9",
           "side": "them",
           "dim": true
         },
         {
           "id": "o-lw",
-          "x": 62.86,
+          "x": 63.81,
           "y": 88.24,
           "label": "LW",
           "side": "them",
@@ -1975,7 +4161,231 @@
           "align": "center",
           "weight": "bold"
         }
-      ]
+      ],
+      "push": "close"
+    },
+    {
+      "id": "act-why",
+      "title": "That is what the distance bought",
+      "caption": "Won 32 metres out. One pass later it is a shot from 17.",
+      "notes": "The argument for the whole system, in one number. A side that wins the ball on its own edge of the box has to play through a set defence to hurt anybody. A side that wins it here is already in a shooting position, against a back four running the wrong way. Sacchi never called this a defensive system, and it is not one.",
+      "tokens": [
+        {
+          "id": "u-gk",
+          "x": 33.33,
+          "y": 50,
+          "label": "GK",
+          "side": "us"
+        },
+        {
+          "id": "u-lb",
+          "x": 72.38,
+          "y": 17.65,
+          "label": "LB",
+          "side": "us"
+        },
+        {
+          "id": "u-lcb",
+          "x": 64.76,
+          "y": 38.24,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rcb",
+          "x": 64.76,
+          "y": 55.88,
+          "label": "CB",
+          "side": "us"
+        },
+        {
+          "id": "u-rb",
+          "x": 64.76,
+          "y": 76.47,
+          "label": "RB",
+          "side": "us"
+        },
+        {
+          "id": "u-lm",
+          "x": 80,
+          "y": 20.59,
+          "label": "LM",
+          "side": "us"
+        },
+        {
+          "id": "u-6",
+          "x": 74.29,
+          "y": 39.71,
+          "label": "6",
+          "side": "us"
+        },
+        {
+          "id": "u-8",
+          "x": 70.48,
+          "y": 55.88,
+          "label": "8",
+          "side": "us"
+        },
+        {
+          "id": "u-rm",
+          "x": 68.57,
+          "y": 70.59,
+          "label": "RM",
+          "side": "us"
+        },
+        {
+          "id": "u-9",
+          "x": 88.57,
+          "y": 32.35,
+          "label": "9",
+          "side": "us",
+          "cue": "SPARE"
+        },
+        {
+          "id": "u-10",
+          "x": 82.86,
+          "y": 52.94,
+          "label": "10",
+          "side": "us"
+        },
+        {
+          "id": "o-gk",
+          "x": 96.19,
+          "y": 50,
+          "label": "GK",
+          "side": "them"
+        },
+        {
+          "id": "o-rb",
+          "x": 81.9,
+          "y": 11.76,
+          "label": "RB",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-rcb",
+          "x": 88.57,
+          "y": 47.06,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lcb",
+          "x": 88.57,
+          "y": 66.18,
+          "label": "CB",
+          "side": "them"
+        },
+        {
+          "id": "o-lb",
+          "x": 84.76,
+          "y": 85.29,
+          "label": "LB",
+          "side": "them"
+        },
+        {
+          "id": "o-6",
+          "x": 80,
+          "y": 41.18,
+          "label": "6",
+          "side": "them"
+        },
+        {
+          "id": "o-8",
+          "x": 69.52,
+          "y": 29.41,
+          "label": "8",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-10",
+          "x": 75.24,
+          "y": 66.18,
+          "label": "10",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-rw",
+          "x": 72.38,
+          "y": 5.88,
+          "label": "RW",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-9",
+          "x": 68.57,
+          "y": 47.06,
+          "label": "9",
+          "side": "them",
+          "dim": true
+        },
+        {
+          "id": "o-lw",
+          "x": 65.71,
+          "y": 88.24,
+          "label": "LW",
+          "side": "them",
+          "dim": true
+        }
+      ],
+      "ball": {
+        "x": 88.57,
+        "y": 32.35
+      },
+      "balls": [
+        {
+          "id": "ball-1",
+          "x": 88.57,
+          "y": 32.35
+        }
+      ],
+      "arrows": [
+        {
+          "id": "ar-shot",
+          "kind": "pass",
+          "from": {
+            "x": 88.57,
+            "y": 32.35
+          },
+          "to": {
+            "x": 98.1,
+            "y": 47.06
+          },
+          "label": "17 metres"
+        }
+      ],
+      "bands": [
+        {
+          "id": "bd-final",
+          "kind": "zone",
+          "rect": {
+            "x": 83.81,
+            "y": 20.59,
+            "w": 12.38,
+            "h": 23.53
+          },
+          "tone": "gold",
+          "strength": "normal",
+          "edge": "dashed"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-why",
+          "x": 41.9,
+          "y": 20.59,
+          "text": "Win it there and it is\nalready a chance.",
+          "size": "s",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "push": "close"
     }
   ]
 }
