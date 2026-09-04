@@ -1,0 +1,30 @@
+---
+/**
+ * The feed of published systems.
+ *
+ * A REAL ROUTE, not a rewrite: unlike `/c/*` and `/p/*` there is nothing in the
+ * address to read, so it is one page at one URL and it works identically on
+ * :4321 and in production.
+ *
+ * `noindex` while it is client-rendered, for the same reason `/p/` is: a
+ * crawler would read an empty shell. The list becomes indexable in the same
+ * commit as §5a's server rendering, and that is worth doing — a public feed
+ * that search cannot see is a shop with the shutters down.
+ *
+ * 'feed' is in the reserved-handle list in src/studio/account/identity.ts and in
+ * the CHECK in supabase/012, so no coach owns this address.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Feed from '../../studio/social/Feed'
+---
+
+<BaseLayout
+  title="Published systems"
+  description="Football systems coaches have published on Total Football."
+  path="/feed/"
+  noindex
+>
+  <div class="min-h-[70vh] bg-paper-deep">
+    <Feed client:only="react" />
+  </div>
+</BaseLayout>

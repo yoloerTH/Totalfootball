@@ -753,7 +753,7 @@ export default function Portal() {
           owner={user.id}
           intent={gate.intent}
           onClose={() => setGate(null)}
-          onDone={(next) => {
+          onDone={(next: any) => {
             putProfile(next)
             const resume = gate
             setGate(null)

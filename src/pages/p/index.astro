@@ -1,0 +1,36 @@
+---
+/**
+ * A published system.
+ *
+ * ONE STATIC PAGE SERVING EVERY POST. `/p/k7f3q9` is rewritten onto this route
+ * by netlify.toml — a 200, not a redirect, so the address the coach published
+ * stays in the bar. Exactly the shape `/c/*` and `/s/*` already use, and the
+ * same dev/production difference: the rewrite is applied by `netlify dev` on
+ * :8888 and NOT by `astro dev` on :4321, which is why `postIdFromPath` also
+ * accepts `?p=<id>`.
+ *
+ * `noindex` FOR NOW, and it comes off in the same commit as the OG card. There
+ * is no page here for a crawler to read — only a shell that fills itself in on
+ * the client — so every post would look to one like a duplicate of every other.
+ * §5a of docs/SOCIAL.md is where that is fixed, by a Netlify function that
+ * serves this route's head with the post's own title, summary and board image.
+ *
+ * NOT `bare`. The shared viewer hides the site nav because a coach presenting
+ * off it does not want it on the wall behind them. This is the opposite: a page
+ * read by a stranger who may never have heard of us, and the nav is how they
+ * find out what this place is.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import PostView from '../../studio/viewer/PostView'
+---
+
+<BaseLayout
+  title="A system"
+  description="A football system published on Total Football."
+  path="/p/"
+  noindex
+>
+  <div class="min-h-[70vh] bg-paper-deep">
+    <PostView client:only="react" />
+  </div>
+</BaseLayout>
