@@ -204,8 +204,22 @@ export interface PitchView {
    */
   bench?: { x0: number; x1: number; y0: number; y1: number }
   /**
-   * Shift the viewBox by this many units on its Y axis.
-   * Used to focus the video rendering asymmetrically, e.g. reducing deadspace above goals.
+   * Slide the crop this many units DOWN its final Y axis — the screen's, after
+   * the quarter turn, not the pitch's.
+   *
+   * The exporter's escape hatch from `pad`, and it exists because `pad` must
+   * stay symmetric (see the note on it) while a set piece must not be centred.
+   * An upright set-piece board is wide and shallow against a tall frame, so the
+   * export has to add about 79m of grass on the length axis; split evenly that
+   * buries the goal at the top of the picture with a whole spare half beneath
+   * it. Positive values move the crop towards the attacking end, which pushes
+   * the picture DOWN the screen and brings the goal in off the edge. See
+   * `SET_PIECE_GOAL_AT` in ../videoRender.ts, which is the only caller.
+   *
+   * It moves the CROP and nothing else. `cropCentre` does not read it, so the
+   * quarter turn, every percent coord and every metre distance are untouched —
+   * and because `cameraRect` clamps to `cropRect`, a followed camera travels
+   * inside the shifted grass without knowing this field is here.
    */
   yShift?: number
 }

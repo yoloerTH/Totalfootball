@@ -71,6 +71,7 @@ import { kickTrack } from './audio'
 import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { PAD, U, viewFor, type PitchView } from './board/pitch'
+import { cameraRect, type CameraFrame, type Shot } from './camera'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
 import { gearKinds, inlineGear } from './gear'
@@ -269,6 +270,68 @@ interface Frame {
   h: number
 }
 
+/**
+ * A SET-PIECE VIEW IS ANCHORED ON ITS GOAL, NOT CENTRED ON ITS GRASS.
+ *
+ * Upright, a set-piece board is 68m across and 52.5m deep — a WIDE, SHALLOW
+ * rectangle, aspect 1.27, against a 9:16 frame's 0.56. They are 2.25x apart, so
+ * once the full 68m of width fills the frame's width the frame's height is
+ * committed to about 131m of grass whether anybody wants it or not. There is no
+ * crop that keeps both touchlines AND fills a phone with only the attacking
+ * half; the coach chose to keep the width, because the man taking the corner is
+ * standing on the touchline and cutting him out of a corner routine is worse
+ * than showing grass behind it.
+ *
+ * So the spare 79m is SPENT rather than split. Centring it — which is what
+ * symmetric padding does, and what this did — put the goal 2% down the frame
+ * with the whole of our own half stacked underneath it, and that is the film
+ * the coach rejected: vertical, but not about the attacking half.
+ *
+ * Anchoring the goal line a fifth of the way down instead lays the frame out
+ * like this, on 1080x1920:
+ *
+ *     0px    the head: system name, phase title, caption
+ *   384px    THE GOAL LINE the routine is aimed at
+ *  1150px    the halfway line — the routine's whole 52.5m sits between these
+ *  1916px    our own goal line, on the bottom edge
+ *
+ * The half is then the middle 40% of the picture, the words sit on grass rather
+ * than on the six-yard box, and nothing is cropped. `focusBands` fades the two
+ * outer bands back into the ground so the eye has nowhere else to go.
+ *
+ * ── WHAT IT DOES TO A CAMERA THAT IS FOLLOWING THE BALL ─────────────────────
+ *
+ * Nothing it has to be told about. `cameraRect` clamps to `cropRect`, so a
+ * followed camera travels inside the anchored grass automatically — and it
+ * comes out BETTER framed than it was, because the clamp it hits at the goal
+ * end is no longer three metres past the goal line. Measured on both boards, at
+ * a ball on the corner flag:
+ *
+ *              goal line, before      after
+ *   Gentle          55px               480px  (25% down, routine dead centre)
+ *   Standard        55px               565px
+ *   Close           78px               686px
+ *
+ * Before, a pushed-in shot pinned the goal under the title. The cost is that
+ * Close now spends a third of the frame on faded grass above the goal, which is
+ * the airier of the two mistakes and the one a coach can see the reason for.
+ */
+const SET_PIECE_GOAL_AT = 0.2
+
+/** How far the grass outside the routine is faded back, at the frame's edge. */
+const FOCUS_FADE = 0.7
+
+/**
+ * The two boards whose framing is about a goal rather than about a pitch.
+ *
+ * They are the pair `frameView` refuses to turn — see the note on `turn` — and
+ * the pair `focusBands` fades around, so which views they are is asked for in
+ * one place rather than spelled out at each of them.
+ */
+function isSetPieceView(view: PitchView): boolean {
+  return view.id === 'attacking-set-piece' || view.id === 'defending-set-piece'
+}
+
 function frameView(view: PitchView, frame: Frame): PitchView {
   const lenX = view.x1 - view.x0
   const lenY = view.y1 - view.y0
@@ -281,7 +344,7 @@ function frameView(view: PitchView, frame: Frame): PitchView {
   const theirs = view.vertical ? 1 / flat : flat
   // Never turn a training grid: its bench is baked into the Y axis at the bottom.
   // Never turn a set piece: its camera angle is specifically looking down the pitch.
-  const isSetPiece = view.id === 'attacking-set-piece' || view.id === 'defending-set-piece'
+  const isSetPiece = isSetPieceView(view)
   const turn = !view.area && !isSetPiece && gap(1 / theirs) + 0.15 < gap(theirs)
   const upright = turn ? !view.vertical : Boolean(view.vertical)
 
@@ -295,11 +358,98 @@ function frameView(view: PitchView, frame: Frame): PitchView {
 
   // Screen width is the pitch's y axis when upright and its x axis when flat.
   const onY = growWide === upright
-  return {
-    ...view,
-    vertical: upright,
-    pad: { x: PAD + (onY ? 0 : extra), y: PAD + (onY ? extra : 0) },
-    yShift: isSetPiece ? (onY ? 0 : extra * U) : 0,
+  const pad = { x: PAD + (onY ? 0 : extra), y: PAD + (onY ? extra : 0) }
+
+  /*
+   * The shift that puts the goal at `SET_PIECE_GOAL_AT` instead of at the
+   * middle, and only on the export that actually grew the LENGTH axis.
+   *
+   * `onY` means the grass went on the pitch's y axis, which is a landscape
+   * export: there the half already fills the frame's height and there is
+   * nothing to anchor. Everything else keeps a centred crop, which is what
+   * every view but these two has always had.
+   *
+   * The goal line is at `cy - halfLen` in final units on BOTH boards — the
+   * attacking one turns -90 and the defending one +90 (see `flip` in
+   * ./board/pitch.ts), and a quarter turn either way puts the near end of the
+   * crop at the same place above the crop's centre. So one expression covers
+   * the pair, and `focusBands` reads the goal back the same way.
+   */
+  const screenH = (upright ? lenX + pad.x * 2 : lenY + pad.y * 2) * U
+  const anchor =
+    isSetPiece && !onY ? screenH * (0.5 - SET_PIECE_GOAL_AT) - (lenX / 2) * U : 0
+
+  return { ...view, vertical: upright, pad, yShift: anchor }
+}
+
+/**
+ * Where the routine's two ends land in the finished frame, in PIXELS: the goal
+ * the ball is arriving at, and the halfway line behind it.
+ *
+ * READ OFF THE CAMERA'S RECT, NOT THE CROP. A film shot with Follow the ball
+ * draws `cameraRect`, not `cropRect` — so bands measured against the crop would
+ * sit under the wrong grass the moment the camera pushed in, and would drift
+ * during every move. Measuring the picture that is actually drawn also makes
+ * the degenerate cases free: push in past the goal line and `goal` goes
+ * negative, past the halfway line and `halfway` runs off the bottom, and the
+ * caller draws nothing on that side rather than needing to know why.
+ *
+ * Null for every board that is not an anchored set piece — including a
+ * landscape set-piece export, where `yShift` is 0 because the half already
+ * fills the height and there is no spare grass to fade.
+ */
+function focusBands(
+  view: PitchView,
+  shot: Shot | null,
+  push: CameraFrame | undefined,
+  frame: Frame,
+): { goal: number; halfway: number } | null {
+  if (!isSetPieceView(view) || !view.yShift) return null
+  const r = cameraRect(view, shot, push)
+  const cy = ((view.y0 + view.y1) / 2) * U
+  const halfLen = ((view.x1 - view.x0) / 2) * U
+  const perPx = frame.h / r.h
+  const goal = (cy - halfLen - r.y) * perPx
+  return { goal, halfway: goal + halfLen * 2 * perPx }
+}
+
+/**
+ * Fade the grass outside the routine back into the ground beyond the pitch.
+ *
+ * Two gradients, and they are drawn in the SURFACE'S OWN stage colours — the
+ * same three stops the board already painted its surround with, top stop at the
+ * top and bottom stop at the bottom. So the fade is not a grey wash laid over
+ * somebody's board: on paper it whitens out to the paper, on broadcast green it
+ * sinks into the dark surround, and on night it goes to near-black. Each one is
+ * the direction that palette already calls "further away".
+ *
+ * Alpha runs to `FOCUS_FADE` at the frame's edge and to nothing at the goal
+ * line and the halfway line, so the routine itself is never touched — the
+ * darkest part of the wash is the grass nobody is standing on, and the boundary
+ * is invisible because it is zero there.
+ */
+function drawFocus(
+  ctx: CanvasRenderingContext2D,
+  l: Layout,
+  p: BoardPalette,
+  bands: { goal: number; halfway: number },
+): void {
+  const top = Math.min(bands.goal, l.h)
+  if (top > 0) {
+    const g = ctx.createLinearGradient(0, 0, 0, top)
+    g.addColorStop(0, rgba(p.stage[0], FOCUS_FADE))
+    g.addColorStop(1, rgba(p.stage[0], 0))
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, l.w, top)
+  }
+
+  const from = Math.max(bands.halfway, 0)
+  if (from < l.h) {
+    const g = ctx.createLinearGradient(0, from, 0, l.h)
+    g.addColorStop(0, rgba(p.stage[2], 0))
+    g.addColorStop(1, rgba(p.stage[2], FOCUS_FADE))
+    ctx.fillStyle = g
+    ctx.fillRect(0, from, l.w, l.h - from)
   }
 }
 
@@ -918,6 +1068,9 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // — it is most of the render time.
   let lastKey = ''
   let lastBoard: HTMLCanvasElement | null = null
+  // Cached beside the raster and for the same reason: the bands are read off
+  // the camera's rect, so they only move when the board does.
+  let lastBands: { goal: number; halfway: number } | null = null
 
   try {
     for (let i = 0; i < frames; i++) {
@@ -936,11 +1089,15 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
           l.w,
           l.h,
         )
+        lastBands = focusBands(view, act.shot, act.frame, frame)
         lastKey = key
       }
 
       // No background to paint: the board is the whole frame now.
       ctx.drawImage(lastBoard!, 0, 0)
+      // Under the words and over the board: the head and the credit read on the
+      // faded grass, which is the whole reason the bands are where they are.
+      if (lastBands) drawFocus(ctx, l, p, lastBands)
       // Words follow the pose, so they hand over with the cues around the
       // midpoint rather than at the top of the beat.
       drawChrome(
@@ -1081,6 +1238,12 @@ export async function renderStills(
       l.h,
     )
     ctx.drawImage(board, 0, 0)
+
+    // The same fade the film draws, for the same reason — a still of a set
+    // piece is the frame somebody screenshots, so it cannot be framed
+    // differently from the film it was cut out of.
+    const bands = focusBands(view, act.shot, act.frame, frame)
+    if (bands) drawFocus(ctx, l, p, bands)
 
     if (chrome) {
       drawChrome(
