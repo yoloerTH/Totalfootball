@@ -1,7 +1,10 @@
 # The Network — build plan and handoff
 
-**Status: Phase 1 built, extended and shipped.** Migrations `012` and `013` are
-live on the database (both 2026-08-27) and the code is on `main`. Every table
+**Status: Phase 1 shipped; Phase 2a built and NOT committed.** Migrations `012`
+and `013` are live (both 2026-08-27) with their code on `main`; `017` followed.
+`024` is applied to the database as of 2026-09-04 and its code is on the working
+tree only — nothing published, nothing deployed, at the user's explicit
+instruction. See §4c. Every table
 added here defaults to private and every feature is opt-in. A coach who never
 opens the new settings sections sees the studio exactly as it was.
 
@@ -69,7 +72,8 @@ show.
 |---|------|-------|----------------|--------|
 | 1 | **Identity** | Profile model, handle, bio, role, crest, kit editor, privacy | no | **shipped, 012 applied** |
 | 1b | **Squad & kit** | Profile picture, kit patterns, squad roster, player photos on the board | no | **shipped, 013 applied** |
-| 2 | **Publish** | `studio_posts`, publish dialog, public post page, OG image, carousel export | **yes** | not started |
+| 2a | **Publish** | `studio_posts`, publish dialog, `/p/<id>`, link-only state, licence, feed skeleton | no | **built 2026-09-04, 024 applied, NOT committed** |
+| 2b | **Travel** | OG image, carousel export, PDF, server-rendered post and profile | **yes** | not started |
 | 3 | **Network** | Feed, follow, save, **fork** | yes | not started |
 | 4 | **Distribution** | Web Share on mobile, post packs on desktop, intent links | no | not started |
 | 5 | **Recognition** | Verification, achievements, referrals | no | not started |
@@ -246,9 +250,93 @@ against `005`, which has one.
 
 ---
 
+## 4c. Phase 2a — Publish (built 2026-09-04, on disk, NOT committed)
+
+Migration `supabase/024_social_posts.sql` is **applied to the live database**;
+the code is on the working tree and nothing is pushed or deployed. Everything
+was built and tested against `astro dev` on **:4321**, which is the loop this
+project uses from now on (user, 2026-09-04).
+
+**Files.**
+
+- `supabase/024_social_posts.sql` — the third visibility, `licence`,
+  `studio_posts`, two keyhole functions, the `published` bucket.
+- `src/studio/posts.ts` — publish, read, list, take down. The whole client side.
+- `src/studio/editor/PublishDialog.tsx` — title, summary, who can see it, and
+  the four personalisation toggles.
+- `src/studio/editor/IdentityGate.tsx` — the name-and-handle prompt.
+- `src/studio/viewer/PostView.tsx` + `src/pages/p/index.astro` — the public page.
+- `src/studio/social/Feed.tsx` + `src/pages/feed/index.astro` — the skeleton.
+- `netlify.toml` — the `/p/*` rewrite, beside `/s/*` and `/c/*`.
+- Touched: `identity.ts`, `cloud.ts`, `Settings.tsx`, `Portal.tsx`, `schema.ts`.
+
+### The decisions worth not relitigating
+
+1. **'unlisted' IS A THIRD STATE. 'private' STILL MEANS NOBODY.** The default is
+   untouched and no existing row changed. Link-only sits between them, for a
+   coach who wants to send their profile without standing in a feed.
+
+2. **An unlisted row is served by a FUNCTION, never by a wider policy.** The
+   table policy stays `visibility = 'public'` for both profiles and posts, and
+   `studio_profile_by_handle` / `studio_post_by_id` take one exact address and
+   return at most one row. This is 017's lesson applied before it costs
+   anything: a policy of `in ('unlisted','public')` would put every future feed
+   query one forgotten `.eq()` away from listing what asked not to be listed.
+   The feed reads the table; the profile and post pages read the keyhole.
+
+3. **The keyhole names its columns.** `returns setof studio_profiles` would hand
+   a visitor every column the table ever grows — `folders` today, which is a
+   coach's own filing. Named list, in the database, where it holds for callers
+   that never read `cloud.ts`.
+
+4. **Identity is four switches now, not one.** `withoutIdentity` (all or
+   nothing) is still right for a share link and an export. Publishing splits it:
+   coach, crest, player names, player faces — because a coach may want their
+   badge on a system going to strangers and not eleven under-16s' names.
+   `stripIdentity` in `schema.ts`, and it still STRIPS rather than hides.
+
+5. **Faces are never defaulted on, and they are the only thing that crosses
+   buckets.** `players` stays private (013). Ticking the box copies the file
+   into the public `published` bucket under `<uid>/<post id>/`, so a takedown is
+   one prefix. The dialog states the consequence at the moment it becomes true
+   and names consent for children. `defaultIdentity()` ignores `show_identity`
+   for this one field on purpose.
+
+6. **Publishing writes in three steps and the order is the safety.** Reserve
+   unlisted and faceless → copy the photographs → raise the visibility. Every
+   crash leaves a post LESS exposed than asked for, never more.
+
+7. **It runs on the anon key and RLS, not through a Netlify function.**
+   `studio_posts` has an owner and a policy, unlike `studio_shares`. This is
+   both stricter and the reason publishing works on :4321 at all.
+
+8. **`licence` is a claim, never a verification.** Nine UEFA diplomas (C, B, A,
+   Pro, Youth B, Elite Youth A, Goalkeeper B, Goalkeeper A, Futsal B — read off
+   uefa.com on 2026-09-04) plus `other`, because a coach with an FA Level 1
+   should not have to overclaim. §5c's rule is untouched.
+
+**Verified against the live database** on 2026-09-04, with a throwaway account
+that was deleted afterwards: a coach can insert only their own post (403 for
+another owner), anon cannot read an unlisted post or profile from the table but
+can open either through the keyhole, a public post reaches the feed, anon cannot
+edit one (401), the keyhole returns no `folders`, and deleting the account
+cascades the post away. `scratch/rls-posts.mjs`.
+
+**Still open before anything goes public** — unchanged from §7 and now the
+actual gate: the report button, the takedown path, the admin view and the
+`terms.astro` / `privacy.astro` revision.
+
+**Known, pre-existing, not introduced here:** a PUBLIC profile's `folders` are
+readable by anon straight off the table, because 012's policy exposes every
+column of a public row. That is 012's stated bargain ("nothing on
+studio_profiles is private"), but folder names are a coach's own filing and are
+worth moving off this table when something else touches it.
+
+---
+
 ## 5. Later phases, specified
 
-### 5a. Phase 2 — Publish
+### 5a. Phase 2b — what makes a post travel
 
 The three real pieces of work:
 
@@ -415,9 +503,16 @@ npm run check        # astro check, must be clean before a phase is called done
 Migrations now have a fourth route, and it is the easy one:
 
 ```
-npm run db:apply supabase/012_studio_identity.sql --dry   # split only, sends nothing
-npm run db:apply supabase/012_studio_identity.sql         # apply
+npm run db:apply -- supabase/012_studio_identity.sql --dry   # split only, sends nothing
+npm run db:apply supabase/012_studio_identity.sql            # apply
 ```
+
+**THE `--` BEFORE THE FILE IS NOT OPTIONAL ON THE DRY RUN.** Without it npm
+swallows `--dry` as one of its own flags, the script never sees it, and the
+"dry run" applies the migration for real. Found the hard way on 024
+(2026-09-04). The tell is the last line: a real dry run says
+`(dry run, nothing sent)` and prints `..` beside each statement; an apply prints
+`ok` and ends with `All statements applied.`
 
 `scripts/apply-migration.mjs` goes through `public.execute_sql` with the
 service-role key already in `.env` — the same path the reporting scripts use — 

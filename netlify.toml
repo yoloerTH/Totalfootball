@@ -44,6 +44,20 @@
   to = "/c/"
   status = 200
 
+# A published system: /p/k7f3q9 serves one static page that reads the id off its
+# own path and fetches the row through `studio_post_by_id` (supabase/024). Same
+# shape as the two rules above, same reason for the 200, and the same dev
+# difference — `astro dev` on :4321 does not apply it, which is why
+# `postIdFromPath` also accepts `?p=`.
+#
+# Only posts that are public or unlisted exist at all, and a post id is seven
+# random Crockford characters, so a mistyped id and a deleted post render the
+# same "nothing here". The rewrite is not the access control.
+[[redirects]]
+  from = "/p/*"
+  to = "/p/"
+  status = 200
+
 # NO `/o/*` RULE, DELIBERATELY. There used to be one here, a 200-rewrite onto
 # /studio/watch/ exactly like the `/s/*` rule above. It is gone because those
 # URLs are real pages now: src/pages/o/[slug].astro builds one per official

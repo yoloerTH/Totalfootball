@@ -70,7 +70,7 @@ import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal
 import { kickTrack } from './audio'
 import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
-import { PAD, viewFor, type PitchView } from './board/pitch'
+import { PAD, U, viewFor, type PitchView } from './board/pitch'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
 import { gearKinds, inlineGear } from './gear'
@@ -299,6 +299,7 @@ function frameView(view: PitchView, frame: Frame): PitchView {
     ...view,
     vertical: upright,
     pad: { x: PAD + (onY ? 0 : extra), y: PAD + (onY ? extra : 0) },
+    yShift: isSetPiece ? (onY ? 0 : extra * U) : 0,
   }
 }
 

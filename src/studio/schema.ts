@@ -1467,6 +1467,95 @@ export function uid(prefix: string): string {
  * not hidden in the public row behind a flag the viewer is trusted to honour,
  * they were never sent.
  */
+/**
+ * The four things a coach can decide to send, one at a time.
+ *
+ * ── WHY THIS GREW OUT OF ONE BOOLEAN ─────────────────────────────────────────
+ *
+ * `withoutIdentity` answers one question — everything, or nothing — and that is
+ * still the right question for a share link and an export, where the coach is
+ * sending their own work to somebody they chose. Publishing asks a different
+ * one. A coach may well want their name and their club badge on a system going
+ * out to strangers and NOT the eleven names of the under-16s who walked it
+ * through on Tuesday. All-or-nothing forces them to publish either too much or
+ * an anonymous board, and both are worse than the truthful middle.
+ *
+ * The parts are the same three this file already named, with the squad split in
+ * two: a name is not a face, and the consequences of publishing them are not
+ * remotely the same size.
+ */
+export interface IdentityParts {
+  /** `credit.presenter` and `credit.team` — the coach and the club they sign with. */
+  coach: boolean
+  /** The crest, and its URL, which contains the account uuid. */
+  crest: boolean
+  /** Every player's `name`. */
+  names: boolean
+  /**
+   * Every player's `photo`.
+   *
+   * OFF IS THE ONLY DEFAULT THIS FIELD MAY HAVE. A photo path points into the
+   * PRIVATE `players` bucket (supabase/013), so a shared board has never shown
+   * a face and could not have. Turning it on for a published post is a separate,
+   * explicit act that copies the file into a world-readable bucket — see
+   * `publishPost` in ./posts.ts, which is the only place in this project that
+   * does it and says so at length.
+   */
+  faces: boolean
+}
+
+export const IDENTITY_ALL: IdentityParts = { coach: true, crest: true, names: true, faces: true }
+export const IDENTITY_NONE: IdentityParts = {
+  coach: false,
+  crest: false,
+  names: false,
+  faces: false,
+}
+
+/**
+ * The same board carrying only the parts of an identity that were asked for.
+ *
+ * `withoutIdentity(system)` is `stripIdentity(system, IDENTITY_NONE)` and is
+ * kept as its own name because that is the operation three dialogs already
+ * perform and the one 017 documents.
+ *
+ * ── `playerId` GOES WITH THE SQUAD, AND WITH EITHER HALF OF IT ───────────────
+ *
+ * It is a key into `studio_squad`, which is own-row and readable by nobody
+ * else. It survives only when the whole player travels — name and face — which
+ * is the case where the document is being handed back to a board that could
+ * meaningfully follow it. Any partial answer drops it: a stranger cannot use
+ * the key, and a document that carries a pointer to private data for no reader
+ * who could ever follow it is carrying it for nothing.
+ */
+export function stripIdentity(system: System, keep: IdentityParts): System {
+  const credit =
+    system.credit && !keep.coach
+      ? { ...system.credit, presenter: undefined, team: undefined }
+      : system.credit
+
+  const wholePlayer = keep.names && keep.faces
+
+  return {
+    ...system,
+    credit,
+    showCrest: keep.crest ? system.showCrest : false,
+    crestUrl: keep.crest ? system.crestUrl : undefined,
+    acts: system.acts.map((act) => ({
+      ...act,
+      tokens: act.tokens.map((t) => {
+        if (!t.name && !t.photo && !t.playerId) return t
+        return {
+          ...t,
+          name: keep.names ? t.name : undefined,
+          photo: keep.faces ? t.photo : undefined,
+          playerId: wholePlayer ? t.playerId : undefined,
+        }
+      }),
+    })),
+  }
+}
+
 export function withoutIdentity(system: System): System {
   const credit = system.credit
     ? { ...system.credit, presenter: undefined, team: undefined }

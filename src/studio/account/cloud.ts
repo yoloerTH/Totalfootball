@@ -18,7 +18,7 @@
 
 import { darken, readableText } from '../board/palette'
 import type { System, TeamStyle } from '../schema'
-import type { ProfileLink, Visibility } from './identity'
+import { LICENCES, type ProfileLink, type Visibility } from './identity'
 import { clearSystems, listSystems, migrate } from '../storage'
 import { GUEST } from '../scope'
 import { db } from './client'
@@ -299,6 +299,14 @@ export interface Profile {
   kitPattern: string
   /** The pattern's second colour. Ignored while the pattern is 'solid'. */
   kitAlt: string
+  /**
+   * The coaching licence a coach says they hold — a `LICENCES` id, or empty.
+   *
+   * SAID, NOT VERIFIED. See ./identity.ts for the list and for why 'other' is
+   * on it. Nothing in the UI may present this as checked by anybody.
+   */
+  licence: string
+  /** 'private', 'unlisted' (link only) or 'public'. See ./identity.ts. */
   visibility: Visibility
   links: ProfileLink[]
   /** 
@@ -330,6 +338,7 @@ export const EMPTY_PROFILE: Profile = {
   kitRing: '',
   kitPattern: 'solid',
   kitAlt: '',
+  licence: '',
   visibility: 'private',
   links: [],
   folders: [],
@@ -339,7 +348,7 @@ export const EMPTY_PROFILE: Profile = {
 }
 
 const PROFILE_COLUMNS =
-  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, visibility, links, folders, show_identity'
+  'presenter, team, team_colour, handle, bio, role, crest_path, avatar_path, kit_ring, kit_pattern, kit_alt, licence, visibility, links, folders, show_identity'
 
 /**
  * What a read of the profile actually found. THREE ANSWERS, NOT TWO.
@@ -419,9 +428,15 @@ export async function loadProfile(uid: string): Promise<ProfileRead> {
     // one has not seen, is a plain shirt rather than an unrenderable one.
     kitPattern: str('kit_pattern') || 'solid',
     kitAlt: str('kit_alt'),
-    // Anything but the two known values is read as private. A row written by a
-    // future migration this build has not seen must fail CLOSED.
-    visibility: row.visibility === 'public' ? 'public' : 'private',
+    // A licence this build does not know about reads as none. Same rule as the
+    // kit pattern above: a row written by a later build must degrade, never
+    // render a label nobody can explain.
+    licence: LICENCES.some((l) => l.id === row.licence) ? str('licence') : '',
+    // Anything but the three known values is read as private. A row written by
+    // a future migration this build has not seen must fail CLOSED — which is
+    // why this is a whitelist and not `row.visibility !== 'private'`.
+    visibility:
+      row.visibility === 'public' ? 'public' : row.visibility === 'unlisted' ? 'unlisted' : 'private',
     // jsonb comes back parsed. Filtered rather than trusted, because the column
     // only guarantees the SHAPE of the array, not what is in each entry.
     links: Array.isArray(row.links)
@@ -554,10 +569,24 @@ export async function saveProfile(profile: Profile, id: string): Promise<boolean
       kit_ring: nil(profile.kitRing),
       kit_pattern: nil(profile.kitPattern),
       kit_alt: nil(profile.kitAlt),
+      // Whitelisted on the way out as well as on the way in. A value this build
+      // does not recognise is not a licence, and sending it would be refused by
+      // the CHECK in supabase/024 — taking the whole save down with it, bio and
+      // handle included, over a field the coach may not have touched.
+      licence: LICENCES.some((l) => l.id === profile.licence) ? profile.licence : null,
       // NOT nullable and NOT nil()'d. The column is `not null default 'private'`
       // and this is the one field where "unset" must never reach the database as
       // an absence the default might fill in differently later.
-      visibility: profile.visibility === 'public' ? 'public' : 'private',
+      //
+      // THE FALLBACK IS 'private' AND MUST STAY THE MOST CLOSED OF THE THREE:
+      // if this build is ever handed a visibility it cannot name, the coach ends
+      // up quieter than they asked for, never louder.
+      visibility:
+        profile.visibility === 'public'
+          ? 'public'
+          : profile.visibility === 'unlisted'
+            ? 'unlisted'
+            : 'private',
       links: profile.links.filter((l) => l.label.trim() && l.url.trim()).slice(0, 5),
       folders: profile.folders.map(f => f.trim()).filter(Boolean),
       // `not null default true`, and read back the same way: a boolean has no
@@ -572,26 +601,29 @@ export async function saveProfile(profile: Profile, id: string): Promise<boolean
 /**
  * Whether a handle is free, asked while the coach is still typing.
  *
- * Reads through the PUBLIC policy in supabase/012, which only exposes profiles
- * that are public AND have a handle. So this answers "is it taken by somebody
- * who has published a profile", not "does the string exist in the table" — a
- * private profile holding the handle is invisible here and the unique index is
- * what actually refuses the write.
+ * ── IT ASKS THE KEYHOLE, NOT THE TABLE ───────────────────────────────────────
  *
- * That is the correct trade and not a bug to fix later: the alternative is an
- * endpoint that confirms the existence of accounts that have chosen not to be
- * seen. A rare "that one is taken" at save time is a much smaller cost.
+ * `studio_profile_by_handle` (supabase/024) is a security-definer function that
+ * takes one exact handle and returns at most one row, for a profile that is
+ * public OR unlisted. A plain select against the table would see published
+ * profiles only, because the policy from 012 is deliberately still 'public'
+ * only — so an unlisted coach's handle would read as free right up until the
+ * unique index refused the save.
+ *
+ * THIS LEAKS NOTHING THE PROFILE PAGE DOES NOT ALREADY GIVE AWAY. An unlisted
+ * profile is, by definition, one that opens for anybody holding its address;
+ * confirming the address exists is the feature. A PRIVATE profile stays
+ * invisible here, which is the line that matters and the one the old comment
+ * was defending: this must never become an endpoint that confirms the existence
+ * of an account that has chosen not to be seen. It answers for two of the three
+ * states and the unique index still backstops the third.
  */
 export async function handleTaken(handle: string, self: string): Promise<boolean> {
   const supabase = db()
   if (!supabase || !handle) return false
-  const { data, error } = await supabase
-    .from('studio_profiles')
-    .select('id')
-    .eq('handle', handle)
-    .maybeSingle()
-  if (error || !data) return false
-  return (data.id as string) !== self
+  const { data, error } = await supabase.rpc('studio_profile_by_handle', { want: handle })
+  if (error || !Array.isArray(data) || data.length === 0) return false
+  return (data[0] as { id?: string }).id !== self
 }
 
 // ── somebody else's profile ──────────────────────────────────────────────────
@@ -602,14 +634,23 @@ export async function handleTaken(handle: string, self: string): Promise<boolean
  * Spelled out as its own type rather than reusing `Profile` so that adding a
  * field to the settings form does not silently publish it. If a value is to be
  * shown to strangers it has to be named here, on purpose, by somebody who
- * thought about it. `visibility` is deliberately absent: by the time a row is
- * readable through the public policy the answer is already 'public'.
+ * thought about it.
+ *
+ * `visibility` IS NAMED NOW, and it was right to leave it out before. Until 024
+ * a readable row was a published one and the answer could only be 'public'.
+ * There are two visible states today, and the page has to know which one it is
+ * looking at: an unlisted profile must not offer to be shared onward, and it
+ * must not be indexed. It says which state, never anything about the third.
  */
 export interface PublicProfile {
   handle: string
   presenter: string
   team: string
   role: string
+  /** A `LICENCES` id, or empty. Shown as a claim, never as a verified badge. */
+  licence: string
+  /** 'unlisted' or 'public'. A private profile never reaches this type. */
+  visibility: Exclude<Visibility, 'private'>
   bio: string
   crestPath: string
   avatarPath: string
@@ -621,14 +662,23 @@ export interface PublicProfile {
 }
 
 /**
- * Fetch a public profile by handle. `null` for anything that is not one.
+ * Fetch a visible profile by handle. `null` for anything that is not one.
  *
- * NO `.eq('visibility', 'public')` HERE, and that is not an oversight — it is
- * the same rule the top of this file states. The policy in supabase/012 already
- * restricts this table to rows that are public AND have a handle, and a
- * hand-written filter that agrees with it teaches the next reader that the
- * filter is what makes it safe. It is not. Delete the policy and this function
- * would start serving private profiles no matter what it asked for.
+ * ── STILL NO `.eq('visibility', ...)` ANYWHERE IN HERE ───────────────────────
+ *
+ * The rule at the top of this file has not changed, only where it is enforced.
+ * `studio_profile_by_handle` (supabase/024) is the single place that decides
+ * which states are visible, it decides it in the database, and it takes one
+ * exact handle so there is no shape of call that returns a list. A filter
+ * written here that agreed with it would teach the next reader that the filter
+ * is what makes it safe. It is not.
+ *
+ * WHY AN RPC AND NOT A WIDER POLICY: 017 records what it cost to lean on RLS
+ * for a meaning it does not have. A policy of `visibility in ('unlisted',
+ * 'public')` would make every future feed query one forgotten `.eq()` away from
+ * listing profiles that asked not to be listed. This way the feed reads the
+ * table — where only public rows exist as far as it is concerned — and the
+ * profile page reads the keyhole.
  *
  * Runs on the ANON key, signed in or not: a shared link has to open for someone
  * who has never heard of us, which is most of the people it will be sent to.
@@ -637,20 +687,14 @@ export async function loadPublicProfile(handle: string): Promise<PublicProfile |
   const supabase = db()
   if (!supabase || !handle) return null
 
-  const { data, error } = await supabase
-    .from('studio_profiles')
-    .select(
-      'handle, presenter, team, role, bio, crest_path, avatar_path, team_colour, kit_ring, kit_pattern, kit_alt, links',
-    )
-    .eq('handle', handle)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('studio_profile_by_handle', { want: handle })
 
   // A private profile, a handle nobody has claimed and a typo are all the same
   // answer on purpose. Telling them apart would confirm that an account exists
   // for somebody who has chosen not to be seen.
-  if (error || !data) return null
+  if (error || !Array.isArray(data) || data.length === 0) return null
 
-  const row = data as Record<string, unknown>
+  const row = data[0] as Record<string, unknown>
   const str = (k: string) => (row[k] as string | null) ?? ''
 
   return {
@@ -658,6 +702,11 @@ export async function loadPublicProfile(handle: string): Promise<PublicProfile |
     presenter: str('presenter'),
     team: str('team'),
     role: str('role'),
+    licence: LICENCES.some((l) => l.id === row.licence) ? str('licence') : '',
+    // The function only ever returns these two. Anything else is a build that
+    // has drifted from its database, and 'unlisted' is the quieter guess: it
+    // keeps the page out of search and off the share affordances.
+    visibility: row.visibility === 'public' ? 'public' : 'unlisted',
     bio: str('bio'),
     crestPath: str('crest_path'),
     avatarPath: str('avatar_path'),

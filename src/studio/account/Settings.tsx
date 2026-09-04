@@ -15,9 +15,9 @@
  *
  * ── THE COACH COMES FIRST, THEN THE THINGS THEY OWN ──────────────────────────
  *
- * **You** — face, name, role, handle, bio, links, and the switch that decides
- * whether any of it is visible. Then **your club**, **your kit** and **your
- * squad**, which are things a coach owns rather than things a coach is.
+ * **You** — face, name, role, licence, handle, bio, links, and the choice that
+ * decides whether any of it is visible. Then **your club**, **your kit** and
+ * **your squad**, which are things a coach owns rather than things a coach is.
  *
  * That order is a correction. Personal identity used to be split in two, with a
  * name in the first section and a face, a handle and a bio in the last, six
@@ -38,6 +38,12 @@
  * promise the whole feature was agreed on, and the copy below says so plainly
  * rather than burying it in a toggle's label.
  *
+ * supabase/024 added a THIRD state, 'unlisted', and did not weaken that: it
+ * sits between the two, for a coach who wants to send their profile to somebody
+ * without standing in a feed. 'private' still means nobody and is still the
+ * default, and the two-position switch became `VisibilityChoice` below rather
+ * than growing a second switch beside it.
+ *
  * The old page's one good idea is kept and extended: SHOW the thing rather than
  * describing it. The credit bar is rendered as it will read, the kit is drawn
  * with the board's own counters, and the profile card is drawn as it will be
@@ -49,7 +55,17 @@ import { useSession, signOut } from './session'
 import { EMPTY_PROFILE, handleTaken, saveProfile, type Profile } from './cloud'
 import { putProfile, useProfile } from './profile'
 import { IMAGE_ACCEPT, bust, imageUrl, removeImage, uploadImage, type ImageKind } from './images'
-import { BIO_MAX, LINKS_MAX, ROLES, normaliseHandle, profileFaults } from './identity'
+import {
+  BIO_MAX,
+  LICENCES,
+  LINKS_MAX,
+  ROLES,
+  VISIBILITIES,
+  normaliseHandle,
+  profileFaults,
+  type Visibility,
+} from './identity'
+import { Mark } from '../viewer/Mark'
 import KitEditor from './KitEditor'
 import SquadEditor from './SquadEditor'
 import TeamMembers from './TeamMembers'
@@ -119,6 +135,92 @@ function Switch({
   )
 }
 
+
+/**
+ * The three states a profile can be in, as three things a coach can point at.
+ *
+ * ── WHY THIS REPLACED A SWITCH ───────────────────────────────────────────────
+ *
+ * A switch has two positions and the profile now has three (supabase/024), and
+ * the missing one is the state most coaches actually want: send it to somebody,
+ * do not stand in a feed. Squeezing three into two would have meant a switch
+ * plus a second "and list me" switch, where the illegal combination — listed
+ * but not visible — is one press away and means nothing.
+ *
+ * Radios, and not a `<select>`: the difference between these options is the
+ * SENTENCE under each one, and a select shows one option at a time with no room
+ * for it. A coach deciding whether strangers can see their face should be able
+ * to read all three answers at once, without opening anything.
+ *
+ * `radiogroup` + `radio` roles on divs, not inputs, because the whole card is
+ * the target and a native radio cannot be made to fill one without a label
+ * wrapper that then swallows the arrow keys. Keyboard: Tab reaches the group,
+ * arrows move within it, which is what the role promises.
+ */
+function VisibilityChoice({
+  value,
+  onChange,
+}: {
+  value: Visibility
+  onChange: (next: Visibility) => void
+}) {
+  const ids = VISIBILITIES.map((v) => v.id)
+
+  const step = (delta: number) => {
+    const at = ids.indexOf(value)
+    const next = ids[(at + delta + ids.length) % ids.length]
+    onChange(next as Visibility)
+  }
+
+  return (
+    <div role="radiogroup" aria-label="Who can see your profile" className="space-y-2">
+      {VISIBILITIES.map((option) => {
+        const on = option.id === value
+        return (
+          <div
+            key={option.id}
+            role="radio"
+            aria-checked={on}
+            tabIndex={on ? 0 : -1}
+            onClick={() => onChange(option.id as Visibility)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault()
+                onChange(option.id as Visibility)
+              }
+              if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault()
+                step(1)
+              }
+              if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault()
+                step(-1)
+              }
+            }}
+            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+              on ? 'border-ink/30 bg-surface' : 'border-ink-hair hover:bg-surface/60'
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors ${
+                on ? 'border-green bg-green' : 'border-ink-hair'
+              }`}
+            >
+              {on && <span className="h-1.5 w-1.5 rounded-full bg-surface" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-bold text-ink">{option.label}</span>
+              <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-soft">
+                {option.hint}
+              </span>
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function Section({
   id,
@@ -384,10 +486,15 @@ function ShareProfile({ saved, draft }: { saved: Profile; draft: Profile }) {
   }, [])
 
   // Off entirely while the profile is private. That is not a "not yet" worth
-  // narrating — the switch right above says so, in those words.
-  if (draft.visibility !== 'public') return null
+  // narrating — the choice right above says so, in those words.
+  //
+  // SHOWN FOR 'unlisted' AS WELL AS 'public', and that is the point of the
+  // state: link only means there is a link and it is the coach's to send. The
+  // copy below is the only thing that differs between the two, because what the
+  // recipient gets is identical — the difference is who ELSE can find it.
+  if (draft.visibility === 'private') return null
 
-  const live = saved.visibility === 'public' && Boolean(saved.handle)
+  const live = saved.visibility !== 'private' && Boolean(saved.handle)
 
   if (!live) {
     return (
@@ -431,12 +538,47 @@ function ShareProfile({ saved, draft }: { saved: Profile; draft: Profile }) {
 
   return (
     <div className="mt-4 border-t border-ink-hair pt-4">
-      <p className="text-[13px] font-bold text-ink">Share your profile</p>
-      <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">
-        Anyone with this link can open it. No account needed.
-      </p>
+      {/* ── THE INVITE, AND WHY THE MARK IS ON IT ─────────────────────────────
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          Same argument ./ProfileNudge.tsx makes for the mark on the corner
+          panel, one step further out: this button's output does not land in the
+          studio, it lands in somebody else's WhatsApp. The card a coach is
+          about to send should look, in their own hands, like the thing they saw
+          at the foot of every board they have ever shared — one geometry, or it
+          is not a signature. So it is the same `Mark` the credit bar draws, not
+          a lookalike and not an icon font.
+
+          THE PLAIN LINK IS KEPT AND IS NOT DEMOTED TO A MENU. A share sheet
+          exists on a phone and does not exist on the desktop most of this work
+          is done on, and a coach pasting a link into a club email is not doing
+          a worse version of sharing. Both are on the surface, in the order they
+          are reached for: the sheet where there is one, the link always.
+          ─────────────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ink-hair bg-surface">
+          <Mark size={20} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-bold text-ink">Invite someone to your profile</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-ink-faint">
+            {saved.visibility === 'public'
+              ? 'Anyone with this link can open it, and anyone can find you in the feed. No account needed to look.'
+              : 'Only people you send this to can open it. It stays out of the feed and out of search.'}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {canShare && (
+          <button
+            type="button"
+            onClick={() => void share()}
+            className="flex shrink-0 items-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-[13px] font-bold text-paper transition-opacity hover:opacity-90"
+          >
+            <Mark size={16} ink="currentColor" />
+            Send my profile
+          </button>
+        )}
         <input
           readOnly
           value={url}
@@ -447,19 +589,14 @@ function ShareProfile({ saved, draft }: { saved: Profile; draft: Profile }) {
         <button
           type="button"
           onClick={() => void copy()}
-          className="shrink-0 rounded-lg bg-ink px-4 py-2.5 text-[13px] font-bold text-paper transition-opacity hover:opacity-90"
+          className={`shrink-0 rounded-lg px-4 py-2.5 text-[13px] font-bold transition-colors ${
+            canShare
+              ? 'border border-ink-hair text-ink hover:bg-ink-hair'
+              : 'bg-ink text-paper hover:opacity-90'
+          }`}
         >
           {copied ? 'Copied' : 'Copy link'}
         </button>
-        {canShare && (
-          <button
-            type="button"
-            onClick={() => void share()}
-            className="shrink-0 rounded-lg border border-ink-hair px-4 py-2.5 text-[13px] font-bold text-ink transition-colors hover:bg-ink-hair"
-          >
-            Share
-          </button>
-        )}
         <a
           href={url}
           target="_blank"
@@ -758,8 +895,6 @@ export default function Settings() {
     )
   }
 
-  const isPublic = profile.visibility === 'public'
-
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 sm:py-14">
       <header className="border-b border-ink-hair pb-6">
@@ -828,6 +963,31 @@ export default function Settings() {
             {ROLES.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        {/* SAID, NOT VERIFIED, and the note says so in the coach's own reading
+            rather than in a tooltip. docs/SOCIAL.md §5c is emphatic that
+            verification is about identity and is the credibility moat; a field
+            that quietly implied a badge had been checked would spend that moat
+            for nothing. The nine UEFA options plus one for everybody else — see
+            LICENCES in ./identity.ts for why that last one has to exist. */}
+        <Field
+          label="Coaching licence"
+          note="Optional, and shown on your profile as your own claim. We do not check it."
+          fault={faults.licence}
+        >
+          <select
+            value={profile.licence}
+            onChange={(e) => set({ licence: e.target.value })}
+            className={INPUT}
+          >
+            <option value="">Not saying</option>
+            {LICENCES.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.label}
               </option>
             ))}
           </select>
@@ -922,19 +1082,19 @@ export default function Settings() {
           )}
         </div>
 
-        {/* The switch, and the whole promise stated next to it rather than in a
+        {/* The choice, and the whole promise stated next to it rather than in a
             help page nobody opens. */}
         <div className="mt-7 rounded-xl border border-ink-hair bg-paper p-4">
-          <Switch
-            on={isPublic}
-            onChange={(next) => set({ visibility: next ? 'public' : 'private' })}
-            label="Make my profile public"
-            title={isPublic ? 'Your profile is public' : 'Your profile is private'}
-          >
-            {isPublic
-              ? 'Anyone with the link can see your name, picture, club, crest, role, bio and links. Your systems stay private until you publish one, and your squad is never shown.'
-              : 'Nobody can see any of this. Your systems are private either way, and turning this on never publishes one.'}
-          </Switch>
+          <p className="text-[13px] font-bold text-ink">Who can see your profile</p>
+          <p className="mt-1 mb-3 text-[12px] leading-relaxed text-ink-soft">
+            Your systems are private in all three, and changing this never publishes one. Your
+            squad is never shown to anybody, whatever you pick here.
+          </p>
+
+          <VisibilityChoice
+            value={profile.visibility}
+            onChange={(visibility) => set({ visibility })}
+          />
 
           <ShareProfile saved={saved} draft={profile} />
         </div>

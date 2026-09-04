@@ -203,6 +203,11 @@ export interface PitchView {
    * which is where every board a coach already uses puts it (TRAINING.md 1d).
    */
   bench?: { x0: number; x1: number; y0: number; y1: number }
+  /**
+   * Shift the viewBox by this many units on its Y axis.
+   * Used to focus the video rendering asymmetrically, e.g. reducing deadspace above goals.
+   */
+  yShift?: number
 }
 
 /* ── THE SESSION AREA, AS THE COACH SIZES IT ─────────────────────────────────
@@ -612,10 +617,11 @@ export function cropRect(v: PitchView): { x: number; y: number; w: number; h: nu
   const p = pads(v)
   const w = (v.x1 - v.x0 + p.x * 2) * U
   const h = (v.y1 - v.y0 + p.y * 2) * U
-  if (!v.vertical) return { x: (v.x0 - p.x) * U, y: (v.y0 - p.y) * U, w, h }
+  const yShift = v.yShift ?? 0
+  if (!v.vertical) return { x: (v.x0 - p.x) * U, y: (v.y0 - p.y) * U + yShift, w, h }
   // A quarter turn swaps the crop's width and height about the same centre.
   const { cx, cy } = cropCentre(v)
-  return { x: cx - h / 2, y: cy - w / 2, w: h, h: w }
+  return { x: cx - h / 2, y: cy - w / 2 + yShift, w: h, h: w }
 }
 
 /** The SVG viewBox for a view, in units, including the padding. */

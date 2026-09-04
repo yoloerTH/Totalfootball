@@ -59,7 +59,88 @@ export function patternFault(pattern: string): string | null {
   return KIT_PATTERNS.some((k) => k.id === pattern) ? null : 'That is not a kit pattern.'
 }
 
-export type Visibility = 'private' | 'public'
+/**
+ * The three states a profile can be in. Matches the CHECK in supabase/024.
+ *
+ * 'unlisted' ARRIVED AFTER 'private' AND DID NOT REDEFINE IT. A coach who set
+ * their profile private in Phase 1 meant "nobody", and they still have it. The
+ * new state sits between: reachable by anybody holding the link, never in the
+ * feed and never in search.
+ */
+export type Visibility = 'private' | 'unlisted' | 'public'
+
+/**
+ * The picker, and the sentence under each option.
+ *
+ * THE COPY FOR 'unlisted' SAYS "not listed" AND NEVER "secret", because a
+ * handle is short and chosen and a determined stranger can type one. That is
+ * the honest description of what the link-only state buys, and supabase/024
+ * says the same thing in the CHECK's comment. A post id is random and is a
+ * different matter; this is about the profile page.
+ */
+export const VISIBILITIES = [
+  {
+    id: 'private',
+    label: 'Private',
+    hint: 'Nobody but you. Your systems, your squad and your kit stay exactly where they are.',
+  },
+  {
+    id: 'unlisted',
+    label: 'Link only',
+    hint: 'Anyone you send the link to can open your profile. It stays out of the feed and out of search.',
+  },
+  {
+    id: 'public',
+    label: 'Public',
+    hint: 'Listed in the feed, findable by anyone. What you publish can be opened, saved and forked with credit.',
+  },
+] as const
+
+export function visibilityLabel(id: string | null | undefined): string {
+  return VISIBILITIES.find((v) => v.id === id)?.label ?? 'Private'
+}
+
+/**
+ * Coaching licences, and the exact nine UEFA sets minimum criteria for.
+ *
+ * Read off uefa.com/development/coaches/uefa-coaching-licences on 2026-09-04:
+ * C, B, A and Pro, plus the specialist Youth B, Elite Youth A, Goalkeeper B,
+ * Goalkeeper A and Futsal B. Same list as the CHECK in supabase/024 and the
+ * same warning the reserved-handle list carries — change one, change both.
+ *
+ * WHY 'other' IS ON THE LIST. A licence is issued by a member association, and
+ * a coach may hold an FA Level 1, a badge from outside UEFA, or nothing yet. A
+ * picker with only UEFA badges on it invites a coach to overclaim, and this
+ * product's whole credibility argument (docs/SOCIAL.md §5c) is that a claim
+ * about a qualification is worth something. Leaving it blank is also fine and
+ * is the default.
+ *
+ * NOTHING HERE IS VERIFIED and no label may suggest it is. It is a coach
+ * telling you what they hold, shown as such.
+ */
+export const LICENCES = [
+  { id: 'uefa_pro', label: 'UEFA Pro' },
+  { id: 'uefa_a', label: 'UEFA A' },
+  { id: 'uefa_b', label: 'UEFA B' },
+  { id: 'uefa_c', label: 'UEFA C' },
+  { id: 'uefa_elite_youth_a', label: 'UEFA Elite Youth A' },
+  { id: 'uefa_youth_b', label: 'UEFA Youth B' },
+  { id: 'uefa_gk_a', label: 'UEFA Goalkeeper A' },
+  { id: 'uefa_gk_b', label: 'UEFA Goalkeeper B' },
+  { id: 'uefa_futsal_b', label: 'UEFA Futsal B' },
+  { id: 'other', label: 'Another qualification' },
+] as const
+
+export type LicenceId = (typeof LICENCES)[number]['id']
+
+export function licenceLabel(id: string | null | undefined): string {
+  return LICENCES.find((l) => l.id === id)?.label ?? ''
+}
+
+export function licenceFault(licence: string): string | null {
+  if (!licence) return null
+  return LICENCES.some((l) => l.id === licence) ? null : 'That is not one of the licences on the list.'
+}
 
 export const BIO_MAX = 280
 export const HANDLE_MAX = 30
@@ -193,6 +274,7 @@ export function linkFault(link: ProfileLink): string | null {
 export interface ProfileDraft {
   handle: string
   bio: string
+  licence: string
   visibility: Visibility
   teamColour: string
   kitRing: string
@@ -211,11 +293,22 @@ export function profileFaults(draft: ProfileDraft): Record<string, string> {
   // exists rather than a bag of independent validators: a public profile is
   // reached BY its handle, so there is no such thing as a public profile without
   // one. The policy in supabase/012 agrees, and would simply serve nothing.
-  if (draft.visibility === 'public' && !draft.handle) {
-    faults.handle = 'Choose a handle before making your profile public. It is the address people visit.'
+  //
+  // 'unlisted' IS HELD TO THE SAME RULE AS 'public', which is easy to miss when
+  // reading it as "the private-ish one". Link only still means there is a link,
+  // and /c/<handle> is the link. Without a handle there is no address to send,
+  // and `studio_profile_by_handle` in supabase/024 has nothing to match on.
+  if (draft.visibility !== 'private' && !draft.handle) {
+    faults.handle =
+      draft.visibility === 'public'
+        ? 'Choose a handle before making your profile public. It is the address people visit.'
+        : 'Choose a handle first. It is the link you would be sending.'
   }
 
   if (draft.bio.length > BIO_MAX) faults.bio = `Keep it under ${BIO_MAX} characters.`
+
+  const licence = licenceFault(draft.licence)
+  if (licence) faults.licence = licence
 
   const team = colourFault(draft.teamColour)
   if (team) faults.teamColour = team

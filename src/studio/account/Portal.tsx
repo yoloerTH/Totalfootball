@@ -54,6 +54,8 @@ import {
 import { Modal, Button } from '../editor/ui'
 import { ExportDialog } from '../editor/ExportDialog'
 import { VideoDialog } from '../editor/VideoDialog'
+import { PublishDialog } from '../editor/PublishDialog'
+import { IdentityGate } from '../editor/IdentityGate'
 import { useProfile, putProfile } from './profile'
 
 type Load = 'working' | 'ready' | 'local-only'
@@ -74,7 +76,7 @@ export default function Portal() {
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [editingFolder, setEditingFolder] = useState(false)
   const [folderDraft, setFolderDraft] = useState('')
-  const { profile } = useProfile(user?.id)
+  const { profile, status: profileStatus } = useProfile(user?.id)
 
   /*
    * ── FINISHING THE PROFILE ────────────────────────────────────────────────
@@ -103,6 +105,42 @@ export default function Portal() {
    */
   const [completion, setCompletion] = useState<Completion | null>(null)
   const [exportSystem, setExportSystem] = useState<{ row: CloudSystem; mode: 'images' | 'video' } | null>(null)
+  /** The system being published, once the coach has a name and a handle. */
+  const [publishRow, setPublishRow] = useState<CloudSystem | null>(null)
+  /**
+   * The two-field gate, and what the coach was trying to do when it opened.
+   *
+   * Held with the intent rather than as a boolean because the dialog says a
+   * different sentence for each, and because what happens after Save is
+   * different: publishing resumes where it was, the feed is a navigation.
+   */
+  const [gate, setGate] = useState<{ intent: 'publish' | 'feed'; row: CloudSystem | null } | null>(
+    null,
+  )
+
+  /**
+   * A name and a handle, which are the two things everything social needs.
+   *
+   * ── WHILE THE PROFILE IS STILL LOADING THIS IS FALSE, ON PURPOSE ────────────
+   *
+   * A gate that opens because an answer has not arrived yet is a gate in front
+   * of a coach who filled these in months ago, and it is the most annoying
+   * possible version of this feature. Being permissive for the half second
+   * before the row lands costs nothing: the dialog it lets through reads the
+   * profile itself, and the next render corrects the button.
+   */
+  const needsIdentity =
+    profileStatus !== 'loading' && (!profile?.presenter.trim() || !profile?.handle.trim())
+
+  const goPublish = (row: CloudSystem) => {
+    if (needsIdentity) setGate({ intent: 'publish', row })
+    else setPublishRow(row)
+  }
+
+  const goFeed = () => {
+    if (needsIdentity) setGate({ intent: 'feed', row: null })
+    else window.location.href = '/feed/'
+  }
 
   // Signed out: go and sign in, and come back here afterwards.
   useEffect(() => {
@@ -374,6 +412,18 @@ export default function Portal() {
         <div className="mt-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
           <div>
             <h1 className="text-title font-black tracking-display text-ink">Your systems</h1>
+            {/* The way out to the network, on the shelf rather than in the nav.
+                A coach who has never published anything has no reason to look
+                for a menu item, and the sentence is the invitation: this is the
+                first thing on this page that is about anybody else. */}
+            <button
+              type="button"
+              onClick={goFeed}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-ink-hair bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+            >
+              <Mark size={16} />
+              See what other coaches have published
+            </button>
             {load !== 'working' && systems.length > 0 && (
               <>
                 <Tally {...tally} />
@@ -544,6 +594,7 @@ export default function Portal() {
                             onRename={(t) => void rename(row, t)}
                             onFolderClick={isSharedFolder ? undefined : () => setFolderSystem(row)}
                             onExport={() => setExportSystem({ row, mode: 'images' })}
+                            onPublish={() => goPublish(row)}
                             onDelete={isSharedFolder ? undefined : () => void remove(row)}
                           />
                         ))}
@@ -606,6 +657,7 @@ export default function Portal() {
                           onRename={(t) => void rename(row, t)}
                           onFolderClick={() => setFolderSystem(row)}
                           onExport={() => setExportSystem({ row, mode: 'images' })}
+                          onPublish={() => goPublish(row)}
                           onDelete={() => void remove(row)}
                         />
                       ))}
@@ -679,6 +731,35 @@ export default function Portal() {
           onSaved={() => setExportSystem(null)}
           onSwitchMode={(mode) => setExportSystem({ row: exportSystem!.row, mode: mode === 'image' ? 'images' : 'video' })}
           onClose={() => setExportSystem(null)}
+        />
+      )}
+
+      {publishRow && user && (
+        <PublishDialog
+          system={publishRow.system}
+          profile={profile ?? EMPTY_PROFILE}
+          owner={user.id}
+          onClose={() => setPublishRow(null)}
+        />
+      )}
+
+      {/* The gate, and the thing it was in front of. `onDone` resumes the
+          action rather than dropping the coach back on the shelf having filled
+          in two fields for no visible reason — that is the whole reason the
+          intent is carried on the state. */}
+      {gate && user && (
+        <IdentityGate
+          profile={profile ?? EMPTY_PROFILE}
+          owner={user.id}
+          intent={gate.intent}
+          onClose={() => setGate(null)}
+          onDone={(next) => {
+            putProfile(next)
+            const resume = gate
+            setGate(null)
+            if (resume.intent === 'feed') window.location.href = '/feed/'
+            else if (resume.row) setPublishRow(resume.row)
+          }}
         />
       )}
     </div>
@@ -1167,6 +1248,7 @@ function Card({
   onRename,
   onFolderClick,
   onExport,
+  onPublish,
   onDelete,
 }: {
   row: CloudSystem
@@ -1174,6 +1256,8 @@ function Card({
   onRename: (title: string) => void
   onFolderClick?: (current: string) => void
   onExport: () => void
+  /** Absent on a shelf where publishing makes no sense — a shared folder. */
+  onPublish?: () => void
   onDelete?: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -1292,6 +1376,12 @@ function Card({
             )
           )}
           <Small onClick={onExport}>Export</Small>
+          {/* Beside Export rather than above it. Publishing is a bigger act than
+              exporting and a smaller one than deleting, and a coach reaches for
+              it in the same moment — "this one is finished, it can go out". A
+              button of its own at the top of the card would make every shelf
+              read as a page about publishing, which it is not. */}
+          {onPublish && <Small onClick={onPublish}>Publish</Small>}
         </div>
       </div>
     </li>
