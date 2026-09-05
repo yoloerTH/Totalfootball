@@ -25,13 +25,87 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import StudioDeck from '../../components/visual/StudioDeck.astro'
 import PoseToFilm from '../../components/visual/PoseToFilm.astro'
 import StepGlyph from '../../components/visual/StepGlyph.astro'
+import BoardWall from '../../components/visual/BoardWall.astro'
 import SystemCard from '../../components/library/SystemCard.astro'
 import Faq from '../../components/Faq.astro'
+import { Board } from '../../studio/board/Board'
+import { PITCH_VIEW_LIST, aspect, viewFor } from '../../studio/board/pitch'
+import { FORMATIONS } from '../../studio/formations'
+import { resolveAct } from '../../studio/tween'
+import { GEAR } from '../../studio/gear'
+import { TEMPLATES } from '../../studio/templates'
+import type { System } from '../../studio/schema'
 import { SYSTEMS } from '../../data/systems'
 import { faqGroup } from '../../data/faq'
+import { WHATS_NEW } from '../../data/whatsnew'
+import sacchi from '../../../content/systems/sacchis-25-metres.json'
 import { SITE_URL } from '../../lib/site'
 
 const featured = SYSTEMS.slice(0, 3)
+
+/**
+ * NUMBERS ON THIS PAGE ARE COUNTED, NEVER TYPED.
+ *
+ * The page said "twenty-four formations" for three weeks after the shapes went
+ * to twenty-six, because the sentence was written by hand and the catalogue was
+ * not. Anything countable below is derived from the module that owns it, so the
+ * copy cannot go stale without the build going with it.
+ */
+const WORDS = [
+  'zero','one','two','three','four','five','six','seven','eight','nine','ten',
+  'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty',
+  'twenty-one','twenty-two','twenty-three','twenty-four','twenty-five','twenty-six','twenty-seven',
+  'twenty-eight','twenty-nine','thirty',
+]
+/**
+ * Counted by the module, said the way the rest of the page says a number.
+ *
+ * The list runs to thirty because the shapes are already at twenty-five and a
+ * digit dropped into the middle of a sentence written in words is the tell that
+ * the sentence is generated. Past thirty it falls back to the numeral, which is
+ * the right answer for a count nobody reads aloud.
+ */
+const word = (n: number) => WORDS[n] ?? String(n)
+const Word = (n: number) => (WORDS[n] ? WORDS[n][0].toUpperCase() + WORDS[n].slice(1) : String(n))
+
+const shapes = FORMATIONS.filter((f) => !f.blank).length
+const boards = PITCH_VIEW_LIST.length
+const gear = GEAR.length
+const officialTemplates = TEMPLATES.filter((t) => t.official).length
+
+/**
+ * The vocabulary board: a real phase out of a real system, not a mock-up.
+ *
+ * Act 10 of Sacchi's 25 Metres, which carries the whole drawing layer at once —
+ * six cues, four dimmed options, a danger zone and a plate of text. It is drawn
+ * by `Board` at build time, the same component the studio and the MP4 use, so
+ * it is a picture of the product in the only sense that cannot rot.
+ *
+ * `credit` is dropped: the document is posed as somebody else's team and a
+ * borrowed name at the foot of our own landing page is a claim, not a demo.
+ */
+const marksDoc: System = {
+  ...(sacchi as unknown as System),
+  credit: undefined,
+  camera: undefined,
+  push: undefined,
+}
+const marksAct = resolveAct({ ...marksDoc.acts[9], push: undefined }, marksDoc)
+const marksView = viewFor(marksDoc)
+
+/** Newest first already; `unseenNews` depends on that order. See the data file. */
+const shipped = WHATS_NEW.slice(0, 6)
+const since = WHATS_NEW[WHATS_NEW.length - 1]
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const sinceDay = (() => {
+  const [y, m, d] = since.date.split('-').map(Number)
+  return `${d} ${MONTHS[m - 1]} ${y}`
+})()
+const NEWS_CHIP: Record<string, string> = {
+  new: 'bg-gold/18 text-ink',
+  better: 'bg-green/18 text-ink',
+  fixed: 'bg-ink-hair text-ink-soft',
+}
 
 /**
  * The objections, answered before the sign-in wall rather than after it.
@@ -53,7 +127,7 @@ const STEPS = [
     n: '01',
     kind: 'shape' as const,
     title: 'Put your shape down',
-    body: 'Pick the pitch you want, the shape you play, and your colours. Twenty-four formations, and eleven counters you can drag anywhere.',
+    body: `Pick the board you want, the shape you play, and your colours. ${Word(boards)} boards, ${word(shapes)} shapes, and a blank eleven you can drag anywhere.`,
   },
   {
     n: '02',
@@ -65,7 +139,7 @@ const STEPS = [
     n: '03',
     kind: 'send' as const,
     title: 'Send it, or save the film',
-    body: 'A link that plays on any phone, with no app and no account at the other end. Or an MP4 for the places a link will not go.',
+    body: 'A link that plays on any phone, with no app and no account at the other end. Or an MP4, a PDF and a set of stills for the places a link will not go.',
   },
 ]
 
@@ -86,8 +160,13 @@ const EXPORTS = [
   },
   {
     title: 'An MP4',
-    body: 'Landscape or vertical, encoded on your own machine. For the places a link will not go: a story, a status, a group chat.',
+    body: 'Landscape or vertical, 720p at 60 frames a second, encoded on your own machine. For a story, a status, a group chat.',
     icon: ico('<rect x="2" y="5" width="14" height="14" rx="2"/><path d="m16 10 6-3v10l-6-3z"/>'),
+  },
+  {
+    title: 'Stills, one or all of them',
+    body: 'PNG files, landscape, square or vertical, of one phase or every phase. Drawn through the same renderer as the film, so a picture is a frame of it.',
+    icon: ico('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.6" cy="8.6" r="1.4"/><path d="m21 15.5-5-5L5.5 21"/>'),
   },
   {
     title: 'A PDF to hand out',
@@ -98,6 +177,42 @@ const EXPORTS = [
     title: 'Your name on all of it',
     body: 'Your name and club at the foot of every board, ours beside them. Set it once and everything you share is signed.',
     icon: ico('<path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/>'),
+  },
+  {
+    title: 'Your staff, on the same board',
+    body: 'Invite the coaches you work with to view or edit, either your whole collection or one system. Nobody has to screenshot anything for an assistant again.',
+    icon: ico('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  },
+]
+
+/**
+ * The drawing layer, said once each. Every line here names something that is on
+ * the board in the studio today; the counts come from the modules above.
+ */
+const MARKS = [
+  {
+    t: 'Arrows that hold on',
+    d: 'Pass, run, carry, press and switch. Fix one to a player and it goes where he goes, phase after phase.',
+  },
+  {
+    t: 'Blocks and zones',
+    d: 'A block that closes around the men inside it, or a shaded area in nine colours, hatched or solid, box, round, triangle or diamond.',
+  },
+  {
+    t: 'Lines that stay put',
+    d: 'Hold Shift and the line comes out straight. Lock it to the pitch and it stays with the grass, not with the crop.',
+  },
+  {
+    t: 'Words on the grass',
+    d: 'Click anywhere and type: a trigger, a coaching point, a name for a space. Any size, any weight, turned to run along a touchline.',
+  },
+  {
+    t: 'Bibs, for a session',
+    d: "Split the group into teams without touching anybody's kit. A bib is a kit, so it films and prints like one.",
+  },
+  {
+    t: 'Your squad, with faces',
+    d: 'Photographs on the counters and their names above or below, so a phase is about your players rather than about letters.',
   },
 ]
 
@@ -139,7 +254,8 @@ const structuredData = [
           data-reveal-delay="160"
         >
           The same board the videos are drawn on, handed over. Pose it phase by phase (nobody
-          keyframes anything) and the movement between the phases comes back as film.
+          keyframes anything) and the movement between the phases comes back as film. A match, a
+          corner or a Tuesday session: same gesture, same board.
         </p>
 
         <div class="mt-10 flex flex-wrap items-center gap-3" data-reveal="rise" data-reveal-delay="240">
@@ -331,6 +447,162 @@ const structuredData = [
     </div>
   </section>
 
+  {/* ── The boards ──────────────────────────────────────────────────────
+      AFTER the film and before the exports, because this is the first
+      section that widens the product past "a pitch with a shape on it", and
+      that claim is only credible once the reader has seen the thing work.
+
+      Every board here is `Board` run at build time, the same component the
+      editor draws with. Not a screenshot: see BoardWall.astro's header for
+      why a picture of a product is a second copy of it that nobody updates.
+  */}
+  <section class="border-t border-ink-hair">
+    <div class="shell py-24 md:py-32">
+      <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">The boards</p>
+          <h2 class="max-w-[17ch] text-title font-black" data-reveal="clip">
+            {Word(boards)} boards, and not one of them a screenshot.
+          </h2>
+          <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+            Six crops of a full pitch for the match, two goalmouths for corners and free kicks, and
+            a coned grid for the session. Every board below is being drawn on this page, right now,
+            by the studio itself.
+          </p>
+        </div>
+      </div>
+
+      <BoardWall class="mt-14" />
+    </div>
+  </section>
+
+  {/* ── What goes on it ─────────────────────────────────────────────────
+      The drawing layer, which is most of what shipped since this page was
+      last written and none of which it mentioned. One real phase carries the
+      argument: six cues, four shut passes, a shaded trap and a plate of text
+      on one board says more than six bullet points about annotation.
+  */}
+  <section class="border-t border-ink-hair bg-paper-deep/40">
+    <div class="shell py-24 md:py-32">
+      {/* The board goes FULL WIDTH and the list goes under it.
+
+          It was a column beside the list, which made the one honest picture of
+          the drawing layer the smallest thing in the section, and left a hand's
+          depth of empty paper under it wherever the list ran longer. A phase
+          with twenty-two men on it needs the width to be read at all. */}
+      <div class="max-w-[46rem]">
+        <p class="micro mb-6" data-reveal="fade">On the board</p>
+        <h2 class="max-w-[15ch] text-title font-black" data-reveal="clip">
+          Then you mark it up.
+        </h2>
+        <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
+          Eleven counters on grass is a team sheet. What makes it a session is everything drawn
+          over the top, and all of it carries into the next phase with the players.
+        </p>
+      </div>
+
+      <figure
+        class="mt-14 rounded-3xl border border-ink-hair bg-surface/55 p-3 shadow-paper sm:p-5"
+        data-reveal="fade"
+        data-reveal-delay="120"
+      >
+        <div style={`aspect-ratio:${aspect(marksView)};width:100%`}>
+          <Board system={marksDoc} act={marksAct} idp="marks" texture />
+        </div>
+        <figcaption class="mt-5 max-w-prose text-[13px] leading-relaxed text-ink-soft sm:px-2">
+          One phase of Sacchi's 25 Metres, a system built on this board and published as a film.
+          Four ways out of the press and all four shut: six men carrying a cue, the passes that are
+          no longer on drawn faintly, the trap shaded behind them, and the point of it written on
+          the grass. Posed on the night pitch, which is one of four the board can wear.
+        </figcaption>
+      </figure>
+
+      <ul class="mt-16 grid list-none gap-x-10 gap-y-8 p-0 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          MARKS.map((m, i) => (
+            <li data-reveal="rise" data-reveal-delay={i * 60}>
+              <div class="flex items-center gap-2.5">
+                <span class="h-1.5 w-1.5 rounded-full bg-tf-gradient" aria-hidden="true" />
+                <h3 class="text-[15px] font-black text-ink">{m.t}</h3>
+              </div>
+              <p class="mt-2 text-[15px] leading-relaxed text-ink-soft">{m.d}</p>
+            </li>
+          ))
+        }
+      </ul>
+
+      {/* The kit bag. Real thumbnails off the gear catalogue, so a piece added
+          to the studio turns up here without anybody editing this page. */}
+      <div
+        class="mt-16 rounded-2xl border border-ink-hair bg-paper p-6 sm:p-8"
+        data-reveal="fade"
+      >
+        <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+          <div>
+            <p class="micro">The kit bag</p>
+            <h3 class="mt-3 text-xl font-black tracking-display text-ink">
+              {Word(gear)} pieces, drawn to size.
+            </h3>
+          </div>
+          <p class="max-w-[46ch] text-[15px] leading-relaxed text-ink-soft">
+            Cones, poles, hurdles, ladders, mannequins, goals and the strength kit. Every one is
+            sized in metres against the grid, so a ladder is a ladder rather than a decision about
+            pixels.
+          </p>
+        </div>
+
+        <ul class="mt-8 flex list-none flex-wrap items-end gap-x-6 gap-y-5 p-0">
+          {
+            GEAR.map((g) => (
+              <li class="flex w-16 flex-col items-center gap-2">
+                {/* A fixed box, not a fixed image: a ladder is four times as
+                    wide as a cone and a mannequin four times as tall, so only
+                    the BOX can be the thing that lines up. */}
+                <span class="flex h-12 w-16 items-end justify-center">
+                  <img
+                    src={g.thumb}
+                    alt={g.name}
+                    width="64"
+                    height="64"
+                    loading="lazy"
+                    decoding="async"
+                    class="max-h-12 w-auto max-w-full object-contain"
+                  />
+                </span>
+                <span class="text-center text-[11px] leading-tight text-ink-faint">{g.name}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      {/* Three things that are not marks and do not deserve a section each. */}
+      <ul class="mt-6 grid list-none gap-px overflow-hidden rounded-2xl border border-ink-hair bg-ink-hair p-0 sm:grid-cols-3">
+        {
+          [
+            {
+              t: 'Sequences you keep',
+              d: 'Capture a movement once, save it to your own library, and drop it into any other system, on either flank.',
+            },
+            {
+              t: 'A camera with a hand on it',
+              d: 'Let it follow the ball, pick which ball it follows, or frame every phase yourself and set how far it pushes in.',
+            },
+            {
+              t: 'Nothing typed twice',
+              d: 'Move a cone, a zone or a line and the change runs forward through the rest of the phases on its own.',
+            },
+          ].map((x, i) => (
+            <li class="bg-paper p-6" data-reveal="fade" data-reveal-delay={i * 60}>
+              <h3 class="text-[15px] font-black text-ink">{x.t}</h3>
+              <p class="mt-2 text-[15px] leading-relaxed text-ink-soft">{x.d}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
   {/* ── What you get out ─────────────────────────────────────────────── */}
   <section class="border-y border-ink-hair bg-paper-deep/30">
     <div class="shell py-24 md:py-32">
@@ -341,7 +613,8 @@ const structuredData = [
           </h2>
           <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
             A presentation nobody sees is a presentation you did not need to make. So the export is
-            not a file format, it is the four ways a coach actually shows people things.
+            not a file format, it is the {word(EXPORTS.length)} ways a coach actually shows people
+            things.
           </p>
         </div>
 
@@ -362,18 +635,78 @@ const structuredData = [
     </div>
   </section>
 
-  {/* ── Start from ours ──────────────────────────────────────────────── */}
+  {/* ── Start from ours ──────────────────────────────────────────────────
+      This used to point only at /library/, which is the write-ups. The
+      documents themselves are openable now: {TEMPLATES.length} of them sit in
+      the studio's own shelf, and {officialTemplates} are the exact files the
+      published films were rendered from, not a copy made for a demo. Sending a
+      coach to an article when the board is one click away was the stalest
+      thing on this page. */}
   <section class="shell py-24 md:py-32">
     <h2 class="max-w-[22ch] text-title font-black" data-reveal="clip">
       Or start from one of ours.
     </h2>
     <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-soft" data-reveal="rise">
-      Every system in the library was built on this board. Open one, see how it is put together, and
-      make it your own.
+      {Word(TEMPLATES.length)} systems built on this board are waiting on the shelf, and {word(officialTemplates)}
+      of them are the documents the published films were rendered from, not a copy made for a demo.
+      Open one and it is yours: move the players, rewrite the words, keep what is useful.
     </p>
 
     <div class="mt-12 grid gap-6 md:grid-cols-3">
       {featured.map((system) => <SystemCard system={system} />)}
+    </div>
+
+    <div class="mt-12" data-reveal="fade">
+      <a href="/studio/templates/" class="btn btn-ghost" data-track="studio:templates">
+        Open the shelf →
+      </a>
+    </div>
+  </section>
+
+  {/* ── Shipped ──────────────────────────────────────────────────────────
+      The changelog the studio already keeps, read from the same file the bell
+      in the toolbar reads. Six entries and a count, both derived: a landing
+      page that has to be hand-edited to stay current is a landing page that
+      goes stale, which is exactly how this one came to be advertising
+      twenty-four formations. */}
+  <section class="border-t border-ink-hair bg-paper-deep/40">
+    <div class="shell py-20 md:py-24">
+      <div class="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <p class="micro mb-6" data-reveal="fade">Shipped</p>
+          <h2 class="max-w-[20ch] text-title font-black" data-reveal="clip">
+            It gets better most weeks.
+          </h2>
+        </div>
+        <p class="max-w-[42ch] leading-relaxed text-ink-soft" data-reveal="rise">
+          {WHATS_NEW.length} changes since {sinceDay}, each one written from the coach's side and
+          listed in the studio itself, behind the bell.
+        </p>
+      </div>
+
+      <ul class="mt-12 grid list-none gap-x-12 gap-y-6 p-0 md:grid-cols-2">
+        {
+          shipped.map((entry, i) => (
+            <li
+              class="flex items-baseline gap-4 border-b border-ink-hair pb-5"
+              data-reveal="rise"
+              data-reveal-delay={i * 50}
+            >
+              <span
+                class:list={[
+                  'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide',
+                  NEWS_CHIP[entry.kind],
+                ]}
+              >
+                {entry.kind}
+              </span>
+              <span class="flex-1 text-[15px] font-semibold leading-snug text-ink">
+                {entry.title}
+              </span>
+            </li>
+          ))
+        }
+      </ul>
     </div>
   </section>
 

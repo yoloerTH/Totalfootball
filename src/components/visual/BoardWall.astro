@@ -1,0 +1,295 @@
+---
+/**
+ * Every board the studio can draw, on one wall.
+ *
+ * WHY THE REAL RENDERER AND NOT SCREENSHOTS
+ *
+ * These are `Board` itself, run at build time with no client directive: the
+ * same component the editor draws with and the same one the MP4 is rendered
+ * from. A screenshot of a board is a second copy of the product that nobody
+ * updates when the product changes — the exact trap `scripts/shoot-studio.mjs`
+ * refuses for the promo film, for the same reason. Static SVG costs the visitor
+ * no JavaScript, so honesty is also the cheap option here.
+ *
+ * WHAT IS ON EACH ONE
+ *
+ * A match view gets a 4-3-3 against a 4-4-2, placed by the formation bands, so
+ * the crop is judged on football rather than on an empty rectangle. The two
+ * set-piece views get a real piece out of `setpieces.ts` — cast, delivery,
+ * danger zone and mannequins — because a set-piece board with a league shape
+ * standing on it says nothing about what the board is for. The training grid
+ * gets a rondo, since a coned area with nobody in it is a rectangle.
+ *
+ * The tiles are one height with the board centred inside, not one grid cell per
+ * aspect ratio: nine crops that range from 16:9 to taller-than-wide will not
+ * make rows any other way, and the ragged version reads as a bug.
+ */
+import { Board } from '../../studio/board/Board'
+import {
+  PITCH_VIEWS,
+  PITCH_VIEW_GROUPS,
+  aspect,
+  toPercent,
+  trainingView,
+  type PitchView,
+  type SessionArea,
+} from '../../studio/board/pitch'
+import { FORMATION_BY_ID, place } from '../../studio/formations'
+import { SET_PIECE_BY_ID, arrange, spotToPercent } from '../../studio/setpieces'
+import {
+  DEFAULT_THEM,
+  DEFAULT_US,
+  emptyAct,
+  type Act,
+  type Band,
+  type GearMark,
+  type System,
+  type Token,
+} from '../../studio/schema'
+import { resolveAct, type RenderAct } from '../../studio/tween'
+
+interface Props {
+  /** Tile height in rem. The boards scale to it, so this sets the whole wall. */
+  height?: number
+  class?: string
+}
+const { height = 11, class: klass = '' } = Astro.props
+
+const teams = { us: DEFAULT_US, them: DEFAULT_THEM }
+
+interface Tile {
+  view: PitchView
+  system: System
+  act: RenderAct
+  label: string
+  hint: string
+}
+
+/** A match crop, with a shape on each side of it. */
+function matchTile(view: PitchView): Tile {
+  const system: System = { v: 1, title: view.label, pitch: view.id, teams, acts: [] }
+  const act = emptyAct([
+    ...place(FORMATION_BY_ID.get('4-3-3')!, 'us', view),
+    ...place(FORMATION_BY_ID.get('4-4-2')!, 'them', view),
+  ])
+  return { view, system, act: resolveAct(act, system), label: view.label, hint: view.hint }
+}
+
+/**
+ * A set piece, assembled the way the editor assembles one.
+ *
+ * `arrange` with no tokens deals the cast straight onto the spots — the branch
+ * it takes when a coach opens a set piece on an empty board. The ball, the
+ * delivery, the danger zone and the mannequins are the same four things
+ * StudioEditor adds around it, in the same coordinate space.
+ */
+function setPieceTile(id: string): Tile {
+  const piece = SET_PIECE_BY_ID.get(id)!
+  const view = PITCH_VIEWS[piece.view]
+  const system: System = {
+    v: 1,
+    title: piece.label,
+    pitch: piece.view,
+    tokenSize: piece.tokenSize,
+    teams,
+    acts: [],
+  }
+
+  const at = spotToPercent(view, piece.ball)
+  const bands: Band[] = (piece.bands ?? []).map((b, i) => {
+    const p1 = spotToPercent(view, { d: b.rect.d, s: b.rect.s })
+    const p2 = spotToPercent(view, { d: b.rect.d + b.rect.h, s: b.rect.s + b.rect.w })
+    return {
+      id: `sp-band-${i}`,
+      kind: b.kind,
+      shape: b.shape ?? 'box',
+      tone: b.tone,
+      rect: {
+        x: Math.min(p1.x, p2.x),
+        y: Math.min(p1.y, p2.y),
+        w: Math.abs(p2.x - p1.x),
+        h: Math.abs(p2.y - p1.y),
+      },
+    }
+  })
+  const gear: GearMark[] = (piece.gear ?? []).map((g, i) => ({
+    id: `sp-gear-${i}`,
+    kind: g.gear,
+    ...spotToPercent(view, { d: g.d, s: g.s }),
+  }))
+
+  const act: Act = {
+    ...emptyAct([...arrange(piece, 'us', view, []), ...arrange(piece, 'them', view, [])]),
+    ball: at,
+    bands,
+    gear,
+    arrows: piece.delivery
+      ? [
+          {
+            id: 'sp-delivery',
+            kind: piece.delivery.kind,
+            from: at,
+            to: spotToPercent(view, piece.delivery),
+            bend: piece.delivery.bend,
+          },
+        ]
+      : [],
+  }
+
+  return { view, system, act: resolveAct(act, system), label: piece.label, hint: piece.hint }
+}
+
+/**
+ * The grid, with a rondo in it.
+ *
+ * Positions are FRACTIONS OF THE CONED AREA, mapped through the view the same
+ * way a drag is (`toPercent`), so the 5 v 2 stays where it is meant to be if the
+ * default area ever changes size. Nothing here is a percentage typed by hand.
+ */
+function trainingTile(): Tile {
+  const area: SessionArea = { length: 30, width: 20, middle: true }
+  const view = trainingView(area)
+  const box = view.area!
+  const at = (fx: number, fy: number) => {
+    const p = toPercent(view, box.x0 + fx * (box.x1 - box.x0), box.y0 + fy * (box.y1 - box.y0))
+    return { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }
+  }
+
+  const outside: [number, number][] = [
+    [0.5, 0.03],
+    [0.96, 0.3],
+    [0.8, 0.96],
+    [0.2, 0.96],
+    [0.04, 0.3],
+  ]
+  const inside: [number, number][] = [
+    [0.42, 0.42],
+    [0.62, 0.62],
+  ]
+
+  const tokens: Token[] = [
+    ...outside.map((p, i) => ({ id: `us-${i + 1}`, side: 'us' as const, label: `${i + 1}`, ...at(...p) })),
+    ...inside.map((p, i) => ({ id: `them-${i + 1}`, side: 'them' as const, label: `${i + 1}`, ...at(...p) })),
+  ]
+
+  const gear: GearMark[] = ([[0, 0], [1, 0], [1, 1], [0, 1]] as [number, number][]).map((p, i) => ({
+    id: `cone-${i}`,
+    kind: 'marker-cone',
+    ...at(...p),
+  }))
+
+  const system: System = {
+    v: 1,
+    title: view.label,
+    pitch: 'training',
+    area,
+    tokenSize: 0.8,
+    teams,
+    acts: [],
+  }
+
+  const act: Act = {
+    ...emptyAct(tokens),
+    gear,
+    ball: at(0.5, 0.09),
+    arrows: [
+      { id: 'r1', kind: 'pass', from: at(0.5, 0.06), to: at(0.96, 0.32), bend: 0.18 },
+      { id: 'r2', kind: 'press', from: at(0.42, 0.42), to: at(0.62, 0.2) },
+    ],
+  }
+
+  return {
+    view,
+    system,
+    act: resolveAct(act, system),
+    label: view.label,
+    hint: 'A rondo in a 30 by 20, and every dimension of it is yours to drag.',
+  }
+}
+
+/** Grouped exactly as the studio's own picker groups them. */
+const GROUPS = PITCH_VIEW_GROUPS.map((g) => ({
+  label: g.label,
+  tiles: g.views.map((v) => {
+    if (v.id === 'attacking-set-piece') return setPieceTile('corner-in')
+    if (v.id === 'defending-set-piece') return setPieceTile('corner-defend')
+    if (v.id === 'training') return trainingTile()
+    return matchTile(v)
+  }),
+}))
+
+const total = GROUPS.reduce((n, g) => n + g.tiles.length, 0)
+
+/**
+ * Columns follow the count, because a `gap-px` grid on a hairline ground paints
+ * its empty cells: three columns holding two boards is a grey rectangle where
+ * the third one would be, and it reads as a board that failed to draw. The
+ * group of one turns into a row instead of a lonely tile in a wide cell.
+ */
+function cols(n: number): string {
+  if (n >= 3) return 'sm:grid-cols-2 lg:grid-cols-3'
+  if (n === 2) return 'sm:grid-cols-2'
+  return ''
+}
+
+/** A shorter row has wider cells, so the board in it can afford to be bigger. */
+function tall(n: number): number {
+  if (n >= 3) return height
+  if (n === 2) return height * 1.25
+  return height * 1.45
+}
+---
+
+<div class={klass} data-boards={total}>
+  {
+    GROUPS.map((group, gi) => (
+      <div class={gi === 0 ? '' : 'mt-12'}>
+        <div class="flex items-center gap-4">
+          <p class="micro">{group.label}</p>
+          <span class="h-px flex-1 bg-ink-hair" aria-hidden="true" />
+          <span class="text-[13px] tabular-nums text-ink-faint">
+            {group.tiles.length === 1 ? '1 board' : `${group.tiles.length} boards`}
+          </span>
+        </div>
+
+        <ul
+          class:list={[
+            'mt-6 grid list-none gap-px overflow-hidden rounded-xl border border-ink-hair bg-ink-hair p-0',
+            cols(group.tiles.length),
+          ]}
+        >
+          {group.tiles.map((tile, i) => {
+            const solo = group.tiles.length === 1
+            return (
+              <li
+                class:list={[
+                  'bg-paper p-5',
+                  solo ? 'sm:flex sm:items-center sm:justify-center sm:gap-12 sm:p-8' : 'flex flex-col',
+                ]}
+                data-reveal="fade"
+                data-reveal-delay={i * 60}
+              >
+                <div class:list={['flex items-center justify-center py-2', !solo && 'flex-1']}>
+                  <div
+                    style={`height:${tall(group.tiles.length)}rem;aspect-ratio:${aspect(tile.view)};max-width:100%`}
+                  >
+                    <Board
+                      system={tile.system}
+                      act={tile.act}
+                      idp={`wall-${tile.view.id}-${i}`}
+                      texture
+                    />
+                  </div>
+                </div>
+                <div class:list={[solo && 'sm:max-w-[32ch]']}>
+                  <h3 class="mt-4 text-[15px] font-black text-ink sm:mt-0">{tile.label}</h3>
+                  <p class="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{tile.hint}</p>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    ))
+  }
+</div>
