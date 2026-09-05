@@ -18,11 +18,27 @@
 import { useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { accountsEnabled, db } from './client'
-import { setOwner, wipeScope } from '../scope'
-import { currentOwner } from '../scope'
+import { resetSession } from '../storage'
+import { forgetSequences } from '../sequences'
 import { forgetVersions } from './cloud'
 import { forgetProfile } from './profile'
 import { stopPrefs } from './prefs'
+
+/**
+ * Who every in-memory cache in the studio currently belongs to.
+ *
+ * MODULE SCOPE, NOT EFFECT SCOPE, and the distinction is a bug waiting to be
+ * reintroduced: `useSession` is an ordinary hook, so half a dozen components
+ * each run their own copy of the effect below. A per-effect answer to "has the
+ * coach changed" is `null` for every one of them on mount, so a panel opening
+ * mid-session would clear the profile and version caches out from under the
+ * editor. There is one browser, one signed-in coach and therefore one answer.
+ *
+ * `undefined` is "nobody has asked yet" and is distinct from `null`, which is
+ * "signed out" — otherwise the very first settle of a signed-out visitor would
+ * look like a change and clear caches that were never filled.
+ */
+let whose: string | null | undefined = undefined
 
 export type SessionStatus = 'unknown' | 'in' | 'out'
 
@@ -51,14 +67,25 @@ export function useSession(): SessionState {
       /*
        * BEFORE the setState, and outside the `live` guard's spirit on purpose.
        *
-       * This is the line that tells ../storage.ts whose keys to read. Every
-       * consumer of those keys is gated behind `status === 'in'`, so setting the
-       * owner first means no component can ever render against the previous
-       * account's namespace — which is what a new coach signing in on a browser
-       * that had already been used got instead of a welcome walkthrough
-       * (user, 2026-08-27). See ../scope.ts.
+       * A session change means the in-memory caches belong to the wrong coach.
+       * There used to be a whole namespacing scheme here (`setOwner`, the old
+       * ../scope.ts) because those caches lived in localStorage and outlived the
+       * session that filled them — a new coach signing in on a browser that had
+       * already been used got the previous one's guide state, their last board
+       * and their kit (user, 2026-08-27). Nothing outlives the tab any more, so
+       * emptying it is the whole fix, and it is one line.
+       *
+       * A token refresh settles with the SAME user, and must not empty a cache
+       * the editor is mid-session against; only an actual change of coach does.
        */
-      setOwner(session?.user.id ?? null)
+      const next = session?.user.id ?? null
+      if (next !== whose) {
+        whose = next
+        resetSession()
+        forgetVersions()
+        forgetSequences()
+        forgetProfile()
+      }
       setState({ status: session ? 'in' : 'out', session, user: session?.user ?? null })
     }
 
@@ -175,30 +202,31 @@ export async function signUpWithPassword(
  *
  * `onAuthStateChange` would clear the owner marker a moment later anyway, but
  * both call sites follow this with `window.location.replace`, and a navigation
- * that beats the event leaves the marker set — so the next account to sign in
- * on this machine would spend its first render inside a stranger's namespace.
- * Clearing it here makes that ordering irrelevant.
+ * that beats the event leaves the session cache full — so the next account to
+ * sign in on this machine would spend its first render inside a stranger's
+ * guide state. Emptying it here makes that ordering irrelevant.
  *
- * The departing coach's namespaced keys are WIPED, which is a reversal of what
- * this used to do and follows from the account being the source of truth: the
- * browser copy is a buffer, every system is in `studio_systems` and every
- * preference in `studio_prefs`, and signing back in fetches both. Leaving a
- * stale duplicate on a shared laptop protects nothing and exposes something.
- * See `wipeScope` in ../scope.ts.
+ * ── THERE IS NOTHING IN THE BROWSER LEFT TO WIPE ─────────────────────────────
  *
- * The order matters and is: flush nothing, drop the in-memory version map, wipe
- * the namespace, THEN clear the marker. Clearing the marker first would point
- * `wipeScope` at the guest scope and leave the coach's keys exactly where they
- * were.
+ * This used to clear a whole namespace of localStorage keys, because the
+ * departing coach's work and preferences were sitting in them on a machine they
+ * had walked away from. Nothing is written to localStorage any more, so the
+ * only thing to drop is memory, and memory is gone when the tab is anyway. What
+ * this buys is the case where the tab is NOT closed: signing out and handing the
+ * laptop over, in one window.
+ *
+ * The order matters and is: flush the pending preference patch, THEN drop every
+ * cache. Dropping first would flush an empty one.
  */
 export async function signOut(): Promise<void> {
-  const leaving = currentOwner()
   await db()?.auth.signOut()
+  // Sends whatever was still sitting in the debounce. There is no local copy
+  // for it to be recovered from on the next sign-in any more.
   stopPrefs()
   forgetVersions()
+  forgetSequences()
   // The in-memory profile goes with them. It is the coach's name, club and
   // crest, and it must not survive into the next sign-in on this machine.
   forgetProfile()
-  wipeScope(leaving)
-  setOwner(null)
+  resetSession()
 }

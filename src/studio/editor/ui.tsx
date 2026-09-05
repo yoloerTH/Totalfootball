@@ -39,18 +39,16 @@ import { OPEN_DRAWER } from './spotlight'
  *
  * ── AND WHY IT IS REMEMBERED ─────────────────────────────────────────────────
  *
- * In `localStorage`, per section, keyed by name. A coach who works with
- * Equipment open and Camera shut wants that on Tuesday as well, and re-shutting
- * four drawers on every page load is a tax on the person who bothered to tidy.
- * It fails soft in a private window, where reading it throws: the defaults are
- * good, and a rail that refuses to render because a browser will not remember a
- * boolean is worse than a rail that forgets.
+ * On the coach's account, per section, keyed by name. A coach who works with
+ * Equipment open and Camera shut wants that on Tuesday as well — and on the
+ * iPad as well, which is the half a browser key could never do. It is one field
+ * inside `view_prefs` on their `studio_prefs` row (supabase/014).
  *
- * The key itself moved to ../storage.ts, which is where every studio key now
- * lives so that every one of them gets namespaced by account. This module used
- * to hold its own `tf.studio.sections`, and a second account signing in on the
- * same browser inherited the first one's open drawers along with everything
- * else (user, 2026-08-27). See ../scope.ts.
+ * It reads through ../storage.ts rather than fetching anything: that module is
+ * a synchronous cache the account has already been read into by the time this
+ * renders. This module used to hold its own `tf.studio.sections` key, and a
+ * second account signing in on the same browser inherited the first one's open
+ * drawers along with everything else (user, 2026-08-27).
  */
 
 export function Section({
@@ -70,9 +68,9 @@ export function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
 
-  // After mount, never during: `localStorage` does not exist while Astro is
-  // rendering this on the server, and a first paint that disagreed with the
-  // stored state would flash every drawer open before shutting them.
+  // After mount, never during: this renders on the server too, where there is
+  // no account to have read, and a first paint that disagreed with the stored
+  // state would flash every drawer open before shutting them.
   useEffect(() => {
     const stored = readSections()[title]
     if (typeof stored === 'boolean') setOpen(stored)
@@ -87,7 +85,7 @@ export function Section({
    * ./guide.ts do not exist at the moment somebody asks for them. This is how
    * the drawer holding one gets opened first. See ./spotlight.ts.
    *
-   * It does NOT write the open state back to `localStorage`. Being shown a
+   * It does NOT write the open state back to the account. Being shown a
    * control once is not a decision to keep that drawer open forever, and a
    * coach who has tidied their rail should find it tidy on Tuesday. Opening it
    * themselves still persists, because that one IS a decision.

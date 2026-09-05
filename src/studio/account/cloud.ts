@@ -3,11 +3,18 @@
  *
  * Every call here needs a signed-in user, and every one of them returns
  * something harmless when there is not — an empty list, a null, a false. None
- * of them throws. The rule from ../storage.ts still holds and matters more now
- * that there is a network in the path: **a coach must never lose work to a
- * failure they did not cause.** localStorage stays authoritative, this is the
- * sync target, and a dead connection has to degrade to "your work is on this
- * machine" rather than to an error page.
+ * of them throws.
+ *
+ * ── THIS IS THE ONLY STORE NOW, WHICH CHANGES WHAT "HARMLESS" MEANS ──────────
+ *
+ * There was a localStorage layer in front of this one until 2026-09-06, so a
+ * failed read could fall through to a copy on the machine and a failed write
+ * could be a silent "not yet". Neither is available. So the rule here is no
+ * longer "degrade quietly" — it is **never return a value that cannot be told
+ * apart from a real answer**. `listCloudSystems` returns null and not `[]` for
+ * a failed fetch; `loadCloudSystem` returns 'error' and not 'missing'. A caller
+ * that cannot tell those apart shows a coach an empty shelf during an outage,
+ * or opens a blank board over a real one.
  *
  * RLS does the filtering, not these queries. There is no `.eq('owner', …)`
  * anywhere below, and adding one would be a false comfort: the policy in
@@ -19,8 +26,7 @@
 import { darken, readableText } from '../board/palette'
 import type { System, TeamStyle } from '../schema'
 import { LICENCES, type ProfileLink, type Visibility } from './identity'
-import { clearSystems, listSystems, migrate } from '../storage'
-import { GUEST } from '../scope'
+import { migrate } from '../storage'
 import { db } from './client'
 
 export interface CloudSystem {
@@ -86,9 +92,32 @@ export async function listCloudSystems(owner: string): Promise<CloudSystem[] | n
   })
 }
 
-export async function loadCloudSystem(id: string, owner: string): Promise<{ system: System; canEdit: boolean } | null> {
+/**
+ * What came back when we asked for one system.
+ *
+ * ── 'missing' AND 'error' USED TO BE THE SAME VALUE, AND CANNOT BE ANY MORE ──
+ *
+ * This returned `null` for both, which was survivable while the browser kept a
+ * copy: the caller fell through to localStorage and the distinction never had
+ * to be made. There is no copy now. A caller that reads "could not ask" as "no
+ * such board" opens a BLANK board under an id that has a real document behind
+ * it, and the autosave then tries to write that blank over the coach's work.
+ *
+ * supabase/016 refuses that particular write — `p_base` is null for a row this
+ * client never read, and a null base against an existing row is exactly the
+ * stale case the guard was written for — so the work survives either way. But
+ * being saved by the last line of defence is not a design. The three answers
+ * are told apart here so ../editor/StudioMount.tsx can offer a retry instead of
+ * a blank board and a conflict banner.
+ */
+export type SystemRead =
+  | { status: 'ok'; system: System; canEdit: boolean }
+  | { status: 'missing' }
+  | { status: 'error' }
+
+export async function loadCloudSystem(id: string, owner: string): Promise<SystemRead> {
   const supabase = db()
-  if (!supabase || !owner) return null
+  if (!supabase || !owner) return { status: 'error' }
   const { data, error } = await supabase
     .from(TABLE)
     .select('doc, updated_at, owner')
@@ -96,7 +125,10 @@ export async function loadCloudSystem(id: string, owner: string): Promise<{ syst
     // The ID is effectively globally unique, so we don't need to filter by owner.
     .eq('id', id)
     .maybeSingle()
-  if (error || !data) return null
+  // `maybeSingle` gives back `{ data: null, error: null }` for no such row, so
+  // the two cases really are distinguishable here and always were.
+  if (error) return { status: 'error' }
+  if (!data) return { status: 'missing' }
   versions.set(id, data.updated_at as string)
 
   let canEdit = data.owner === owner
@@ -119,7 +151,7 @@ export async function loadCloudSystem(id: string, owner: string): Promise<{ syst
     canEdit = (teamRes.data?.can_edit_systems) || (collabRes.data?.can_edit) || false
   }
 
-  return { system: migrate(data.doc as System), canEdit }
+  return { status: 'ok', system: migrate(data.doc as System), canEdit }
 }
 
 /**
@@ -178,78 +210,17 @@ export async function deleteCloudSystem(id: string, owner: string): Promise<bool
   return !error
 }
 
-/**
- * Move whatever is in this browser's localStorage into the coach's account.
+/*
+ * ── WHERE `claimLocalSystems` WENT ───────────────────────────────────────────
  *
- * THIS IS THE MOST IMPORTANT FUNCTION IN THE FILE. The studio is usable without
- * an account on purpose, so the ordinary path is: a coach builds something,
- * likes it, and only then signs up. If signing up is the moment their work
- * disappears, the entire adoption-first plan is worse than a login wall would
- * have been — at least a wall is honest about it up front.
- *
- * `ignoreDuplicates` is the whole safety argument. Signing in on a second
- * machine must not let that machine's stale local copies overwrite the cloud
- * ones; an id that already exists in the account is left exactly as it is.
- * Local ids are preserved rather than reissued, which is what the composite
- * primary key in 005 is for.
- *
- * ── IT READS THE GUEST SCOPE, AND ONLY THE GUEST SCOPE ───────────────────────
- *
- * THIS IS THE FUNCTION THAT LEAKED. It used to call a bare `listSystems()`,
- * which read one browser-global key that every account shared. So a second
- * coach signing in on a machine the first had used found the first one's boards
- * sitting in "their" local store — and the `select('id')` above is RLS-filtered
- * to the NEW owner, so every one of those boards came back as unknown and was
- * upserted into an account that had nothing to do with them, credit line, club
- * and kit colours included (user, 2026-08-27).
- *
- * A claim is now a statement about ownerless work, so it names the scope that
- * holds ownerless work. Signing in cannot reach another account's namespace,
- * because it does not ask for it.
- *
- * ── AND IT RETIRES THE SCOPE IT CLAIMED ──────────────────────────────────────
- *
- * Cleared on success, including the no-op case where everything was already
- * known. Guest work left in place is work the NEXT account to sign in on this
- * browser would claim in turn, which is the same leak wearing a different hat.
- * The cloud copy is authoritative from here and ../editor/StudioMount.tsx falls
- * through to it, so nothing is lost by letting the local guest copy go.
- *
- * Returns how many were newly claimed, so the portal can say so once.
+ * It used to move work out of this browser's localStorage and into the coach's
+ * account on sign-in, and it was the most important function in this file while
+ * the studio was usable without an account. It is now ./adopt.ts, which does
+ * the same job once and for the last time: nothing writes to localStorage any
+ * more, so the sweep runs until the browser is empty and then never does
+ * anything again. See that file for what it will and will not claim, and for
+ * when it is safe to delete.
  */
-export async function claimLocalSystems(owner: string): Promise<number> {
-  const supabase = db()
-  if (!supabase) return 0
-
-  const local = listSystems(GUEST)
-  if (local.length === 0) return 0
-
-  const { data: existing, error: readError } = await supabase
-    .from(TABLE)
-    .select('id')
-    .eq('owner', owner)
-  // A failed read must not be mistaken for an empty account: claiming against
-  // an empty `known` set is safe (ignoreDuplicates), but CLEARING the guest
-  // scope on the back of a request that never landed is not.
-  if (readError) return 0
-
-  const known = new Set((existing ?? []).map((r) => r.id as string))
-  const fresh = local.filter((l) => !known.has(l.id))
-  if (fresh.length === 0) {
-    clearSystems(GUEST)
-    return 0
-  }
-
-  const { error } = await supabase
-    .from(TABLE)
-    .upsert(
-      fresh.map((l) => ({ id: l.id, owner, doc: l.system })),
-      { onConflict: 'owner,id', ignoreDuplicates: true },
-    )
-  if (error) return 0
-  clearSystems(GUEST)
-  return fresh.length
-}
 
 // ── the profile ──────────────────────────────────────────────────────────────
 
@@ -724,55 +695,11 @@ export async function loadPublicProfile(handle: string): Promise<PublicProfile |
 
 // ── saved sequences ─────────────────────────────────────────────────────────
 
-/**
- * Cloud persistence for saved sequences.
+/*
+ * ── WHERE THE SEQUENCE CRUD WENT ─────────────────────────────────────────────
  *
- * Same shape as the systems CRUD above — own-row filter, defensive returns,
- * no throws. Simpler because sequences do not need version guards: a coach
- * editing a sequence on two machines is not a real case (they are edited
- * at save time and never again), so last-write-wins is correct.
+ * Into ../sequences.ts, beside the capture and apply code it serves, and onto
+ * the RPCs in supabase/027. It was here only because this file was once the
+ * only module that knew about Supabase, and splitting a five-hundred-line
+ * module's worth of sequence logic across two files bought nothing.
  */
-
-const SEQ_TABLE = 'studio_sequences'
-
-export interface CloudSequence {
-  id: string
-  doc: Record<string, unknown>
-  updated: string
-}
-
-export async function listCloudSequences(owner: string): Promise<CloudSequence[] | null> {
-  const supabase = db()
-  if (!supabase || !owner) return null
-  const { data, error } = await supabase
-    .from(SEQ_TABLE)
-    .select('id, doc, updated_at')
-    .eq('owner', owner)
-    .order('updated_at', { ascending: false })
-  if (error || !data) return null
-  return data.map((row) => ({
-    id: row.id as string,
-    doc: row.doc as Record<string, unknown>,
-    updated: row.updated_at as string,
-  }))
-}
-
-export async function saveCloudSequence(
-  id: string,
-  doc: Record<string, unknown>,
-  owner: string,
-): Promise<boolean> {
-  const supabase = db()
-  if (!supabase || !owner) return false
-  const { error } = await supabase
-    .from(SEQ_TABLE)
-    .upsert({ id, owner, doc }, { onConflict: 'owner,id' })
-  return !error
-}
-
-export async function deleteCloudSequence(id: string, owner: string): Promise<boolean> {
-  const supabase = db()
-  if (!supabase || !owner) return false
-  const { error } = await supabase.from(SEQ_TABLE).delete().eq('owner', owner).eq('id', id)
-  return !error
-}

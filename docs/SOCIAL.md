@@ -1,10 +1,10 @@
 # The Network — build plan and handoff
 
-**Status: Phase 1 shipped; Phase 2a built and NOT committed.** Migrations `012`
-and `013` are live (both 2026-08-27) with their code on `main`; `017` followed.
-`024` is applied to the database as of 2026-09-04 and its code is on the working
-tree only — nothing published, nothing deployed, at the user's explicit
-instruction. See §4c. Every table
+**Status: Phase 1 shipped; Phases 2a and 3 built and NOT committed.** Migrations
+`012` and `013` are live (both 2026-08-27) with their code on `main`; `017`
+followed. `024` and `025` are applied to the database as of 2026-09-04 and their
+code is on the working tree only — nothing published, nothing deployed, at the
+user's explicit instruction. See §4c and §4d. Every table
 added here defaults to private and every feature is opt-in. A coach who never
 opens the new settings sections sees the studio exactly as it was.
 
@@ -74,7 +74,8 @@ show.
 | 1b | **Squad & kit** | Profile picture, kit patterns, squad roster, player photos on the board | no | **shipped, 013 applied** |
 | 2a | **Publish** | `studio_posts`, publish dialog, `/p/<id>`, link-only state, licence, feed skeleton | no | **built 2026-09-04, 024 applied, NOT committed** |
 | 2b | **Travel** | OG image, carousel export, PDF, server-rendered post and profile | **yes** | not started |
-| 3 | **Network** | Feed, follow, save, **fork** | yes | not started |
+| 3 | **Network** | Reactions, comments, reposts, feed with Featured and Recent | no | **built 2026-09-04, 025 applied, NOT committed** |
+| 3b | **Follow & fork** | Follow graph, saves, fork with permanent credit | no | not started |
 | 4 | **Distribution** | Web Share on mobile, post packs on desktop, intent links | no | not started |
 | 5 | **Recognition** | Verification, achievements, referrals | no | not started |
 
@@ -331,6 +332,108 @@ readable by anon straight off the table, because 012's policy exposes every
 column of a public row. That is 012's stated bargain ("nothing on
 studio_profiles is private"), but folder names are a coach's own filing and are
 worth moving off this table when something else touches it.
+
+---
+
+## 4d. Phase 3 — the network itself (built 2026-09-04, NOT committed)
+
+Migration `supabase/025_social_graph.sql` is applied. Reactions, comments,
+reposts, reports, and the feed that ranks them.
+
+**Files.** `src/studio/social/` is the whole surface: `reactions.ts` (the five
+kinds), `api.ts` (every read and write), `BoardMedia.tsx`, `PostCard.tsx`,
+`ReactionBar.tsx`, `Comments.tsx`, `SocialShell.tsx`, `Feed.tsx`. Plus
+`viewer/PostView.tsx` and `account/PublicProfile.tsx`, both rebuilt on those.
+
+### The five reactions, and why not a like
+
+A like is a shrug, and §0a judges every mechanic by whether it raises the
+quality of what gets posted. Five specific sentences tell a coach which of the
+five things their system was:
+
+| | | says |
+|---|---|---|
+| ⚽ | Golazo | the idea itself is brilliant |
+| 🧠 | Masterclass | the thinking behind it is what makes it work |
+| 🧤 | Clean sheet | it holds up; the rest defence is honest |
+| 🎯 | Killer ball | one detail in here is the whole thing |
+| 📋 | Taking it to training | I am running this with my own group |
+
+**One reaction per person per post, changeable** — the primary key is
+`(post, owner)`, so a reaction is an opinion and a person has one at a time.
+**`training_ground` is worth two** in the ranking: everything else is an
+opinion, that one is a commitment, and it is the only reaction that predicts
+whether a system was any use to anybody.
+
+### The ranking, stated in full
+
+```
+score = (reaction_score + 2·comments + 3·reposts + 1) / (hours + 4)^1.2
+```
+
+Weighted by what the act cost the person doing it: a tap, a paragraph, or your
+own name on somebody else's work. **The exponent is 1.2, not the usual 1.5**,
+and that was measured rather than guessed: at 1.5 a 21-hour-old post with five
+reactions, three comments and four reposts ranked BELOW a seven-hour-old post
+with one of each, because this network is deliberately slow and quiet and its
+scores are single digits. At 1.2 it ranks above it. The four constants are the
+knob; re-measure when there is real traffic.
+
+**Self-engagement scores nothing.** The counter triggers skip the post's owner,
+so a coach may react to and comment on their own work and none of it reaches the
+ranking. **Featured is never empty** — every public post scores above zero, so
+with three posts on the network it shows three.
+
+**Featured is arithmetic and the page says so**, in a footnote under the feed.
+A coach deciding whether to put a week of thinking in public is entitled to know
+what decides who sees it.
+
+### Decisions worth not relitigating
+
+1. **A post's "video" is the document moving, not a file.** The JSON already
+   holds every phase and the coach's pace, and `tween.ts` is what the studio,
+   the viewer and the mp4 exporter all use. So a video post plays in the
+   reader's browser: publishing stays instant, there is one truth rather than a
+   rendered copy that goes stale, and it is sharp at any width. The mp4 exporter
+   is not replaced — it exists for Instagram, which cannot be handed a document.
+2. **One board plays at a time and only on screen.** `IntersectionObserver` at a
+   0.35 threshold, and `prefers-reduced-motion` stops it entirely.
+3. **Boards are capped at `min(70vh, 620px)` and sized by the CAMERA's aspect**,
+   not the pitch crop's. Both were measured faults: an uncapped portrait board
+   was 2,400px in a 430px column, and sizing by the crop left every
+   camera-framed system between two grey gutters.
+4. **Reactions, comments and reposts require the post to be PUBLIC**, in the
+   policy's `with check`, not just in the UI. A link-only post stays quiet: it
+   is a thing you send to somebody, not a thing with a comment section.
+5. **A comment names its author whatever their profile visibility is**, unlike
+   the feed, which credits a private coach only by what the document carries.
+   Writing a comment is appearing in public, the composer says so, and an
+   anonymous comment column is the fastest way to turn a coaching network into a
+   sewer.
+6. **Two people can delete a comment**: its author, and the coach whose post it
+   sits under. The second is the one that matters at three in the morning.
+7. **Reports are write-only.** `studio_reports` has an insert policy and no
+   select policy for anybody — not the reporter, not the reported. A readable
+   reports table is a harassment surface of its own.
+8. **A coach cannot repost their own post** (trigger, not just a hidden button).
+9. **A repost asks for a note.** A one-press repost is a like with a bigger
+   number; "we used this against a back three and it needed one change" is worth
+   more to the next reader than the post's own summary.
+10. **Phase controls change shape at twelve.** Chips per phase for a session,
+    a scrubber for a film — measured on the real 44-phase 2-3-5 document.
+
+### Verified
+
+Against the live database, with throwaway accounts since deleted: 73 statements
+applied twice cleanly; the feed, profile and comment functions return what the
+cards draw; reactions, comments and reposts written through PostgREST under real
+user JWTs (the same path the browser uses); and the ranking demonstrably
+reorders — a 21-hour-old post with traction sits second in Featured and last in
+Recent. Pages screenshotted at 430px and 1280px with no console errors.
+
+**Still open before this is public:** the admin view for reports (the table
+exists and nothing reads it yet), and the `terms.astro` / `privacy.astro`
+revision covering user content, licensing and forks.
 
 ---
 

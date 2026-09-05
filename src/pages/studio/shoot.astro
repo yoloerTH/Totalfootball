@@ -58,7 +58,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
   // the editor is worth deferring, and it is deferred below.
   import { PITCH_VIEWS, toUnits, viewBox as viewBoxOf } from '../../studio/board/pitch'
   import { NEWEST_NEWS_ID } from '../../data/whatsnew'
-  import { GUEST, scopedKey } from '../../studio/scope'
+  import { applyPrefs } from '../../studio/storage'
 
   declare global {
     interface Window {
@@ -92,16 +92,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
   }
 
   /*
-   * Must match the bases in ../../studio/storage.ts, and must be SCOPED.
+   * ── HOW A BEAT TELLS THE EDITOR WHAT IT HAS ALREADY SEEN ────────────────
    *
-   * Every studio key is namespaced by account now (../../studio/scope.ts), and
-   * this page signs nobody in — so the editor it mounts reads the GUEST scope,
-   * and seeding the bare key would write somewhere nothing ever looks. A shoot
-   * that silently stopped honouring `opts.guide` would film the walkthrough
-   * over every beat.
+   * By calling `applyPrefs`, which is the same function ../../studio/account/
+   * prefs.ts uses to fill the session cache from the account. This page signs
+   * nobody in, so nothing else ever writes that cache and the seed stands.
+   *
+   * It used to write two scoped localStorage keys by hand, which meant this
+   * file held its own copy of the studio's key names and its own copy of the
+   * namespacing rule. Both drifted the moment either changed, and a shoot that
+   * silently stopped honouring `opts.guide` films the walkthrough over every
+   * beat. There is no localStorage layer left to write to, and this is the
+   * function that layer existed to serve.
    */
-  const GUIDE_KEY = scopedKey('tf-studio:guide:v1', GUEST)
-  const SYSTEMS_KEY = scopedKey('tf-studio:v1', GUEST)
 
   /** The live root, kept so a second beat can tear the first one down. */
   let root: import('react-dom/client').Root | null = null
@@ -119,13 +122,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
      * into the film. A promo showing a changelog is not a promo showing the
      * studio.
      */
-    const guide: Partial<GuideState> = {
+    const guide = {
       seen: true,
       railOpen: false,
       newsSeen: NEWEST_NEWS_ID,
       ...opts.guide,
-    }
-    localStorage.setItem(GUIDE_KEY, JSON.stringify(guide))
+    } as GuideState
+    applyPrefs({ guide })
 
     // Dynamic so the page carries no editor until it is asked for one, the same
     // way /studio/render/ carries no renderer. A visitor gets a blank page.
@@ -152,9 +155,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
       host.replaceWith(fresh)
       host = fresh
     }
-    // Autosave writes the edited document under this id; clearing it stops one
-    // beat's edits reaching the next through localStorage as well.
-    localStorage.removeItem(SYSTEMS_KEY)
+    /*
+     * Nothing else to clear between beats.
+     *
+     * There used to be a `localStorage.removeItem` here, because the editor's
+     * local autosave wrote the edited document under a fixed id and the next
+     * beat read it back. Both halves are gone: the editor has no local autosave
+     * and this page has no session, so `useCloudSync` sits at 'off' and each
+     * beat opens on exactly the document it was handed.
+     */
 
     root = createRoot(host)
     root.render(createElement(StudioEditor, { systemId: 'shoot', initial: system }))

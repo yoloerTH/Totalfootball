@@ -74,12 +74,17 @@ export interface Post {
   title: string
   summary: string
   visibility: PostVisibility
+  media: 'image' | 'video'
+  coverAct: number
   forkedFrom: string
   doc: System
   publishedAt: string
   viewCount: number
   forkCount: number
   saveCount: number
+  reactionCount: number
+  commentCount: number
+  repostCount: number
 }
 
 /** What the portal lists. The document is the expensive part and is left out. */
@@ -97,6 +102,22 @@ export interface PublishOptions {
   title: string
   summary: string
   visibility: PostVisibility
+  /**
+   * How the post presents itself in a feed.
+   *
+   * 'image' is a still of `coverAct`; 'video' plays the document through the
+   * tween engine in the reader's browser. NEITHER OF THEM IS A FILE — see
+   * `BoardMedia` in ./social/BoardMedia.tsx for why an mp4 is the wrong asset
+   * for a feed and the right one for Instagram.
+   */
+  media: 'image' | 'video'
+  /**
+   * Which phase the still shows, and where playback starts.
+   *
+   * A system's best frame is rarely its first: phase 1 is usually eleven men
+   * standing in a shape, and the idea is at phase 4.
+   */
+  coverAct: number
   /**
    * Which parts of the coach's identity travel with the document.
    *
@@ -241,6 +262,11 @@ async function reserve(
       doc,
       title,
       summary: opts.summary.trim().slice(0, POST_SUMMARY_MAX) || null,
+      media: opts.media === 'video' ? 'video' : 'image',
+      // Clamped rather than trusted: the CHECK in supabase/025 caps it at 199,
+      // and a dialog that let a stale index through would take the whole
+      // publish down over a phase the coach deleted a minute ago.
+      cover_act: Math.min(Math.max(Math.floor(opts.coverAct) || 0, 0), Math.max(doc.acts.length - 1, 0)),
       // ALWAYS the quieter one here, whatever was asked for. Step 3 raises it.
       visibility: 'unlisted',
       forked_from: opts.forkedFrom || null,
@@ -407,12 +433,17 @@ export async function loadPost(id: string): Promise<Post | null> {
     // Anything unrecognised reads as the quieter of the two, the same rule
     // `loadProfile` follows for a visibility it has never seen.
     visibility: row.visibility === 'public' ? 'public' : 'unlisted',
+    media: row.media === 'video' ? 'video' : 'image',
+    coverAct: num('cover_act'),
     forkedFrom: str('forked_from'),
     doc: row.doc as System,
     publishedAt: str('published_at'),
     viewCount: num('view_count'),
     forkCount: num('fork_count'),
     saveCount: num('save_count'),
+    reactionCount: num('reaction_count'),
+    commentCount: num('comment_count'),
+    repostCount: num('repost_count'),
   }
 }
 

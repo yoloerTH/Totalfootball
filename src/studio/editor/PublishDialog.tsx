@@ -85,6 +85,18 @@ export function PublishDialog({
   const [title, setTitle] = useState(() => suggestedTitle(system))
   const [summary, setSummary] = useState('')
   const [visibility, setVisibility] = useState<PostVisibility>('unlisted')
+  /**
+   * How it presents itself, and which phase it opens on.
+   *
+   * A one-phase system is a still whatever the coach picks, so the choice is
+   * only offered when there is something to animate. Multi-phase defaults to
+   * playing: a system with six phases is an ARGUMENT, and a still of one of
+   * them is a sentence out of the middle of it.
+   */
+  const [media, setMedia] = useState<'image' | 'video'>(
+    system.acts.length > 1 ? 'video' : 'image',
+  )
+  const [coverAct, setCoverAct] = useState(0)
   const [identity, setIdentity] = useState<IdentityParts>(() =>
     defaultIdentity(profile.showIdentity !== false),
   )
@@ -104,7 +116,11 @@ export function PublishDialog({
   const publish = async () => {
     setBusy(true)
     setFault('')
-    const res = await publishPost(system, { title, summary, visibility, identity }, owner)
+    const res = await publishPost(
+      system,
+      { title, summary, visibility, identity, media, coverAct },
+      owner,
+    )
     setBusy(false)
     if (isFault(res)) {
       setFault(res.fault)
@@ -222,6 +238,62 @@ export function PublishDialog({
           className={`${INPUT} resize-y leading-relaxed`}
         />
       </label>
+
+      {/* ── how it shows up ────────────────────────────────────────────────── */}
+
+      <p className="mb-1.5 text-[11px] font-bold text-ink-soft">How it appears in the feed</p>
+      <div className="mb-1.5 flex gap-2">
+        {(
+          [
+            { id: 'video', label: 'It plays', hint: 'The board runs through every phase, at your pace.' },
+            { id: 'image', label: 'One still', hint: 'A single phase, held. Best when the shape is the point.' },
+          ] as const
+        ).map((option) => {
+          const on = media === option.id
+          const off = option.id === 'video' && system.acts.length < 2
+          return (
+            <button
+              key={option.id}
+              type="button"
+              disabled={off}
+              onClick={() => setMedia(option.id)}
+              aria-pressed={on}
+              title={off ? 'This system has one phase, so there is nothing to play.' : option.hint}
+              className={`flex-1 rounded-lg border p-3 text-left transition-colors disabled:opacity-40 ${
+                on ? 'border-ink/30 bg-paper' : 'border-ink-hair hover:bg-paper/60'
+              }`}
+            >
+              <span className="block text-xs font-bold text-ink">{option.label}</span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-soft">
+                {option.hint}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* The cover phase. It matters for BOTH kinds — it is the still for one
+          and the opening frame for the other — so it is not tucked inside the
+          image branch. A coach picking phase 4 has picked the frame that makes
+          somebody stop scrolling. */}
+      {system.acts.length > 1 && (
+        <label className="mb-4 block">
+          <span className="text-[11px] font-bold text-ink-soft">
+            {media === 'image' ? 'Which phase to show' : 'Which phase it opens on'}
+          </span>
+          <select
+            value={coverAct}
+            onChange={(e) => setCoverAct(Number(e.target.value))}
+            className={`${INPUT} mt-1.5`}
+          >
+            {system.acts.map((a, i) => (
+              <option key={i} value={i}>
+                {i + 1}. {a.title?.trim() || `Phase ${i + 1}`}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {/* ── who can see it ─────────────────────────────────────────────────── */}
 

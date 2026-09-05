@@ -12,6 +12,17 @@
  * key, same theme-colour meta, same list in ../../lib/theme.ts, so switching
  * here and switching on the library page are the same switch.
  *
+ * ── AND IT IS THE ONE THING THE STUDIO STILL PUTS IN THE BROWSER ─────────────
+ *
+ * Every other piece of studio state moved to the account on 2026-09-06 (see
+ * ../storage.ts). This did not, and the reason is that it is not studio state:
+ * `tf_theme` belongs to a VISITOR, not to a coach. It has to be readable by the
+ * inline script in BaseLayout.astro BEFORE first paint or a night reader is
+ * flashed a white page, it has to work on every marketing page where nobody is
+ * signed in, and neither of those can wait on a network round trip to a row
+ * that may not exist. A per-viewer display setting for an anonymous reader is
+ * exactly what a browser key is for.
+ *
  * THIS IS THE ROOM, NOT THE BOARD. There are two pitch themes in the list and
  * neither of them touches the pitch — what the board is drawn on is a property
  * of the document, chosen under "Pitch" in the side panel, and it stays put

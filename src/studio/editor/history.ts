@@ -7,7 +7,7 @@
  * it was the biggest usability gap left in the studio.
  *
  * WHY A SNAPSHOT STACK AND NOT A COMMAND LOG. A System is one small JSON
- * document that is already serialised to localStorage on every change (see
+ * document that is already serialised for the account on every change (see
  * ../storage.ts). Keeping sixty copies of it costs less than a single board
  * thumbnail, and a snapshot cannot get out of step with the document the way an
  * inverse-command log does the first time someone adds an operation and forgets

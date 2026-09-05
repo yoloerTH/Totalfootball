@@ -1,89 +1,102 @@
 /**
- * Everything coaches have published, newest first.
+ * The feed: what coaches have published, ranked or dated.
  *
- * ── THIS IS THE PLAINEST HONEST VERSION, AND THAT IS ON PURPOSE ──────────────
+ * ── FEATURED IS ARITHMETIC AND THE PAGE SAYS SO ──────────────────────────────
  *
- * The feed's design — what a card shows, whether there is a like, whether there
- * is a repost, how ranking works — is the conversation after this one (user,
- * 2026-09-04), and docs/SOCIAL.md §0a is emphatic that the mechanics are what
- * decide whether the quality of what gets posted goes up or down. So nothing
- * here pretends to have answered that. It lists what exists, newest first, and
- * it exists so the portal's invitation has somewhere to land.
+ * The ranking is one line of SQL in supabase/025 — what a post has earned, over
+ * how long it has had — and the footnote at the bottom of this page states it
+ * in a sentence. That is not a technical detail leaking into the product: a
+ * coach deciding whether to put a week of their thinking in public is entitled
+ * to know what decides who sees it, and "our algorithm" as an unexplained
+ * proper noun is how every other network lost that trust.
  *
- * WHAT IT DELIBERATELY DOES NOT DO YET: no board thumbnails, because `listFeed`
- * does not fetch documents and a card that pulled a 40KB jsonb each would make
- * the list cost a megabyte to read. When the design lands, the right answer is
- * a rendered still on the row (§5a's rasteriser) and not a document per card.
+ * ── THE TAB IS IN THE URL ────────────────────────────────────────────────────
  *
- * ── THE COLD START IS THE REAL RISK HERE, NOT THE LAYOUT ─────────────────────
+ * `?tab=recent`, read on mount and written on every change. So Recent can be
+ * linked to, sent to somebody, and survives a reload — and a coach who prefers
+ * it can bookmark it. It is one line of history API and it is the difference
+ * between a view and a mode.
  *
- * §7: a feed with nothing in it is dead, and the first coach to arrive at an
- * empty one does not come back. Until there is something to show, the empty
- * state says so in plain words and points at the thing a coach CAN do, which is
- * publish one of their own. It never says "no results", which reads as a broken
- * search rather than a young product.
+ * ── AND THE EMPTY STATE IS THE MOST IMPORTANT SCREEN HERE ────────────────────
+ *
+ * §7: a feed with nothing in it is dead. Until there is something to show, this
+ * says so in plain words and points at the one thing a coach can actually do
+ * about it — publish one of their own. It never says "no results", which reads
+ * as a broken search rather than a young network.
  */
 
-import { useEffect, useState } from 'react'
-import { listFeed, type PostCard } from '../posts'
-import { Mark } from '../viewer/Mark'
+import { useCallback, useEffect, useState } from 'react'
+import { PostCard } from './PostCard'
+import { FeedTabs, SocialShell } from './SocialShell'
+import { loadFeed, myReposts, type FeedMode, type FeedPost } from './api'
+import { useSession } from '../account/session'
 
-type State = 'loading' | 'ready'
+const PAGE = 12
 
-function when(iso: string): string {
-  if (!iso) return ''
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return ''
-  const days = Math.floor((Date.now() - then) / 86_400_000)
-  if (days <= 0) return 'today'
-  if (days === 1) return 'yesterday'
-  if (days < 30) return `${days} days ago`
-  const months = Math.floor(days / 30)
-  return months === 1 ? 'a month ago' : `${months} months ago`
+function modeFromUrl(): FeedMode {
+  if (typeof window === 'undefined') return 'featured'
+  return new URLSearchParams(window.location.search).get('tab') === 'recent'
+    ? 'recent'
+    : 'featured'
 }
 
 export default function Feed() {
-  const [posts, setPosts] = useState<PostCard[]>([])
-  const [state, setState] = useState<State>('loading')
+  const { user } = useSession()
+  const owner = user?.id ?? ''
+
+  const [mode, setMode] = useState<FeedMode>(modeFromUrl)
+  const [posts, setPosts] = useState<FeedPost[]>([])
+  const [reposted, setReposted] = useState<Set<string>>(new Set())
+  const [state, setState] = useState<'loading' | 'ready'>('loading')
+  const [more, setMore] = useState(false)
+
+  const read = useCallback(
+    async (which: FeedMode, offset: number) => {
+      const rows = await loadFeed(which, PAGE, offset)
+      setPosts((prev) => (offset === 0 ? rows : [...prev, ...rows]))
+      setMore(rows.length === PAGE)
+      setState('ready')
+
+      // Which of these the reader has already reposted, in ONE query rather
+      // than one per card. The feed row cannot carry it the way it carries
+      // `mine`, because a repost is a row about the reader and the post both.
+      if (owner && rows.length) {
+        const found = await myReposts(
+          owner,
+          rows.map((r) => r.id),
+        )
+        setReposted((prev) => new Set([...prev, ...found]))
+      }
+    },
+    [owner],
+  )
 
   useEffect(() => {
-    let live = true
-    void listFeed().then((rows) => {
-      if (!live) return
-      setPosts(rows)
-      setState('ready')
-    })
-    return () => {
-      live = false
-    }
-  }, [])
+    setState('loading')
+    void read(mode, 0)
+  }, [mode, read])
+
+  const choose = (next: FeedMode) => {
+    setMode(next)
+    const url = new URL(window.location.href)
+    if (next === 'recent') url.searchParams.set('tab', 'recent')
+    else url.searchParams.delete('tab')
+    window.history.replaceState({}, '', url)
+  }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-10 sm:py-14">
-      <header className="border-b border-ink-hair pb-6">
-        <a
-          href="/studio/portal/"
-          className="text-[13px] font-bold text-ink-soft no-underline hover:text-ink"
-        >
-          ‹ Your systems
-        </a>
-        <h1 className="mt-3 flex items-center gap-3 text-title font-black tracking-display text-ink">
-          <Mark size={26} />
-          Published systems
-        </h1>
-        <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-ink-soft">
-          Work other coaches have chosen to put in the open. Everything here was published on
-          purpose, by somebody who owns it.
-        </p>
-      </header>
-
+    <SocialShell
+      title="The network"
+      note="Systems coaches have chosen to put in the open. Everything here was published on purpose, by somebody who owns it."
+      tabs={<FeedTabs mode={mode} onMode={choose} />}
+    >
       {state === 'loading' && <p className="mt-8 text-[13px] text-ink-faint">Loading…</p>}
 
       {state === 'ready' && posts.length === 0 && (
-        <div className="mt-10 rounded-2xl border border-ink-hair bg-paper p-6">
+        <div className="mt-8 rounded-2xl border border-ink-hair bg-surface p-6">
           <p className="text-[15px] font-bold text-ink">Nothing published yet.</p>
           <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-ink-soft">
-            This is new. The first systems here will be the ones coaches decide are worth other
+            This is new. The first systems here will be the ones coaches decided were worth other
             people reading, and yours can be one of them — open a system on your shelf and press
             Publish.
           </p>
@@ -97,27 +110,43 @@ export default function Feed() {
       )}
 
       {posts.length > 0 && (
-        <ul className="mt-8 grid list-none grid-cols-1 gap-4 p-0">
+        <div className="mt-6 space-y-6">
           {posts.map((post) => (
-            <li key={post.id}>
-              <a
-                href={`/p/${post.id}`}
-                className="block rounded-2xl border border-ink-hair bg-paper p-5 no-underline transition-colors hover:border-ink/25"
-              >
-                <span className="block text-[16px] font-bold leading-tight text-ink">
-                  {post.title}
-                </span>
-                {post.summary && (
-                  <span className="mt-2 block text-[13px] leading-relaxed text-ink-soft">
-                    {post.summary}
-                  </span>
-                )}
-                <span className="mt-3 block text-[12px] text-ink-faint">{when(post.publishedAt)}</span>
-              </a>
-            </li>
+            <PostCard
+              key={post.id}
+              post={post}
+              owner={owner}
+              reposted={reposted.has(post.id)}
+              onReposted={(id, now) =>
+                setReposted((prev) => {
+                  const copy = new Set(prev)
+                  if (now) copy.add(id)
+                  else copy.delete(id)
+                  return copy
+                })
+              }
+            />
           ))}
-        </ul>
+        </div>
       )}
-    </div>
+
+      {more && (
+        <button
+          type="button"
+          onClick={() => void read(mode, posts.length)}
+          className="mt-6 w-full rounded-full border border-ink-hair py-3 text-[13px] font-bold text-ink-soft transition-colors hover:bg-ink-hair hover:text-ink"
+        >
+          Show more
+        </button>
+      )}
+
+      {posts.length > 0 && (
+        <p className="mt-10 border-t border-ink-hair pt-5 text-[12px] leading-relaxed text-ink-faint">
+          {mode === 'featured'
+            ? 'Featured is what a system has earned — reactions, comments and reposts, with a repost counting most — divided by how long it has been up. Nothing is picked by hand, and nothing is paid for.'
+            : 'Most recent is everything, newest first, with no ranking applied at all.'}
+        </p>
+      )}
+    </SocialShell>
   )
 }

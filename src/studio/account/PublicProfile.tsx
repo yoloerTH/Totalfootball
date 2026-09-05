@@ -24,8 +24,12 @@
 
 import { useEffect, useState } from 'react'
 import { imageUrl } from './images'
-import { handleFromPath, roleLabel } from './identity'
+import { handleFromPath, licenceLabel, roleLabel } from './identity'
 import { loadPublicProfile, type PublicProfile as Profile } from './cloud'
+import { useSession } from './session'
+import { PostCard } from '../social/PostCard'
+import { loadPostsByHandle, myReposts, type FeedPost } from '../social/api'
+import { Mark } from '../viewer/Mark'
 import { darken, readableText } from '../board/palette'
 import { Token, TOKEN_R } from '../board/Token'
 import { U } from '../board/pitch'
@@ -37,8 +41,12 @@ const TOKEN_BOX = TOKEN_R * U * 2.6
 type State = 'loading' | 'found' | 'missing'
 
 export default function PublicProfile() {
+  const { user } = useSession()
+  const owner = user?.id ?? ''
   const [profile, setProfile] = useState<Profile | null>(null)
   const [state, setState] = useState<State>('loading')
+  const [posts, setPosts] = useState<FeedPost[]>([])
+  const [reposted, setReposted] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let live = true
@@ -52,10 +60,30 @@ export default function PublicProfile() {
       setProfile(p)
       setState(p ? 'found' : 'missing')
     })
+
+    // The systems are a SECOND read and the page never waits on it. A profile
+    // that renders in one round trip and fills its shelf in a second is a page
+    // that feels instant; one that waits for both is a page that does not.
+    //
+    // It is also the right failure: a coach with a bio and no posts still has a
+    // profile, and a fetch that falls over shows the profile with an empty
+    // shelf rather than "nothing here", which would be a lie about them.
+    void loadPostsByHandle(handle).then(async (rows) => {
+      if (!live) return
+      setPosts(rows)
+      if (owner && rows.length) {
+        const found = await myReposts(
+          owner,
+          rows.map((r) => r.id),
+        )
+        if (live) setReposted(found)
+      }
+    })
+
     return () => {
       live = false
     }
-  }, [])
+  }, [owner])
 
   if (state === 'loading') {
     return (
@@ -113,6 +141,17 @@ export default function PublicProfile() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
+      {/* The way back into the network. A profile reached from a card should be
+          a place a reader can leave forwards rather than only with the back
+          button — which is the difference between a page and a dead end. */}
+      <a
+        href="/feed/"
+        className="mb-6 inline-flex items-center gap-2 text-[12px] font-bold text-ink-faint no-underline hover:text-ink"
+      >
+        <Mark size={16} />
+        The network
+      </a>
+
       <header className="flex flex-wrap items-start gap-5">
         {/* The person first, the club second, the kit last. A coach who set
             none of the three still gets a mark rather than a gap. */}
@@ -157,6 +196,15 @@ export default function PublicProfile() {
             {[role, profile.team].filter(Boolean).join(' · ') || 'On Total Football'}
           </p>
           <p className="mt-1 font-mono text-[13px] text-ink-faint">@{profile.handle}</p>
+          {/* A CLAIM, DRAWN AS ONE. No tick, no colour that reads as approval,
+              and the word "says". supabase/024 and §5c both insist on this:
+              verification is the credibility moat and a badge that looks
+              checked when it is not spends it. */}
+          {profile.licence && (
+            <p className="mt-2 inline-block rounded-full border border-ink-hair px-2.5 py-1 text-[11px] font-bold text-ink-soft">
+              Says they hold {licenceLabel(profile.licence)}
+            </p>
+          )}
         </div>
       </header>
 
@@ -185,13 +233,57 @@ export default function PublicProfile() {
         </ul>
       )}
 
-      {/* Phase 2 puts this coach's published systems here. Saying so is better
-          than an empty space that reads as a page that failed to load. */}
-      <section className="mt-12 rounded-xl border border-dashed border-ink-hair p-6 text-center">
-        <p className="text-micro uppercase text-ink-faint">Systems</p>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">
-          Published systems will appear here.
-        </p>
+      {/* ── their work ─────────────────────────────────────────────────────
+
+          PUBLIC POSTS ONLY, even to the coach themselves. Their own shelf —
+          drafts, link-only posts, everything private — is the portal, and this
+          page is what a stranger sees. A profile that showed the owner more
+          than it shows anyone else is a profile they cannot proof-read, and
+          proof-reading it is the whole reason they would open it.
+          ─────────────────────────────────────────────────────────────────── */}
+      <section className="mt-12">
+        <h2 className="text-micro uppercase text-ink-faint">
+          {posts.length === 0
+            ? 'Systems'
+            : `${posts.length} published system${posts.length === 1 ? '' : 's'}`}
+        </h2>
+
+        {posts.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-ink-hair p-6 text-center text-[14px] leading-relaxed text-ink-soft">
+            Nothing published yet.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-6">
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                // The feed row carries the author; this one comes from the
+                // profile above, which is the same coach for every card here.
+                post={{
+                  ...post,
+                  handle: profile.handle,
+                  presenter: profile.presenter,
+                  team: profile.team,
+                  role: profile.role,
+                  licence: profile.licence,
+                  avatarPath: profile.avatarPath,
+                  crestPath: profile.crestPath,
+                }}
+                owner={owner}
+                showAuthor={false}
+                reposted={reposted.has(post.id)}
+                onReposted={(id, now) =>
+                  setReposted((prev) => {
+                    const copy = new Set(prev)
+                    if (now) copy.add(id)
+                    else copy.delete(id)
+                    return copy
+                  })
+                }
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <footer className="mt-12 border-t border-ink-hair pt-6">

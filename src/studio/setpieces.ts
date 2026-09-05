@@ -52,7 +52,7 @@
 
 import { PITCH, toPercent } from './board/pitch'
 import type { PitchView, PitchViewId } from './board/pitch'
-import type { ArrowKind, Side, Token } from './schema'
+import type {Side, Token } from './schema'
 
 /** Clear metres wanted between two counters on the SAME side. Two counters plus air. */
 export const CLEAR_SAME = 4.6

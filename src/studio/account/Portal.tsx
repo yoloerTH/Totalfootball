@@ -19,18 +19,19 @@
  * whether editing it would change what somebody had already been sent — was to
  * open it and press Share.
  *
- * WHAT HAPPENS ON FIRST SIGN-IN. The studio works with no account, so the
- * ordinary path is: build something, like it, then sign up. `claimLocalSystems`
- * runs before the first list and moves whatever is in this browser into the
- * account, keeping ids. If that did not happen, signing up would be the moment
- * a coach's work vanished, and adoption-first would be worse than a login wall.
+ * WHAT HAPPENS ON FIRST SIGN-IN AFTER 2026-09-06. The studio no longer keeps
+ * anything in the browser, and `hydratePrefs` runs a one-time sweep (./adopt.ts)
+ * that moves whatever the old local layer left here onto the account, keeping
+ * ids, before this list is fetched. It reports how many boards it claimed, and
+ * that is the notice below. Once a browser has been swept it claims nothing
+ * ever again.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId, viewFor } from '../board/pitch'
 import type { System } from '../schema'
-import { listSystems, newSystemId, saveSystem, deleteSystem as deleteLocal } from '../storage'
+import { newSystemId } from '../storage'
 import { templateUrl } from '../share'
 import { STUDIO_EVENTS, track } from '../track'
 import { TEMPLATES, type Template } from '../templates'
@@ -44,7 +45,6 @@ import { EMPTY_PROFILE } from './cloud'
 import { ProfileNudge } from './ProfileNudge'
 import { readGuide, writeGuide } from '../storage'
 import {
-  claimLocalSystems,
   deleteCloudSystem,
   listCloudSystems,
   saveCloudSystem,
@@ -58,7 +58,16 @@ import { PublishDialog } from '../editor/PublishDialog'
 import { IdentityGate } from '../editor/IdentityGate'
 import { useProfile, putProfile } from './profile'
 
-type Load = 'working' | 'ready' | 'local-only'
+/**
+ * ── 'local-only' IS GONE, AND THERE IS NOTHING IN ITS PLACE BUT THE TRUTH ────
+ *
+ * It meant "we could not reach your account, so here is what this machine has".
+ * There is no local copy any more, so the honest answer to an unreachable
+ * server is 'failed' and a retry — not a shelf assembled out of whatever
+ * happened to be lying about, which is what made an empty new account
+ * indistinguishable from an outage in the first place.
+ */
+type Load = 'working' | 'ready' | 'failed'
 
 /** The shape a card's picture takes before it has one. Also the new tile's. */
 const CARD_ASPECT = aspect(PITCH_VIEWS[resolveViewId(undefined)])
@@ -150,29 +159,26 @@ export default function Portal() {
   }, [status])
 
   const refresh = useCallback(async (owner: string, claim: boolean) => {
-    // Before the claim and before the nudge: the cadence in ./completion.ts
-    // reads counters that may only exist on the account, and asking a coach to
-    // finish their profile for the fourth time because this laptop had never
-    // heard of the first three is the exact failure the cadence is there to
-    // prevent. See ./prefs.ts.
-    await hydratePrefs(owner)
-    if (claim) {
-      const n = await claimLocalSystems(owner)
-      if (n) setClaimed(n)
-    }
+    // Before the shelf and before the nudge. Two reasons, and both are about
+    // ordering rather than tidiness: the cadence in ./completion.ts reads
+    // counters that only exist on the account, and the one-time sweep inside
+    // `hydratePrefs` (./adopt.ts) may be about to put boards on that shelf.
+    // Listing first would draw a shelf that is missing them.
+    const adopted = await hydratePrefs(owner)
+    if (claim && adopted.systems) setClaimed(adopted.systems)
     /*
-     * ── THE SHELF IS THE ACCOUNT'S, NOT THIS MACHINE'S ──────────────────────
+     * ── THE SHELF IS THE ACCOUNT'S, AND THERE IS NOWHERE ELSE TO LOOK ───────
      *
      * An empty list USED TO BE ambiguous — a new account and an unreachable
-     * server both came back as `[]`, so this fell through to the local buffer
+     * server both came back as `[]`, so this fell through to a local buffer
      * either way and a brand new account could be shown work from a browser it
-     * had nothing to do with. `listCloudSystems` now returns null for a failed
-     * fetch and an array for an answer, so the two cases are told apart:
+     * had nothing to do with. `listCloudSystems` returns null for a failed
+     * fetch and an array for an answer, so the two are told apart:
      *
      *   an array, of any length -> that IS the shelf. An empty account has an
      *                              empty shelf, and saying so is correct.
-     *   null                    -> we could not ask. Only then does the buffer
-     *                              stand in, and it is labelled 'local-only'.
+     *   null                    -> we could not ask. Say that, and offer the
+     *                              one action that can change it.
      */
     const rows = await listCloudSystems(owner)
     if (rows) {
@@ -180,9 +186,7 @@ export default function Portal() {
       setLoad('ready')
       return
     }
-    const local = listSystems()
-    setSystems(local.map((l) => ({ id: l.id, system: l.system, updated: l.updated, owner: user?.id || '' })))
-    setLoad(local.length ? 'local-only' : 'ready')
+    setLoad('failed')
   }, [])
 
   useEffect(() => {
@@ -299,9 +303,10 @@ export default function Portal() {
   }, [status, load, user, preview])
 
   const create = useCallback(() => {
-    // Written locally before we navigate, so the editor opens on a real
-    // document even if the network is having a bad day. The write-through cache
-    // in the editor pushes it up from there.
+    // Just an id and a navigation. The editor makes the document — see the
+    // 'missing' branch of ../editor/StudioMount.tsx — and its autosave writes
+    // it, which is one place that decides what a new board looks like rather
+    // than two that have to agree.
     track(STUDIO_EVENTS.newSystem)
     const id = newSystemId()
     window.location.href = `/studio/new/?s=${encodeURIComponent(id)}`
@@ -318,8 +323,11 @@ export default function Portal() {
         // Share on the duplicate silently overwrote the original's link.
         shareId: undefined,
       }
-      saveSystem(id, copy)
-      await saveCloudSystem(id, copy, user.id)
+      const result = await saveCloudSystem(id, copy, user.id)
+      if (result !== 'saved') {
+        alert('Could not duplicate that board — check your connection and try again.')
+        return
+      }
       void refresh(user.id, false)
     },
     [user, refresh],
@@ -330,8 +338,14 @@ export default function Portal() {
       if (!user) return
       const next = { ...row.system, title }
       setSystems((s) => s.map((r) => (r.id === row.id ? { ...r, system: next } : r)))
-      saveSystem(row.id, next)
-      await saveCloudSystem(row.id, next, user.id)
+      // Optimistic, and put back if the write does not land. A card that shows
+      // a new title while the account still holds the old one is a lie the
+      // coach only discovers on their next device.
+      const result = await saveCloudSystem(row.id, next, user.id)
+      if (result !== 'saved') {
+        setSystems((s) => s.map((r) => (r.id === row.id ? { ...r, system: row.system } : r)))
+        alert('Could not rename that board — check your connection and try again.')
+      }
     },
     [user],
   )
@@ -341,8 +355,11 @@ export default function Portal() {
       if (!user) return
       const next = { ...row.system, folder }
       setSystems((s) => s.map((r) => (r.id === row.id ? { ...r, system: next } : r)))
-      saveSystem(row.id, next)
-      await saveCloudSystem(row.id, next, user.id)
+      const result = await saveCloudSystem(row.id, next, user.id)
+      if (result !== 'saved') {
+        setSystems((s) => s.map((r) => (r.id === row.id ? { ...r, system: row.system } : r)))
+        alert('Could not move that board — check your connection and try again.')
+      }
     },
     [user],
   )
@@ -363,30 +380,39 @@ export default function Portal() {
       }
 
       const affected = systems.filter((r) => r.system.folder === oldName)
-      
+
       setSystems((s) =>
         s.map((r) =>
           r.system.folder === oldName ? { ...r, system: { ...r.system, folder: trimmed } } : r,
         )
       )
       
-      affected.forEach((row) => {
-        const next = { ...row.system, folder: trimmed }
-        saveSystem(row.id, next)
-        void saveCloudSystem(row.id, next, user.id)
-      })
+      // In parallel and awaited together: a folder with twelve boards in it is
+      // twelve writes, and doing them one after another put a visible stall
+      // between renaming a folder and the shelf agreeing with it.
+      const results = await Promise.all(
+        affected.map((row) => saveCloudSystem(row.id, { ...row.system, folder: trimmed }, user.id)),
+      )
+      if (results.some((r) => r !== 'saved')) {
+        alert('Some boards could not be moved into the renamed folder. Reloading the shelf.')
+        void refresh(user.id, false)
+      }
 
       setActiveFolder(trimmed)
     },
-    [user, profile, systems],
+    [user, profile, systems, refresh],
   )
 
   const remove = useCallback(
     async (row: CloudSystem) => {
       if (!user) return
       setSystems((s) => s.filter((r) => r.id !== row.id))
-      deleteLocal(row.id)
-      await deleteCloudSystem(row.id, user.id)
+      const gone = await deleteCloudSystem(row.id, user.id)
+      if (!gone) {
+        // Put it back. There is no local copy to make this true later.
+        setSystems((s) => (s.some((r) => r.id === row.id) ? s : [row, ...s]))
+        alert('Could not delete that board — check your connection and try again.')
+      }
     },
     [user],
   )
@@ -516,16 +542,23 @@ export default function Portal() {
         </Notice>
       )}
 
-      {load === 'local-only' && (
+      {load === 'failed' && (
         <Notice tone="gold">
-          <span className="font-bold">Showing what is on this machine.</span> We could not reach your
-          account just now. Nothing is lost, and these will sync when the connection comes back.
+          <span className="font-bold">Could not reach your account.</span> Your boards are safe — this
+          browser just could not load them.{' '}
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            onClick={() => user && void refresh(user.id, false)}
+          >
+            Try again
+          </button>
         </Notice>
       )}
 
       {load === 'working' ? (
         <Skeleton />
-      ) : systems.length === 0 ? (
+      ) : load === 'failed' ? null : systems.length === 0 ? (
         <Empty onNew={create} />
       ) : (
         <>

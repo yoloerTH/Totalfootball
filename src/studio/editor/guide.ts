@@ -867,7 +867,7 @@ export const SMALL = {
  * the drawer by name, waits for the control to mount, and then rings it, and
  * the name it opens by has to be the same string the drawer renders under.
  *
- * It is also the localStorage key `Section` remembers itself by, so these
+ * It is also the key `Section` remembers itself by in `view_prefs`, so these
  * strings are load-bearing twice over and must not be edited casually.
  */
 export const DRAWER = {

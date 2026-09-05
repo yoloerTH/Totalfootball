@@ -36,10 +36,9 @@
  *
  * ── STORAGE ──────────────────────────────────────────────────────────────────
  *
- * Local-first, cloud-synced — the same architecture as systems. A sequence is
- * in localStorage within a keystroke and in Supabase within a debounce, so
- * nothing is lost to a dropped connection. See ./storage.ts for the pattern
- * and the reasoning behind it.
+ * One row in `studio_sequences` (supabase/019, 026, 027), and nowhere else.
+ * There is no local copy and no offline buffer: a save either lands or is
+ * reported. See the persistence block at the foot of this file.
  */
 
 import type { Act, TeamStyle } from './schema'
@@ -56,7 +55,6 @@ import {
   outOfRegion,
   viewTransform,
 } from './board/transform'
-import { scopedKey } from './scope'
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -505,76 +503,188 @@ export function buildRangeActs(
   return out
 }
 
-// ── local persistence ────────────────────────────────────────────────────────
+// ── persistence ──────────────────────────────────────────────────────────────
 
 /**
- * The localStorage key for saved sequences.
+ * The library lives in `studio_sequences` and nowhere else.
  *
- * Scoped per user via `scopedKey()` in ./scope.ts — no cross-account leaks.
- * Listed in `LEGACY` in scope.ts so `wipeScope()` clears it on sign-out.
+ * ── IT USED TO BE A localStorage BLOB WITH A CLOUD MIRROR BEHIND IT ──────────
+ *
+ * That was worse than it sounds, because the mirror had never worked: 019
+ * created the table without a GRANT, so every upsert came back
+ * `42501 permission denied` and was swallowed as a "not yet" (supabase/026).
+ * The library was local-only for three weeks and nothing said so — the panel
+ * merged a cloud list that was always empty over a local list that was always
+ * the whole truth, so the bug was invisible right up until somebody opened the
+ * studio on a second machine.
+ *
+ * One store removes both halves of that: there is no merge to get wrong, and a
+ * write that does not land is a rejected promise rather than a silence.
+ *
+ * ── EVERY FUNCTION HERE IS ASYNC AND THAT IS THE POINT ───────────────────────
+ *
+ * They were synchronous when the answer was a JSON.parse away. Making them
+ * async is not a cost being paid for the database; it is the call sites being
+ * made honest about the fact that saving can fail. `SaveSequenceDialog` and the
+ * library panel both now know whether the sequence they just showed a coach a
+ * confirmation for actually exists.
+ *
+ * ── AND THE LIST IS CACHED FOR THE TAB ───────────────────────────────────────
+ *
+ * `applySequence` needs a document by id from inside a synchronous handler, and
+ * the library panel fetches the whole list a moment earlier. `cached` below is
+ * that fetch, kept, so opening the Apply dialog is not a second round trip for
+ * something already on screen. It is invalidated by every write from this tab
+ * and is never the source of truth — `listSequences` always re-reads.
  */
-const SEQ_KEY = 'tf-studio:sequences:v1'
 
-interface SequenceStore {
-  sequences: Record<string, SavedSequence>
+import { db } from './account/client'
+
+/** What the row looks like once the generated columns of supabase/027 are read. */
+export interface SequenceRow {
+  id: string
+  /** The full document. Everything else on the row is generated from it. */
+  sequence: SavedSequence
+  /** Who owns it. Not always the reader: team libraries are shared (020). */
+  owner: string
+  updated: string
 }
 
-function readStore(): SequenceStore {
-  if (typeof localStorage === 'undefined') return { sequences: {} }
-  try {
-    const raw = localStorage.getItem(scopedKey(SEQ_KEY))
-    if (!raw) return { sequences: {} }
-    const parsed = JSON.parse(raw) as SequenceStore
-    if (!parsed || typeof parsed !== 'object' || typeof parsed.sequences !== 'object') {
-      return { sequences: {} }
+/**
+ * Last known list, by id, for the life of the tab.
+ *
+ * A read-through convenience for `loadSequence`, not a store. Nothing is ever
+ * served from here that has not been fetched this session, and nothing is
+ * written here that has not landed in the database first.
+ */
+const cached = new Map<string, SavedSequence>()
+
+/** Drop the cache. Called on sign-out with the rest of the session state. */
+export function forgetSequences(): void {
+  cached.clear()
+}
+
+/**
+ * Normalise a row into the document the editor works with.
+ *
+ * The id and the timestamp are taken from the ROW rather than trusted from
+ * inside `doc`, because the row is what the database sorts and de-duplicates
+ * by. supabase/027 keeps the two in step on every write; this makes a document
+ * written before that migration read correctly anyway.
+ */
+function toSequence(row: { id: string; doc: unknown; updated_at: string }): SavedSequence {
+  const doc = (row.doc ?? {}) as SavedSequence
+  return { ...doc, id: row.id, updated: row.updated_at }
+}
+
+/**
+ * The coach's library, newest first.
+ *
+ * Returns null — NOT [] — when the fetch failed, so the panel can tell an empty
+ * library from an unreachable server. They used to be the same value and the
+ * panel had to guess, which with no local copy left to fall back on would mean
+ * telling a coach with forty sequences that they have none.
+ *
+ * No `owner` filter: `studio_sequences_all_access` (supabase/020) already
+ * returns own rows plus any team library this coach may view, and a filter here
+ * would silently hide the second kind.
+ */
+export async function listSequences(): Promise<SequenceRow[] | null> {
+  const supabase = db()
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('studio_sequences')
+    .select('id, doc, owner, updated_at')
+    .order('updated_at', { ascending: false })
+  if (error || !data) return null
+
+  cached.clear()
+  return data.map((row) => {
+    const sequence = toSequence(row as { id: string; doc: unknown; updated_at: string })
+    cached.set(sequence.id, sequence)
+    return {
+      id: sequence.id,
+      sequence,
+      owner: row.owner as string,
+      updated: row.updated_at as string,
     }
-    return parsed
-  } catch {
-    return { sequences: {} }
+  })
+}
+
+/** One sequence by id. Served from the tab's cache when the list is already in. */
+export async function loadSequence(id: string): Promise<SavedSequence | null> {
+  const hit = cached.get(id)
+  if (hit) return hit
+  const supabase = db()
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('studio_sequences')
+    .select('id, doc, updated_at')
+    .eq('id', id)
+    .maybeSingle()
+  if (error || !data) return null
+  const sequence = toSequence(data as { id: string; doc: unknown; updated_at: string })
+  cached.set(sequence.id, sequence)
+  return sequence
+}
+
+/**
+ * Write one, and hand back what the database actually stored.
+ *
+ * The returned document is the one to show the coach: supabase/027 stamps
+ * `updated` from the database clock, so the copy in hand after a save is the
+ * copy any other device will see. Returning the argument instead would put a
+ * phone with a wrong clock at the top of its own library forever.
+ *
+ * `null` means it did not land. Every call site treats that as a failure the
+ * coach is told about — there is no second store for it to be quietly correct
+ * in any more.
+ */
+export async function saveSequence(seq: SavedSequence): Promise<SavedSequence | null> {
+  const supabase = db()
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('studio_sequences_save', {
+    p_id: seq.id,
+    p_doc: seq,
+  })
+  if (error || !data) return null
+  const result = data as { ok?: boolean; doc?: SavedSequence }
+  if (!result.ok || !result.doc) return null
+  cached.set(seq.id, result.doc)
+  return result.doc
+}
+
+/** Delete one. `false` means it is still there. */
+export async function deleteSequence(id: string): Promise<boolean> {
+  const supabase = db()
+  if (!supabase) return false
+  const { data, error } = await supabase.rpc('studio_sequences_delete', { p_id: id })
+  if (error) return false
+  cached.delete(id)
+  return Boolean((data as { ok?: boolean } | null)?.ok)
+}
+
+/**
+ * Rename one, without moving the document.
+ *
+ * The whole point of supabase/027's rename RPC: reading the document, editing
+ * one string and posting the whole thing back is three times the bytes and
+ * loses a re-capture made in another tab in between.
+ */
+export async function renameSequence(id: string, name: string): Promise<boolean> {
+  const supabase = db()
+  if (!supabase || !name.trim()) return false
+  const { data, error } = await supabase.rpc('studio_sequences_rename', {
+    p_id: id,
+    p_name: name.trim(),
+  })
+  if (error) return false
+  const ok = Boolean((data as { ok?: boolean } | null)?.ok)
+  if (ok) {
+    const hit = cached.get(id)
+    if (hit) cached.set(id, { ...hit, name: name.trim() })
   }
-}
-
-function writeStore(store: SequenceStore): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(scopedKey(SEQ_KEY), JSON.stringify(store))
-  } catch {
-    // Quota exceeded or private window. The sequence still lives in the
-    // caller's state; only the persistence across a reload is lost.
-  }
-}
-
-export function listSequences(): SavedSequence[] {
-  const store = readStore()
-  return Object.values(store.sequences).sort(
-    (a, b) => b.updated.localeCompare(a.updated),
-  )
-}
-
-export function loadSequence(id: string): SavedSequence | null {
-  return readStore().sequences[id] ?? null
-}
-
-export function saveSequence(seq: SavedSequence): void {
-  const store = readStore()
-  store.sequences[seq.id] = { ...seq, updated: new Date().toISOString() }
-  writeStore(store)
-}
-
-export function deleteSequence(id: string): void {
-  const store = readStore()
-  delete store.sequences[id]
-  writeStore(store)
-}
-
-export function renameSequence(id: string, name: string): void {
-  const store = readStore()
-  const seq = store.sequences[id]
-  if (seq) {
-    seq.name = name
-    seq.updated = new Date().toISOString()
-    writeStore(store)
-  }
+  return ok
 }
 
 /** New sequence id. Same shape as system ids, for consistency. */

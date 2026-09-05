@@ -16,17 +16,27 @@
  * ── IT MUST NOT THROW WHEN THE ENV IS MISSING ────────────────────────────────
  *
  * The reference implementation this is modelled on throws at module load if the
- * env is absent. That is wrong here. Deploy previews do not carry production
- * env, and the studio is deliberately usable with no account at all — a coach's
- * work lives in their own localStorage first (see ../storage.ts). A missing key
- * must cost the sign-in button and nothing else, so this exports `null` and
- * every caller is written to expect it.
+ * env is absent. That is wrong here, for two separate reasons:
+ *
+ *   · Deploy previews do not carry production env. A missing key must cost the
+ *     sign-in button and nothing else, so this exports `null` and every caller
+ *     is written to expect it.
+ *
+ *   · `import.meta.env` ITSELF does not exist outside Vite, and this module is
+ *     now reachable from plain Node. ../sequences.ts imports `db` at the top
+ *     level so the library can be read, and scripts/check-transform.mjs imports
+ *     the geometry out of that same file — so a bare `import.meta.env.X` threw
+ *     `Cannot read properties of undefined` and took the build's own checks
+ *     down with it. The optional chain below is the whole fix and it is not
+ *     decorative: any module a check script can reach must survive being loaded
+ *     by something that is not a bundler.
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.PUBLIC_SUPABASE_URL
-const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+const env = import.meta.env as Record<string, string | undefined> | undefined
+const url = env?.PUBLIC_SUPABASE_URL
+const anonKey = env?.PUBLIC_SUPABASE_ANON_KEY
 
 /**
  * `null` when this build has no Supabase env — see above. Never assume it.

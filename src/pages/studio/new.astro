@@ -8,9 +8,10 @@
  * (user, 2026-08-13) and the landing page at /studio/ is the front door now.
  *
  * The island is `client:only` rather than hydrated from server-rendered HTML
- * because the system it edits comes out of localStorage, which does not exist at
- * build time. Server-rendering a board built from a different system than the
- * one the browser is about to load would flash the wrong shape.
+ * because the system it edits is fetched from the coach's account, which needs
+ * a session that does not exist at build time. Server-rendering a board built
+ * from a different system than the one the browser is about to load would flash
+ * the wrong shape.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import StudioMount from '../../studio/editor/StudioMount'

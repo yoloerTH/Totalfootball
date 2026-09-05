@@ -1,0 +1,75 @@
+-- The grant 019 forgot, which is why no coach has ever had a sequence.
+--
+-- ── WHAT WAS WRONG ───────────────────────────────────────────────────────────
+--
+-- 019 created `studio_sequences`, enabled RLS, wrote the own-rows policy and
+-- attached the touch trigger — and granted nothing to anybody. Its own header
+-- says "the same architecture as studio_systems in 005", and it copied three of
+-- the four things 005 does. 005 line 145 is the fourth:
+--
+--     grant select, insert, update, delete on public.studio_systems to authenticated;
+--
+-- A POLICY AND A GRANT ARE NOT THE SAME PERMISSION and neither substitutes for
+-- the other. The grant decides whether a role may touch the table at all; the
+-- policy decides which rows it sees once it may. `studio_sequences` had a
+-- perfectly good policy guarding a table that `authenticated` was not allowed to
+-- open, so every read came back
+--
+--     42501  permission denied for table studio_sequences
+--
+-- and every write with it. Verified against the live project on 2026-09-06:
+-- `studio_sequences` is the only `studio_*` table with no row at all in
+-- `information_schema.role_table_grants` for `anon` or `authenticated`, and the
+-- table holds ZERO rows across all 157 accounts — not because nobody wanted a
+-- sequence, but because nobody has ever been able to save one.
+--
+-- It surfaced in the iOS app as "Could not reach your library", which is the
+-- honest message for a read that did not land and gave no hint that the fault
+-- was a missing GRANT rather than a dropped connection. The web has the same
+-- fault and always did.
+--
+-- ── WHY THE GRANT IS SAFE, SAID PLAINLY ──────────────────────────────────────
+--
+-- It grants to `authenticated`, which is every signed-in coach, and RLS is what
+-- narrows that to their own rows. 019's policy is `auth.uid() = owner` FOR ALL
+-- with the same WITH CHECK, and 020 replaced it with `studio_sequences_all_access`
+-- which is the same rule plus the team paths. Both are already in place; this
+-- file adds no policy and changes no row.
+--
+-- `anon` is revoked explicitly rather than left to a default, exactly as 005
+-- does for `studio_systems` and 014 does for `studio_prefs`. A sequence is a
+-- coach's own vocabulary and 019 says at length that it has no business on
+-- anybody else's screen; a signed-out reader is anybody else.
+--
+-- Running this twice is a no-op.
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.studio_sequences to authenticated;
+
+revoke all on public.studio_sequences from anon;
+revoke all on public.studio_sequences from public;
+
+-- ── THE CHECK, WHICH IS THE POINT OF WRITING IT DOWN ─────────────────────────
+--
+-- Run this after applying and it prints one row per grant. Four rows for
+-- `authenticated` and nothing for `anon` is the correct answer; no rows at all
+-- means this file has not been applied to the project you are looking at.
+--
+--   select grantee, privilege_type
+--     from information_schema.role_table_grants
+--    where table_schema = 'public'
+--      and table_name = 'studio_sequences'
+--    order by grantee, privilege_type;
+--
+-- And the same question asked of every studio table at once, which is what
+-- found this one. Any `studio_*` table missing from the `authenticated` side of
+-- this list is the next 019:
+--
+--   select table_name, grantee,
+--          string_agg(privilege_type, ',' order by privilege_type) as privs
+--     from information_schema.role_table_grants
+--    where table_schema = 'public'
+--      and table_name like 'studio_%'
+--      and grantee in ('anon', 'authenticated')
+--    group by 1, 2
+--    order by 1, 2;

@@ -9,24 +9,36 @@
  * Reads `?s=<id>` to reopen a specific system, otherwise resumes the last one
  * touched, otherwise starts a new one.
  *
- * ── WHERE A DOCUMENT COMES FROM, IN ORDER ────────────────────────────────────
+ * ── WHERE A DOCUMENT COMES FROM ──────────────────────────────────────────────
+ *
+ * The account. That is the whole list now — there is no local buffer to try
+ * first and no order to get wrong (user, 2026-09-06). What is left is three
+ * cases and one rule:
  *
  *  0. `?t=<template>`, which is not really "where a document came from" so much
  *     as "make me one": one of ours, copied, under a new id. It jumps the queue
  *     because it is the only case where the coach has asked for a NEW document
  *     rather than for the one they were working on — see the note by it below.
- *  1. localStorage. Always tried first, always instant, and correct on the
- *     machine the coach actually built the thing on.
- *  2. The account, but only if (1) missed AND somebody is signed in. This is
- *     the second-machine case: a system built on the laptop, opened from the
- *     phone off the portal, where the id is real but this browser has never
- *     seen it.
- *  3. A fresh board.
+ *  1. `loadCloudSystem` says 'ok'. Open it.
+ *  2. It says 'missing'. There is genuinely no such board, so make one.
+ *  3. It says 'error'. WE DO NOT KNOW, and this file must not guess.
  *
- * The wait in (2) is why `status` has an 'unknown' state. Deciding "not in
- * localStorage, so make a new one" while the session is still being restored
- * would hand a coach a blank board and then autosave it OVER the system they
- * asked for. The one thing this file must never do.
+ * THE RULE IS (3), and it is the whole reason `SystemRead` exists. A read that
+ * failed used to be indistinguishable from a board that was not there, which
+ * was survivable while localStorage held a copy to fall through to. It is not
+ * survivable now: guessing "missing" on a dropped connection opens a BLANK
+ * board under an id that has a real document behind it, and the autosave then
+ * tries to write the blank over the coach's work. So an error is shown as an
+ * error, with a retry, and nothing is mounted behind it.
+ *
+ * (supabase/016 would refuse that particular write anyway — a client that never
+ * read the row sends a null version, and a null version against an existing row
+ * is exactly the stale case the guard was written for. Being caught by the last
+ * line of defence is not a reason to walk off the edge.)
+ *
+ * The wait for the session is why `status` has an 'unknown' state. Deciding
+ * anything about a document before we know who is asking is the other way to
+ * open the wrong board.
  *
  * ── WHY ../templates IS IMPORTED LAZILY ──────────────────────────────────────
  *
@@ -41,7 +53,7 @@
 
 import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
-import { lastOpened, loadSystem, newSystemId } from '../storage'
+import { lastOpened, newSystemId, noteOpened } from '../storage'
 import { creditOnly, loadCloudSystem, withProfile } from '../account/cloud'
 import { hydrateProfile } from '../account/profile'
 import { hydratePrefs } from '../account/prefs'
@@ -50,20 +62,30 @@ import type { System } from '../schema'
 
 export default function StudioMount() {
   const { status, user } = useSession()
-  const [state, setState] = useState<{ id: string; initial: System; canEdit?: boolean } | null>(null)
+  const [state, setState] = useState<{
+    id: string
+    initial: System
+    canEdit?: boolean
+    /** Byte-for-byte what the database handed over. See `useCloudSync`. */
+    stored: boolean
+  } | null>(null)
+  /**
+   * The read failed, and we are saying so rather than inventing a board.
+   *
+   * A count rather than a flag, so pressing Retry re-runs the effect: the
+   * dependency is the number, and the number goes up.
+   */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   /*
    * The studio needs an account.
    *
-   * It did not, for two sessions, and the reasoning for that is still written
-   * all over ../storage.ts — a coach could land here and be dragging players
-   * around before anyone asked who they were. The call has been reversed
-   * (user, 2026-08-13): the board is behind the door now.
-   *
-   * localStorage-first stays exactly as it was, and it is not vestigial. It is
-   * still what makes the editor survive a dropped connection mid-session, still
-   * what makes an autosave instant, and `claimLocalSystems` still matters for
-   * anyone who built something during the open alpha.
+   * It did not, for two sessions, and ../storage.ts used to carry the argument
+   * for that — a coach could land here and be dragging players around before
+   * anyone asked who they were. The call was reversed (user, 2026-08-13): the
+   * board is behind the door. That is now load-bearing rather than a product
+   * decision, because the account is the only place a board can be written.
    */
   useEffect(() => {
     if (status !== 'out') return
@@ -87,7 +109,10 @@ export default function StudioMount() {
      * below needs and cannot infer: a copy has a `?s=` of its own to be given,
      * even when the coach arrived with one in the address bar.
      */
-    const open = async (): Promise<{ id: string; initial: System; copied: boolean; canEdit?: boolean }> => {
+    const open = async (): Promise<
+      | { ok: true; id: string; initial: System; copied: boolean; canEdit?: boolean; stored: boolean }
+      | { ok: false }
+    > => {
       /*
        * ── FIRST, AND ABOVE THE `?t=` BRANCH THAT RETURNS EARLY ───────────────
        *
@@ -141,46 +166,76 @@ export default function StudioMount() {
            * silently was not. See ../account/cloud.ts.
            */
           const initial = profile ? withProfile(copy, creditOnly(profile)) : copy
-          return { id: newSystemId(), initial, copied: true, canEdit: true }
+          // `stored: false` — this document exists nowhere yet, so the autosave
+          // must write it on open rather than wait for a first edit.
+          return { ok: true, id: newSystemId(), initial, copied: true, canEdit: true, stored: false }
         }
       }
 
       const id = requested ?? lastOpened() ?? newSystemId()
 
       /*
-       * ── THE ACCOUNT FIRST. THE BUFFER ONLY IF THE ACCOUNT CANNOT ANSWER ────
+       * ── THE ACCOUNT, AND NOTHING BEHIND IT ────────────────────────────────
        *
-       * THIS ORDER WAS THE OTHER WAY ROUND AND IT LOST WORK. localStorage was
-       * read first, so a laptop holding a week-old copy opened the week-old
-       * copy — and `useCloudSync` then uploaded it over whatever had been done
-       * on the desktop since, two seconds later, silently.
+       * There used to be a localStorage buffer read after this one, and before
+       * that a localStorage buffer read BEFORE it — which lost work: a laptop
+       * holding a week-old copy opened the week-old copy, and the autosave
+       * uploaded it over the desktop's two seconds later, silently.
        *
-       * The buffer is still here and still matters: it is what a coach opens
-       * when the train goes into a tunnel, and it is the only copy that exists
-       * in the seconds between a keystroke and the upload. What it is not, any
-       * more, is the thing consulted FIRST by a browser that could simply ask.
-       *
-       * `loadCloudSystem` returns null for "no such row" and for "could not
-       * ask", and the fallthrough is right for both — a new board has no row
-       * yet, and an unreachable server is exactly when the buffer earns its
-       * keep. What makes the second case safe is not this ordering but
-       * supabase/016: a stale buffer that comes back cannot overwrite a newer
-       * row, because the save carries the version it was loaded at.
+       * Both are gone. One store, one read, and the three answers it can give
+       * are handled as three answers. See the header.
        */
       const remote = await loadCloudSystem(id, user.id)
-      if (remote) return { id, initial: remote.system, copied: false, canEdit: remote.canEdit }
-      const local = loadSystem(id)
-      if (local) return { id, initial: local, copied: false, canEdit: true }
-      // A brand new board for a coach we already know something about opens in
-      // their colours and already signed. See `withProfile`.
+
+      if (remote.status === 'error') return { ok: false }
+
+      if (remote.status === 'ok') {
+        return {
+          ok: true,
+          id,
+          initial: remote.system,
+          copied: false,
+          canEdit: remote.canEdit,
+          stored: true,
+        }
+      }
+
+      // 'missing'. A brand new board for a coach we already know something
+      // about opens in their colours and already signed. See `withProfile`.
       const { profile } = await hydrateProfile(user.id)
       const blank = newSystem()
-      return { id, initial: profile ? withProfile(blank, profile) : blank, copied: false, canEdit: true }
+      return {
+        ok: true,
+        id,
+        initial: profile ? withProfile(blank, profile) : blank,
+        copied: false,
+        canEdit: true,
+        stored: false,
+      }
     }
 
-    void open().then(({ id, initial, copied, canEdit }) => {
+    void open().then((result) => {
       if (!live) return
-      setState({ id, initial, canEdit })
+      if (!result.ok) {
+        setFailed(true)
+        return
+      }
+      const { id, initial, copied, canEdit, stored } = result
+      setFailed(false)
+      setState({ id, initial, canEdit, stored })
+      /*
+       * "Which board was I on", up to the account, once.
+       *
+       * It used to be a side effect of the local autosave, which meant it fired
+       * every 400ms during a drag to re-state a fact that changes once a
+       * session. Here it is one write, at the one moment the answer changes.
+       *
+       * Not for a locked board — one of ours, opened by somebody who is only
+       * looking. Recording it would mean the coach who signs up an hour later,
+       * sold on the studio by this exact page, opens onto a locked copy of our
+       * system instead of a board of their own.
+       */
+      if (canEdit !== false) noteOpened(id)
       // Keep the URL pointing at the system being edited, so a reload or a
       // shared link comes back to the same board rather than starting over.
       //
@@ -198,7 +253,38 @@ export default function StudioMount() {
     return () => {
       live = false
     }
-  }, [status, user])
+  }, [status, user, attempt])
+
+  /*
+   * ── THE READ FAILED, AND THIS SAYS SO ────────────────────────────────────
+   *
+   * The one screen that did not need to exist while a local copy did. It is not
+   * an apology and it is not a spinner: the coach's work is on the account,
+   * intact, and the only thing wrong is that this browser could not reach it.
+   * Saying that, and offering the one action that can change it, is the whole
+   * job. Inventing a blank board here is how the work gets overwritten.
+   */
+  if (failed) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] min-h-[620px] flex-col items-center justify-center gap-4 bg-paper-deep px-6 text-center">
+        <p className="text-sm text-ink">Could not reach your account.</p>
+        <p className="max-w-sm text-xs leading-relaxed text-ink-faint">
+          Your boards are safe — this browser just could not load them. Check your
+          connection and try again.
+        </p>
+        <button
+          type="button"
+          className="rounded border border-ink-hair px-3 py-1.5 text-micro uppercase tracking-wide text-ink hover:bg-paper"
+          onClick={() => {
+            setFailed(false)
+            setAttempt((n) => n + 1)
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   if (!state) {
     return (
@@ -210,5 +296,12 @@ export default function StudioMount() {
     )
   }
 
-  return <StudioEditor systemId={state.id} initial={state.initial} locked={state.canEdit === false} />
+  return (
+    <StudioEditor
+      systemId={state.id}
+      initial={state.initial}
+      locked={state.canEdit === false}
+      stored={state.stored}
+    />
+  )
 }

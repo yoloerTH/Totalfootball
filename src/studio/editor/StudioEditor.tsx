@@ -46,7 +46,7 @@ import {
 import { arrowRim, bendFor } from '../board/Overlays'
 import { alignSnap, snapTolerance, type Alignable, type SnapGuide } from '../board/align'
 import { arrowEnds, bindEnd, snapTarget } from '../arrows'
-import { SET_PIECES, SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
+import { SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
 import { perform, type ActionKind, type Target } from '../actions'
 import {
   AREA_MAX,
@@ -171,7 +171,7 @@ import {
   readGuide,
   readSnap,
   readStripSize,
-  saveSystem,
+ 
   writeCarry,
   writeGuide,
   writeSnap,
@@ -239,7 +239,6 @@ import {
   ConfirmButton,
   Field,
   GearPicker,
-  Modal,
   Panel,
   PicturePicker,
   Section,
@@ -257,7 +256,6 @@ import { ApplySequenceDialog } from './ApplySequenceDialog'
 import { SequencePanel } from './SequencePanel'
 import type { SavedSequence, SequenceRegion } from '../sequences'
 import { saveSequence, loadSequence, captureSequence } from '../sequences'
-import { saveCloudSequence } from '../account/cloud'
 
 const CUES: Cue[] = ['PRESS', 'COVER', 'BALANCE', 'SPARE', 'JOCKEY', 'DROP']
 
@@ -753,11 +751,25 @@ interface Props {
    * doing what everything else already does.
    *
    * Three other things have to be switched off with it, and none of them are
-   * cosmetic: the local autosave, the account sync, and everything that writes
-   * to the guide. All three would otherwise treat a stranger looking at our
-   * system as a coach working on theirs.
+   * Two other things have to be switched off with it, and neither is cosmetic:
+   * the account sync, and everything that writes to the guide. Both would
+   * otherwise treat a stranger looking at our system as a coach working on
+   * theirs.
    */
   locked?: boolean
+  /**
+   * True when `initial` is the document as the database handed it over.
+   *
+   * Passed straight through to `useCloudSync`, which uses it to avoid writing a
+   * board back the instant it is opened. See ../account/sync.ts — the short
+   * version is that opening a system used to bump its `updated_at`, so the
+   * portal's "newest first" quietly meant "most recently opened".
+   *
+   * Defaults false, which is the safe direction: an unwritten board that is
+   * saved once for no reason costs a round trip, and a new board that is never
+   * saved costs the board.
+   */
+  stored?: boolean
 }
 
 /**
@@ -786,7 +798,7 @@ function clampPan(x: number, y: number, z: number, w: number, h: number) {
  */
 const NO_GUIDES: SnapGuide[] = []
 
-export default function StudioEditor({ systemId, initial, locked = false }: Props) {
+export default function StudioEditor({ systemId, initial, locked = false, stored = false }: Props) {
   /*
    * A locked board opens on the first phase that has anybody on it.
    *
@@ -917,7 +929,7 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
 
   const handleSaveSequenceClick = async () => {
     if (system.editingSequenceId) {
-      const oldSeq = loadSequence(system.editingSequenceId)
+      const oldSeq = await loadSequence(system.editingSequenceId)
       if (oldSeq) {
         const seq = captureSequence(
           oldSeq.name,
@@ -933,13 +945,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
         // Overwrite the existing sequence ID to act as an update
         seq.id = oldSeq.id
 
-        saveSequence(seq)
-        if (user?.id) {
-          await saveCloudSequence(seq.id, seq as unknown as Record<string, unknown>, user.id)
-        }
-        
-        // Show a quick native alert to confirm since we bypassed the UI
-        alert('Sequence updated successfully!')
+        // One write, one answer. There is no local copy to be quietly correct
+        // in any more, so a failure is told to the coach rather than swallowed.
+        const landed = await saveSequence(seq)
+        alert(
+          landed
+            ? 'Sequence updated.'
+            : 'Could not save that sequence — check your connection and try again.',
+        )
         return
       }
     }
@@ -1546,29 +1559,23 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     [system.acts],
   )
 
-  // Autosave. Debounced so a drag writes once when it settles rather than on
-  // every pointermove, which would serialise the whole document 60 times a
-  // second for no benefit.
-  useEffect(() => {
-    /*
-     * A locked board is never written down, anywhere.
-     *
-     * The document cannot change, so there is nothing here worth keeping — but
-     * that is not the reason. The reason is `lastOpened()`: saving would put OUR
-     * system id at the head of this browser's shelf, and ./StudioMount.tsx opens
-     * whatever is there. So the coach who signs up an hour later, having been
-     * sold on the studio by this exact page, would open it onto a locked copy of
-     * our system instead of a board of their own.
-     */
-    if (locked) return
-    const t = setTimeout(() => saveSystem(systemId, system), 400)
-    return () => clearTimeout(t)
-  }, [systemId, system, locked])
+  /*
+   * ── THERE IS NO LOCAL AUTOSAVE ANY MORE ───────────────────────────────────
+   *
+   * A debounced `saveSystem(systemId, system)` used to live here, 400ms behind
+   * every edit, writing the whole document into localStorage. It is gone with
+   * the rest of the local layer (user, 2026-09-06): the account is the only
+   * store, and `useCloudSync` below is the only writer.
+   *
+   * What went with it, and is now done properly elsewhere: it also stamped
+   * "this is the board I am on" on every single write — sixty times during a
+   * drag, for a fact that changes once a session. ../StudioMount.tsx calls
+   * `noteOpened` once, when the board is opened.
+   */
 
-  // And behind that, the account — if there is one. Local is authoritative and
-  // this never blocks it; see ../account/sync.ts. Off entirely when locked, for
-  // the signed-in coach who opens one of ours: see `enabled` over there.
-  const cloud = useCloudSync(systemId, system, !locked)
+  // The account, and nothing else. See ../account/sync.ts. Off entirely when
+  // locked, for the signed-in coach who opens one of ours: see `enabled` there.
+  const cloud = useCloudSync(systemId, system, !locked, stored)
 
   /**
    * The coach's squad, and signed URLs for whichever faces are on this board.
@@ -3717,98 +3724,6 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
    * every phase would flatten exactly the work they came here to do. The view
    * is a property of the system, so that part does land everywhere.
    */
-  const applySetPiece = (id: string) => {
-    if (id === '') {
-      if (preSetPieceSystem) {
-        edit('setpiece', () => preSetPieceSystem)
-        seal()
-      }
-      setSetPieceId('')
-      setPreSetPieceSystem(null)
-      return
-    }
-
-    if (!setPieceId && !preSetPieceSystem) {
-      setPreSetPieceSystem(system)
-    }
-
-    const piece = SET_PIECE_BY_ID.get(id)
-    if (!piece) return
-    const view = PITCH_VIEWS[piece.view]
-    edit('setpiece', (s) => {
-      const moved = remapSystem(s, piece.view)
-      const here = Math.min(actIndexRef.current, moved.acts.length - 1)
-      return {
-        ...moved,
-        tokenSize: piece.tokenSize ?? moved.tokenSize,
-        acts: moved.acts.map((a, i) => {
-          if (i !== here) return a
-          // An opposition is something a PHASE has. A set piece does not
-          // conjure one onto a board the coach deliberately left one team on.
-          const hasThem = a.tokens.some((t) => t.side === 'them')
-          const at = spotToPercent(view, piece.ball)
-          const balls = ballsOf(a)
-          return {
-            ...a,
-            tokens: [
-              ...arrange(piece, 'us', view, a.tokens),
-              ...(hasThem ? arrange(piece, 'them', view, a.tokens) : []),
-            ],
-            bands: [
-              ...a.bands,
-              ...(piece.bands?.map((b, bi) => {
-                const p1 = spotToPercent(view, { d: b.rect.d, s: b.rect.s })
-                const p2 = spotToPercent(view, { d: b.rect.d + b.rect.h, s: b.rect.s + b.rect.w })
-                return {
-                  id: `sp-band-${a.id}-${bi}`,
-                  kind: b.kind,
-                  shape: b.shape ?? 'box',
-                  label: b.label,
-                  tone: b.tone,
-                  rect: {
-                    x: Math.min(p1.x, p2.x),
-                    y: Math.min(p1.y, p2.y),
-                    w: Math.abs(p2.x - p1.x),
-                    h: Math.abs(p2.y - p1.y),
-                  },
-                } as Band
-              }) ?? []),
-            ],
-            gear: [
-              ...(a.gear ?? []),
-              ...(piece.gear?.map((g, gi) => {
-                const at = spotToPercent(view, { d: g.d, s: g.s })
-                return {
-                  id: `sp-gear-${a.id}-${gi}`,
-                  kind: g.gear,
-                  x: at.x,
-                  y: at.y,
-                }
-              }) ?? []),
-            ],
-            // The ball that is already here is MOVED, keeping its id, so a
-            // phase that follows still tweens the same ball rather than
-            // cutting one away and another in. Any others are left alone.
-            ...ballFields([{ ...(balls[0] ?? newBall()), ...at }, ...balls.slice(1)]),
-            arrows: piece.delivery
-              ? [
-                  ...a.arrows.filter((ar) => ar.id !== DELIVERY_ID),
-                  {
-                    id: DELIVERY_ID,
-                    kind: piece.delivery.kind,
-                    from: at,
-                    to: spotToPercent(view, piece.delivery),
-                    bend: piece.delivery.bend,
-                  },
-                ]
-              : a.arrows,
-          }
-        }),
-      }
-    })
-    setSetPieceId(id)
-    seal()
-  }
 
   /** Snap both shapes back to their formation defaults, fitted to this view. */
   const replaceShapes = () => {
@@ -4688,7 +4603,6 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
     })
   }
   const usIsBlank = Boolean(FORMATION_BY_ID.get(usFormation)?.blank)
-  const chosenPiece = SET_PIECE_BY_ID.get(setPieceId)
   // What is on THIS phase, for the drawer badges and the two "clear it" rows.
   // Counted here rather than at each use so the badge and the button can never
   // disagree about whether there is anything to clear.
@@ -8290,9 +8204,14 @@ export default function StudioEditor({ systemId, initial, locked = false }: Prop
           actIndex={actIndex}
           selectedTokenIds={multiSelect ? multiSelect.tokens : null}
           onSave={async (seq) => {
-            saveSequence(seq)
-            const p = user?.id
-            if (p) await saveCloudSequence(seq.id, seq as unknown as Record<string, unknown>, p)
+            // The dialog stays open on a failure. Closing it would tell the
+            // coach the sequence is in their library when it is not, and there
+            // is no second store for it to turn up in later.
+            const landed = await saveSequence(seq)
+            if (!landed) {
+              alert('Could not save that sequence — check your connection and try again.')
+              return
+            }
             setShowSaveSequence(false)
             setSequenceRegion(null)
           }}

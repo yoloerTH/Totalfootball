@@ -13,7 +13,7 @@
  * ./prefs.ts already solved this shape — a memoised in-flight promise, keyed by
  * user id, plus a sink — and this is the same pattern with the addition a
  * profile needs and preferences do not: SUBSCRIBERS. Preferences are pulled
- * down once and pushed into `localStorage`, so a component reads them whenever
+ * down once and held in memory, so a component reads them whenever
  * it likes. A profile is state that a form on another page can change while the
  * studio is open, so the studio has to be told.
  *
@@ -22,7 +22,7 @@
  * ../storage.ts and ./sync.ts make the browser the first writer because a
  * coach's WORK must survive a dropped connection mid-drag. A profile is not
  * work; it is one small row, edited on a page that exists to edit it, and it is
- * read to decide what to paint. Caching it in `localStorage` would buy nothing
+ * read to decide what to paint. Caching it in the browser would buy nothing
  * and cost the thing this file exists to provide — a single current answer —
  * because a stale copy is exactly what the bug in `loadProfile` produced.
  *

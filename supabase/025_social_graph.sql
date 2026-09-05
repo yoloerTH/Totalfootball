@@ -440,13 +440,27 @@ revoke all on public.studio_reports from anon;
 -- of the house. The formula is the same one that has held up on link
 -- aggregators for twenty years: what it has earned, over how long it has had.
 --
---   score = (reaction_score + 2·comments + 3·reposts + 1) / (hours + 2)^1.5
+--   score = (reaction_score + 2·comments + 3·reposts + 1) / (hours + 4)^1.2
 --
 -- The +1 is what stops a brand-new post being invisible: everything starts with
 -- a point, so the newest posts sit near the top of Featured for a few hours on
--- their own merit and then fall unless somebody reacts. The +2 hours stops a
+-- their own merit and then fall unless somebody reacts. The +4 hours stops a
 -- post that is nine minutes old dividing by nearly nothing and pinning itself
 -- there.
+--
+-- ── THE EXPONENT IS 1.2 AND NOT THE USUAL 1.5, AND THAT IS DELIBERATE ────────
+--
+-- The 1.5 that link aggregators use is tuned for scores in the hundreds
+-- arriving within an hour. This network is slower and quieter by design (§0a:
+-- fewer posts, higher craft), so scores are single digits and a 1.5 exponent
+-- buries a day-old post under anything published since breakfast. Measured on
+-- the seeded set: at 1.5, a 21-hour-old post with five reactions, three
+-- comments and four reposts ranked BELOW a seven-hour-old post with one of
+-- each. At 1.2 it ranks above it, which is the answer a coach would give.
+--
+-- These four constants are the knob. When there is real traffic, re-measure
+-- rather than re-argue: the question is only ever whether a good post from
+-- yesterday can still be seen today.
 --
 -- FEATURED IS NEVER EMPTY, and that is a requirement rather than a nicety (§7:
 -- a feed with nothing in it is dead). Every public post has a score above zero,
@@ -458,6 +472,12 @@ revoke all on public.studio_reports from anon;
 -- claim and works inside a security-definer function, so one round trip fills
 -- the whole card — the alternative is a second query per post, which is the
 -- N+1 that makes a feed feel broken on a phone.
+
+-- `drop` before each of these: Postgres will not let `create or replace` change
+-- a function's return columns, so a file that only replaced them would apply on
+-- a fresh database and fail on one that has run an earlier version of this file.
+drop function if exists public.studio_feed(text, integer, integer);
+drop function if exists public.studio_posts_by_handle(text, integer);
 
 create or replace function public.studio_feed(
   want_mode   text default 'recent',
@@ -476,6 +496,13 @@ returns table (
   comment_count  integer,
   repost_count   integer,
   fork_count     integer,
+  -- `{"golazo": 12, "training_ground": 3}`, so the bar can show which of the
+  -- five a post actually earned rather than one undifferentiated total. A
+  -- correlated aggregate per row, which is the right trade at feed size: the
+  -- index on `studio_reactions (post)` makes each one a handful of rows, and
+  -- the alternative is five more counter columns and five more ways for a
+  -- trigger to drift from the truth.
+  kinds          jsonb,
   owner          uuid,
   handle         text,
   presenter      text,
@@ -493,6 +520,13 @@ stable
 as $$
   select p.id, p.title, p.summary, p.media, p.cover_act, p.doc, p.published_at,
          p.reaction_count, p.comment_count, p.repost_count, p.fork_count,
+         (select coalesce(jsonb_object_agg(k.kind, k.n), '{}'::jsonb)
+            from (
+              select x.kind, count(*) as n
+                from public.studio_reactions x
+               where x.post = p.id
+               group by x.kind
+            ) k),
          p.owner,
          -- The author's identity comes from the PROFILE and only when that
          -- profile is public. A coach who publishes a system while keeping
@@ -513,7 +547,7 @@ as $$
    order by
      case when want_mode = 'featured'
        then (p.reaction_score + 2 * p.comment_count + 3 * p.repost_count + 1)
-            / power(extract(epoch from (now() - p.published_at)) / 3600.0 + 2, 1.5)
+            / power(extract(epoch from (now() - p.published_at)) / 3600.0 + 4, 1.2)
      end desc nulls last,
      p.published_at desc
    limit least(greatest(want_limit, 1), 60)
@@ -540,6 +574,13 @@ returns table (
   comment_count  integer,
   repost_count   integer,
   fork_count     integer,
+  -- `{"golazo": 12, "training_ground": 3}`, so the bar can show which of the
+  -- five a post actually earned rather than one undifferentiated total. A
+  -- correlated aggregate per row, which is the right trade at feed size: the
+  -- index on `studio_reactions (post)` makes each one a handful of rows, and
+  -- the alternative is five more counter columns and five more ways for a
+  -- trigger to drift from the truth.
+  kinds          jsonb,
   owner          uuid,
   mine           text
 )
@@ -550,6 +591,13 @@ stable
 as $$
   select p.id, p.title, p.summary, p.media, p.cover_act, p.doc, p.published_at,
          p.reaction_count, p.comment_count, p.repost_count, p.fork_count,
+         (select coalesce(jsonb_object_agg(k.kind, k.n), '{}'::jsonb)
+            from (
+              select x.kind, count(*) as n
+                from public.studio_reactions x
+               where x.post = p.id
+               group by x.kind
+            ) k),
          p.owner, r.kind
     from public.studio_posts p
     join public.studio_profiles pr on pr.id = p.owner

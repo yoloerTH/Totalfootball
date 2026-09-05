@@ -153,7 +153,7 @@ export const MOVE_STEP_MS = 100
  * The hold this system plays at, in milliseconds.
  *
  * Clamped here rather than only in the control, because a document does not
- * only come from the slider: it comes out of localStorage, off an account, and
+ * only come from the slider: it comes out of a saved document, off an account, and
  * out of a share link, any of which can carry a number this build would not
  * have produced. Every clock in the studio goes through this function, so a
  * bad value cannot reach a renderer.

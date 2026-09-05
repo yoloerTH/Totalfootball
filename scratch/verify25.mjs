@@ -1,0 +1,7 @@
+import fs from 'node:fs'
+const env = Object.fromEntries(fs.readFileSync('.env','utf8').split('\n').filter(l=>l.includes('=')&&!l.trim().startsWith('#')).map(l=>{const i=l.indexOf('=');return [l.slice(0,i).trim(), l.slice(i+1).trim().replace(/^["']|["']$/g,'')]}))
+const q = async query => (await (await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/execute_sql`, {method:'POST',headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,Authorization:`Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({query})})).text())
+console.log('tables   :', await q("select table_name from information_schema.tables where table_schema='public' and table_name like 'studio_re%' or table_name='studio_comments' order by 1"))
+console.log('funcs    :', await q("select proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and proname in ('studio_feed','studio_posts_by_handle','studio_post_comments','studio_reactions_count','studio_reposts_not_own') order by 1"))
+console.log('post cols:', await q("select column_name from information_schema.columns where table_name='studio_posts' and column_name in ('media','cover_act','reaction_count','reaction_score','comment_count','repost_count') order by 1"))
+console.log('policies :', await q("select tablename, policyname, cmd from pg_policies where tablename in ('studio_reactions','studio_comments','studio_reposts','studio_reports') order by 1,2"))

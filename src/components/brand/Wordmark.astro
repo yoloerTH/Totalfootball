@@ -7,14 +7,6 @@
  * TOTAL adds a trailing gap after the final letter, so the word reads left of
  * true centre. `text-indent` of one tracking unit cancels it.
  */
-interface Props {
-  /** Height of the FOOTBALL line in px; everything scales from it. */
-  size?: number
-  align?: 'center' | 'left'
-  class?: string
-  /** Render as an h1's inner lockup rather than its own element. */
-  as?: 'div' | 'span'
-}
 
 const { size = 56, align = 'center', class: klass = '', as: Tag = 'div' } = Astro.props
 

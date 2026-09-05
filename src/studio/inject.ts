@@ -1,5 +1,5 @@
-import type { Act, Token, Arrow, Band, System, BallMark } from './schema'
-import { PHASE_FIELDS, uid, CENTRE_SPOT, ballFields, ballsOf } from './schema'
+import type { Act,} from './schema'
+import {uid,ballFields, ballsOf } from './schema'
 
 /**
  * A greedy matching algorithm to find the closest pairs between sources and targets.

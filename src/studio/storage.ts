@@ -1,57 +1,64 @@
 /**
- * Local persistence.
+ * The studio's in-memory session state.
  *
- * The studio saves to localStorage first and treats the server as a sync
- * target, not as the place work lives. The reason is about coaches rather than
- * about architecture: someone building a presentation the night before a
- * session cannot lose it to a dropped connection, an expired token or a 500.
- * Everything they type is on their own machine within a keystroke.
+ * ── THIS FILE USED TO BE A localStorage LAYER. IT IS NOT ONE ANY MORE ────────
  *
- * This is now the write-through cache it always said it would become: the local
- * write is immediate and synchronous, the Supabase upsert is debounced behind
- * it (./account/sync.ts), and a failed upsert leaves the local copy
- * authoritative and retries on the next edit.
+ * Everything the studio keeps now lives in Supabase and nowhere else (user,
+ * 2026-09-06). Systems are rows in `studio_systems`, sequences are rows in
+ * `studio_sequences`, and every preference below is one row in `studio_prefs`.
+ * Nothing here touches `localStorage`, `sessionStorage` or IndexedDB, and
+ * nothing may be added that does.
  *
- * NOTE: the studio itself now requires an account. That does not make any of
- * the above vestigial — it is what keeps the editor working through a dropped
- * connection mid-session, and it is still the only copy that exists in the two
- * seconds between a change and the upload.
+ * The old design wrote to the browser first and treated the server as a sync
+ * target. It bought offline editing and it cost the two things that actually
+ * hurt: the same document existed in two places with no way to say which was
+ * right, and a shared laptop kept a copy of a coach's work that outlived their
+ * session. Both were real bugs (see ./scope.ts) and both were bugs of this
+ * shape rather than bugs in the implementation.
+ *
+ * ── WHAT THIS FILE IS NOW, AND WHY IT STILL EXISTS ───────────────────────────
+ *
+ * A synchronous READ CACHE over one Supabase row, for the whole life of a tab.
+ *
+ * It has to be synchronous. `readGuide()` is called inside a `useState`
+ * initialiser and `readStripSize()` inside another; a promise cannot be
+ * returned to either. So the shape is: ./account/prefs.ts fetches the row ONCE,
+ * before anything renders, calls `applyPrefs` to fill the object below, and
+ * from then on every read is a property access and every write updates the
+ * object and hands a patch to the sink, which debounces it up to the row.
+ *
+ * The consequence, said plainly: this cache is not a copy of the truth that can
+ * be opened tomorrow. It dies with the tab. If the upload fails the change is
+ * lost when the tab closes, and that is the trade the account-only rule makes —
+ * a preference nobody can be sure of is worth less than a document that only
+ * exists in one place.
+ *
+ * ── WHAT IS NOT HERE ANY MORE ────────────────────────────────────────────────
+ *
+ * `listSystems`, `loadSystem`, `saveSystem`, `deleteSystem`, `clearSystems` and
+ * `hasStored` are gone. Systems are read and written through ./account/cloud.ts
+ * and only through it — a second store for the same document is the thing that
+ * was wrong. `hasStored` answered "has this browser ever expressed a preference
+ * for this account", which was only a question worth asking while a browser
+ * held state of its own; the row is now simply the answer.
  */
 
 import { RETIRED_AREAS, resolveViewId } from './board/pitch'
-import { clearScoped, scopedKey } from './scope'
 import type { System } from './schema'
 
 /**
- * ── EVERY KEY BELOW IS A BASE, NOT A KEY ─────────────────────────────────────
+ * Bring a stored document up to date on the way out of the database.
  *
- * They are namespaced per signed-in account on the way to `localStorage` — see
- * ./scope.ts for what went wrong when they were not. Nothing in this file may
- * call `localStorage` with a bare base name again; that is the whole bug.
- *
- * The optional `who` on the read paths is not a convenience. `claimLocalSystems`
- * has to reach the GUEST scope specifically, from inside an account, and that
- * is the only legitimate reason to read a scope that is not the current one.
- */
-const KEY = 'tf-studio:v1'
-
-/**
- * Bring a stored document up to date on the way out of storage.
- *
- * Read-time migration rather than a one-off sweep, because there is no server
- * to run a sweep on: a coach's only copy is in their own browser, and it may
- * have been written by a build from before whatever we changed. Keeping this on
- * the read path means a document is repaired the moment it is opened, and a
- * document nobody opens costs nothing.
+ * Read-time migration rather than a one-off sweep. A sweep would be possible
+ * now that every document is a row we can reach — and it would still be wrong
+ * to rely on: `doc` is written by the web studio, by the iOS app and by
+ * scripts/push-system.mjs, so a document repaired on the server can be
+ * overwritten by an older client an hour later. Repairing on the read path is
+ * the only place that holds for every writer.
  *
  * Everything here must be idempotent and must never throw on a shape it does
- * not recognise — the alternative is a coach losing a presentation to a schema
- * tweak, which is exactly what localStorage-first was meant to prevent.
- *
- * Exported because the cloud read path needs it too (./account/cloud.ts). A
- * document that came back from Supabase is exactly as likely to have been
- * written by an older build as one that came out of localStorage, and there is
- * only one right answer to what to do about that.
+ * not recognise. A coach losing a presentation to a schema tweak is the failure
+ * this exists to prevent, and that has not changed with where the bytes live.
  */
 export function migrate(system: System): System {
   // Pitch views that were retired (`middle-third`, `final-third`) map to their
@@ -68,84 +75,6 @@ export function migrate(system: System): System {
   return { ...system, pitch, ...(area && !system.area ? { area } : {}) }
 }
 
-interface Store {
-  systems: Record<string, { system: System; updated: string }>
-  /** Last system opened, so the studio reopens where the coach left off. */
-  last?: string
-}
-
-function read(who?: string | null): Store {
-  if (typeof localStorage === 'undefined') return { systems: {} }
-  try {
-    const raw = localStorage.getItem(scopedKey(KEY, who))
-    if (!raw) return { systems: {} }
-    const parsed = JSON.parse(raw) as Store
-    // A hand-edited or half-written entry should cost one system, not the studio.
-    if (!parsed || typeof parsed !== 'object' || typeof parsed.systems !== 'object') {
-      return { systems: {} }
-    }
-    return parsed
-  } catch {
-    return { systems: {} }
-  }
-}
-
-function write(store: Store): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(scopedKey(KEY), JSON.stringify(store))
-  } catch {
-    // Quota exceeded, or Safari private mode. Losing the autosave is survivable;
-    // taking the editor down with an uncaught throw mid-drag is not.
-  }
-}
-
-export function listSystems(who?: string | null): { id: string; system: System; updated: string }[] {
-  const store = read(who)
-  return Object.entries(store.systems)
-    .map(([id, v]) => ({ id, ...v, system: migrate(v.system) }))
-    .sort((a, b) => b.updated.localeCompare(a.updated))
-}
-
-export function loadSystem(id: string): System | null {
-  const system = read().systems[id]?.system
-  return system ? migrate(system) : null
-}
-
-export function saveSystem(id: string, system: System): void {
-  const store = read()
-  store.systems[id] = { system, updated: new Date().toISOString() }
-  const moved = store.last !== id
-  store.last = id
-  write(store)
-  // Only when it CHANGES. This runs on every autosave — 400ms during a drag —
-  // and the board a coach is on is the same one it was 400ms ago.
-  if (moved) sink?.({ last: id })
-}
-
-export function deleteSystem(id: string): void {
-  const store = read()
-  delete store.systems[id]
-  if (store.last === id) delete store.last
-  write(store)
-}
-
-/**
- * Throw away one scope's systems wholesale.
- *
- * Exists for one caller: `claimLocalSystems` retiring the GUEST scope once its
- * contents are safely in an account. Guest work that is left behind is work the
- * NEXT account to sign in on this browser will claim, which is the leak this
- * whole change is about.
- */
-export function clearSystems(who?: string | null): void {
-  clearScoped(KEY, who)
-}
-
-export function lastOpened(): string | null {
-  return read().last ?? null
-}
-
 /** A short, URL-safe id. Collision risk is irrelevant at one-coach scale. */
 export function newSystemId(): string {
   return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -153,22 +82,21 @@ export function newSystemId(): string {
 
 // ── what the coach has already been shown ────────────────────────────────────
 
-const GUIDE_KEY = 'tf-studio:guide:v1'
-
 /**
  * Which parts of the studio a coach has actually done.
  *
- * Kept apart from the systems store on purpose. This is about the PERSON, not
- * about a document: someone who learned to draw a pass on their first system
- * should not be told how to draw a pass again on their fourth. It also means
- * clearing a system never resets the teaching, and the teaching never bloats a
- * document that will one day be synced.
+ * Kept apart from the documents on purpose. This is about the PERSON, not about
+ * a board: someone who learned to draw a pass on their first system should not
+ * be told how to draw a pass again on their fourth. It is one jsonb column on
+ * the coach's own `studio_prefs` row (supabase/014), so it follows them to the
+ * next machine, which is the whole reason it stopped being a browser key.
  *
  * Every flag latches. They are "has this ever happened", not "is this true
  * now" — deleting the only arrow on the board should not un-teach the coach
  * what arrows are, and watching a finished checklist item flick back to
  * undone is the kind of thing that makes a tool feel like it is marking your
- * homework.
+ * homework. That property is also what makes merging two devices' copies
+ * trivial and lossless; see `latchGuide` in ./account/prefs.ts.
  */
 export interface GuideState {
   /** The welcome walkthrough has been read or skipped. */
@@ -234,10 +162,7 @@ export interface GuideState {
    * they were least likely to care, and never again. A boolean per visit would
    * mean asking every time, which is how a good prompt becomes an advert.
    *
-   * So: an escalating cadence, in `shouldNudge` (../account/completion.ts).
-   * Kept HERE with the rest of the teaching state rather than on the profile
-   * row, because it is a fact about this browser's relationship with the tool
-   * and not about the coach — the same reason `seen` and `newsSeen` are local.
+   * So: an escalating cadence, in `shouldNudge` (./account/completion.ts).
    */
   profileNudgedAt: number
   profileNudges: number
@@ -246,7 +171,14 @@ export interface GuideState {
   upgradesSeen: boolean
 }
 
-const GUIDE_DEFAULTS: GuideState = {
+/**
+ * Exported so ./account/prefs.ts can spread a partial row over them.
+ *
+ * A field added in a later build must read as "not done yet" for every account
+ * that has a row written before it existed, and the only way to guarantee that
+ * is for one object to be the base of every read.
+ */
+export const GUIDE_DEFAULTS: GuideState = {
   seen: false,
   moved: false,
   named: false,
@@ -265,31 +197,7 @@ const GUIDE_DEFAULTS: GuideState = {
   upgradesSeen: false,
 }
 
-export function readGuide(): GuideState {
-  if (typeof localStorage === 'undefined') return { ...GUIDE_DEFAULTS }
-  try {
-    const raw = localStorage.getItem(scopedKey(GUIDE_KEY))
-    if (!raw) return { ...GUIDE_DEFAULTS }
-    // Spread over the defaults so a flag added in a later build reads as
-    // "not done yet" rather than as undefined.
-    return { ...GUIDE_DEFAULTS, ...(JSON.parse(raw) as Partial<GuideState>) }
-  } catch {
-    return { ...GUIDE_DEFAULTS }
-  }
-}
-
-export function writeGuide(patch: Partial<GuideState>): GuideState {
-  const next = { ...readGuide(), ...patch }
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(scopedKey(GUIDE_KEY), JSON.stringify(next))
-    } catch {
-      // Same reasoning as the autosave: losing the teaching state is survivable.
-    }
-  }
-  sink?.({ guide: next })
-  return next
-}
+// ── the furniture ────────────────────────────────────────────────────────────
 
 /**
  * ── HOW BIG THE PHASE STRIP IS ───────────────────────────────────────────────
@@ -301,7 +209,7 @@ export function writeGuide(patch: Partial<GuideState>): GuideState {
  * must not be marked as having been taught anything. That rule is right for
  * teaching and wrong for furniture — a stranger on a phone looking at an
  * upright board has exactly the same reason to want the strip smaller as its
- * author does, and their choice should stick for the next link they open.
+ * author does.
  *
  * WHY IT EXISTS AT ALL. The strip used to size its thumbnails by WIDTH, which
  * meant its height was whatever the pitch's aspect made it: about 62px on a
@@ -331,57 +239,20 @@ export const STRIP_SIZES: StripSize[] = ['small', 'medium', 'large']
 
 export const DEFAULT_STRIP_SIZE: StripSize = 'medium'
 
-const STRIP_KEY = 'tf.studio.strip'
-
-export function readStripSize(): StripSize {
-  if (typeof localStorage === 'undefined') return DEFAULT_STRIP_SIZE
-  try {
-    const raw = localStorage.getItem(scopedKey(STRIP_KEY))
-    return STRIP_SIZES.includes(raw as StripSize) ? (raw as StripSize) : DEFAULT_STRIP_SIZE
-  } catch {
-    return DEFAULT_STRIP_SIZE
-  }
-}
-
-export function writeStripSize(size: StripSize): void {
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(scopedKey(STRIP_KEY), size)
-    } catch {
-      // Same bargain as the autosave: losing a view preference is survivable.
-    }
-  }
-  sink?.({ view: readView() })
-}
-
-// ── snapping ────────────────────────────────────────────────────────
-
 /**
  * Whether a dragged mark lines itself up with the ones around it.
  *
  * A PREFERENCE ABOUT THE TOOL, NOT A PROPERTY OF THE DOCUMENT, which is why it
- * is here and not in ../schema.ts. A shared board carries how the pitch is
- * drawn and where everybody stands; it must not carry the fact that the coach
- * who drew it prefers to work with the snap off, because it would then be
- * imposed on whoever opens it. See ./board/align.ts.
+ * is here and not in ./schema.ts. A shared board carries how the pitch is drawn
+ * and where everybody stands; it must not carry the fact that the coach who
+ * drew it prefers to work with the snap off, because it would then be imposed
+ * on whoever opens it. See ./board/align.ts.
  *
  * On by default. It is the behaviour that was asked for, and it is suspendable
  * mid-drag by holding the ⌥ key — this switch exists for the iPad, which has no
  * modifier to hold.
  */
-const SNAP_KEY = 'tf.studio.snap'
-
 export const DEFAULT_SNAP = true
-
-export function readSnap(): boolean {
-  if (typeof localStorage === 'undefined') return DEFAULT_SNAP
-  try {
-    const raw = localStorage.getItem(scopedKey(SNAP_KEY))
-    return raw === null ? DEFAULT_SNAP : raw === 'on'
-  } catch {
-    return DEFAULT_SNAP
-  }
-}
 
 /**
  * Whether fixing somebody on one phase also fixes the phases still holding him.
@@ -391,79 +262,7 @@ export function readSnap(): boolean {
  * On by default, because the alternative — silently leaving three copies of a
  * mistake behind the one you corrected — is the behaviour that got reported.
  */
-const CARRY_KEY = 'tf.studio.carry'
-
 export const DEFAULT_CARRY = true
-
-export function readCarry(): boolean {
-  if (typeof localStorage === 'undefined') return DEFAULT_CARRY
-  try {
-    const raw = localStorage.getItem(scopedKey(CARRY_KEY))
-    return raw === null ? DEFAULT_CARRY : raw === 'on'
-  } catch {
-    return DEFAULT_CARRY
-  }
-}
-
-export function writeCarry(on: boolean): void {
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(scopedKey(CARRY_KEY), on ? 'on' : 'off')
-    } catch {
-      // Same bargain as the snap: losing a view preference is survivable.
-    }
-  }
-  sink?.({ view: readView() })
-}
-
-export function writeSnap(on: boolean): void {
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(scopedKey(SNAP_KEY), on ? 'on' : 'off')
-    } catch {
-      // Same bargain as the strip size: losing a view preference is survivable.
-    }
-  }
-  sink?.({ view: readView() })
-}
-
-// ── which drawers are open ──────────────────────────────────────────
-
-/**
- * The rail's open/shut state, per section name.
- *
- * It lived in ./editor/ui.tsx, reading and writing a bare `tf.studio.sections`
- * of its own. It is here now for one reason: this file is where key namespacing
- * happens, and a second module touching `localStorage` directly is a second
- * module that can forget to. See ./scope.ts.
- */
-const SECTIONS_KEY = 'tf.studio.sections'
-
-export function readSections(): Record<string, boolean> {
-  if (typeof localStorage === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(scopedKey(SECTIONS_KEY))
-    const parsed = raw ? (JSON.parse(raw) as unknown) : null
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, boolean>) : {}
-  } catch {
-    // A private window. The drawer still opens; it just will not be remembered.
-    return {}
-  }
-}
-
-export function writeSection(title: string, open: boolean): void {
-  const next = { ...readSections(), [title]: open }
-  if (typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(next))
-    } catch {
-      // As above.
-    }
-  }
-  sink?.({ view: { strip: readStripSize(), sections: next, snap: readSnap() } })
-}
-
-// ── the way up to the account ──────────────────────────────────────
 
 /**
  * What a coach's preferences look like on the wire. See ./account/prefs.ts.
@@ -474,72 +273,187 @@ export interface Prefs {
   /**
    * The system to reopen. Empty for a coach who has not opened one yet.
    *
-   * It lived in the local systems store, which made "reopen where you left off"
-   * a fact about a MACHINE. It is a fact about a coach: someone who stops on the
-   * desktop and picks up the laptop should land on the same board. The local
-   * copy is still written and is still the fallback when the account cannot be
-   * reached; it is no longer the answer. See supabase/016.
+   * It used to live in the local systems store, which made "reopen where you
+   * left off" a fact about a MACHINE. It is a fact about a coach: someone who
+   * stops on the desktop and picks up the laptop should land on the same board.
+   * See supabase/016.
    */
   last: string
 }
 
 export interface ViewPrefs {
   strip: StripSize
+  /** The rail's open/shut state, per section name. See ./editor/ui.tsx. */
   sections: Record<string, boolean>
   snap: boolean
   /** Optional: an account synced before this preference existed has none. */
   carry?: boolean
 }
 
-export function readView(): ViewPrefs {
-  return { strip: readStripSize(), sections: readSections(), snap: readSnap(), carry: readCarry() }
+// ── the cache itself ─────────────────────────────────────────────────────────
+
+/**
+ * One object, for the life of the tab.
+ *
+ * It starts at the defaults so a read before hydration is answered with
+ * something sane rather than with a crash — but no component should ever get
+ * that far. ../editor/StudioMount.tsx and ./account/Portal.tsx both await
+ * `hydratePrefs` before they render anything that reads it, because a guide
+ * that arrives after mount arrives as a walkthrough opening over a board the
+ * coach was already working on.
+ */
+let cache: Prefs = {
+  guide: { ...GUIDE_DEFAULTS },
+  view: {
+    strip: DEFAULT_STRIP_SIZE,
+    sections: {},
+    snap: DEFAULT_SNAP,
+    carry: DEFAULT_CARRY,
+  },
+  last: '',
 }
 
 /**
- * Which preferences this browser has actually written for the current account.
+ * Has the row landed?
  *
- * Hydration needs it to answer one question honestly: on a device a coach has
- * used before, THEIR last choice here wins; on a device they have never opened,
- * there is no choice to defend and the account's copy should simply arrive. A
- * default is indistinguishable from a decision without this — read the strip
- * size on a fresh machine and it says 'medium' either way. See ./account/prefs.ts.
+ * Read by ./account/prefs.ts to tell "the coach has never chosen a strip size"
+ * from "we have not asked yet", which is the one distinction a defaults-filled
+ * cache cannot express on its own.
  */
-export function hasStored(): {
-  guide: boolean
-  strip: boolean
-  sections: boolean
-  snap: boolean
-  carry: boolean
-} {
-  const has = (base: string) => {
-    try {
-      return typeof localStorage !== 'undefined' && localStorage.getItem(scopedKey(base)) !== null
-    } catch {
-      return false
+let hydrated = false
+
+export function isHydrated(): boolean {
+  return hydrated
+}
+
+export function readGuide(): GuideState {
+  return { ...cache.guide }
+}
+
+export function writeGuide(patch: Partial<GuideState>): GuideState {
+  cache.guide = { ...cache.guide, ...patch }
+  const next = { ...cache.guide }
+  sink?.({ guide: next })
+  return next
+}
+
+export function readStripSize(): StripSize {
+  return cache.view.strip
+}
+
+export function writeStripSize(size: StripSize): void {
+  cache.view = { ...cache.view, strip: size }
+  sink?.({ view: readView() })
+}
+
+export function readSnap(): boolean {
+  return cache.view.snap
+}
+
+export function writeSnap(on: boolean): void {
+  cache.view = { ...cache.view, snap: on }
+  sink?.({ view: readView() })
+}
+
+export function readCarry(): boolean {
+  return cache.view.carry ?? DEFAULT_CARRY
+}
+
+export function writeCarry(on: boolean): void {
+  cache.view = { ...cache.view, carry: on }
+  sink?.({ view: readView() })
+}
+
+export function readSections(): Record<string, boolean> {
+  return { ...cache.view.sections }
+}
+
+export function writeSection(title: string, open: boolean): void {
+  cache.view = { ...cache.view, sections: { ...cache.view.sections, [title]: open } }
+  sink?.({ view: readView() })
+}
+
+export function readView(): ViewPrefs {
+  return { ...cache.view, sections: { ...cache.view.sections } }
+}
+
+/** The board to reopen, straight off the coach's account. See `Prefs.last`. */
+export function lastOpened(): string | null {
+  return cache.last || null
+}
+
+/**
+ * Remember which board is open, for the next device this coach picks up.
+ *
+ * Called by ../editor/StudioMount.tsx once, when a board is opened, and NOT by
+ * the autosave. The autosave runs every 400ms during a drag and the board a
+ * coach is on is the same one it was 400ms ago; sending that up on every edit
+ * was a write per keystroke for a fact that changes once a session.
+ */
+export function noteOpened(id: string): void {
+  if (!id || cache.last === id) return
+  cache.last = id
+  sink?.({ last: id })
+}
+
+/**
+ * Overwrite the cache wholesale, WITHOUT sending it back up.
+ *
+ * For hydration only: the merged answer has just come down from the server, and
+ * echoing it straight back would be a write loop between two tabs.
+ */
+export function applyPrefs(prefs: Partial<Prefs>): void {
+  if (prefs.guide) cache.guide = { ...GUIDE_DEFAULTS, ...prefs.guide }
+  if (prefs.view) {
+    cache.view = {
+      strip: prefs.view.strip ?? DEFAULT_STRIP_SIZE,
+      sections: { ...(prefs.view.sections ?? {}) },
+      snap: typeof prefs.view.snap === 'boolean' ? prefs.view.snap : DEFAULT_SNAP,
+      carry: typeof prefs.view.carry === 'boolean' ? prefs.view.carry : DEFAULT_CARRY,
     }
   }
-  return {
-    guide: has(GUIDE_KEY),
-    strip: has(STRIP_KEY),
-    sections: has(SECTIONS_KEY),
-    snap: has(SNAP_KEY),
-    carry: has(CARRY_KEY),
+  if (typeof prefs.last === 'string') cache.last = prefs.last
+  hydrated = true
+}
+
+/**
+ * Back to defaults. Called on sign-out, beside `forgetVersions` and
+ * `forgetProfile`.
+ *
+ * The account is the only store, so there is nothing here to preserve and one
+ * concrete reason to drop it: on a shared laptop the next coach to sign in must
+ * not spend a single render inside the previous one's guide state. That used to
+ * need a whole namespacing scheme (./scope.ts) because the state outlived the
+ * session in the browser. It does not outlive it any more, and this is the
+ * entire replacement for that scheme.
+ */
+export function resetSession(): void {
+  cache = {
+    guide: { ...GUIDE_DEFAULTS },
+    view: {
+      strip: DEFAULT_STRIP_SIZE,
+      sections: {},
+      snap: DEFAULT_SNAP,
+      carry: DEFAULT_CARRY,
+    },
+    last: '',
   }
+  hydrated = false
 }
 
 /**
  * ── WHY A SINK AND NOT AN IMPORT ─────────────────────────────────────────────
  *
- * The preferences above now mirror to Supabase so they follow a coach to their
- * next machine, and the module that does that (./account/prefs.ts) already
- * imports this one — ./account/cloud.ts does too. Importing it back from here
- * is a cycle, and a cycle in a module that runs inside a `useState` initialiser
- * is a half-initialised export at exactly the wrong moment.
+ * The preferences above are mirrored to Supabase by ./account/prefs.ts, which
+ * already imports this file — ./account/cloud.ts does too. Importing it back
+ * from here is a cycle, and a cycle in a module that runs inside a `useState`
+ * initialiser is a half-initialised export at exactly the wrong moment.
  *
  * So the account layer registers itself, and this file stays the bottom of the
- * stack: it knows how to persist locally and knows nothing about who is signed
- * in. With nothing registered — the shoot page, a signed-out render — the local
- * write is the whole story, which is what it was before any of this.
+ * stack: it holds the session's state and knows nothing about who is signed in.
+ * With nothing registered — the shoot page, a signed-out render — writes land in
+ * the cache and go no further, which is right: there is no account to put them
+ * on.
  */
 type PrefsSink = (patch: { guide?: GuideState; view?: ViewPrefs; last?: string }) => void
 
@@ -547,39 +461,4 @@ let sink: PrefsSink | null = null
 
 export function setPrefsSink(fn: PrefsSink | null): void {
   sink = fn
-}
-
-/**
- * Overwrite local preferences wholesale, WITHOUT sending them back up.
- *
- * For hydration only: the merged answer has just come down from the server, and
- * echoing it straight back would be a write loop between two tabs.
- */
-export function applyPrefs(prefs: Partial<Prefs>): void {
-  if (typeof localStorage === 'undefined') return
-  try {
-    if (prefs.guide) {
-      localStorage.setItem(scopedKey(GUIDE_KEY), JSON.stringify(prefs.guide))
-    }
-    if (prefs.view) {
-      localStorage.setItem(scopedKey(STRIP_KEY), prefs.view.strip)
-      localStorage.setItem(scopedKey(SECTIONS_KEY), JSON.stringify(prefs.view.sections))
-      localStorage.setItem(scopedKey(SNAP_KEY), prefs.view.snap ? 'on' : 'off')
-      // Guarded: an account that synced before this existed says nothing about
-      // it, and nothing is not the same as off.
-      if (typeof prefs.view.carry === 'boolean') {
-        localStorage.setItem(scopedKey(CARRY_KEY), prefs.view.carry ? 'on' : 'off')
-      }
-    }
-    if (prefs.last) {
-      // Through the store rather than beside it: `lastOpened()` reads this
-      // field, and a second place to keep the same fact is a second place for
-      // it to be wrong.
-      const store = read()
-      store.last = prefs.last
-      write(store)
-    }
-  } catch {
-    // Same bargain as everywhere else in this file.
-  }
 }
