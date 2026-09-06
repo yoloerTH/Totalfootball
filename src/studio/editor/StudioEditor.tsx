@@ -1524,13 +1524,24 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
     if (!profile || locked) return
     const presenter = profile.presenter.trim()
     const team = profile.team.trim()
-    if (!presenter && !team) return
+    const myCrest = profile.crestPath ? imageUrl(profile.crestPath) : undefined
+    
     replace((sys) => {
       const c = sys.credit ?? {}
       const wants: Partial<Credit> = {}
-      if (!c.presenter?.trim() && presenter) wants.presenter = presenter
-      if (!c.team?.trim() && team) wants.team = team
-      return Object.keys(wants).length ? { ...sys, credit: { ...c, ...wants } } : sys
+      if (c.presenter !== presenter) wants.presenter = presenter
+      if (c.team !== team) wants.team = team
+      
+      const nextCrestUrl = sys.showCrest ? myCrest : sys.crestUrl
+      
+      if (Object.keys(wants).length || sys.crestUrl !== nextCrestUrl) {
+        return {
+          ...sys,
+          credit: Object.keys(wants).length ? { ...c, ...wants } : c,
+          crestUrl: nextCrestUrl
+        }
+      }
+      return sys
     })
   }, [profile, locked, replace])
 
