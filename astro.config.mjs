@@ -1,6 +1,8 @@
 import { defineConfig } from 'astro/config'
 import react from '@astrojs/react'
 
+import sitemap from '@astrojs/sitemap';
+
 /**
  * The canonical origin. Deliberately env-driven, never hardcoded: the site
  * launches on a subdomain of naurra.ai but is expected to move to its own
@@ -10,7 +12,7 @@ import react from '@astrojs/react'
 const SITE = process.env.PUBLIC_SITE_URL || 'https://totalfootball.naurra.ai'
 
 export default defineConfig({
-  integrations: [react()],
+  integrations: [react(), sitemap()],
   output: 'static',
   site: SITE,
   trailingSlash: 'always',

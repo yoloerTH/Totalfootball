@@ -22,10 +22,10 @@ export const ENTITY = {
 
 export const SITE = {
   name: 'Total Football',
-  tagline: 'The beautiful game, in full',
+  tagline: 'The Ultimate Football Tactics Board Tool',
   /** Used as the default meta description and the Organization description. */
   description:
-    'Football tactics explained through hand-drawn motion graphics. Every system on the board, phase by phase. No broadcast clips, no noise, just the game as a diagram.',
+    'The #1 interactive football tactics board tool for coaches and analysts. Build animated tactical presentations, design sessions, and explain football tactics with the Total Football Studio, featuring best-in-the-industry animation mechanisms and premium features.',
   locale: 'en',
   ogLocale: 'en_US',
 } as const

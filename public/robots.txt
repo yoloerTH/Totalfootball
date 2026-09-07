@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /studio/portal/
+Disallow: /studio/login/
+Disallow: /studio/new/
+Sitemap: https://totalfootball.naurra.ai/sitemap-index.xml

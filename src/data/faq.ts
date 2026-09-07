@@ -138,8 +138,8 @@ export const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         id: 'studio-what',
-        q: 'What is the Studio?',
-        a: 'The same board the videos are drawn on, handed over. Pick a pitch, pick one of twenty-four formations and eleven counters stand in it. Move them to where the ball takes them, and the movement between the two positions comes back as film.',
+        q: 'What is Total Football Studio?',
+        a: 'Total Football Studio is a premium football tactics board tool that hands you the exact canvas our videos are drawn on. Pick a pitch, pick one of twenty-four formations and eleven counters stand in it. Move them to where the ball takes them, and our best-in-the-industry animation mechanisms turn the movement between the two positions into film.',
         more: { href: '/studio/', label: 'See the Studio' },
       },
       {
