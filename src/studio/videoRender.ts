@@ -273,48 +273,21 @@ interface Frame {
 /**
  * A SET-PIECE VIEW IS ANCHORED ON ITS GOAL, NOT CENTRED ON ITS GRASS.
  *
- * Upright, a set-piece board is 68m across and 52.5m deep — a WIDE, SHALLOW
- * rectangle, aspect 1.27, against a 9:16 frame's 0.56. They are 2.25x apart, so
- * once the full 68m of width fills the frame's width the frame's height is
- * committed to about 131m of grass whether anybody wants it or not. There is no
- * crop that keeps both touchlines AND fills a phone with only the attacking
- * half; the coach chose to keep the width, because the man taking the corner is
- * standing on the touchline and cutting him out of a corner routine is worse
- * than showing grass behind it.
+ * Upright, a set-piece board is authored at 68m × 52.5m but exported at a
+ * narrower 48m × 52.5m crop (see `frameView`), which focuses on the penalty
+ * area and its approaches. The 48m width against a 9:16 frame's 0.5625 aspect
+ * means only ~6m of extra grass is added on the length axis (versus ~73m with
+ * the full 68m width). The routine fills about 65% of the frame.
  *
- * So the spare 79m is SPENT rather than split. Centring it — which is what
- * symmetric padding does, and what this did — put the goal 2% down the frame
- * with the whole of our own half stacked underneath it, and that is the film
- * the coach rejected: vertical, but not about the attacking half.
+ * The goal line is anchored a fifth of the way down the frame rather than
+ * centred, so the chrome (title, phase, caption) sits on grass above the goal
+ * and the routine's depth runs into the middle of the picture. `focusBands`
+ * fades the grass outside the routine back into the ground.
  *
- * Anchoring the goal line a fifth of the way down instead lays the frame out
- * like this, on 1080x1920:
- *
- *     0px    the head: system name, phase title, caption
- *   384px    THE GOAL LINE the routine is aimed at
- *  1150px    the halfway line — the routine's whole 52.5m sits between these
- *  1916px    our own goal line, on the bottom edge
- *
- * The half is then the middle 40% of the picture, the words sit on grass rather
- * than on the six-yard box, and nothing is cropped. `focusBands` fades the two
- * outer bands back into the ground so the eye has nowhere else to go.
- *
- * ── WHAT IT DOES TO A CAMERA THAT IS FOLLOWING THE BALL ─────────────────────
+ * ── WHAT IT DOES TO A CAMERA THAT IS FOLLOWING THE BALL ─────────────────
  *
  * Nothing it has to be told about. `cameraRect` clamps to `cropRect`, so a
- * followed camera travels inside the anchored grass automatically — and it
- * comes out BETTER framed than it was, because the clamp it hits at the goal
- * end is no longer three metres past the goal line. Measured on both boards, at
- * a ball on the corner flag:
- *
- *              goal line, before      after
- *   Gentle          55px               480px  (25% down, routine dead centre)
- *   Standard        55px               565px
- *   Close           78px               686px
- *
- * Before, a pushed-in shot pinned the goal under the title. The cost is that
- * Close now spends a third of the frame on faded grass above the goal, which is
- * the airier of the two mistakes and the one a coach can see the reason for.
+ * followed camera travels inside the anchored grass automatically.
  */
 const SET_PIECE_GOAL_AT = 0.2
 
@@ -348,17 +321,65 @@ function frameView(view: PitchView, frame: Frame): PitchView {
   const turn = !view.area && !isSetPiece && gap(1 / theirs) + 0.15 < gap(theirs)
   const upright = turn ? !view.vertical : Boolean(view.vertical)
 
+  /*
+   * ── VERTICAL SET PIECES: NARROW THE WIDTH TO FOCUS ON THE BOX ──────────
+   *
+   * A set-piece half-pitch is 68m wide × 52.5m deep. Upright, the 68m runs
+   * across the frame and the 52.5m runs up it — aspect 1.27 against a 9:16
+   * frame's 0.5625. That 2.25x mismatch forces ~73m of extra grass on the
+   * length axis, showing 131m total — more than a full pitch — and the routine
+   * (box, runners, delivery) sits in about 30% of the picture.
+   *
+   * The fix: narrow the width to the relevant zone. The penalty area is
+   * 40.32m wide (centred on the goal at y ≈ 13.84 to 54.16). A 48m crop
+   * keeps the full box plus 4m each side for corner takers and wide runners.
+   * That brings the screen aspect from 1.27 to ~0.93, so only ~6m of extra
+   * grass is added on the length axis, and the routine fills ~65% of the
+   * frame. The narrowing only applies to the EXPORT view, not the editor
+   * board — x0..x1 is unchanged, so percent coordinates are still measured
+   * against the full half-pitch and every player stays on the grass they
+   * were placed on.
+   *
+   * The crop is centred on y = 34 (the middle of the pitch width) so it is
+   * symmetric about the goal, and the narrowing is done by widening the pad
+   * with NEGATIVE extra (which `pad` already supports as the difference
+   * between the frame's demand and the board's natural size).
+   */
+  let cropLenY = lenY
+  if (isSetPiece && upright && want < 1) {
+    // The widest set-piece player stands at s ≈ 66.5 (corner flag), which in
+    // pitch-y terms is y ≈ 66.5 (attacking) or y ≈ 1.5 (defending, flipped).
+    // A 48m window centred on y=34 spans y: 10–58, which covers:
+    //   · the penalty area (13.84–54.16) fully
+    //   · corner taker positions (~1.5m or ~66.5m) — these are just outside the
+    //     crop, but the 3m PAD on each side brings the visible range to 7–61,
+    //     keeping the corner taker visible.
+    // For a tighter feel we go to 48m; players at the very edge of the
+    // touchline will sit right at the crop boundary inside the padding, which
+    // is exactly where a corner taker should appear: at the edge.
+    const targetWidth = 48
+    cropLenY = Math.min(lenY, targetWidth)
+  }
+
   // The crop in SCREEN terms. Upright swaps which pitch axis is which: the
   // pitch's width runs across the frame and its length runs up it.
-  const wide = (upright ? lenY : lenX) + PAD * 2
-  const tall = (upright ? lenX : lenY) + PAD * 2
+  const wide = (upright ? cropLenY : lenX) + PAD * 2
+  const tall = (upright ? lenX : cropLenY) + PAD * 2
 
   const growWide = wide / tall < want
   const extra = growWide ? (want * tall - wide) / 2 : (wide / want - tall) / 2
 
   // Screen width is the pitch's y axis when upright and its x axis when flat.
   const onY = growWide === upright
-  const pad = { x: PAD + (onY ? 0 : extra), y: PAD + (onY ? extra : 0) }
+  const padX = PAD + (onY ? 0 : extra)
+  const padY = PAD + (onY ? extra : 0)
+
+  // When we narrowed the width for a vertical set piece, shift the y-padding
+  // to account for the narrower crop. The narrowing is symmetric about
+  // the centre of the original crop (y = 34), so we reduce the y-padding by
+  // half the difference to keep the view centred on the penalty area.
+  const narrowedBy = (lenY - cropLenY) / 2
+  const pad = { x: padX, y: padY - narrowedBy }
 
   /*
    * The shift that puts the goal at `SET_PIECE_GOAL_AT` instead of at the
@@ -375,7 +396,7 @@ function frameView(view: PitchView, frame: Frame): PitchView {
    * crop at the same place above the crop's centre. So one expression covers
    * the pair, and `focusBands` reads the goal back the same way.
    */
-  const screenH = (upright ? lenX + pad.x * 2 : lenY + pad.y * 2) * U
+  const screenH = (upright ? lenX + pad.x * 2 : cropLenY + pad.y * 2) * U
   const anchor =
     isSetPiece && !onY ? screenH * (0.5 - SET_PIECE_GOAL_AT) - (lenX / 2) * U : 0
 

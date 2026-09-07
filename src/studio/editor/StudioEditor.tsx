@@ -4151,6 +4151,25 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
     [replace],
   )
 
+  /**
+   * Stable callback for ShareDialog's `onPublished`.
+   *
+   * This MUST be a useCallback and not an inline arrow on the JSX prop. The
+   * share dialog's publish effect lists `onPublished` in its dependency array
+   * and debounces the publish call by 400ms. An inline arrow is a new reference
+   * on every render, so every render clears the timeout and restarts the
+   * debounce — the publish never fires and the coach sees "Publishing…" forever.
+   * Closing and reopening happens to give a stable-enough render window for the
+   * 400ms to pass, which is why the second tap works.
+   */
+  const handlePublished = useCallback(
+    (id: string) => {
+      rememberShareId(id)
+      recordWin('share')
+    },
+    [rememberShareId, recordWin],
+  )
+
   // ── act actions ────────────────────────────────────────────────────────────
   const addAct = () => {
     // A new act starts as a COPY of the current one. That is the whole authoring
@@ -8291,10 +8310,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
              See the effect that signs the board from the profile above. */
           signedFromProfile={Boolean(profile?.presenter.trim() || profile?.team.trim())}
           onCredit={patchCredit}
-          onPublished={(id) => {
-            rememberShareId(id)
-            recordWin('share')
-          }}
+          onPublished={handlePublished}
           onClose={closeExport}
         />
       )}
