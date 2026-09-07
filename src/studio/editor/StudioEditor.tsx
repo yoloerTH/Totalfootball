@@ -1078,13 +1078,28 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
   const [helpTopic, setHelpTopic] = useState<string | null>(null)
 
   useEffect(() => {
-    const handle = () => {
+    const handleSequence = () => {
       setNews(false)
       setHelpTopic('save-sequence')
       setHelp(true)
     }
-    window.addEventListener('start-guide-save-sequence', handle)
-    return () => window.removeEventListener('start-guide-save-sequence', handle)
+    const handleBibs = () => {
+      setNews(false)
+      setHelpTopic('bibs')
+      setHelp(true)
+    }
+    const handleFeedback = () => {
+      setNews(false)
+      setFeedback('open')
+    }
+    window.addEventListener('start-guide-save-sequence', handleSequence)
+    window.addEventListener('start-guide-bibs', handleBibs)
+    window.addEventListener('open-feedback', handleFeedback)
+    return () => {
+      window.removeEventListener('start-guide-save-sequence', handleSequence)
+      window.removeEventListener('start-guide-bibs', handleBibs)
+      window.removeEventListener('open-feedback', handleFeedback)
+    }
   }, [])
   const [news, setNews] = useState(false)
   /**

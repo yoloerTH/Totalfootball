@@ -115,26 +115,50 @@ function Entry({ entry, unread }: { entry: NewsEntry; unread: boolean }) {
       {isSpecial ? (
         <div className="mt-3 flex items-center justify-between">
           <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>
-          {entry.ctaAction?.startsWith('/') ? (
-            <a
-              href={entry.ctaAction}
-              className="inline-flex items-center justify-center rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] no-underline transition-colors hover:bg-gold/90"
-            >
-              {entry.ctaText}
-            </a>
-          ) : (
-            <button 
-              type="button" 
-              className="rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] transition-colors hover:bg-gold/90"
-              onClick={() => {
-                if (entry.ctaAction) {
-                  window.dispatchEvent(new CustomEvent(entry.ctaAction))
-                }
-              }}
-            >
-              {entry.ctaText}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {entry.ctaText2 && (
+              entry.ctaAction2?.startsWith('/') ? (
+                <a
+                  href={entry.ctaAction2}
+                  className="inline-flex items-center justify-center rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-ink shadow-sm border border-ink-hair no-underline transition-colors hover:bg-ink-hair"
+                >
+                  {entry.ctaText2}
+                </a>
+              ) : (
+                <button 
+                  type="button" 
+                  className="rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-ink shadow-sm border border-ink-hair transition-colors hover:bg-ink-hair"
+                  onClick={() => {
+                    if (entry.ctaAction2) {
+                      window.dispatchEvent(new CustomEvent(entry.ctaAction2))
+                    }
+                  }}
+                >
+                  {entry.ctaText2}
+                </button>
+              )
+            )}
+            {entry.ctaAction?.startsWith('/') ? (
+              <a
+                href={entry.ctaAction}
+                className="inline-flex items-center justify-center rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] no-underline transition-colors hover:bg-gold/90"
+              >
+                {entry.ctaText}
+              </a>
+            ) : (
+              <button 
+                type="button" 
+                className="rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-[#161618] transition-colors hover:bg-gold/90"
+                onClick={() => {
+                  if (entry.ctaAction) {
+                    window.dispatchEvent(new CustomEvent(entry.ctaAction))
+                  }
+                }}
+              >
+                {entry.ctaText}
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <p className="text-[11px] font-bold text-ink-faint">{entry.where}</p>

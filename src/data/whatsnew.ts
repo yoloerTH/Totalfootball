@@ -55,10 +55,26 @@ export interface NewsEntry {
   ctaText?: string
   /** Optional href (starts with /) or event name for the CTA. */
   ctaAction?: string
+  /** Optional second button text. */
+  ctaText2?: string
+  /** Optional href or event name for the second CTA. */
+  ctaAction2?: string
 }
 
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
+  {
+    id: 'independent-bibs-feedback',
+    date: '2026-09-07',
+    kind: 'better',
+    title: 'Use bibs for independent player colours',
+    body: 'We read all your feedback! Some of you asked for a way to change a specific player\'s colour without changing the rest of the team. You can use bibs for exactly this! Bibs let you easily override an individual player\'s colour independently of their team\'s kit.',
+    where: 'Bibs, under Teams and kit',
+    ctaText: 'Where are they?',
+    ctaAction: 'start-guide-bibs',
+    ctaText2: 'Give feedback',
+    ctaAction2: 'open-feedback',
+  },
   {
     id: 'push-per-phase',
     date: '2026-09-02',
