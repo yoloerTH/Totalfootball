@@ -975,7 +975,9 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
    * still — handed round on its own, out of order, printed into a pack — is
    * the one thing that genuinely cannot say which phase it is any other way.
    */
-  const parts: ChromeParts = { ...resolveParts(opts.parts), counter: false }
+  const rawParts: ChromeParts = { ...resolveParts(opts.parts), counter: false }
+  const chrome = opts.chrome !== false
+  const parts: ChromeParts = chrome ? rawParts : { ...rawParts, head: false, words: false, credit: false }
   const frame = frameSize(shape, quality)
   const view = frameView(viewFor(system), frame)
   const l = layout(frame)
@@ -998,10 +1000,8 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // The chrome is drawn on top of the board, so it takes the board's palette:
   // ink on paper, bone on a floodlit pitch.
   const p = resolveSurface(system.surface).palette
-  const chrome = opts.chrome !== false
-  // Not rasterised at all when our half is not going on, which matches
-  // `renderStills` below and saves a canvas nobody draws.
-  const mark = chrome && parts.lockup ? await rasterMark(l.markSize, p.ink) : null
+  // Always rasterised when our half is going on, even if chrome is off
+  const mark = parts.lockup ? await rasterMark(l.markSize, p.ink) : null
 
   // If the photograph could not be inlined, the document draws the vector ball
   // instead. The alternative is an <image> pointing at a path the canvas will
@@ -1121,25 +1121,23 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
       if (lastBands) drawFocus(ctx, l, p, lastBands)
       // Words follow the pose, so they hand over with the cues around the
       // midpoint rather than at the top of the beat.
-      if (chrome) {
-        drawChrome(
-          ctx,
-          l,
-          system,
-          phaseWords(tl, system, l.rise),
-          (i + 1) / frames,
-          mark,
-          Boolean(opts.date),
-          p,
-          // ALL OF IT BY DEFAULT, and `resolveParts` is what supplies that when
-          // the caller says nothing. It used to be `CHROME_PARTS_ALL` outright,
-          // on the argument that a film travels furthest from its author and so
-          // most needs to say whose it is. Right about the default; wrong as an
-          // absolute, because the one export a coach cannot sign their own way is
-          // the one they crop. See `VideoOptions.parts`.
-          parts,
-        )
-      }
+      drawChrome(
+        ctx,
+        l,
+        system,
+        phaseWords(tl, system, l.rise),
+        (i + 1) / frames,
+        mark,
+        Boolean(opts.date),
+        p,
+        // ALL OF IT BY DEFAULT, and `resolveParts` is what supplies that when
+        // the caller says nothing. It used to be `CHROME_PARTS_ALL` outright,
+        // on the argument that a film travels furthest from its author and so
+        // most needs to say whose it is. Right about the default; wrong as an
+        // absolute, because the one export a coach cannot sign their own way is
+        // the one they crop. See `VideoOptions.parts`.
+        parts,
+      )
 
       await source.add(i / fps, 1 / fps)
       opts.onProgress?.((i + 1) / frames)
@@ -1209,7 +1207,8 @@ export async function renderStills(
   const view = frameView(viewFor(system), frame)
   const l = layout(frame)
   const chrome = opts.chrome !== false
-  const parts = resolveParts(opts.parts)
+  const rawParts = resolveParts(opts.parts)
+  const parts: ChromeParts = chrome ? rawParts : { ...rawParts, head: false, words: false, credit: false }
 
   /*
    * Which phases, sanitised rather than trusted. This is reachable from a
@@ -1234,7 +1233,8 @@ export async function renderStills(
   await document.fonts.ready
 
   const p = resolveSurface(system.surface).palette
-  const mark = chrome && parts.lockup ? await rasterMark(l.markSize, p.ink) : null
+  // Always rasterised when our half is going on, even if chrome is off
+  const mark = parts.lockup ? await rasterMark(l.markSize, p.ink) : null
 
   // A ball that could not be inlined becomes the drawn vector ball, rather than
   // an <image> pointing at a path the canvas will not follow. Same call as the
@@ -1268,23 +1268,21 @@ export async function renderStills(
     const bands = focusBands(view, act.shot, act.frame, frame)
     if (bands) drawFocus(ctx, l, p, bands)
 
-    if (chrome) {
-      drawChrome(
-        ctx,
-        l,
-        system,
-        // A still is not mid-transition, so the words are this phase's own at
-        // full strength with no drift. That is what `{alpha: 1, dy: 0}` says.
-        { index: i, alpha: 1, dy: 0 },
-        // Where this phase sits in the system, NOT how far through a render we
-        // are. See the header.
-        (i + 1) / system.acts.length,
-        mark,
-        Boolean(opts.date),
-        p,
-        parts,
-      )
-    }
+    drawChrome(
+      ctx,
+      l,
+      system,
+      // A still is not mid-transition, so the words are this phase's own at
+      // full strength with no drift. That is what `{alpha: 1, dy: 0}` says.
+      { index: i, alpha: 1, dy: 0 },
+      // Where this phase sits in the system, NOT how far through a render we
+      // are. See the header.
+      (i + 1) / system.acts.length,
+      mark,
+      Boolean(opts.date),
+      p,
+      parts,
+    )
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) throw new Error('This browser would not write the picture.')
