@@ -256,6 +256,12 @@ export function VideoDialog({
                 {VIDEO_SHAPES.find((s) => s.id === shape)?.note}
               </p>
 
+              {shape === 'vertical' && (!system.camera || system.camera === 'off') && (
+                <div className="mt-2 rounded bg-gold-faint/50 p-2 text-[11px] leading-snug text-ink-soft">
+                  <span className="font-bold">Tip:</span> For the best vertical results, turn on <b>Camera tracking</b> in the editor so the action fills the frame.
+                </div>
+              )}
+
               {/*
                * Size and rate, side by side under the shape.
                *
