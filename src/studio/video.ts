@@ -188,6 +188,11 @@ export interface VideoOptions {
    * and it reads "A tactical system" beside our mark.
    */
   parts?: Partial<ChromeParts>
+  /**
+   * Draw the standing head, the credit line and the phase count over the board.
+   * ON by default. Off is a real option and not a way of removing the credit.
+   */
+  chrome?: boolean
   /** 0→1, called every frame. */
   onProgress?: (fraction: number) => void
   signal?: AbortSignal

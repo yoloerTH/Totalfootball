@@ -999,9 +999,10 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   // The chrome is drawn on top of the board, so it takes the board's palette:
   // ink on paper, bone on a floodlit pitch.
   const p = resolveSurface(system.surface).palette
+  const chrome = opts.chrome !== false
   // Not rasterised at all when our half is not going on, which matches
   // `renderStills` below and saves a canvas nobody draws.
-  const mark = parts.lockup ? await rasterMark(l.markSize, p.ink) : null
+  const mark = chrome && parts.lockup ? await rasterMark(l.markSize, p.ink) : null
 
   // If the photograph could not be inlined, the document draws the vector ball
   // instead. The alternative is an <image> pointing at a path the canvas will
@@ -1121,23 +1122,25 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
       if (lastBands) drawFocus(ctx, l, p, lastBands)
       // Words follow the pose, so they hand over with the cues around the
       // midpoint rather than at the top of the beat.
-      drawChrome(
-        ctx,
-        l,
-        system,
-        phaseWords(tl, system, l.rise),
-        (i + 1) / frames,
-        mark,
-        Boolean(opts.date),
-        p,
-        // ALL OF IT BY DEFAULT, and `resolveParts` is what supplies that when
-        // the caller says nothing. It used to be `CHROME_PARTS_ALL` outright,
-        // on the argument that a film travels furthest from its author and so
-        // most needs to say whose it is. Right about the default; wrong as an
-        // absolute, because the one export a coach cannot sign their own way is
-        // the one they crop. See `VideoOptions.parts`.
-        parts,
-      )
+      if (chrome) {
+        drawChrome(
+          ctx,
+          l,
+          system,
+          phaseWords(tl, system, l.rise),
+          (i + 1) / frames,
+          mark,
+          Boolean(opts.date),
+          p,
+          // ALL OF IT BY DEFAULT, and `resolveParts` is what supplies that when
+          // the caller says nothing. It used to be `CHROME_PARTS_ALL` outright,
+          // on the argument that a film travels furthest from its author and so
+          // most needs to say whose it is. Right about the default; wrong as an
+          // absolute, because the one export a coach cannot sign their own way is
+          // the one they crop. See `VideoOptions.parts`.
+          parts,
+        )
+      }
 
       await source.add(i / fps, 1 / fps)
       opts.onProgress?.((i + 1) / frames)

@@ -31,7 +31,8 @@ import {
 } from '../video'
 import { Button, Field, Modal, Segmented, Toggle } from './ui'
 import { PaceField } from './PaceField'
-import { VIDEO } from './guide'
+import { VIDEO, EXPORT } from './guide'
+import { resolveParts, type ChromeParts } from '../image'
 import { STUDIO_EVENTS, track } from '../track'
 import { IdentityToggle } from './IdentityToggle'
 
@@ -91,6 +92,11 @@ export function VideoDialog({
    */
   const [quality, setQuality] = useState<VideoQuality['id']>(DEFAULT_QUALITY)
   const [fps, setFps] = useState<VideoFps>(30)
+  const [chrome, setChrome] = useState(true)
+  const [asked, setAsked] = useState<ChromeParts>(() => resolveParts())
+  const parts = resolveParts(asked)
+  const setPart = (k: keyof ChromeParts, on: boolean) =>
+    setAsked((prev) => ({ ...prev, [k]: on }))
   // Off by default, and only offered when there is one to show — see the note
   // on `VideoOptions.date`. A file outlives the day it was made.
   const [date, setDate] = useState(false)
@@ -139,6 +145,8 @@ export function VideoDialog({
         shape,
         quality,
         fps,
+        chrome,
+        parts,
         date,
         signal: controller.signal,
         onProgress: setProgress,
@@ -160,7 +168,7 @@ export function VideoDialog({
     } finally {
       abort.current = null
     }
-  }, [system, identity, shape, quality, fps, date, onSaved])
+  }, [system, identity, shape, quality, fps, chrome, parts, date, onSaved])
 
   const stop = useCallback(() => {
     abort.current?.abort()
@@ -302,12 +310,42 @@ export function VideoDialog({
                 />
               </div>
 
-              {/* Only while there is a name for the date to sit beside. With
-                  the identity off, the credit line is the neutral one and a
-                  date stamped under it says nothing about anything. */}
-              {identity && system.credit?.sharedOn && (
-                <div className="mt-3 border-t border-ink-hair pt-2">
-                  <Toggle checked={date} onChange={setDate} label={VIDEO.date} />
+              <div className="mt-3 border-t border-ink-hair pt-3">
+                <Toggle checked={chrome} onChange={setChrome} label={EXPORT.chrome} />
+                <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
+                  {chrome ? EXPORT.chromeOn : EXPORT.chromeOff}
+                </p>
+              </div>
+
+              {chrome && (
+                <div className="mt-2 space-y-2 border-l-2 border-ink-hair pl-3">
+                  <Part
+                    on={parts.head}
+                    onChange={(v) => setPart('head', v)}
+                    label={EXPORT.partHead}
+                    note={EXPORT.partHeadNote}
+                  />
+                  <Part
+                    on={parts.words}
+                    onChange={(v) => setPart('words', v)}
+                    label={EXPORT.partWords}
+                    note={EXPORT.partWordsNote}
+                  />
+                  <Part
+                    on={parts.credit}
+                    onChange={(v) => setPart('credit', v)}
+                    label={EXPORT.partCredit}
+                    note={EXPORT.partCreditNote}
+                  />
+                  <p className="pt-1 text-[11px] leading-snug text-ink-faint">
+                    {EXPORT.partLockupAlways}
+                  </p>
+
+                  {parts.credit && identity && system.credit?.sharedOn && (
+                    <div className="border-t border-ink-hair pt-2">
+                      <Toggle checked={date} onChange={setDate} label={VIDEO.date} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -345,5 +383,36 @@ export function VideoDialog({
         )}
       </>
     </Modal>
+  )
+}
+
+/**
+ * One switch and the line that says what it puts on the picture.
+ *
+ * `disabled` greys rather than hides, and it is the one place in this dialog
+ * that greys: the coach has not made a mistake, they have made a choice with a
+ * consequence, and the consequence is worth being able to read. The note under
+ * it changes to say so.
+ */
+function Part({
+  on,
+  onChange,
+  label,
+  note,
+  disabled = false,
+}: {
+  on: boolean
+  onChange: (v: boolean) => void
+  label: string
+  note: string
+  disabled?: boolean
+}) {
+  return (
+    <div>
+      <Toggle checked={on} onChange={onChange} label={label} disabled={disabled} />
+      <p className={`mt-0.5 text-[11px] leading-snug text-ink-faint ${disabled ? 'opacity-70' : ''}`}>
+        {note}
+      </p>
+    </div>
   )
 }
