@@ -643,6 +643,43 @@ export default function Settings() {
   const [pics, setPics] = useState({ crest: '', avatar: '' })
   /** Which picture is mid-upload, so only that control says so. */
   const [busy, setBusy] = useState<ImageKind | ''>('')
+  const [pendingNav, setPendingNav] = useState<string>('')
+
+  const isDirty = useMemo(() => {
+    // Only check if we have successfully loaded data
+    if (state === 'loading' || state === 'unreadable' || state === 'failed') return false
+    return JSON.stringify(profile) !== JSON.stringify(saved)
+  }, [profile, saved, state])
+
+  useEffect(() => {
+    if (!isDirty) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    const handleClick = (e: MouseEvent) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      
+      const target = (e.target as HTMLElement).closest('a')
+      if (!target) return
+      const href = target.getAttribute('href')
+      
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || target.target === '_blank') return
+
+      e.preventDefault()
+      setPendingNav(target.href)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('click', handleClick, { capture: true })
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('click', handleClick, { capture: true })
+    }
+  }, [isDirty])
 
   useEffect(() => {
     if (status !== 'out') return
@@ -1249,6 +1286,45 @@ export default function Settings() {
           Sign out
         </button>
       </Section>
+
+      {pendingNav && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-paper p-6 shadow-xl text-center">
+            <h2 className="text-xl font-bold text-ink mb-2">Unsaved Changes</h2>
+            <p className="text-sm text-ink-soft mb-6">
+              You have unsaved changes. Would you like to save them before leaving?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  await save()
+                  window.location.href = pendingNav
+                }}
+                className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-bold text-paper transition-opacity hover:opacity-90"
+              >
+                Save & Leave
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = pendingNav
+                }}
+                className="w-full rounded-lg bg-paper border border-ink px-4 py-3 text-sm font-bold text-ink transition-colors hover:bg-ink-hair"
+              >
+                Leave without Saving
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingNav('')}
+                className="w-full rounded-lg px-4 py-3 text-sm font-bold text-ink-faint hover:text-ink transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
