@@ -67,8 +67,8 @@ const SPEC: Record<ImageKind, Spec> = {
   player: { bucket: 'players', open: false, edge: 384 },
 }
 
-/** The bucket's own cap, mirrored so the browser can refuse before uploading. */
-export const IMAGE_MAX_BYTES = 5 * 1024 * 1024
+/** The bucket's own cap is 5MB, but we downscale before upload, so we can accept up to 20MB from the disk. */
+export const IMAGE_MAX_BYTES = 20 * 1024 * 1024
 
 /** Mirrors `allowed_mime_types` on both buckets. */
 const TYPES: Record<string, string> = {
@@ -220,7 +220,7 @@ export async function uploadImage(
   // cap is there to stop a coach waiting on a 40 MB read from their own disk,
   // and shrinking it afterwards would not give them that time back.
   if (file.size > IMAGE_MAX_BYTES) {
-    return { path: '', fault: 'That file is over 5 MB. Try a smaller one.' }
+    return { path: '', fault: 'That file is over 20 MB. Try a smaller one.' }
   }
 
   const spec = SPEC[kind]
