@@ -591,7 +591,7 @@ export const EXPORT = {
   which: 'Which phases',
   chrome: 'Put the words on the picture',
   chromeOn: 'Pick which of them below.',
-  chromeOff: 'The board and nothing else. For dropping into your own slide, under your own title.',
+  chromeOff: 'No titles, captions, or credit line. Player names and photos stay on the board, and our watermark is kept.',
 
   /* Each one names what a coach would look at on the picture, not what the
      renderer calls it. "Head" and "lockup" are our words for our own layout. */
@@ -609,7 +609,7 @@ export const EXPORT = {
      `partLockup`, `partLockupNote` and `partLockupTied` were the switch's own
      words and are kept, unused, against the switch coming back. See
      `resolveParts` in ../image.ts. */
-  partLockupAlways: 'Made with Total Football goes bottom right, beside your name.',
+  partLockupAlways: 'Made with Total Football stays at the bottom right, no matter what.',
   partLockup: 'Made with Total Football',
   partLockupNote: 'Our mark, bottom right, beside your name.',
   partLockupTied: 'Off, because your name is off. Ours never goes on a board on its own.',
@@ -638,7 +638,7 @@ export const EXPORT = {
  * takes one.
  */
 export const IDENTITY = {
-  label: 'Put my name on it',
+  label: 'Include names and faces',
   /* Says what stays as well as what goes. A switch that only lists what it
      removes reads as destructive, and this one changes nothing on the board. */
   on: 'Your name, your club, your crest and your players\u2019 names go with it.',
