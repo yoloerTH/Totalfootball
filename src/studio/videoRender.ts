@@ -70,7 +70,8 @@ import interWoff2 from '@fontsource-variable/inter/files/inter-latin-wght-normal
 import { kickTrack } from './audio'
 import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
-import { PAD, U, viewFor, type PitchView } from './board/pitch'
+import { U, viewFor, type PitchView } from './board/pitch'
+import { frameView, isSetPieceView, type Frame } from './frame'
 import { cameraRect, type CameraFrame, type Shot } from './camera'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
@@ -223,184 +224,14 @@ async function raster(svg: string, w: number, h: number): Promise<HTMLCanvasElem
 
 // ── the frame IS the board ───────────────────────────────────────────────────
 
-/**
- * The coach's pitch view, reshaped to fill the frame exactly.
- *
- * The old export drew a small board on a big sheet of paper and stacked the
- * words underneath it — a slide someone had filmed. A 9:16 export gave the
- * pitch about a third of the height. This is the fix, and it is a crop and not
- * a zoom:
- *
- *  · THE BOARD IS TURNED TO WHICHEVER WAY FITS, using the quarter turn that
- *    already exists (`vertical` in ../board/pitch.ts) and which turns the
- *    framing rather than the players. A full pitch upright is roughly 2:3 and
- *    nearly fills a phone, where the same pitch lying flat is a band across
- *    the middle of one.
- *
- *    Not simply "upright for a vertical frame", which is the version that was
- *    tried first and is wrong at the close crops: a penalty box seen upright
- *    is WIDE and SHALLOW — 68m across, 31m deep — so standing it up for a 9:16
- *    frame padded it out to 130m of grass with the box squashed along the top.
- *    The orientation that fits is the one whose aspect is nearest the frame's,
- *    and for `attacking-box` in a phone frame that is the one the coach was
- *    already working in. So the coach's orientation is kept unless turning it
- *    is a CLEAR improvement — a near-tie is not worth surprising them over.
- *
- *  · THE SHORT AXIS IS THEN PADDED OUT with more grass until the crop matches
- *    the frame's aspect, so the board reaches all four edges and there is no
- *    paper letterbox left to give the game away. Widening `pad` rather than
- *    scaling the board is what keeps every player on screen: percent coords
- *    are measured against `x0..x1`, which does not move.
- *
- * The board is then rendered at the FULL frame size and drawn at 0,0. There is
- * no longer any part of the picture that is not pitch.
+/*
+ * The board is reshaped to fill the frame exactly, and that is arithmetic on
+ * two rectangles rather than anything this file does — see ./frame.ts, which a
+ * check script can import and this module cannot.
  */
-/**
- * The canvas, in pixels. Worked out once in `renderVideo` from the shape the
- * coach picked and the quality they picked, and passed down from there.
- *
- * Everything below takes this rather than the shape, and that is the whole
- * reason the export could grow a resolution setting without touching the
- * layout: the chrome is already written as fractions of the short side, so
- * 720p is the same design at a smaller number and there are no second
- * measurements to keep in step. See `layout`.
- */
-interface Frame {
-  w: number
-  h: number
-}
-
-/**
- * A SET-PIECE VIEW IS ANCHORED ON ITS GOAL, NOT CENTRED ON ITS GRASS.
- *
- * Upright, a set-piece board is authored at 68m × 52.5m but exported at a
- * narrower 48m × 52.5m crop (see `frameView`), which focuses on the penalty
- * area and its approaches. The 48m width against a 9:16 frame's 0.5625 aspect
- * means only ~6m of extra grass is added on the length axis (versus ~73m with
- * the full 68m width). The routine fills about 65% of the frame.
- *
- * The goal line is anchored a fifth of the way down the frame rather than
- * centred, so the chrome (title, phase, caption) sits on grass above the goal
- * and the routine's depth runs into the middle of the picture. `focusBands`
- * fades the grass outside the routine back into the ground.
- *
- * ── WHAT IT DOES TO A CAMERA THAT IS FOLLOWING THE BALL ─────────────────
- *
- * Nothing it has to be told about. `cameraRect` clamps to `cropRect`, so a
- * followed camera travels inside the anchored grass automatically.
- */
-const SET_PIECE_GOAL_AT = 0.2
 
 /** How far the grass outside the routine is faded back, at the frame's edge. */
 const FOCUS_FADE = 0.7
-
-/**
- * The two boards whose framing is about a goal rather than about a pitch.
- *
- * They are the pair `frameView` refuses to turn — see the note on `turn` — and
- * the pair `focusBands` fades around, so which views they are is asked for in
- * one place rather than spelled out at each of them.
- */
-function isSetPieceView(view: PitchView): boolean {
-  return view.id === 'attacking-set-piece' || view.id === 'defending-set-piece'
-}
-
-function frameView(view: PitchView, frame: Frame): PitchView {
-  const lenX = view.x1 - view.x0
-  const lenY = view.y1 - view.y0
-  const want = frame.w / frame.h
-
-  // Aspects are compared as ratios, not differences: 2.0 sits as far from 1.0
-  // as 0.5 does, which is how an eye reads it and is not what 2−1 and 1−0.5 say.
-  const gap = (a: number) => Math.abs(Math.log(a / want))
-  const flat = (lenX + PAD * 2) / (lenY + PAD * 2)
-  const theirs = view.vertical ? 1 / flat : flat
-  const isSetPiece = isSetPieceView(view)
-  // Allow turning training grids when exporting vertical to prevent huge dead spaces.
-  const turn = !isSetPiece && gap(1 / theirs) + 0.15 < gap(theirs)
-  const upright = turn ? !view.vertical : Boolean(view.vertical)
-
-  /*
-   * ── VERTICAL SET PIECES: NARROW THE WIDTH TO FOCUS ON THE BOX ──────────
-   *
-   * A set-piece half-pitch is 68m wide × 52.5m deep. Upright, the 68m runs
-   * across the frame and the 52.5m runs up it — aspect 1.27 against a 9:16
-   * frame's 0.5625. That 2.25x mismatch forces ~73m of extra grass on the
-   * length axis, showing 131m total — more than a full pitch — and the routine
-   * (box, runners, delivery) sits in about 30% of the picture.
-   *
-   * The fix: narrow the width to the relevant zone. The penalty area is
-   * 40.32m wide (centred on the goal at y ≈ 13.84 to 54.16). A 48m crop
-   * keeps the full box plus 4m each side for corner takers and wide runners.
-   * That brings the screen aspect from 1.27 to ~0.93, so only ~6m of extra
-   * grass is added on the length axis, and the routine fills ~65% of the
-   * frame. The narrowing only applies to the EXPORT view, not the editor
-   * board — x0..x1 is unchanged, so percent coordinates are still measured
-   * against the full half-pitch and every player stays on the grass they
-   * were placed on.
-   *
-   * The crop is centred on y = 34 (the middle of the pitch width) so it is
-   * symmetric about the goal, and the narrowing is done by widening the pad
-   * with NEGATIVE extra (which `pad` already supports as the difference
-   * between the frame's demand and the board's natural size).
-   */
-  let cropLenY = lenY
-  if (isSetPiece && upright && want < 1) {
-    // The widest set-piece player stands at s ≈ 66.5 (corner flag), which in
-    // pitch-y terms is y ≈ 66.5 (attacking) or y ≈ 1.5 (defending, flipped).
-    // A 48m window centred on y=34 spans y: 10–58, which covers:
-    //   · the penalty area (13.84–54.16) fully
-    //   · corner taker positions (~1.5m or ~66.5m) — these are just outside the
-    //     crop, but the 3m PAD on each side brings the visible range to 7–61,
-    //     keeping the corner taker visible.
-    // For a tighter feel we go to 48m; players at the very edge of the
-    // touchline will sit right at the crop boundary inside the padding, which
-    // is exactly where a corner taker should appear: at the edge.
-    const targetWidth = 48
-    cropLenY = Math.min(lenY, targetWidth)
-  }
-
-  // The crop in SCREEN terms. Upright swaps which pitch axis is which: the
-  // pitch's width runs across the frame and its length runs up it.
-  const wide = (upright ? cropLenY : lenX) + PAD * 2
-  const tall = (upright ? lenX : cropLenY) + PAD * 2
-
-  const growWide = wide / tall < want
-  const extra = growWide ? (want * tall - wide) / 2 : (wide / want - tall) / 2
-
-  // Screen width is the pitch's y axis when upright and its x axis when flat.
-  const onY = growWide === upright
-  const padX = PAD + (onY ? 0 : extra)
-  const padY = PAD + (onY ? extra : 0)
-
-  // When we narrowed the width for a vertical set piece, shift the y-padding
-  // to account for the narrower crop. The narrowing is symmetric about
-  // the centre of the original crop (y = 34), so we reduce the y-padding by
-  // half the difference to keep the view centred on the penalty area.
-  const narrowedBy = (lenY - cropLenY) / 2
-  const pad = { x: padX, y: padY - narrowedBy }
-
-  /*
-   * The shift that puts the goal at `SET_PIECE_GOAL_AT` instead of at the
-   * middle, and only on the export that actually grew the LENGTH axis.
-   *
-   * `onY` means the grass went on the pitch's y axis, which is a landscape
-   * export: there the half already fills the frame's height and there is
-   * nothing to anchor. Everything else keeps a centred crop, which is what
-   * every view but these two has always had.
-   *
-   * The goal line is at `cy - halfLen` in final units on BOTH boards — the
-   * attacking one turns -90 and the defending one +90 (see `flip` in
-   * ./board/pitch.ts), and a quarter turn either way puts the near end of the
-   * crop at the same place above the crop's centre. So one expression covers
-   * the pair, and `focusBands` reads the goal back the same way.
-   */
-  const screenH = (upright ? lenX + pad.x * 2 : cropLenY + pad.y * 2) * U
-  const anchor =
-    isSetPiece && !onY ? screenH * (0.5 - SET_PIECE_GOAL_AT) - (lenX / 2) * U : 0
-
-  return { ...view, vertical: upright, pad, yShift: anchor }
-}
 
 /**
  * Where the routine's two ends land in the finished frame, in PIXELS: the goal
@@ -979,7 +810,7 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
   const chrome = opts.chrome !== false
   const parts: ChromeParts = chrome ? rawParts : { ...rawParts, head: false, words: false, credit: false }
   const frame = frameSize(shape, quality)
-  const view = frameView(viewFor(system), frame)
+  const view = frameView(viewFor(system), frame, system)
   const l = layout(frame)
 
   // Everything that is fetched rather than computed, up front: a failure here
@@ -1204,7 +1035,7 @@ export async function renderStills(
   const shape = resolveImageShape(opts.shape)
   const size = resolveImageSize(opts.size)
   const frame = imageSize(shape, size)
-  const view = frameView(viewFor(system), frame)
+  const view = frameView(viewFor(system), frame, system)
   const l = layout(frame)
   const chrome = opts.chrome !== false
   const rawParts = resolveParts(opts.parts)

@@ -222,6 +222,27 @@ export interface PitchView {
    * inside the shifted grass without knowing this field is here.
    */
   yShift?: number
+  /**
+   * The crop width, in units, that the camera's push bounds are fractions of.
+   *
+   * `cameraRect` in ../camera.ts floors and ceilings the frame at
+   * `push.tightest` and `push.widest` of the crop it is handed. That is right
+   * in the studio, where the crop the coach sees and the crop the camera is
+   * measured against are the same rectangle. It is wrong in an export, which
+   * reshapes the pad — sometimes to a NEGATIVE number on a set piece — before
+   * the camera ever sees the view: the same phase then framed 57m of grass in
+   * the editor and 44m in the video, and the difference was the part of the
+   * board the coach had put their players on.
+   *
+   * So the exporter stamps the editor's own crop width here and the camera
+   * measures against that instead. Absent everywhere else, and `?? crop.w` in
+   * `cameraRect` is what that absence means: byte-identical output for every
+   * board that is not being reshaped for a frame.
+   *
+   * In UNITS, like `yShift` and unlike `pad`, because that is what it is
+   * compared against.
+   */
+  pushBase?: number
 }
 
 /* ── THE SESSION AREA, AS THE COACH SIZES IT ─────────────────────────────────

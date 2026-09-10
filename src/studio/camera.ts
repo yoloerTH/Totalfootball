@@ -615,12 +615,22 @@ export function cameraRect(
    * than there is grass for.
    *
    * The floor is applied FIRST and the ceiling second, so on a setting whose
-   * two bounds are close together the ceiling wins — which is the right way
-   * round. Too wide is a push that did not happen; too tight is a frame with
-   * nothing recognisable in it, and only one of those is worth protecting
-   * against at the cost of the other.
+   * bounds cross over (where the widest allowed push is tighter than the minimum
+   * grass) the ceiling wins: a coach who asked for a close-up gets it, even if
+   * they put the camera in the middle of nowhere.
+   *
+   * BOTH ARE FRACTIONS OF `pushBase` WHEN THE VIEW CARRIES ONE, and of the crop
+   * otherwise. An export reshapes the pad to fill its frame, so its crop is not
+   * the rectangle the coach drew the shot against; measuring the bounds against
+   * the export's crop made the video push in harder than the outline in the editor
+   * ever showed. See `pushBase` in ./board/pitch.ts. 
+   * We use `Math.max` because if the export crop is wider (e.g. 1:1 aspect), 
+   * the ceiling MUST expand to `crop.w` to allow the camera to fit the height of the shot.
+   * The last term stays the export's own `crop.w`, because that is a statement about how much grass
+   * there is and never about how much of it to show.
    */
-  w = Math.min(Math.max(w, crop.w * push.tightest), crop.w * push.widest, crop.w)
+  const bound = Math.max(view.pushBase ?? crop.w, crop.w)
+  w = Math.min(Math.max(w, bound * push.tightest), bound * push.widest, crop.w)
   const h = w / aspect
 
   const cx = (bx0 + bx1) / 2
