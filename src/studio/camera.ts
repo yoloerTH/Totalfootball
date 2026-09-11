@@ -630,7 +630,17 @@ export function cameraRect(
    * there is and never about how much of it to show.
    */
   const bound = Math.max(view.pushBase ?? crop.w, crop.w)
-  w = Math.min(Math.max(w, bound * push.tightest), bound * push.widest, crop.w)
+  if (aspect < 1) {
+    // For portrait videos, bounding the width forces the height to be huge,
+    // which effectively makes the camera static vertically. Bound the height 
+    // instead, using pushBase as the dominant dimension reference.
+    const boundH = view.pushBase ?? crop.h
+    let h = w / aspect
+    h = Math.min(Math.max(h, boundH * push.tightest), boundH * push.widest, crop.h)
+    w = h * aspect
+  } else {
+    w = Math.min(Math.max(w, bound * push.tightest), bound * push.widest, crop.w)
+  }
   const h = w / aspect
 
   const cx = (bx0 + bx1) / 2
