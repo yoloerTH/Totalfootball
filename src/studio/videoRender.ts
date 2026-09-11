@@ -72,7 +72,7 @@ import { Board } from './board/Board'
 import { rgba, resolveSurface, type BoardPalette } from './board/surfaces'
 import { U, viewFor, type PitchView } from './board/pitch'
 import { frameView, isSetPieceView, type Frame } from './frame'
-import { cameraRect, trackedBall, type CameraFrame, type Shot } from './camera'
+import { cameraRect, type CameraFrame, type Shot } from './camera'
 import { inlineBall, resolveBall } from './balls'
 import { inlinePhotos, photoPaths } from './account/squad'
 import { gearKinds, inlineGear } from './gear'
@@ -186,7 +186,6 @@ function frameSvg(
   css: string,
   view: PitchView,
   crestHref?: string,
-  trackedBallId?: string | null,
 ): string {
   const markup = renderToStaticMarkup(
     createElement(Board, {
@@ -199,7 +198,6 @@ function frameSvg(
       gearHrefs,
       crestHref,
       view,
-      trackedBallId,
     }),
   )
   const end = openTagEnd(markup)
@@ -938,12 +936,8 @@ export async function renderVideo(system: System, opts: VideoOptions = {}): Prom
           tl.p === 0
             ? resolveAct(system.acts[tl.index], drawSystem)
             : tweenActs(system.acts[tl.index], system.acts[tl.next], tl.p, drawSystem)
-        
-        const srcAct = system.acts[tl.p < 0.5 ? tl.index : tl.next]
-        const trackedId = trackedBall(system, srcAct)?.id
-        
         lastBoard = await raster(
-          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined, trackedId),
+          frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined),
           l.w,
           l.h,
         )
@@ -1091,11 +1085,9 @@ export async function renderStills(
     if (opts.signal?.aborted) throw new DOMException('Export stopped', 'AbortError')
     const i = wanted[n]
 
-    const srcAct = system.acts[i]
-    const trackedId = trackedBall(system, srcAct)?.id
-    const act = resolveAct(srcAct, drawSystem)
+    const act = resolveAct(system.acts[i], drawSystem)
     const board = await raster(
-      frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined, trackedId),
+      frameSvg(drawSystem, act, l.w, l.h, ballHref, photos, gear, css, view, crest ?? undefined),
       l.w,
       l.h,
     )
