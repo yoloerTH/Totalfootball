@@ -36,7 +36,7 @@
  * a long note about making once already.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Mark } from '../viewer/Mark'
 import { Button } from './ui'
 import { useSession } from '../account/session'
@@ -196,6 +196,41 @@ export function SignInPill() {
  * that carries the title and the caption — the two fields most likely to be
  * reached for and the two that most obviously belong to somebody.
  */
+/**
+ * "There is a conversation under this board."
+ *
+ * ── WHY IT ASKS THE PAGE INSTEAD OF BEING TOLD ──────────────────────────────
+ *
+ * This panel is drawn for every locked board: one of ours at /o/<slug>/, and a
+ * system somebody shared read-only with a colleague. Only the first has a thread
+ * beneath it. Threading a prop down for that would mean LockedStudio and
+ * StudioEditor both learning what a thread is, to pass a boolean through eight
+ * hundred lines that do not care.
+ *
+ * The page already states the fact, in the only way that matters: either there
+ * is an element with id `thread` in the document or there is not. Asking is one
+ * DOM read on mount.
+ *
+ * IT IS A LINK TO A FRAGMENT, so it works whether or not the thread's own island
+ * has hydrated — the thread is `client:visible` and by definition has not, since
+ * nobody has scrolled to it yet.
+ */
+function ThreadLink() {
+  const [there, setThere] = useState(false)
+  useEffect(() => {
+    setThere(Boolean(document.getElementById('thread')))
+  }, [])
+  if (!there) return null
+  return (
+    <a
+      href="#thread"
+      className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-ink-hair px-3 py-2 text-[11px] font-black text-ink no-underline transition-colors hover:bg-paper"
+    >
+      What coaches did with this one <span aria-hidden="true">↓</span>
+    </a>
+  )
+}
+
 export function SignInPanel({ onOpen }: { onOpen: () => void }) {
   const { status } = useSession()
   if (status === 'in') {
@@ -211,6 +246,7 @@ export function SignInPanel({ onOpen }: { onOpen: () => void }) {
         <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">
           You only have view access to this system. Ask the owner for edit access if you need to make changes.
         </p>
+        <ThreadLink />
       </div>
     )
   }
@@ -251,6 +287,7 @@ export function SignInPanel({ onOpen }: { onOpen: () => void }) {
           What does an account get me?
         </Button>
       </div>
+      <ThreadLink />
     </div>
   )
 }

@@ -32,6 +32,7 @@ import { ReactionBar } from './ReactionBar'
 import { repost, unrepost, type FeedPost } from './api'
 import { imageUrl } from '../account/images'
 import { licenceLabel, roleLabel } from '../account/identity'
+import { Mark } from '../viewer/Mark'
 
 export function when(iso: string): string {
   if (!iso) return ''
@@ -55,12 +56,53 @@ export function Author({
 }: {
   post: Pick<
     FeedPost,
-    'handle' | 'presenter' | 'team' | 'role' | 'licence' | 'avatarPath' | 'crestPath' | 'doc'
+    | 'handle'
+    | 'presenter'
+    | 'team'
+    | 'role'
+    | 'licence'
+    | 'avatarPath'
+    | 'crestPath'
+    | 'doc'
+    | 'official'
   >
   compact?: boolean
 }) {
   const avatar = imageUrl(post.avatarPath)
   const crest = imageUrl(post.crestPath)
+
+  /*
+   * ── ONE OF OURS IS CREDITED TO US, NOT TO THE ACCOUNT THAT HOLDS IT ─────────
+   *
+   * The ten official systems live on the studio account, which is also somebody
+   * working account with a persona and a club on it. Drawing the ordinary byline
+   * would put that persona's face and name on The 4-1-4-1 Press, which is both
+   * wrong and confusing: the video it came from says Total Football.
+   *
+   * So `official` — a column a trigger defends, never an inference from the
+   * owner — swaps the face for the channel's mark and the name for the channel.
+   * No link: there is no coach page behind it, and /o/<slug>/ is already where
+   * the card itself goes.
+   */
+  if (post.official) {
+    return (
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ink-hair bg-surface text-ink">
+          <Mark size={20} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[14px] font-bold leading-tight text-ink">
+            Total Football
+          </span>
+          {!compact && (
+            <span className="block truncate text-[12px] leading-tight text-ink-faint">
+              Official · as published on the channel
+            </span>
+          )}
+        </span>
+      </span>
+    )
+  }
 
   // A coach whose profile is not public is credited by whatever the DOCUMENT
   // carries, which is what they chose in the publish dialog. Never a link:

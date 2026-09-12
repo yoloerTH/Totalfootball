@@ -67,3 +67,21 @@ export function abs(path: string): string {
   if (path.startsWith('http')) return path
   return `${SITE_URL}${withTrailingSlash(path)}`
 }
+
+/**
+ * The account the official systems are published from.
+ *
+ * ── WHY A CONSTANT AND NOT A LOOKUP ──────────────────────────────────────────
+ *
+ * `/o/<slug>/` needs it to decide whether the reader is the coach who owns the
+ * post, which is what draws the moderation button on a comment. That is a
+ * question the page must answer at BUILD time, from a static page, with no
+ * session and no database — and the answer never changes: it is the account
+ * scripts/publish-official.mjs writes every official row under, and the same one
+ * scripts/pull-system.mjs pulls them down from.
+ *
+ * It is a user id and not a secret. Every comment on the network already carries
+ * its author's id in `studio_post_comments`, and RLS is what decides what an id
+ * can do, so publishing this buys an attacker a uuid they could already read.
+ */
+export const OFFICIAL_OWNER = '04189c96-21fb-4772-9177-408856ec2c46'

@@ -38,6 +38,7 @@ import { KIND_LABEL, TEMPLATES, type Template, type TemplateKind } from '../temp
 import { resolveAct } from '../tween'
 import { Mark } from '../viewer/Mark'
 import { hydratePrefs } from './prefs'
+import { NEWEST_NEWS_ID, WHATS_NEW } from '../../data/whatsnew'
 import { useSession, signOut } from './session'
 import { hydrateProfile } from './profile'
 import { profileCompletion, shouldNudge, type Completion } from './completion'
@@ -702,6 +703,8 @@ export default function Portal() {
         </>
       )}
 
+      <WhatIsNewHere />
+
       <OursToStartFrom />
 
       {folderSystem && (
@@ -770,6 +773,9 @@ export default function Portal() {
       {publishRow && user && (
         <PublishDialog
           system={publishRow.system}
+          /* So the dialog can tell whether this document was started as a
+             variation of one of ours. See ../social/variation.ts. */
+          systemId={publishRow.id}
           profile={profile ?? EMPTY_PROFILE}
           owner={user.id}
           onClose={() => setPublishRow(null)}
@@ -837,6 +843,110 @@ function DownToOurs() {
         <path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" />
       </svg>
     </a>
+  )
+}
+
+/**
+ * The one thing that changed since this coach was last here.
+ *
+ * ── WHY THE PORTAL NEEDS ITS OWN, WHEN THE STUDIO ALREADY HAS A PANEL ────────
+ *
+ * `../editor/WhatsNew.tsx` only ever opens inside the editor, on a board. That
+ * is right for "each phase can push in on its own" — you have to be looking at a
+ * phase for the sentence to mean anything. It is wrong for a change that is not
+ * in the editor at all: threads and variations live under /o/<slug>/, and a
+ * coach who opens the portal, picks up yesterday's system and never starts a new
+ * board would not be told for weeks.
+ *
+ * ── IT SHARES THE STUDIO'S WATERMARK RATHER THAN INVENTING ONE ──────────────
+ *
+ * `newsSeen` is the id of the newest entry a coach has had in front of them, it
+ * already syncs to the account through ./prefs.ts, and it is what the panel in
+ * the editor moves. Reusing it means being told once, on whichever surface you
+ * reach first, on whichever device — which is the behaviour anybody would
+ * expect and the reason not to add a second flag that can disagree with this
+ * one.
+ *
+ * ── AND IT IS A BANNER, NOT A MODAL ─────────────────────────────────────────
+ *
+ * A dialog over the shelf would interrupt somebody who came here to open a
+ * system, and the thing being announced is worth a look, not an interruption.
+ * This sits above the row of ours, in the flow, and takes one press to dismiss.
+ */
+function WhatIsNewHere() {
+  const entry = WHATS_NEW[0]
+  /*
+   * `null` until the browser has been read, and never during the server pass.
+   *
+   * `readGuide` touches localStorage, which does not exist while Astro renders
+   * this island's HTML — and rendering the banner optimistically would flash it
+   * at a coach who dismissed it last week. One tick of nothing is the correct
+   * first frame.
+   */
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    if (!entry) return
+    try {
+      setShow(readGuide().newsSeen !== NEWEST_NEWS_ID)
+    } catch {
+      // No storage: a private window, blocked site data. Say nothing rather than
+      // say it on every single visit.
+      setShow(false)
+    }
+  }, [entry])
+
+  const dismiss = () => {
+    setShow(false)
+    try {
+      writeGuide({ newsSeen: NEWEST_NEWS_ID })
+    } catch {
+      /* It stays unread. Harmless, and better than throwing at a click. */
+    }
+  }
+
+  if (!show || !entry) return null
+
+  return (
+    <section className="mt-16 overflow-hidden rounded-2xl border border-ink-hair bg-surface shadow-paper">
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:gap-5 sm:p-6">
+        <span className="shrink-0 text-ink" aria-hidden="true">
+          <Mark size={30} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-tf-gradient px-2.5 py-1 text-[10px] font-black uppercase tracking-micro text-[#161618]">
+              New
+            </span>
+            <span className="text-micro uppercase tracking-micro text-ink-faint">
+              Since you were last here
+            </span>
+          </p>
+          <h2 className="mt-2.5 text-[19px] font-black leading-tight tracking-display text-ink">
+            {entry.title}
+          </h2>
+          <p className="mt-2 max-w-prose text-[14px] leading-relaxed text-ink-soft">{entry.body}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {entry.ctaAction?.startsWith('/') && (
+              <a
+                href={entry.ctaAction}
+                onClick={dismiss}
+                className="rounded-md bg-ink px-4 py-2 text-[13px] font-bold text-paper no-underline transition hover:opacity-90"
+              >
+                {entry.ctaText ?? 'Take a look'}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={dismiss}
+              className="text-[12px] font-bold text-ink-faint transition-colors hover:text-ink"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 

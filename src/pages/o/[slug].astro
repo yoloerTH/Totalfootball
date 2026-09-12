@@ -40,7 +40,9 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import LockedStudio from '../../studio/editor/LockedStudio'
-import { TEMPLATES } from '../../studio/templates'
+import OfficialThread from '../../studio/social/OfficialThread'
+import { TEMPLATES, officialPostId } from '../../studio/templates'
+import { OFFICIAL_OWNER } from '../../lib/site'
 import { SITE_URL } from '../../lib/site'
 
 export function getStaticPaths() {
@@ -52,13 +54,31 @@ export function getStaticPaths() {
    * nothing to say to somebody who has not signed up, so they stay where they
    * are: on the portal, behind the door, reachable at /studio/new/?t=<id>.
    */
-  return TEMPLATES.filter((t) => t.official).map((t) => ({
-    params: { slug: t.id },
-    props: { template: t },
-  }))
+  return TEMPLATES.filter((t) => t.official).map((t) => {
+    /*
+     * THE BUILD FAILS IF AN OFFICIAL SYSTEM HAS NO POST, and this is the only
+     * place that insists on it.
+     *
+     * The thread under this page is `studio_comments` rows, which the policies
+     * in supabase/032 only permit against a public `studio_posts` row. Mark a
+     * new template `official` without running scripts/publish-official.mjs and
+     * the page ships with a comment box that refuses every comment written into
+     * it — a fault that looks like a bug in the composer and is actually a
+     * missing row in another system entirely. Build time is where that costs
+     * nothing to find.
+     */
+    const post = officialPostId(t.id)
+    if (!post) {
+      throw new Error(
+        `Official template "${t.id}" has no post id. Add it to content/official-posts.json ` +
+          'and run: node scripts/publish-official.mjs',
+      )
+    }
+    return { params: { slug: t.id }, props: { template: t, post } }
+  })
 }
 
-const { template } = Astro.props
+const { template, post } = Astro.props
 const system = template.system
 
 /**
@@ -107,4 +127,22 @@ const structuredData = [
   bare
 >
   <LockedStudio client:only="react" id={template.id} system={system} />
+
+  {/*
+      Below the studio, which is a whole screen of its own. See the header of
+      ../../studio/social/OfficialThread.tsx for why the thread is not in the
+      rail: a variation is a board, and a board needs more than 320px.
+
+      `client:visible` rather than `client:only`: nobody scrolls past a
+      100dvh app in the first paint, so loading the thread's React, its session
+      and its comment RPC alongside the editor would be spending the slowest
+      part of this page on the part nobody has reached yet.
+  */}
+  <OfficialThread
+    client:visible
+    post={post}
+    template={template.id}
+    title={system.title}
+    postOwner={OFFICIAL_OWNER}
+  />
 </BaseLayout>

@@ -437,6 +437,83 @@ revision covering user content, licensing and forks.
 
 ---
 
+## 4e. Phase 4 — Official threads and variations (built 2026-09-12, live)
+
+Migration `supabase/032_official_posts_and_variations.sql` is applied. The ten
+official systems now carry a comment thread, and a comment can carry a coach's
+own rework of the system it sits under.
+
+**The move that made it cheap.** An official system is published as a PUBLIC
+`studio_posts` row owned by the studio account. Every comment policy in 025
+already keys off `exists (… p.id = post and p.visibility = 'public')`, so the
+thread, the two-party delete, the report path and the feed ranking all arrived
+without a line of new policy. A separate `official_comments` table would have
+been a second, worse copy of four things that were already verified against real
+JWTs.
+
+**The rows are script-written and the ids are permanent.**
+`content/official-posts.json` maps template → system file → post id → cover
+phase, and is read by BOTH `src/studio/templates.ts` and
+`scripts/publish-official.mjs`. `/p/<id>` is a URL somebody may have sent, and
+every comment is a row pointing at one, so the script never invents an id — it
+republishes content against the existing one. It never touches `published_at`
+(the feed's sort key and half the ranking) or any counter (owned by 025's
+triggers). `getStaticPaths` in `src/pages/o/[slug].astro` fails the build if an
+`official` template has no post.
+
+### Decisions worth not relitigating
+
+1. **`official` is a column, not "owned by the studio account".** That account is
+   also somebody's working account with a persona (`@moriyashu`) and ordinary
+   posts on it. The fact being asserted is "this is one of ours", the feed card
+   draws the Total Football mark instead of a coach's avatar because of it, and a
+   trigger refuses the flag to anybody holding a user JWT.
+2. **A handle AND a name before you may comment, enforced in the policy.**
+   `studio_has_identity` is in `studio_comments_write`, not just in the composer:
+   PostgREST is reachable from a terminal, and the whole value of the thread is
+   that a byline is a real coach. NOT applied to reactions — a tap has no text in
+   it and gating it would cost the ranking its cheapest honest signal.
+3. **A variation is the coach's own post, not jsonb on the comment.** Stored on
+   the comment it would have no page, no reactions and no profile credit — it
+   would exist only underneath us. So it is their post, `forked_from` ours
+   (§5b, as specified), and the comment points at it. A trigger refuses a
+   variation that is not the commenter's own, public, and non-official.
+4. **The thread returns the variation's title and length, never its document.**
+   Five variations would be a megabyte of jsonb to draw five cards, most of them
+   below the fold. `VariationCard` fetches the board with `loadPost` on an
+   IntersectionObserver at `600px`, and draws it as a STILL — a column of playing
+   boards is a thread nobody finishes.
+5. **A private profile no longer hides the handle on a comment.** 025 §5 already
+   printed `presenter` unconditionally on the argument that writing a comment is
+   appearing in public; blanking the handle under the new gate would mean
+   demanding an @ and then refusing to print it. Visibility still governs the
+   profile page, the feed byline, and the avatar.
+6. **The publish is not rolled back when the comment fails.** The post exists and
+   is the coach's own work; reporting "publishing failed" would send them to
+   publish it again and leave two copies on the feed. The dialog says the system
+   is up and the thread entry is not, and points at the thread.
+7. **A variation is forced public, and the control is not shown.** The trigger
+   requires it, so offering a choice we are about to overrule would be a dialog
+   earning an error it did not need.
+8. **Announced on the portal, not only in the studio's what's-new panel.** That
+   panel only opens on a board, which is the wrong place to announce something
+   that lives at `/o/<slug>/`. The portal banner shares `newsSeen`, so a coach is
+   told once, on whichever surface they reach first, on whichever device.
+
+### Verified
+
+Migration applied in 20 statements. Fourteen checks under a real user JWT, with a
+throwaway account since deleted: a comment is refused with no profile, with a
+name and no handle, and with a handle and no name, and accepted with both; a
+client cannot insert `official = true` nor clear it on ours; a variation is
+accepted when it is the commenter's own public post and refused when it is
+somebody else's, when it is official, and when it is unlisted; the thread reads
+back signed out with the handle on it; and comments cascade away with the
+account. Ten official rows are public on the feed with the Total Football byline.
+Thread screenshotted at 420px and 1280px with no console errors.
+
+---
+
 ## 5. Later phases, specified
 
 ### 5a. Phase 2b — what makes a post travel

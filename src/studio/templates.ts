@@ -76,6 +76,8 @@
 
 import type { System } from './schema'
 
+import OFFICIAL_POSTS from '../../content/official-posts.json'
+
 import beatingTheTwoManPress from '../../content/systems/beating-the-two-man-press.json'
 import combinationPlayToFinish from '../../content/systems/combination-play-to-finish.json'
 import crossingAndFinishing from '../../content/systems/crossing-and-finishing-from-both-sides.json'
@@ -91,6 +93,42 @@ import thePress4141 from '../../content/systems/the-4-1-4-1-press.json'
 import theThirdManRun from '../../content/systems/the-third-man-run.json'
 import theYPassingDrill from '../../content/systems/the-y-passing-drill-in-3-levels.json'
 import whyTheLineStepsUp from '../../content/systems/why-the-line-steps-up.json'
+
+/**
+ * The post each official system carries its thread on.
+ *
+ * ── WHY A SYSTEM OF OURS IS ALSO A POST ─────────────────────────────────────
+ *
+ * Comments on /o/<slug>/ are `studio_comments` rows, and every policy on that
+ * table requires the thing being commented on to be a public `studio_posts`
+ * row — see the header of ../../supabase/032_official_posts_and_variations.sql
+ * for why reusing that machinery beat writing a second one. So each official
+ * system is published as a post, and this is the id.
+ *
+ * IT LIVES IN A JSON FILE RATHER THAN IN THE ENTRIES BELOW, because the
+ * publish script has to read it too and `scripts/publish-official.mjs` is a
+ * plain node script that cannot import a TypeScript module full of JSON
+ * imports. One file, read by both ends, is the only arrangement where the id
+ * the portal links to and the id the script writes cannot drift.
+ *
+ * The ids are PERMANENT — /p/<id> is a URL somebody may have sent to somebody,
+ * and every comment ever written is a row pointing at one. Never regenerate
+ * them; the script never invents one.
+ */
+const POST_BY_TEMPLATE = new Map(OFFICIAL_POSTS.map((row) => [row.template, row.post]))
+
+/**
+ * The post id for one of ours, or '' for a starter.
+ *
+ * Empty rather than throwing: a template with no post is a template with no
+ * thread, which every non-official one is by design. The place that insists on
+ * the pairing is `getStaticPaths` in ../pages/o/[slug].astro, where a missing id
+ * on an OFFICIAL template fails the build — that is the mistake worth catching,
+ * and build time is when it is cheap.
+ */
+export function officialPostId(templateId: string): string {
+  return POST_BY_TEMPLATE.get(templateId) ?? ''
+}
 
 /** Where a published system can be watched. Both, when it went out on both. */
 export interface Watch {

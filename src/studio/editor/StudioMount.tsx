@@ -54,6 +54,7 @@
 import { useEffect, useState } from 'react'
 import StudioEditor, { newSystem } from './StudioEditor'
 import { lastOpened, newSystemId, noteOpened } from '../storage'
+import { VARY_PARAM, rememberVariation } from '../social/variation'
 import { creditOnly, loadCloudSystem, withProfile } from '../account/cloud'
 import { hydrateProfile } from '../account/profile'
 import { hydratePrefs } from '../account/prefs'
@@ -101,6 +102,16 @@ export default function StudioMount() {
     const params = new URLSearchParams(window.location.search)
     const requested = params.get('s')
     const wanted = params.get('t')
+    /*
+     * "…as a variation of that one."
+     *
+     * Set by the thread under /o/<slug>/, and read only on the `?t=` path: a
+     * variation is by definition a copy of one of ours, so `?vary=` on any other
+     * URL is a stale link or somebody experimenting, and is ignored rather than
+     * honoured. See ../social/variation.ts for why the note is kept out of the
+     * document and out of the database.
+     */
+    const varyOf = params.get(VARY_PARAM) ?? ''
 
     /**
      * Which document, and under which id.
@@ -168,7 +179,17 @@ export default function StudioMount() {
           const initial = profile ? withProfile(copy, creditOnly(profile)) : copy
           // `stored: false` — this document exists nowhere yet, so the autosave
           // must write it on open rather than wait for a first edit.
-          return { ok: true, id: newSystemId(), initial, copied: true, canEdit: true, stored: false }
+          const fresh = newSystemId()
+          /*
+           * Written against the id BEFORE the editor mounts, because the coach
+           * may publish in this session or in one three days from now and the
+           * only thing tying the two together is this key. The title comes from
+           * the copy rather than being passed in the URL: a query string is
+           * user-editable, and the publish dialog says "a variation of X" out
+           * loud — X had better be the system they actually opened.
+           */
+          if (varyOf) rememberVariation(fresh, { post: varyOf, title: copy.title ?? '' })
+          return { ok: true, id: fresh, initial, copied: true, canEdit: true, stored: false }
         }
       }
 
@@ -246,6 +267,10 @@ export default function StudioMount() {
         const url = new URL(window.location.href)
         url.searchParams.set('s', id)
         url.searchParams.delete('t')
+        // Goes with `t`, and for the same reason: left in place, a reload would
+        // hand the coach a second copy of the template with the variation note
+        // attached to that one instead.
+        url.searchParams.delete(VARY_PARAM)
         window.history.replaceState(null, '', url)
       }
     })

@@ -33,6 +33,17 @@ import { Mark } from '../viewer/Mark'
 import { handleTaken, saveProfile, type Profile } from '../account/cloud'
 import { handleFault, normaliseHandle } from '../account/identity'
 
+/**
+ * What the coach pressed, and therefore what sentence the dialog opens with.
+ *
+ * 'comment' earns its own line rather than falling in with 'feed'. A coach
+ * reaching this from the thread under somebody's system is mid-thought and has
+ * a paragraph waiting in a textarea; being told what the network is, at that
+ * moment, reads as an obstacle. Being told that the thing they are about to
+ * write carries their name reads as the reason.
+ */
+export type GateIntent = 'publish' | 'feed' | 'comment'
+
 export function IdentityGate({
   profile,
   owner,
@@ -43,7 +54,7 @@ export function IdentityGate({
 }: {
   profile: Profile
   owner: string
-  intent: 'publish' | 'feed'
+  intent: GateIntent
   onDone: (profile: Profile) => void
   onClose: () => void
 }) {
@@ -102,7 +113,9 @@ export function IdentityGate({
       subtitle={
         intent === 'publish'
           ? 'A published system is signed. These are the two fields that sign it.'
-          : 'Coaches on here are people with names. These two are all it takes to join them.'
+          : intent === 'comment'
+            ? 'What you write under somebody\u2019s system carries your name. This is the name.'
+            : 'Coaches on here are people with names. These two are all it takes to join them.'
       }
       onClose={onClose}
       footer={

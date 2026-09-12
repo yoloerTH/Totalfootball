@@ -64,6 +64,17 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'official-threads-variations',
+    date: '2026-09-12',
+    kind: 'new',
+    title: 'Say what you would change, on any of our systems',
+    body:
+      'Every official system now has a thread under the board. Scroll past the studio to read what other coaches made of it, or press Suggest a variation to open your own copy — publish that and it appears in the thread as a board people can open, react to and fork again, credited to you. Comments carry your name, so an @handle and a name are needed before you can write one.',
+    where: 'Suggest a variation',
+    ctaText: 'Open a system',
+    ctaAction: '/o/four-zone-rondo/#thread',
+  },
+  {
     id: 'independent-bibs-feedback',
     date: '2026-09-07',
     kind: 'better',

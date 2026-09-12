@@ -50,6 +50,8 @@ import {
   suggestedTitle,
   type PostVisibility,
 } from '../posts'
+import { addComment } from '../social/api'
+import { forgetVariation, recallVariation } from '../social/variation'
 
 const INPUT =
   'w-full rounded-md border border-ink-hair bg-paper px-2.5 py-1.5 text-sm text-ink outline-none transition focus:border-ink-faint'
@@ -71,20 +73,50 @@ function whatItHas(system: System) {
 
 export function PublishDialog({
   system,
+  /**
+   * The shelf id of the document being published.
+   *
+   * Only used to look up whether this system was started as a variation of one
+   * of ours — see ../social/variation.ts. Optional because the dialog predates
+   * it and every caller that has no id is publishing an ordinary system.
+   */
+  systemId = '',
   profile,
   owner,
   onClose,
 }: {
   system: System
+  systemId?: string
   profile: Profile
   owner: string
   onClose: () => void
 }) {
   const has = useMemo(() => whatItHas(system), [system])
 
+  /**
+   * Is this a rework of one of ours?
+   *
+   * Read once, on mount. It cannot change while the dialog is open, and reading
+   * it on every render would make the copy below flicker if the tab's storage
+   * were cleared underneath it.
+   */
+  const vary = useMemo(() => recallVariation(systemId), [systemId])
+
   const [title, setTitle] = useState(() => suggestedTitle(system))
   const [summary, setSummary] = useState('')
-  const [visibility, setVisibility] = useState<PostVisibility>('unlisted')
+  /*
+   * A VARIATION OPENS ON 'public', AND THE CONTROL IS NOT SHOWN.
+   *
+   * Not a shortcut: the trigger in supabase/032 refuses a variation that is not
+   * public, because a thread entry most readers cannot open is worse than no
+   * thread entry. Offering the coach a choice we are about to overrule is how a
+   * dialog earns an error message it did not need. What the copy owes them
+   * instead is the plain sentence that offering it means publishing it, which
+   * the note under the composer says before they type anything.
+   */
+  const [visibility, setVisibility] = useState<PostVisibility>(vary ? 'public' : 'unlisted')
+  /** The comment that lands under the official system. Empty is allowed. */
+  const [note, setNote] = useState('')
   /**
    * How it presents itself, and which phase it opens on.
    *
@@ -102,7 +134,9 @@ export function PublishDialog({
   )
   const [busy, setBusy] = useState(false)
   const [fault, setFault] = useState('')
-  const [done, setDone] = useState<{ url: string; facesMissed: number } | null>(null)
+  const [done, setDone] = useState<{ url: string; facesMissed: number; missedThread?: boolean } | null>(
+    null,
+  )
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -118,15 +152,53 @@ export function PublishDialog({
     setFault('')
     const res = await publishPost(
       system,
-      { title, summary, visibility, identity, media, coverAct },
+      {
+        title,
+        summary,
+        visibility,
+        identity,
+        media,
+        coverAct,
+        // Permanent attribution, both ends (docs/SOCIAL.md §5b). Set from the
+        // note rather than from anything on the document, so a coach who
+        // published this system once already does not silently re-attribute it.
+        forkedFrom: vary?.post,
+      },
       owner,
     )
-    setBusy(false)
     if (isFault(res)) {
+      setBusy(false)
       setFault(res.fault)
       return
     }
-    setDone({ url: res.url, facesMissed: res.facesMissed })
+
+    /*
+     * ── THE COMMENT IS WRITTEN SECOND, AND ITS FAILURE IS NOT THE PUBLISH'S ──
+     *
+     * The post exists at this point and is the coach's own work; it is on their
+     * shelf, on their profile and at its own URL whatever happens next. So a
+     * comment that will not write — they lost the network between the two
+     * calls, or they have no @handle and reached this dialog from a path that
+     * did not gate them — must not be reported as "publishing failed", which
+     * would send them to publish it again and leave two copies on the feed.
+     *
+     * It is said out loud rather than swallowed, because the coach pressed a
+     * button that promised their variation would appear under ours.
+     */
+    let missedThread = false
+    if (vary) {
+      const body =
+        note.trim() ||
+        // A variation with no note still has something true to say, and an empty
+        // comment is refused by a CHECK on the table.
+        `A variation of ${vary.title || 'this system'}.`
+      const wrote = await addComment(vary.post, owner, body, res.id)
+      missedThread = !wrote.ok
+      if (wrote.ok) forgetVariation(systemId)
+    }
+
+    setBusy(false)
+    setDone({ url: res.url, facesMissed: res.facesMissed, missedThread })
   }
 
   const copy = async () => {
@@ -145,11 +217,15 @@ export function PublishDialog({
   if (done) {
     return (
       <Modal
-        title="It is up"
+        title={vary && !done.missedThread ? 'Offered' : 'It is up'}
         subtitle={
-          visibility === 'public'
-            ? 'Anybody can find it. Here is the link to send anyway.'
-            : 'Only people you send this to can open it.'
+          vary
+            ? done.missedThread
+              ? 'Your system is published. Getting it into the thread did not go through.'
+              : `It is yours, and it is now in the thread under ${vary.title || 'the original'}.`
+            : visibility === 'public'
+              ? 'Anybody can find it. Here is the link to send anyway.'
+              : 'Only people you send this to can open it.'
         }
         onClose={onClose}
         footer={
@@ -168,6 +244,24 @@ export function PublishDialog({
           </div>
         }
       >
+        {done.missedThread && (
+          /*
+           * SAID PLAINLY, AND WITH THE RECOVERY IN IT.
+           *
+           * The post is up; only the comment failed. The two commonest causes
+           * are no @handle (the policy in supabase/032 refuses the insert) and a
+           * network that dropped between the two writes, and the same sentence
+           * covers both because the same action fixes both: go to the thread and
+           * write it. Telling them to publish again would leave two copies of
+           * their system on the feed.
+           */
+          <p className="mb-3 rounded-lg border border-ink-hair bg-paper p-3 text-[12px] leading-relaxed text-ink-soft">
+            <span className="font-bold text-ink">Your system is published and is yours.</span> The
+            comment under the original did not send — most often because there is no @handle on the
+            account yet. Open the thread and post it there; the link below is the one to paste.
+          </p>
+        )}
+
         <div className="flex items-center gap-2">
           <input
             readOnly
@@ -198,8 +292,12 @@ export function PublishDialog({
 
   return (
     <Modal
-      title="Publish this system"
-      subtitle="A snapshot, with its own link. Editing the system afterwards leaves this exactly as it is."
+      title={vary ? 'Offer your variation' : 'Publish this system'}
+      subtitle={
+        vary
+          ? `It goes up as your own system, credited to you, and appears in the thread under ${vary.title || 'the one you started from'}.`
+          : 'A snapshot, with its own link. Editing the system afterwards leaves this exactly as it is.'
+      }
       onClose={onClose}
       footer={
         <div className="flex items-center justify-between gap-3">
@@ -209,7 +307,7 @@ export function PublishDialog({
           <div className="flex items-center gap-2">
             <Button onClick={onClose}>Cancel</Button>
             <Button variant="solid" onClick={() => void publish()} disabled={busy || !title.trim()}>
-              {busy ? 'Publishing' : 'Publish'}
+              {busy ? 'Publishing' : vary ? 'Publish and offer it' : 'Publish'}
             </Button>
           </div>
         </div>
@@ -238,6 +336,26 @@ export function PublishDialog({
           className={`${INPUT} resize-y leading-relaxed`}
         />
       </label>
+
+      {vary && (
+        <label className="mb-4 block">
+          <span className="mb-1.5 block text-[11px] font-bold text-ink-soft">
+            What you changed, for the thread
+          </span>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, 1000))}
+            placeholder="What you moved, and what it fixed. One or two sentences is plenty."
+            rows={3}
+            className={`${INPUT} resize-y leading-relaxed`}
+          />
+          <span className="mt-1.5 block text-[11px] leading-relaxed text-ink-faint">
+            This is the comment that appears under {vary.title || 'the original'}, with your name on
+            it. Leave it empty and it says only that you made a variation, which is worth less to
+            the next coach reading it.
+          </span>
+        </label>
+      )}
 
       {/* ── how it shows up ────────────────────────────────────────────────── */}
 
@@ -298,6 +416,21 @@ export function PublishDialog({
       {/* ── who can see it ─────────────────────────────────────────────────── */}
 
       <p className="mb-1.5 text-[11px] font-bold text-ink-soft">Who can see it</p>
+      {vary ? (
+        /*
+         * Stated, not chosen. See the note on `visibility` above: a variation
+         * that is not public is a card in a public thread that most of its
+         * readers cannot open, and the database refuses it rather than leaving
+         * that to the UI. Saying so here is the honest version of a control that
+         * would have had one option.
+         */
+        <p className="rounded-lg border border-ink-hair bg-paper p-3 text-[12px] leading-relaxed text-ink-soft">
+          <span className="font-bold text-ink">Anybody, once you offer it.</span> A variation sits in
+          a public thread, so it has to be openable by the people reading that thread. If you would
+          rather keep this one to yourself, close this and publish it from your shelf as a link-only
+          system instead — it simply will not appear under ours.
+        </p>
+      ) : (
       <div role="radiogroup" aria-label="Who can see it" className="space-y-2">
         {(
           [
@@ -349,6 +482,7 @@ export function PublishDialog({
           )
         })}
       </div>
+      )}
 
       {/* ── what travels with it ───────────────────────────────────────────── */}
 

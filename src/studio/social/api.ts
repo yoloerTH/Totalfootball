@@ -59,6 +59,16 @@ export interface FeedPost {
   crestPath: string
   /** The reading coach's own reaction, or '' — straight off the feed row. */
   mine: string
+  /**
+   * One of ours: a system that went out as a Total Football video.
+   *
+   * Set only by scripts/publish-official.mjs under the service role, and
+   * defended by a trigger in supabase/032 — a coach cannot award it to their
+   * own post. The card draws the Total Football mark instead of an avatar for
+   * these, which is why it has to be a fact and not a convention about who owns
+   * the row.
+   */
+  official: boolean
 }
 
 function toPost(row: Record<string, unknown>): FeedPost {
@@ -86,6 +96,7 @@ function toPost(row: Record<string, unknown>): FeedPost {
     avatarPath: str('avatar_path'),
     crestPath: str('crest_path'),
     mine: str('mine'),
+    official: row.official === true,
   }
 }
 
@@ -187,6 +198,21 @@ export interface Comment {
   handle: string
   presenter: string
   avatarPath: string
+  /**
+   * A system of the commenter's own, offered as a rework of the one above.
+   *
+   * '' for an ordinary comment. When set it is a public `studio_posts` id owned
+   * by the same coach — a trigger in supabase/032 refuses anything else, so a
+   * reader can follow it without wondering whose work they are about to open.
+   *
+   * THE DOCUMENT IS NOT HERE. A thread with five variations would be a megabyte
+   * of jsonb to draw five cards; the RPC returns the title and the length, and
+   * `loadPost` fetches the board when the card is scrolled into view.
+   */
+  variation: string
+  variationTitle: string
+  variationPhases: number
+  variationReactions: number
 }
 
 export async function loadComments(post: string): Promise<Comment[]> {
@@ -202,17 +228,65 @@ export async function loadComments(post: string): Promise<Comment[]> {
     handle: (row.handle as string) ?? '',
     presenter: (row.presenter as string) ?? '',
     avatarPath: (row.avatar_path as string) ?? '',
+    variation: (row.variation as string) ?? '',
+    variationTitle: (row.variation_title as string) ?? '',
+    variationPhases: typeof row.variation_phases === 'number' ? row.variation_phases : 0,
+    variationReactions:
+      typeof row.variation_reactions === 'number' ? row.variation_reactions : 0,
   }))
 }
 
-export async function addComment(post: string, owner: string, body: string): Promise<boolean> {
+/**
+ * Write a comment, optionally offering one of your own systems with it.
+ *
+ * `variation` is a post id of the commenter's OWN public work. Everything that
+ * could go wrong with it — somebody else's post, an unlisted one, one of ours —
+ * is refused by a trigger in supabase/032 rather than here, so a caller that
+ * forgets to check cannot produce a bad row.
+ *
+ * The RETURN IS NOT A BOOLEAN ANY MORE. It used to be, and a `false` covered
+ * both "the network is down" and "you have no @handle yet", which are the same
+ * word to the reader and completely different sentences to write in the UI. The
+ * identity gate in 032 is a policy, so a coach without a handle gets a row-level
+ * security error from PostgREST, and the composer needs to be able to say so.
+ */
+export type CommentResult = { ok: true } | { ok: false; fault: string; needsIdentity: boolean }
+
+export async function addComment(
+  post: string,
+  owner: string,
+  body: string,
+  variation = '',
+): Promise<CommentResult> {
   const supabase = db()
   const text = body.trim()
-  if (!supabase || !post || !owner || !text) return false
-  const { error } = await supabase
-    .from('studio_comments')
-    .insert({ post, owner, body: text.slice(0, 1000) })
-  return !error
+  if (!supabase || !post || !owner || !text) {
+    return { ok: false, fault: 'Nothing to send.', needsIdentity: false }
+  }
+  const { error } = await supabase.from('studio_comments').insert({
+    post,
+    owner,
+    body: text.slice(0, 1000),
+    // Sent as null rather than '' so the foreign key is absent rather than
+    // pointing at a post that cannot exist.
+    variation: variation || null,
+  })
+  if (!error) return { ok: true }
+
+  /*
+   * 42501 is PostgREST's code for a row the policy refused. On this table there
+   * is exactly one policy and two ways to fail it — no handle, or a post that is
+   * not public — and the second cannot happen from a thread the reader is
+   * looking at. So the identity gate is the honest reading.
+   */
+  const needsIdentity = error.code === '42501'
+  return {
+    ok: false,
+    needsIdentity,
+    fault: needsIdentity
+      ? 'Pick an @handle and a name before you write under somebody else\u2019s system.'
+      : 'That did not send. Try again in a moment.',
+  }
 }
 
 /**
