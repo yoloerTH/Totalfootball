@@ -27,14 +27,14 @@
  * ever again.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Board } from '../board/Board'
 import { PITCH_VIEWS, aspect, resolveViewId, viewFor } from '../board/pitch'
 import type { System } from '../schema'
 import { newSystemId } from '../storage'
 import { templateUrl } from '../share'
 import { STUDIO_EVENTS, track } from '../track'
-import { TEMPLATES, type Template } from '../templates'
+import { KIND_LABEL, TEMPLATES, type Template, type TemplateKind } from '../templates'
 import { resolveAct } from '../tween'
 import { Mark } from '../viewer/Mark'
 import { hydratePrefs } from './prefs'
@@ -855,27 +855,46 @@ function DownToOurs() {
  * systems is exactly the person who might want to see how we do a switch of
  * play, and hiding it once they are "experienced" would be guessing.
  *
- * ── WHY ONE SECTION AND TWO GRIDS ───────────────────────────────────────────
+ * ── WHY ONE SECTION AND THREE GRIDS ─────────────────────────────────────────
  *
  * The official ones are the systems that went out as videos, and they lead,
  * because "this is the actual document that video was made from" is the best
- * sentence on the page. But they are TALLER THAN WIDE and the other five are
- * landscape, and a board must be handed a container of its own `aspect(view)`
- * or it renders straight through the letterbox — Board.tsx says so at length.
- * So they cannot share a row, and a single grid would give one 520px-tall card
- * sitting beside three 230px ones with a field of white underneath them.
+ * sentence on the page. They are then split again, by `kind`, because that is
+ * the first cut a coach makes before they have read a single card: somebody
+ * planning Tuesday's session and somebody preparing for Saturday are not
+ * browsing the same shelf, and one undifferentiated row of ten made them read
+ * all ten to find out which half was theirs. See the note in ../templates.ts.
  *
- * Two grids under one heading is what that constraint leaves, and it turns out
- * to be the more honest layout anyway: the heading can stay "ours" without
- * claiming the five starters were ever published, and the sub-labels say which
- * is which in four words each.
+ * The starters keep the third grid. They were authored as files for the promo
+ * films and never published, so they cannot sit under the official label, and
+ * they are all match systems — which is why that row is not split again.
+ *
+ * THE GRIDS NO LONGER SORT BY SHAPE, and that is the change that made the split
+ * possible. This used to be two grids because the published systems are upright
+ * and the starters are landscape, and a board handed a container that is not its
+ * own `aspect(view)` renders through the letterbox (Board.tsx says so at
+ * length). `TemplateCard` now fits the board inside a fixed square frame instead
+ * — see `CARD_FRAME` — so a row can hold a 0.67 and a 1.5 side by side and the
+ * cards still line up. Which means the grids are free to be sorted by what a
+ * coach is actually looking for.
  */
-const OFFICIAL = TEMPLATES.filter((t) => t.official)
+const OFFICIAL_BY_KIND: { kind: TemplateKind; rows: Template[] }[] = (
+  ['match', 'drill'] as TemplateKind[]
+).map((kind) => ({ kind, rows: TEMPLATES.filter((t) => t.official && t.kind === kind) }))
+const OFFICIAL_COUNT = OFFICIAL_BY_KIND.reduce((n, g) => n + g.rows.length, 0)
 const STARTERS = TEMPLATES.filter((t) => !t.official)
 
-export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
-  const officialToShow = fullPage ? OFFICIAL : OFFICIAL.slice(0, 3)
+/**
+ * How many of each official kind the portal shows before it sends you to
+ * /studio/templates/.
+ *
+ * Three, which is one full row at `lg`. A truncation that leaves a row of two
+ * and a gap reads as a bug rather than as a sample, and the "see all" link
+ * below is the thing carrying the rest.
+ */
+const PREVIEW_PER_KIND = 3
 
+export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
   return (
     <section id="start-from-ours" className="mt-20 scroll-mt-12 border-t border-ink-hair pt-12">
       <h2 className="text-section font-black tracking-display text-ink">Or start from one of ours</h2>
@@ -884,34 +903,38 @@ export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
         rewrite the words, keep what is useful.
       </p>
 
-      {officialToShow.length > 0 && (
-        <>
-          <ShelfLabel
-            branded
-            title="Official — as published on Total Football"
-            note="The documents the videos were rendered from, not a copy of them."
-          />
-          <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {officialToShow.map((t) => (
-              <TemplateCard key={t.id} template={t} />
-            ))}
-          </ul>
-          
-          {!fullPage && OFFICIAL.length > 3 && (
-            <div className="mt-6 flex">
-              <a href="/studio/templates/" className="btn btn-ghost font-semibold">
-                See all {OFFICIAL.length} official systems →
-              </a>
-            </div>
-          )}
-        </>
+      {OFFICIAL_BY_KIND.map(({ kind, rows }) => {
+        if (rows.length === 0) return null
+        const shown = fullPage ? rows : rows.slice(0, PREVIEW_PER_KIND)
+        return (
+          <div key={kind}>
+            <ShelfLabel
+              branded
+              title={`Official ${KIND_LABEL[kind].title.toLowerCase()} — as published on Total Football`}
+              note={KIND_LABEL[kind].note}
+            />
+            <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map((t) => (
+                <TemplateCard key={t.id} template={t} />
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+
+      {!fullPage && OFFICIAL_COUNT > PREVIEW_PER_KIND * OFFICIAL_BY_KIND.length && (
+        <div className="mt-6 flex">
+          <a href="/studio/templates/" className="btn btn-ghost font-semibold">
+            See all {OFFICIAL_COUNT} official systems →
+          </a>
+        </div>
       )}
 
       {STARTERS.length > 0 && (
         <>
           <ShelfLabel
             title="Built for the films"
-            note="Shorter, and a good place to start if you have not used the board before."
+            note="Match systems again, shorter — a good place to start if you have not used the board before."
           />
           <ul className="mt-5 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
             {STARTERS.map((t) => (
@@ -927,17 +950,17 @@ export function OursToStartFrom({ fullPage = false }: { fullPage?: boolean }) {
 /**
  * The line above each of the two grids.
  *
- * Small type, not a second heading level. These separate two rows of the same
- * kind of thing; an <h3> would imply the page has two subjects down here, and
- * it has one — systems of ours — sorted by whether it went out as a film.
+ * Small type, not a second heading level. These separate rows of the same
+ * kind of thing; an <h3> would imply the page has three subjects down here, and
+ * it has one — systems of ours — sorted by what a coach came for.
  *
- * `branded` puts the mark on the official row, and only there. It is the same
+ * `branded` puts the mark on the official rows, and only there. It is the same
  * geometry the end card of every short draws (see ../viewer/Mark), which is the
  * entire reason it earns the space: a coach who has seen the videos recognises
  * it, and recognising it is the claim these two cards are making. Putting it on
  * the second row as well — or up beside the <h2>, where it would cover both
  * grids — would spend that recognition on five systems that were never
- * published, and it would stop meaning anything on the two that were.
+ * published, and it would stop meaning anything on the ones that were.
  *
  * `items-center` rather than baseline: an SVG has no useful baseline, and on a
  * narrow screen the note wraps under the title, where centring the mark against
@@ -967,6 +990,39 @@ function ShelfLabel({
   )
 }
 
+/**
+ * The shape every template thumbnail is drawn into, board-independent.
+ *
+ * A board CANNOT be stretched to fill an arbitrary box: percent coordinates are
+ * measured on the view's crop, so a container of the wrong ratio does not letter
+ * box the picture, it renders through it (Board.tsx). The old card sidestepped
+ * that by giving each one `aspectRatio: aspect(view)` — correct per card, and
+ * the reason the grids had to be sorted by shape, because the registry now spans
+ * 0.67 (`full-vertical`) to 1.5 (`full`) and a row of those is a 520px card
+ * beside a 230px one.
+ *
+ * So the frame is fixed and the BOARD is fitted inside it, keeping its own
+ * ratio. Square, because the registry is spread either side of 1: a 4:3 frame
+ * would leave an upright board sitting in half the card's width, and an upright
+ * frame would do the same to `full`.
+ */
+const CARD_FRAME = 1
+
+/**
+ * The board's box inside that frame, at its own aspect ratio.
+ *
+ * Chosen here rather than left to CSS on purpose. `max-width` and `max-height`
+ * together do not preserve `aspect-ratio` — whichever one bites, the other stays
+ * where it was and the ratio breaks, which for a board means players drawn off
+ * their own grass. Both numbers are known at render time, so the axis that fills
+ * is simply decided: wider than the frame, pin the width; taller, pin the height.
+ */
+function fitInFrame(a: number): CSSProperties {
+  return a >= CARD_FRAME
+    ? { width: '100%', height: 'auto', aspectRatio: a }
+    : { height: '100%', width: 'auto', aspectRatio: a }
+}
+
 function TemplateCard({
   template,
   hideCopyLink,
@@ -989,12 +1045,14 @@ function TemplateCard({
         className="flex flex-1 flex-col no-underline"
         aria-label={`Start from ${system.title}`}
       >
-        <div
-          className="relative w-full overflow-hidden bg-paper"
-          style={{ aspectRatio: aspect(view) }}
-        >
-          <div className="h-full w-full transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]">
-            {first && <Board system={system} act={resolveAct(first)} idp={idp} />}
+        <div className="relative w-full overflow-hidden bg-paper" style={{ aspectRatio: CARD_FRAME }}>
+          <div className="absolute inset-0 grid place-items-center">
+            <div
+              className="transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]"
+              style={fitInFrame(aspect(view))}
+            >
+              {first && <Board system={system} act={resolveAct(first)} idp={idp} />}
+            </div>
           </div>
           {template.official && <OfficialBadge />}
         </div>
