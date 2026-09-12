@@ -207,8 +207,9 @@ export function frameView(view: PitchView, frame: Frame, system?: System): Pitch
    */
   const kept = upright === Boolean(view.vertical)
   const pushBase = kept ? cropRect(view).w : undefined
+  const pushBaseH = kept ? cropRect(view).h : undefined
 
-  return { ...view, vertical: upright, pad, yShift: anchor, pushBase }
+  return { ...view, vertical: upright, pad, yShift: anchor, pushBase, pushBaseH }
 }
 
 /**

@@ -243,6 +243,7 @@ export interface PitchView {
    * compared against.
    */
   pushBase?: number
+  pushBaseH?: number
 }
 
 /* ── THE SESSION AREA, AS THE COACH SIZES IT ─────────────────────────────────

@@ -1,0 +1,4611 @@
+{
+  "v": 1,
+  "acts": [
+    {
+      "id": "act-u6oodx",
+      "ball": {
+        "x": 20,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 1",
+      "arrows": [
+        {
+          "id": "ar-48lk00",
+          "to": {
+            "x": 20,
+            "y": 65
+          },
+          "from": {
+            "x": 20,
+            "y": 35
+          },
+          "kind": "pass",
+          "toId": "u-rcb",
+          "fromId": "u-lcb"
+        },
+        {
+          "id": "ar-huha2n",
+          "to": {
+            "x": 35,
+            "y": 50
+          },
+          "from": {
+            "x": 35,
+            "y": 40
+          },
+          "kind": "run",
+          "fromId": "t-ls"
+        },
+        {
+          "id": "ar-w2l9sv",
+          "to": {
+            "x": 35,
+            "y": 70
+          },
+          "from": {
+            "x": 35,
+            "y": 60
+          },
+          "kind": "run",
+          "fromId": "t-rs"
+        },
+        {
+          "id": "ar-x5orqi",
+          "to": {
+            "x": 45,
+            "y": 50
+          },
+          "from": {
+            "x": 45,
+            "y": 40
+          },
+          "kind": "run",
+          "fromId": "t-lcm"
+        },
+        {
+          "id": "ar-2y65m4",
+          "to": {
+            "x": 45,
+            "y": 70
+          },
+          "from": {
+            "x": 45,
+            "y": 60
+          },
+          "kind": "run",
+          "fromId": "t-rcm"
+        }
+      ],
+      "camera": "off",
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 40,
+          "id": "t-ls",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 40,
+          "id": "t-lcm",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-zeaf3j",
+      "ball": {
+        "x": 20,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 2",
+      "arrows": [
+        {
+          "id": "ar-48lk00",
+          "to": {
+            "x": 20,
+            "y": 65
+          },
+          "from": {
+            "x": 20,
+            "y": 35
+          },
+          "kind": "pass",
+          "toId": "u-rcb",
+          "fromId": "u-lcb"
+        },
+        {
+          "id": "ar-huha2n",
+          "to": {
+            "x": 35,
+            "y": 50
+          },
+          "from": {
+            "x": 35,
+            "y": 40
+          },
+          "kind": "run",
+          "fromId": "t-ls"
+        },
+        {
+          "id": "ar-w2l9sv",
+          "to": {
+            "x": 35,
+            "y": 70
+          },
+          "from": {
+            "x": 35,
+            "y": 60
+          },
+          "kind": "run",
+          "fromId": "t-rs"
+        },
+        {
+          "id": "ar-x5orqi",
+          "to": {
+            "x": 45,
+            "y": 50
+          },
+          "from": {
+            "x": 45,
+            "y": 40
+          },
+          "kind": "run",
+          "fromId": "t-lcm"
+        },
+        {
+          "id": "ar-2y65m4",
+          "to": {
+            "x": 45,
+            "y": 70
+          },
+          "from": {
+            "x": 45,
+            "y": 60
+          },
+          "kind": "run",
+          "fromId": "t-rcm"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 40,
+          "id": "t-ls",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 40,
+          "id": "t-lcm",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-6w7w6u",
+      "ball": {
+        "x": 20,
+        "y": 65
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 65,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 3",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 70,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 70,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-aa8zaq",
+      "ball": {
+        "x": 20,
+        "y": 65
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 65,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 4",
+      "arrows": [
+        {
+          "id": "ar-6ci6ag",
+          "to": {
+            "x": 50,
+            "y": 65
+          },
+          "from": {
+            "x": 20,
+            "y": 65
+          },
+          "kind": "pass",
+          "toId": "u-rcm",
+          "fromId": "u-rcb"
+        },
+        {
+          "id": "ar-ihwykg",
+          "to": {
+            "x": 35,
+            "y": 65
+          },
+          "from": {
+            "x": 50,
+            "y": 65
+          },
+          "kind": "run",
+          "fromId": "u-rcm"
+        },
+        {
+          "id": "ar-h2n70f",
+          "to": {
+            "x": 40,
+            "y": 65
+          },
+          "from": {
+            "x": 45,
+            "y": 70
+          },
+          "kind": "run",
+          "fromId": "t-rcm"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 70,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 70,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-vwpniv",
+      "ball": {
+        "x": 33.404746017624134,
+        "y": 65
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 33.404746017624134,
+          "y": 65,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 5",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 35,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 70,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 40,
+          "y": 65,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-2173si",
+      "ball": {
+        "x": 35,
+        "y": 65
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 35,
+          "y": 65,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [
+        {
+          "x": 44.93442583884087,
+          "y": 90.92305088182961,
+          "id": "tx-2b34k5",
+          "look": "plate",
+          "size": "m",
+          "text": "3. One-touch lay-off (Third Man). The bait worked!",
+          "align": "center",
+          "weight": "bold"
+        }
+      ],
+      "title": "Phase 6",
+      "arrows": [
+        {
+          "id": "ar-4hnub2",
+          "to": {
+            "x": 20,
+            "y": 35
+          },
+          "from": {
+            "x": 35,
+            "y": 65
+          },
+          "kind": "pass",
+          "toId": "u-lcb",
+          "fromId": "u-rcm"
+        },
+        {
+          "id": "ar-g4bn5h",
+          "to": {
+            "x": 50,
+            "y": 65
+          },
+          "from": {
+            "x": 35,
+            "y": 65
+          },
+          "kind": "run",
+          "fromId": "u-rcm"
+        },
+        {
+          "id": "ar-9lgx7r",
+          "to": {
+            "x": 45,
+            "y": 60
+          },
+          "from": {
+            "x": 40,
+            "y": 65
+          },
+          "kind": "run",
+          "fromId": "t-rcm"
+        },
+        {
+          "id": "ar-ew7c24",
+          "to": {
+            "x": 35,
+            "y": 60
+          },
+          "from": {
+            "x": 35,
+            "y": 70
+          },
+          "kind": "run",
+          "fromId": "t-rs"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 35,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 70,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 40,
+          "y": 65,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-3upiea",
+      "ball": {
+        "x": 20,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-e0g4lo",
+          "kind": "danger",
+          "rect": {
+            "x": 40,
+            "y": 55,
+            "w": 15,
+            "h": 15
+          },
+          "tone": "gold",
+          "label": "VACATED SPACE"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 7",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": "4. LCB fires a line-breaking pass through the EXACT space vacated by the pressing midfielder!"
+    },
+    {
+      "id": "act-e4klvc",
+      "ball": {
+        "x": 20,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-e0g4lo",
+          "kind": "danger",
+          "rect": {
+            "x": 40,
+            "y": 55,
+            "w": 15,
+            "h": 15
+          },
+          "tone": "gold",
+          "label": "VACATED SPACE"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 8",
+      "arrows": [
+        {
+          "id": "ar-bqk7pa",
+          "to": {
+            "x": 80,
+            "y": 50
+          },
+          "from": {
+            "x": 20,
+            "y": 35
+          },
+          "kind": "pass",
+          "toId": "u-cf",
+          "fromId": "u-lcb"
+        },
+        {
+          "id": "ar-xcfl9z",
+          "to": {
+            "x": 55,
+            "y": 50
+          },
+          "from": {
+            "x": 80,
+            "y": 50
+          },
+          "kind": "run",
+          "fromId": "u-cf"
+        },
+        {
+          "id": "ar-viqbqq",
+          "to": {
+            "x": 55,
+            "y": 45
+          },
+          "from": {
+            "x": 65,
+            "y": 40
+          },
+          "kind": "run",
+          "fromId": "t-lcb"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 80,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-okonhw",
+      "ball": {
+        "x": 52.56526965768515,
+        "y": 50
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 52.56526965768515,
+          "y": 50,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 9",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 55,
+          "y": 45,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-3zv72b",
+      "ball": {
+        "x": 55,
+        "y": 50
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 55,
+          "y": 50,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 10",
+      "arrows": [
+        {
+          "id": "ar-kobnkv",
+          "to": {
+            "x": 50,
+            "y": 35
+          },
+          "from": {
+            "x": 55,
+            "y": 50
+          },
+          "kind": "pass",
+          "toId": "u-lcm",
+          "fromId": "u-cf"
+        },
+        {
+          "id": "ar-ku727c",
+          "to": {
+            "x": 55,
+            "y": 35
+          },
+          "from": {
+            "x": 50,
+            "y": 35
+          },
+          "kind": "run",
+          "fromId": "u-lcm"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 50,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 55,
+          "y": 45,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-gd12ow",
+      "ball": {
+        "x": 56.344581426876815,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 56.344581426876815,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 11",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 55,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 55,
+          "y": 45,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-f2ev0k",
+      "ball": {
+        "x": 55,
+        "y": 35
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 55,
+          "y": 35,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 12",
+      "arrows": [
+        {
+          "id": "ar-4d4p7u",
+          "to": {
+            "x": 80,
+            "y": 20
+          },
+          "from": {
+            "x": 55,
+            "y": 35
+          },
+          "kind": "pass",
+          "toId": "u-lw",
+          "fromId": "u-lcm"
+        },
+        {
+          "id": "ar-stoukd",
+          "to": {
+            "x": 85,
+            "y": 20
+          },
+          "from": {
+            "x": 80,
+            "y": 20
+          },
+          "kind": "run",
+          "fromId": "u-lw"
+        },
+        {
+          "id": "ar-5l9y02",
+          "to": {
+            "x": 65,
+            "y": 40
+          },
+          "from": {
+            "x": 55,
+            "y": 45
+          },
+          "kind": "run",
+          "fromId": "t-lcb"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 55,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 80,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 55,
+          "y": 45,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-tdak4e",
+      "ball": {
+        "x": 84.36900260549058,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 84.36900260549058,
+          "y": 20,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 13",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 55,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 85,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": "7. The cutback is intercepted by the recovering Red CB!"
+    },
+    {
+      "id": "act-h5m6wl",
+      "ball": {
+        "x": 85,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 65,
+          "y": 60,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 14",
+      "arrows": [
+        {
+          "id": "ar-2pbhx5",
+          "to": {
+            "x": 55,
+            "y": 50
+          },
+          "from": {
+            "x": 85,
+            "y": 20
+          },
+          "kind": "pass",
+          "toId": "u-cf",
+          "fromId": "u-lw",
+          "opacity": 0
+        },
+        {
+          "id": "ar-yt8mth",
+          "to": {
+            "x": 85,
+            "y": 50
+          },
+          "from": {
+            "x": 55,
+            "y": 50
+          },
+          "kind": "run",
+          "fromId": "u-cf"
+        },
+        {
+          "id": "ar-shxkgx",
+          "to": {
+            "x": 75,
+            "y": 50
+          },
+          "from": {
+            "x": 65,
+            "y": 60
+          },
+          "kind": "run",
+          "fromId": "t-rcb"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 55,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 85,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-3mns39",
+      "ball": {
+        "x": 85,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 65,
+          "y": 60,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-5r76ku",
+          "kind": "danger",
+          "rect": {
+            "x": 55,
+            "y": 50,
+            "w": 20,
+            "h": 20
+          },
+          "tone": "red",
+          "label": "TRAP"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-q9xjug",
+          "x": 50,
+          "y": 95,
+          "text": "8. THE COUNTER-PRESS",
+          "size": "m",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold",
+          "tone": "gold"
+        }
+      ],
+      "title": "Phase 15",
+      "arrows": [
+        {
+          "id": "ar-czqyu2",
+          "kind": "run",
+          "from": {
+            "x": 55,
+            "y": 50
+          },
+          "to": {
+            "x": 63.348169568071945,
+            "y": 62.74244062346724
+          },
+          "fromId": "u-cf"
+        },
+        {
+          "id": "ar-6sq1hm",
+          "kind": "run",
+          "from": {
+            "x": 85,
+            "y": 20
+          },
+          "to": {
+            "x": 63.44865506699,
+            "y": 61.97185114085552
+          },
+          "fromId": "u-lw"
+        },
+        {
+          "id": "ar-edcvq2",
+          "kind": "run",
+          "from": {
+            "x": 55,
+            "y": 35
+          },
+          "to": {
+            "x": 64.51258508654425,
+            "y": 59.936292993374735
+          },
+          "fromId": "u-lcm"
+        }
+      ],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 55,
+          "y": 35,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 85,
+          "y": 20,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 55,
+          "y": 50,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": "8. GUARDIOLA'S 5-SECOND RULE: Immediate counter-press. The team swarms the ball carrier!"
+    },
+    {
+      "id": "act-fblodw",
+      "ball": {
+        "x": 85,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 65,
+          "y": 60,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-5r76ku",
+          "kind": "danger",
+          "rect": {
+            "x": 55,
+            "y": 50,
+            "w": 20,
+            "h": 20
+          },
+          "tone": "red",
+          "label": "TRAP"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 16",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 64.51258508654425,
+          "y": 59.936292993374735,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 63.44865506699,
+          "y": 61.97185114085552,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 63.348169568071945,
+          "y": 62.74244062346724,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    },
+    {
+      "id": "act-42061b",
+      "ball": {
+        "x": 85,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 63.348169568071945,
+          "y": 62.74244062346724,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-5r76ku",
+          "kind": "danger",
+          "rect": {
+            "x": 55,
+            "y": 50,
+            "w": 20,
+            "h": 20
+          },
+          "tone": "red",
+          "label": "TRAP"
+        }
+      ],
+      "texts": [
+        {
+          "id": "tx-iftfie",
+          "x": 50,
+          "y": 95,
+          "text": "9. RECOVERY!",
+          "size": "m",
+          "look": "plate",
+          "align": "center",
+          "weight": "bold",
+          "tone": "gold"
+        }
+      ],
+      "title": "Phase 17",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 64.51258508654425,
+          "y": 59.936292993374735,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 63.44865506699,
+          "y": 61.97185114085552,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 63.348169568071945,
+          "y": 62.74244062346724,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": "9. Ball recovered in the dangerous area!"
+    },
+    {
+      "id": "act-sgfdat",
+      "ball": {
+        "x": 85,
+        "y": 20
+      },
+      "gear": [
+        {
+          "x": 8.080886714116252,
+          "y": 12.366101567406314,
+          "id": "gr-126v6v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 8.080886714116252,
+          "y": 80,
+          "id": "gear-94urzh",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 80,
+          "id": "gear-daz1jm",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 37.743888747669885,
+          "y": 12.366101567406314,
+          "id": "gear-f70awf",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 12.366101567406314,
+          "id": "gear-49oz1i",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 67.92809481443823,
+          "y": 80,
+          "id": "gear-bimdi0",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 80,
+          "id": "gear-4n1n9v",
+          "kind": "pole",
+          "size": 1.95
+        },
+        {
+          "x": 97.67437192848666,
+          "y": 12.366101567406314,
+          "id": "gear-mc0frz",
+          "kind": "pole",
+          "size": 1.95
+        }
+      ],
+      "balls": [
+        {
+          "x": 63.348169568071945,
+          "y": 62.74244062346724,
+          "id": "ball-1"
+        }
+      ],
+      "bands": [
+        {
+          "id": "zone-1",
+          "kind": "zone",
+          "rect": {
+            "h": 70.00000000000001,
+            "w": 30.000000000000007,
+            "x": 7.71944109049314,
+            "y": 15.74379432044169
+          },
+          "tone": "blue",
+          "label": "Build-Up"
+        },
+        {
+          "id": "zone-2",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.999999999999986,
+            "x": 37.90803465514321,
+            "y": 15.535030321069708
+          },
+          "tone": "orange",
+          "label": "Midfield (The Press)"
+        },
+        {
+          "id": "zone-3",
+          "kind": "zone",
+          "rect": {
+            "h": 70,
+            "w": 29.99999999999997,
+            "x": 68.12748898491783,
+            "y": 15.43594306049824
+          },
+          "tone": "red",
+          "label": "Final Third (Exploit)"
+        },
+        {
+          "id": "bd-5r76ku",
+          "kind": "danger",
+          "rect": {
+            "x": 55,
+            "y": 50,
+            "w": 20,
+            "h": 20
+          },
+          "tone": "red",
+          "label": "TRAP"
+        }
+      ],
+      "texts": [],
+      "title": "Phase 18",
+      "arrows": [],
+      "tokens": [
+        {
+          "x": 20,
+          "y": 35,
+          "id": "u-lcb",
+          "side": "us",
+          "label": "LCB"
+        },
+        {
+          "x": 20,
+          "y": 65,
+          "id": "u-rcb",
+          "side": "us",
+          "label": "RCB"
+        },
+        {
+          "x": 64.51258508654425,
+          "y": 59.936292993374735,
+          "id": "u-lcm",
+          "side": "us",
+          "label": "LCM"
+        },
+        {
+          "x": 50,
+          "y": 65,
+          "id": "u-rcm",
+          "side": "us",
+          "label": "RCM"
+        },
+        {
+          "x": 63.44865506699,
+          "y": 61.97185114085552,
+          "id": "u-lw",
+          "side": "us",
+          "label": "LW"
+        },
+        {
+          "x": 80,
+          "y": 80,
+          "id": "u-rw",
+          "side": "us",
+          "label": "RW"
+        },
+        {
+          "x": 63.348169568071945,
+          "y": 62.74244062346724,
+          "id": "u-cf",
+          "side": "us",
+          "label": "CF"
+        },
+        {
+          "x": 35,
+          "y": 50,
+          "id": "t-ls",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "9"
+        },
+        {
+          "x": 35,
+          "y": 60,
+          "id": "t-rs",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "10"
+        },
+        {
+          "x": 45,
+          "y": 20,
+          "id": "t-lm",
+          "side": "them",
+          "label": "LM"
+        },
+        {
+          "x": 45,
+          "y": 50,
+          "id": "t-lcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 60,
+          "id": "t-rcm",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CM"
+        },
+        {
+          "x": 45,
+          "y": 80,
+          "id": "t-rm",
+          "side": "them",
+          "label": "RM"
+        },
+        {
+          "x": 65,
+          "y": 40,
+          "id": "t-lcb",
+          "cue": "PRESS",
+          "side": "them",
+          "label": "CB"
+        },
+        {
+          "x": 65,
+          "y": 60,
+          "id": "t-rcb",
+          "side": "them",
+          "label": "CB"
+        }
+      ],
+      "caption": ""
+    }
+  ],
+  "hold": 0,
+  "move": 1100,
+  "pitch": "full",
+  "teams": {
+    "us": {
+      "alt": "#FFFFFF",
+      "base": "#ffffff",
+      "deep": "#c7c7c7",
+      "name": "Academy",
+      "text": "#161618",
+      "pattern": "stripes"
+    },
+    "them": {
+      "base": "#E2473B",
+      "deep": "#B5392F",
+      "name": "Opposition Block",
+      "text": "#FFFFFF"
+    }
+  },
+  "title": "Tactical Drill: Manipulating the Block",
+  "camera": "follow",
+  "surface": "night",
+  "subtitle": "Baiting the press to open passing lanes",
+  "matchBall": "brazuca",
+  "pitchLines": []
+}

@@ -348,12 +348,10 @@ export function referenceBallId(acts: Act[], index: number): string | null {
  * (a preview, one mid-insert) falls back to reading its own field, which is the
  * only honest answer available without the film around it.
  *
- * ONE BALL ON THE PHASE STILL WINS ON ITS OWN. That is what every document did
- * before any of this existed and it must not need a choice to keep doing it. It
- * is also the graceful answer when the chosen ball is not on this phase — the
- * coach picked one that has since been taken off, or one that only appears
- * later — because following the only ball there is beats a camera that silently
- * gives up on a phase with an obvious subject.
+ * ONE BALL ON THE PHASE NO LONGER WINS ON ITS OWN. The coach must explicitly
+ * choose to track a ball for it to be followed. This prevents unexpected camera
+ * movement when the coach leaves the camera on 'Follow the ball' but does not
+ * explicitly assign a ball to track.
  */
 export function trackedBall(system: System, act: Act): BallMark | null {
   const balls = ballsOf(act)
@@ -366,7 +364,7 @@ export function trackedBall(system: System, act: Act): BallMark | null {
     if (hit) return hit
   }
 
-  return balls.length === 1 ? balls[0] : null
+  return null
 }
 
 /**
@@ -460,25 +458,14 @@ export function shotFor(system: System, act: Act, view: PitchView): Shot | null 
   if (act.shot) return act.shot
   if (mode === 'manual') return cropRect(view)
   /*
-   * SEVERAL BALLS MEANS THE COACH DRIVES, UNTIL THE COACH NAMES ONE.
+   * ANY BALLS WITH NOTHING NAMED MEANS THE CAMERA GOES WIDE.
    *
-   * A camera that follows the ball needs there to be a ball to follow. Put six
-   * out for a rondo and there is no answer to "which one" that the tool can
-   * work out for itself: framing the box that holds them all is the whole pitch
-   * again, and picking one for them is the tool deciding what the phase is
-   * about on a phase where the coach has said it is about all of them.
-   *
-   * So it hands the frame back — unless the coach has said which one, which is
-   * what `trackedBall` reads. Then there IS an answer to "which one", it is
-   * theirs, and the camera follows it exactly as it follows a lone ball.
-   *
-   * With several balls and nothing named, `act.shot` above is the frame a coach
-   * drew and it is the only thing that will move the camera — which is what
-   * manual means. With none drawn the phase plays wide, and wide is the honest
-   * picture of a drill with balls all over it.
+   * A camera that follows the ball needs a choice of which ball to follow.
+   * If there is a ball but the coach has not tracked it, the tool does not
+   * guess whether to track the ball or the shape. It stays wide.
    */
   const tracked = trackedBall(system, act)
-  if (ballsOf(act).length > 1 && !tracked) return null
+  if (ballsOf(act).length > 0 && !tracked) return null
 
   const pts = interest(act, tracked)
   /*
@@ -633,8 +620,8 @@ export function cameraRect(
   if (aspect < 1) {
     // For portrait videos, bounding the width forces the height to be huge,
     // which effectively makes the camera static vertically. Bound the height 
-    // instead, using pushBase as the dominant dimension reference.
-    const boundH = view.pushBase ?? crop.h
+    // instead, using pushBaseH as the dominant dimension reference.
+    const boundH = view.pushBaseH ?? crop.h
     let h = w / aspect
     h = Math.min(Math.max(h, boundH * push.tightest), boundH * push.widest, crop.h)
     w = h * aspect

@@ -4685,7 +4685,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
   const reference = referenceBallChoice(system.acts, actIndex)
   const referenceHere = reference.id ? (ballsHere.find((b) => b.id === reference.id) ?? null) : null
   const chosenOnThisPhase = act.trackingBallId !== undefined
-  const canChooseBall = phaseCamera === 'follow' && ballsHere.length > 1
+  const canChooseBall = phaseCamera === 'follow' && ballsHere.length > 0
   /*
    * Whether the board already wears the profile's kit.
    *

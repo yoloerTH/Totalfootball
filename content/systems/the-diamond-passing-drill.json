@@ -1,0 +1,341 @@
+{
+  "v": 1,
+  "title": "The Diamond Passing Drill",
+  "subtitle": "Pass, Move, Combine, Finish — The Complete Attacking Pattern",
+  "pitch": "attacking-half",
+  "matchBall": "training",
+  "surface": "night",
+  "camera": "follow",
+  "hold": 200,
+  "move": 1100,
+  "push": "standard",
+  "keepShape": true,
+  "tokenSize": 0.65,
+  "matchBallSize": 0.7,
+  "teams": {
+    "us": { "name": "Academy", "base": "#0057B8", "deep": "#003A7A", "text": "#FFFFFF" },
+    "them": null
+  },
+  "acts": [
+    {
+      "id": "act-setup",
+      "title": "The Diamond Setup",
+      "caption": "Four cones form the diamond. Players at each station. Two mini-goals as targets.",
+      "ball": { "x": 20, "y": 50 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 20, "y": 50, "id": "ball" },
+        { "x": 17, "y": 46, "id": "ball-q1" },
+        { "x": 17, "y": 54, "id": "ball-q2" },
+        { "x": 14, "y": 50, "id": "ball-q3" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [],
+      "tokens": [
+        { "x": 20, "y": 50, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 17, "y": 46, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 40, "y": 28, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 40, "y": 72, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 60, "y": 50, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Four cones form the diamond. Players at each station. Two mini-goals as targets."
+    },
+    {
+      "id": "act-pass1",
+      "title": "Phase 1: Start the pattern",
+      "caption": "Player 1 passes to the left wing of the diamond. Firm, into feet.",
+      "ball": { "x": 40, "y": 28 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 40, "y": 28, "id": "ball" },
+        { "x": 17, "y": 54, "id": "ball-q2" },
+        { "x": 14, "y": 50, "id": "ball-q3" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-1", "kind": "pass", "from": { "x": 20, "y": 50 }, "to": { "x": 40, "y": 28 }, "fromId": "us-A", "toId": "us-B", "opacity": 0.5 }
+      ],
+      "tokens": [
+        { "x": 22, "y": 50, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 17, "y": 46, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 40, "y": 28, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 40, "y": 72, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 60, "y": 50, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 1 passes to the left wing of the diamond. Firm, into feet."
+    },
+    {
+      "id": "act-pass2",
+      "title": "Phase 2: One touch to the top",
+      "caption": "Player 3 opens his body and plays first time to the top of the diamond. 1 follows his pass.",
+      "ball": { "x": 60, "y": 50 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 60, "y": 50, "id": "ball" },
+        { "x": 14, "y": 50, "id": "ball-q3" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-2", "kind": "pass", "from": { "x": 40, "y": 28 }, "to": { "x": 60, "y": 50 }, "fromId": "us-B", "toId": "us-D", "opacity": 0.5 },
+        { "id": "ar-2r", "kind": "run", "from": { "x": 22, "y": 50 }, "to": { "x": 40, "y": 28 }, "fromId": "us-A", "opacity": 0 }
+      ],
+      "tokens": [
+        { "x": 32, "y": 38, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 17, "y": 46, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 40, "y": 28, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 40, "y": 72, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 60, "y": 50, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 3 opens his body and plays first time to the top of the diamond. 1 follows his pass."
+    },
+    {
+      "id": "act-layoff",
+      "title": "Phase 3: Layoff",
+      "caption": "Player 5 at the top sets it back. Player 3 peels wide right. The pattern opens.",
+      "ball": { "x": 52, "y": 42 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 52, "y": 42, "id": "ball" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-3", "kind": "pass", "from": { "x": 60, "y": 50 }, "to": { "x": 52, "y": 42 }, "fromId": "us-D", "opacity": 0.5 },
+        { "id": "ar-3r", "kind": "run", "from": { "x": 40, "y": 28 }, "to": { "x": 55, "y": 24 }, "fromId": "us-B", "opacity": 0 }
+      ],
+      "tokens": [
+        { "x": 40, "y": 28, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 48, "y": 26, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 40, "y": 72, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 62, "y": 50, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 5 at the top sets it back. Player 3 peels wide right. The pattern opens."
+    },
+    {
+      "id": "act-switch",
+      "title": "Phase 4: Switch through the diamond",
+      "caption": "Player 1 switches play to the right side of the diamond. The ball crosses the shape.",
+      "ball": { "x": 40, "y": 72 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 40, "y": 72, "id": "ball" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-4", "kind": "pass", "from": { "x": 40, "y": 28 }, "to": { "x": 40, "y": 72 }, "fromId": "us-A", "toId": "us-C", "opacity": 0.5, "bend": 0.3 },
+        { "id": "ar-4r", "kind": "run", "from": { "x": 62, "y": 50 }, "to": { "x": 70, "y": 38 }, "fromId": "us-D", "opacity": 0 }
+      ],
+      "tokens": [
+        { "x": 40, "y": 28, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 55, "y": 24, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 40, "y": 72, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 66, "y": 44, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 1 switches play to the right side of the diamond. The ball crosses the shape."
+    },
+    {
+      "id": "act-wall",
+      "title": "Phase 5: Wall pass at the top",
+      "caption": "Player 4 plays a wall pass with 5. One-two, sharp and quick around the poles.",
+      "ball": { "x": 66, "y": 44 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 66, "y": 44, "id": "ball" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-5a", "kind": "pass", "from": { "x": 40, "y": 72 }, "to": { "x": 60, "y": 54 }, "fromId": "us-C", "toId": "us-D", "opacity": 0.5 },
+        { "id": "ar-5b", "kind": "pass", "from": { "x": 60, "y": 54 }, "to": { "x": 66, "y": 44 }, "opacity": 0.5 },
+        { "id": "ar-5r", "kind": "run", "from": { "x": 40, "y": 72 }, "to": { "x": 60, "y": 66 }, "fromId": "us-C", "opacity": 0 }
+      ],
+      "tokens": [
+        { "x": 40, "y": 28, "id": "us-A", "side": "us", "label": "1", "dim": true },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2", "dim": true },
+        { "x": 60, "y": 24, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 52, "y": 66, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 66, "y": 44, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 4 plays a wall pass with 5. One-two, sharp and quick around the poles."
+    },
+    {
+      "id": "act-final-pass",
+      "title": "Phase 6: Into the striker",
+      "caption": "Player 5 threads a pass to 6. Player 3 makes a near-post run, 4 goes far post.",
+      "ball": { "x": 75, "y": 50 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 75, "y": 50, "id": "ball" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-6", "kind": "pass", "from": { "x": 66, "y": 44 }, "to": { "x": 75, "y": 50 }, "fromId": "us-D", "toId": "us-F", "opacity": 0.5 },
+        { "id": "ar-6r1", "kind": "run", "from": { "x": 60, "y": 24 }, "to": { "x": 82, "y": 32 }, "fromId": "us-B", "opacity": 0 },
+        { "id": "ar-6r2", "kind": "run", "from": { "x": 52, "y": 66 }, "to": { "x": 82, "y": 68 }, "fromId": "us-C", "opacity": 0 }
+      ],
+      "tokens": [
+        { "x": 40, "y": 28, "id": "us-A", "side": "us", "label": "1", "dim": true },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2", "dim": true },
+        { "x": 72, "y": 28, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 66, "y": 68, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 68, "y": 44, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 5 threads a pass to 6. Player 3 makes a near-post run, 4 goes far post."
+    },
+    {
+      "id": "act-finish",
+      "title": "Phase 7: The Finish",
+      "caption": "Player 6 lays it off. Player 3 arrives at the near-post mini-goal — first-time finish.",
+      "ball": { "x": 85, "y": 35 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 85, "y": 35, "id": "ball" }
+      ],
+      "bands": [
+        { "id": "bd-finish", "kind": "danger", "rect": { "x": 72, "y": 22, "w": 26, "h": 28 } }
+      ],
+      "texts": [],
+      "arrows": [
+        { "id": "ar-7a", "kind": "pass", "from": { "x": 75, "y": 50 }, "to": { "x": 80, "y": 35 }, "fromId": "us-F", "opacity": 0.5 },
+        { "id": "ar-7b", "kind": "pass", "from": { "x": 82, "y": 32 }, "to": { "x": 85, "y": 35 }, "opacity": 0.5 }
+      ],
+      "tokens": [
+        { "x": 40, "y": 28, "id": "us-A", "side": "us", "label": "1", "dim": true },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2", "dim": true },
+        { "x": 82, "y": 32, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 82, "y": 68, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 70, "y": 44, "id": "us-D", "side": "us", "label": "5", "dim": true },
+        { "x": 78, "y": 48, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Player 6 lays it off. Player 3 arrives at the near-post mini-goal — first-time finish."
+    },
+    {
+      "id": "act-reset",
+      "title": "Phase 8: Reset and rotate",
+      "caption": "Everyone jogs back. Player 2 starts the next cycle. Same pattern, opposite side next.",
+      "ball": { "x": 20, "y": 50 },
+      "gear": [
+        { "x": 20, "y": 50, "id": "gr-bottom", "kind": "marker-cone" },
+        { "x": 40, "y": 28, "id": "gr-left", "kind": "marker-cone" },
+        { "x": 40, "y": 72, "id": "gr-right", "kind": "marker-cone" },
+        { "x": 60, "y": 50, "id": "gr-top", "kind": "marker-cone" },
+        { "x": 50, "y": 38, "id": "gr-pole1", "kind": "pole", "size": 1.6 },
+        { "x": 50, "y": 62, "id": "gr-pole2", "kind": "pole", "size": 1.6 },
+        { "x": 85, "y": 35, "id": "gr-goal-l", "kind": "mini-goal", "size": 0.65, "angle": 0 },
+        { "x": 85, "y": 65, "id": "gr-goal-r", "kind": "mini-goal", "size": 0.65, "angle": 0 }
+      ],
+      "shot": { "h": 100, "w": 100, "x": 50, "y": 50 },
+      "balls": [
+        { "x": 20, "y": 50, "id": "ball" },
+        { "x": 17, "y": 46, "id": "ball-q1" },
+        { "x": 17, "y": 54, "id": "ball-q2" }
+      ],
+      "bands": [],
+      "texts": [],
+      "arrows": [],
+      "tokens": [
+        { "x": 40, "y": 72, "id": "us-A", "side": "us", "label": "1" },
+        { "x": 20, "y": 50, "id": "us-A2", "side": "us", "label": "2" },
+        { "x": 40, "y": 28, "id": "us-B", "side": "us", "label": "3" },
+        { "x": 60, "y": 50, "id": "us-C", "side": "us", "label": "4" },
+        { "x": 17, "y": 46, "id": "us-D", "side": "us", "label": "5" },
+        { "x": 75, "y": 50, "id": "us-F", "side": "us", "label": "6" }
+      ],
+      "caption": "Everyone jogs back. Player 2 starts the next cycle. Same pattern, opposite side next."
+    }
+  ]
+}
