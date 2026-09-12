@@ -163,7 +163,7 @@ const expectOn = (group, system, i, want) => {
 /* ── 6 · a chosen ball that is not on the phase ────────────────────────────
  * Two balls and the chosen one gone: wide, because guessing between the two
  * left is the tool deciding what the phase is about. One ball and the chosen
- * one gone: that ball, because there is nothing to guess between.
+ * one gone: wide, because automatic tracking of a lone ball was removed.
  */
 {
   const s = film(3, { 0: 'A' })
@@ -171,17 +171,17 @@ const expectOn = (group, system, i, want) => {
   s.acts[2] = { ...s.acts[2], ...ballFields(ballsOf(s.acts[2]).filter((b) => b.id !== 'A' && b.id !== 'C')) }
   expectOn('chosen ball gone', s, 0, 'A')
   expectOn('chosen ball gone', s, 1, null)
-  expectOn('chosen ball gone', s, 2, 'B')
+  expectOn('chosen ball gone', s, 2, null)
 }
 
-/* ── 7 · one ball needs no choice ──────────────────────────────────────────
- * Every document written before this feature existed is this case, and it must
- * not have moved by a pixel.
+/* ── 7 · lone ball without explicit choice ──────────────────────────────────
+ * A phase with a single ball and no explicit tracking choice now goes wide,
+ * per user request to stop unexpected tracking.
  */
 {
   const s = { ...film(2), acts: [act('p1', ['A']), act('p2', ['A'])] }
   s.camera = 'follow'
-  for (let i = 0; i < 2; i++) expectOn('lone ball', s, i, 'A')
+  for (let i = 0; i < 2; i++) expectOn('lone ball', s, i, null)
 }
 
 /* ── 8 · a phase pinned off is off, chosen ball or not ─────────────────────── */
