@@ -64,6 +64,16 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'empty-grass-training-canvas',
+    date: '2026-09-13',
+    kind: 'new',
+    title: 'Empty grass for custom training areas',
+    body: 'Coaches building complex, non-rectangular drills (like Y-drills or passing circuits) no longer have to work inside a rectangular bounding box. On the Training grid, you can now toggle off the boundaries and inner markings to reveal a perfectly blank patch of grass. The camera and tokens stay physically scaled to whatever dimensions you set, so 10 metres is still 10 metres, but the pitch itself is yours to mark out.',
+    where: 'Empty grass (no borders), under Area settings on a Training grid',
+    ctaText: 'Show me where',
+    ctaAction: 'show-empty-grass',
+  },
+  {
     id: 'official-threads-variations',
     date: '2026-09-12',
     kind: 'new',

@@ -233,6 +233,7 @@ import { FeedbackDialog } from './FeedbackDialog'
 import { PrintSheet } from '../viewer/PrintSheet'
 import { PaceField } from './PaceField'
 import { NewsBell } from './WhatsNew'
+import { show } from './spotlight'
 import {
   Button,
   ColorWell,
@@ -3893,6 +3894,21 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
     seal()
   }
 
+  useEffect(() => {
+    const handleEmptyGrass = () => {
+      setNews(false)
+      if (system.pitch !== 'training') setPitch('training')
+      
+      show({
+        drawer: DRAWER.board,
+        anchor: 'emptyGrass',
+        name: 'Empty grass'
+      })
+    }
+    window.addEventListener('show-empty-grass', handleEmptyGrass)
+    return () => window.removeEventListener('show-empty-grass', handleEmptyGrass)
+  }, [setNews, setPitch, system.pitch])
+
   const setTeamColor = (side: Side, base: string) => {
     edit(`colour:${side}`, (s) => ({
       ...s,
@@ -6050,6 +6066,16 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
                   seal()
                 }}
               />
+              <div data-help="emptyGrass">
+                <Toggle
+                  label="Empty grass (no borders)"
+                  checked={Boolean((system.area ?? DEFAULT_AREA).blank)}
+                  onChange={(v) => {
+                    setArea({ ...(system.area ?? DEFAULT_AREA), blank: v || undefined }, 'area:blank')
+                    seal()
+                  }}
+                />
+              </div>
             </div>
             {(system.area ?? DEFAULT_AREA).cells && (
               <>

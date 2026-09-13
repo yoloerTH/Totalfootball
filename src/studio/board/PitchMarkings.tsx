@@ -69,6 +69,8 @@ function Area({ a, p, weight }: { a: TrainingArea; p: BoardPalette; weight: numb
     }
   }
 
+  if (a.blank) return <g />
+
   return (
     <g fill="none" stroke={p.line} strokeWidth={weight} strokeLinecap="square">
       {/* the cones themselves: the one edge that means anything */}

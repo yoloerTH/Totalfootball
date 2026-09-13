@@ -89,6 +89,8 @@ export interface TrainingArea {
   middle?: number
   /** Ruled into cells: divisions along the length, divisions across the width. */
   cells?: { along: number; across: number }
+  /** True if the area border and inner markings should be completely invisible. */
+  blank?: boolean
 }
 
 export type PitchViewId =
@@ -271,6 +273,8 @@ export interface SessionArea {
   middle?: boolean
   /** Ruled into cells: divisions along the length, divisions across the width. */
   cells?: { along: number; across: number }
+  /** Turn off the border and inner markings for a completely empty patch of grass. */
+  blank?: boolean
 }
 
 /**
@@ -285,8 +289,8 @@ export interface SessionArea {
 export const AREA_MIN = { length: 8, width: 8 } as const
 export const AREA_MAX = { length: 95, width: 60 } as const
 
-/** The grid a new training board starts on: the standard possession grid. */
-export const DEFAULT_AREA: SessionArea = { length: 30, width: 20, middle: true }
+/** The grid a new training board starts on: a large area by default. */
+export const DEFAULT_AREA: SessionArea = { length: 60, width: 40 }
 
 /**
  * Spare grass between the cones and the edge of the board, in metres.
@@ -882,7 +886,7 @@ export function areaBand(v: PitchView, axis: 'x' | 'y'): [number, number] {
 export function trainingView(a: SessionArea): PitchView {
   const length = Math.min(AREA_MAX.length, Math.max(AREA_MIN.length, a.length))
   const width = Math.min(AREA_MAX.width, Math.max(AREA_MIN.width, a.width))
-  const key = JSON.stringify([length, width, a.halfway, a.ends, a.middle, a.cells])
+  const key = JSON.stringify([length, width, a.halfway, a.ends, a.middle, a.cells, a.blank])
   const hit = TRAINING_CACHE.get(key)
   if (hit) return hit
 
@@ -940,6 +944,7 @@ export function trainingView(a: SessionArea): PitchView {
       ...(a.ends ? { box: { depth: t1(length * 0.15), width: t1(width * 0.53) } } : {}),
       ...(a.middle ? { middle: t1(short * 0.4) } : {}),
       ...(a.cells ? { cells: a.cells } : {}),
+      ...(a.blank ? { blank: true } : {}),
     },
     // A metre in off each side, so a counter at the end of a full row is not
     // drawn half off the board.
