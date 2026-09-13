@@ -107,6 +107,7 @@ import {
   pushChoice,
   referenceBallChoice,
   resolveCamera,
+  trackedBall,
   viewMetres,
   type CameraMode,
   type CameraPush,
@@ -4707,7 +4708,10 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
   const reference = referenceBallChoice(system.acts, actIndex)
   const referenceHere = reference.id ? (ballsHere.find((b) => b.id === reference.id) ?? null) : null
   const chosenOnThisPhase = act.trackingBallId !== undefined
-  const canChooseBall = phaseCamera === 'follow' && ballsHere.length > 0
+  const canChooseBall = phaseCamera === 'follow' && ballsHere.length > 1
+  /* The lone-ball case needs no choice — `trackedBall` already resolves it —
+     but the ring should still show which ball the camera is actually on. */
+  const trackedHere = phaseCamera === 'follow' ? trackedBall(system, act) : null
   /*
    * Whether the board already wears the profile's kit.
    *
@@ -5126,9 +5130,9 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
         showFrame={!playing}
         multiSelect={multiSelect}
         /* Which ball the camera is on, ringed. Editor only — see `trackedBallId`
-           in ../board/Board.tsx. Withheld unless this phase actually follows a
-           chosen one, so a lone ball is never ringed for nothing. */
-        trackedBallId={canChooseBall ? (referenceHere?.id ?? null) : null}
+           in ../board/Board.tsx. A lone ball is tracked without a choice, so it
+           is ringed too — see `trackedBall` in ../camera.ts. */
+        trackedBallId={trackedHere?.id ?? null}
         /* Withheld while a drawing tool is armed, for the same reason marks
            are: a coach dragging out a zone across the frame's edge must not
            have the camera grab the gesture instead. */
