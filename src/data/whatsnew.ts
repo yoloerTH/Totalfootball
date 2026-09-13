@@ -64,6 +64,14 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'drag-drop-phases',
+    date: '2026-09-13',
+    kind: 'better',
+    title: 'Drag and drop to reorder phases',
+    body: 'You no longer need to click the move arrows to shift a phase one spot at a time. You can now simply click and drag any phase thumbnail in the bottom strip to drop it exactly where it belongs in your running order. A gold indicator line will show you precisely where it will land between the other phases.',
+    where: 'The phase strip at the bottom of the board',
+  },
+  {
     id: 'empty-grass-training-canvas',
     date: '2026-09-13',
     kind: 'new',

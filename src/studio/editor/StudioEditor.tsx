@@ -823,6 +823,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
     const first = initial.acts.findIndex((a) => a.tokens.length > 0)
     return first === -1 ? 0 : first
   })
+  const [dropTarget, setDropTarget] = useState<{ index: number; side: 'left' | 'right' } | null>(null)
   const [selection, setSelection] = useState<Selection>(null)
   const [multiSelect, setMultiSelect] = useState<{ tokens: string[], gear: string[], balls: string[], texts: string[], marks: string[] } | null>(null)
   /**
@@ -4301,11 +4302,16 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
 
   /** Reorder: this phase changes places with its neighbour. */
   const moveAct = (dir: -1 | 1) => {
-    const to = actIndex + dir
+    moveActTo(actIndex, actIndex + dir)
+  }
+
+  const moveActTo = (from: number, to: number) => {
+    if (from < 0 || from >= system.acts.length) return
     if (to < 0 || to >= system.acts.length) return
+    if (from === to) return
     edit('reorder', (s) => {
       const acts = [...s.acts]
-      const [a] = acts.splice(actIndex, 1)
+      const [a] = acts.splice(from, 1)
       acts.splice(to, 0, a)
       return { ...s, acts }
     })
@@ -5713,8 +5719,42 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
             key={a.id}
             type="button"
             onClick={() => goToPhase(i)}
+            draggable={!locked}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/plain', i.toString())
+              e.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+              const rect = e.currentTarget.getBoundingClientRect()
+              const side = (e.clientX - rect.left) < (rect.width / 2) ? 'left' : 'right'
+              if (!dropTarget || dropTarget.index !== i || dropTarget.side !== side) {
+                setDropTarget({ index: i, side })
+              }
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                if (dropTarget?.index === i) setDropTarget(null)
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDropTarget(null)
+              const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+              if (!isNaN(fromIndex)) {
+                let toIndex = dropTarget?.side === 'left' ? i : i + 1
+                if (fromIndex < toIndex) toIndex -= 1
+                if (fromIndex !== toIndex) {
+                  moveActTo(fromIndex, toIndex)
+                }
+              }
+            }}
+            onDragEnd={() => setDropTarget(null)}
             className={`group relative shrink-0 overflow-hidden rounded-md border-2 bg-paper transition ${
-              i === (timeline?.index ?? actIndex) ? 'border-gold' : 'border-ink-hair hover:border-ink-faint'
+              i === (timeline?.index ?? actIndex)
+                ? 'border-gold'
+                : 'border-ink-hair hover:border-ink-faint'
             }`}
             /*
              * HEIGHT, and the width follows the pitch's aspect.
@@ -5730,6 +5770,12 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
             style={{ height: stripHeight, aspectRatio: aspect(view) }}
             title={`${PHASE.One} ${i + 1}${a.title ? `: ${a.title}` : ''}`}
           >
+            {dropTarget?.index === i && dropTarget.side === 'left' && (
+              <div className="absolute top-0 bottom-0 left-0 w-1 bg-gold z-10" />
+            )}
+            {dropTarget?.index === i && dropTarget.side === 'right' && (
+              <div className="absolute top-0 bottom-0 right-0 w-1 bg-gold z-10" />
+            )}
             {/* No system, so no camera: a thumbnail is for finding a phase by
                 its shape, which a push-in would crop away. */}
             <Board
