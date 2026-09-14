@@ -627,24 +627,34 @@ export function cameraRect(
    * otherwise. An export reshapes the pad to fill its frame, so its crop is not
    * the rectangle the coach drew the shot against; measuring the bounds against
    * the export's crop made the video push in harder than the outline in the editor
-   * ever showed. See `pushBase` in ./board/pitch.ts. 
-   * We use `Math.max` because if the export crop is wider (e.g. 1:1 aspect), 
-   * the ceiling MUST expand to `crop.w` to allow the camera to fit the height of the shot.
-   * The last term stays the export's own `crop.w`, because that is a statement about how much grass
-   * there is and never about how much of it to show.
+   * ever showed. See `pushBase` and `pushBaseH` in ./board/pitch.ts.
    */
-  const bound = Math.max(view.pushBase ?? crop.w, crop.w)
-  if (aspect < 1) {
-    // For portrait videos, bounding the width forces the height to be huge,
-    // which effectively makes the camera static vertically. Bound the height 
-    // instead, using pushBaseH as the dominant dimension reference.
-    const boundH = view.pushBaseH ?? crop.h
-    let h = w / aspect
-    h = Math.min(Math.max(h, boundH * push.tightest), boundH * push.widest, crop.h)
-    w = h * aspect
-  } else {
-    w = Math.min(Math.max(w, bound * push.tightest), bound * push.widest, crop.w)
-  }
+  /*
+   * ── THE VIDEO FRAME HOLDS THE EDITOR'S FRAME, ON BOTH EDGES ──────────────
+   *
+   * The editor outlines a box `tightest` of its board wide AND `tightest` of it
+   * tall. A video at another aspect cannot draw that box, so it draws the
+   * smallest box at its own aspect that holds it, which is whichever of the two
+   * edges binds. It is the same fit-never-stretch rule step 2 applies to the
+   * shot, applied to the bounds.
+   *
+   * It replaced a portrait branch that bounded the HEIGHT alone (2026-09-11).
+   * On a board wider than the video that left the width to fall out of the
+   * aspect: a 50 x 45 grid in 9:16 showed 31m of its 50m on Gentle, the drill
+   * was cut off at both sides, and all three settings read as a close-up
+   * (user, 2026-09-14). Bounding the width alone has the mirror fault on a
+   * board taller than the video. Taking the larger of the two has neither, and
+   * a tracked ball still travels 26m up and down an upright pitch in 9:16.
+   *
+   * On the editor's own board the two edges agree, because the crop IS the
+   * aspect, so nothing a coach sees in the studio moves. The last term stays
+   * the export's own `crop.w`, which is a statement about how much grass there
+   * is and never about how much of it to show.
+   */
+  const baseW = view.pushBase ?? crop.w
+  const baseH = view.pushBaseH ?? crop.h
+  const fit = (k: number) => Math.max(baseW * k, baseH * k * aspect)
+  w = Math.min(Math.max(w, fit(push.tightest)), fit(push.widest), crop.w)
   const h = w / aspect
 
   const cx = (bx0 + bx1) / 2

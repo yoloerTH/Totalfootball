@@ -158,6 +158,59 @@ interface Props {
  */
 const TRAINING_TURF = 40
 
+/**
+ * The mow, in metres, as the rects that paint it over a patch of grass.
+ *
+ * Two looks, because they are not variants of each other: paper carries the
+ * videos' faint checker, a printed texture, while the grass surfaces carry mown
+ * BANDS across the length of the pitch, which is what a groundsman actually
+ * cuts and what a televised pitch reads as. Both are drawn inside
+ * `boardTransform`, so an upright board stands its bands up with it.
+ *
+ * ── WHY NOT A <pattern> ─────────────────────────────────────────────────────
+ *
+ * It was one, and a pattern is a tile rasterised on its own and stamped across
+ * the board. Wherever the camera's zoom did not land the tile on whole device
+ * pixels, the join between two stamps was resampled against transparency and
+ * drew a dark band down the grass, one per tile: 25px wide, every 16m, in a
+ * 9:16 video of a 50 x 45 grid on Gentle (user, 2026-09-14). Plain rects have
+ * no joins. They are anchored on the pitch origin exactly as the tile was, so
+ * every band and square sits where it always did.
+ *
+ * A stripe is a band `size` wide every `2 * size`. A checker is squares of
+ * `size / 2` on alternate cells, the two corners the tile used to fill.
+ */
+function mowRects(
+  mow: { kind: string; size: number },
+  x0: number,
+  y0: number,
+  w: number,
+  h: number,
+): { x: number; y: number; w: number; h: number }[] {
+  const out: { x: number; y: number; w: number; h: number }[] = []
+  const x1 = x0 + w
+  const y1 = y0 + h
+  const clip = (x: number, y: number, cw: number, ch: number) => {
+    const ax = Math.max(x, x0)
+    const ay = Math.max(y, y0)
+    const bx = Math.min(x + cw, x1)
+    const by = Math.min(y + ch, y1)
+    if (bx > ax && by > ay) out.push({ x: ax, y: ay, w: bx - ax, h: by - ay })
+  }
+  if (mow.kind === 'stripe') {
+    const s = mow.size
+    for (let x = Math.floor(x0 / (2 * s)) * 2 * s; x < x1; x += 2 * s) clip(x, y0, s, h)
+  } else if (mow.kind === 'checker') {
+    const c = mow.size / 2
+    for (let i = Math.floor(x0 / c); i * c < x1; i++) {
+      for (let j = Math.floor(y0 / c); j * c < y1; j++) {
+        if ((((i + j) % 2) + 2) % 2 === 0) clip(i * c, j * c, c, c)
+      }
+    }
+  }
+  return out
+}
+
 export function Pitch({ idp, texture = false, grid, turned = false, goalHref, gridTone, gridOpacity, area }: Props) {
   const p = useSurface()
   const arcH = penaltyArcHalfHeight()
@@ -175,32 +228,6 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, gr
   return (
     <>
       <defs>
-        {/*
-         * The mow.
-         *
-         * Two patterns behind one id, because the two looks are not variants of
-         * each other: paper carries the videos' faint checker, a printed
-         * texture, while the grass surfaces carry mown BANDS across the length
-         * of the pitch, which is what a groundsman actually cuts and what a
-         * televised pitch reads as. Both are drawn inside `boardTransform`, so
-         * an upright board stands its bands up with it.
-         */}
-        <pattern
-          id={`${idp}-turf`}
-          width={p.mow.kind === 'stripe' ? u(p.mow.size * 2) : u(p.mow.size)}
-          height={u(p.mow.size)}
-          patternUnits="userSpaceOnUse"
-        >
-          {p.mow.kind === 'checker' ? (
-            <>
-              <rect width="50%" height="50%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
-              <rect x="50%" y="50%" width="50%" height="50%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
-            </>
-          ) : p.mow.kind === 'stripe' ? (
-            <rect width="50%" height="100%" fill={p.mow.color} fillOpacity={p.mow.alpha} />
-          ) : null}
-        </pattern>
-
         {/* The stage's soft fall-off, straight off the videos. */}
         <linearGradient id={`${idp}-paper`} x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0%" stopColor={p.stage[0]} />
@@ -279,13 +306,27 @@ export function Pitch({ idp, texture = false, grid, turned = false, goalHref, gr
           fill={`url(#${idp}-grass)`}
         />
       )}
-      <rect
-        x={area ? u(-TRAINING_TURF) : 0}
-        y={area ? u(-TRAINING_TURF) : 0}
-        width={u(L + (area ? TRAINING_TURF * 2 : 0))}
-        height={u(W + (area ? TRAINING_TURF * 2 : 0))}
-        fill={`url(#${idp}-turf)`}
-      />
+      {/*
+       * The mow, as plain strips and squares rather than a <pattern>. See
+       * `mowRects` for why a repeating tile drew dark bands down the grass.
+       */}
+      {mowRects(
+        p.mow,
+        area ? -TRAINING_TURF : 0,
+        area ? -TRAINING_TURF : 0,
+        L + (area ? TRAINING_TURF * 2 : 0),
+        W + (area ? TRAINING_TURF * 2 : 0),
+      ).map((r, i) => (
+        <rect
+          key={i}
+          x={u(r.x)}
+          y={u(r.y)}
+          width={u(r.w)}
+          height={u(r.h)}
+          fill={p.mow.color}
+          fillOpacity={p.mow.alpha}
+        />
+      ))}
 
       {/*
        * THE RULED GRID, under the real markings and over the turf.

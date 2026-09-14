@@ -31,6 +31,7 @@ import {
   trackedBall,
 } from '../src/studio/camera.ts'
 import { resolveAct, tweenActs } from '../src/studio/tween.ts'
+import { frameView } from '../src/studio/frame.ts'
 import { ballsOf, ballFields, forgetTrackedBall } from '../src/studio/schema.ts'
 import { cropRect, viewFor, U } from '../src/studio/board/pitch.ts'
 
@@ -457,8 +458,58 @@ const frameOf = (system, i) => {
   }
 }
 
+/* ── 21 · a video holds the outline the coach saw ──────────────────────────
+ * An export at another aspect must draw at least the box the editor outlined,
+ * on BOTH edges, or the video crops the drill the board showed. Bounding the
+ * height alone showed 31m of a 50 x 45 grid's 50m in 9:16 on Gentle, and every
+ * setting read as the same close-up (user, 2026-09-14). A turned board has no
+ * outline in the editor to hold, so only the settings-differ half applies.
+ */
+{
+  const boards = [
+    ['a 50 x 45 grid', { pitch: 'training', area: { length: 50, width: 45 } }],
+    ['a 30 x 20 grid', { pitch: 'training', area: { length: 30, width: 20 } }],
+    ['an upright full pitch', { pitch: 'full-vertical' }],
+    ['a flat full pitch', { pitch: 'full' }],
+  ]
+  const shapes = [[1080, 1920], [1080, 1350], [1080, 1080], [1920, 1080]]
+  for (const [name, doc] of boards) {
+    for (const [fw, fh] of shapes) {
+      const widths = {}
+      for (const p of CAMERA_PUSHES) {
+        const s = { ...filmOf([act('p', ['A'], 'A')], p.id), ...doc }
+        const ev = viewFor(s)
+        const vv = frameView(ev, { w: fw, h: fh }, s)
+        const pose = resolveAct(s.acts[0], s)
+        if (!pose.shot) {
+          fail('a video holds the outline', `${name} in ${fw}x${fh} on ${p.id}: a tracked ball gave no shot, so the phase plays wide. It must produce a frame.`)
+          continue
+        }
+        const vc = cropRect(vv)
+        const aspect = vc.w / vc.h
+        const r = cameraRect(vv, pose.shot, pose.frame)
+        widths[p.id] = r.w / U
+        if (vv.pushBase === undefined) continue
+        const e = cameraRect(ev, pose.shot, pose.frame)
+        const needW = Math.min(e.w, vc.w)
+        const needH = Math.min(e.h, vc.h)
+        if (r.w < needW - 0.5 || r.h < needH - 0.5) {
+          const want = Math.min(vc.w, Math.max(needW, needH * aspect))
+          fail('a video holds the outline', `${name} in ${fw}x${fh} on ${p.id}: the video frame is ${(r.w / U).toFixed(1)}m x ${(r.h / U).toFixed(1)}m, the editor outlined ${(e.w / U).toFixed(1)}m x ${(e.h / U).toFixed(1)}m. It must be ${(want / U).toFixed(1)}m x ${(want / aspect / U).toFixed(1)}m, the smallest ${fw}x${fh} box that holds the outline.`)
+        }
+      }
+      for (const [x, y] of [['standard', 'close'], ['gentle', 'standard']]) {
+        if (widths[x] === undefined || widths[y] === undefined) continue
+        if (Math.abs(widths[x] - widths[y]) < 3) {
+          fail('a video holds the outline', `${name} in ${fw}x${fh}: ${x} is ${widths[x].toFixed(1)}m wide and ${y} is ${widths[y].toFixed(1)}m, which nobody can tell apart. They must differ by at least 3m.`)
+        }
+      }
+    }
+  }
+}
+
 if (faults.length === 0) {
-  console.log('camera check: 20 claims about the camera — which ball it follows and how hard it pushes in — across choices, edits, deletions, legacy documents, hand-drawn frames and blended poses. All clear.')
+  console.log('camera check: 21 claims about the camera — which ball it follows, how hard it pushes in, and what a video of it keeps in shot — across choices, edits, deletions, legacy documents, hand-drawn frames, blended poses and every export shape. All clear.')
   process.exit(0)
 }
 const groups = [...new Set(faults.map((f) => f.group))]
