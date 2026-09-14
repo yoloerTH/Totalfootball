@@ -199,7 +199,7 @@ import {
   refreshRoles as refreshRolesIn,
   type Role,
 } from '../lineup'
-import { GuideRail } from './GuideRail'
+import { GuideRail, stepDone } from './GuideRail'
 import {
   ACTION,
   ARROW_MARK,
@@ -3431,7 +3431,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
    */
   const recordWin = useCallback(
     (context: FeedbackContext) => {
-      markGuide({ wins: guideRef.current.wins + 1 })
+      markGuide({ wins: guideRef.current.wins + 1, sent: true })
       pendingWin.current = context
     },
     [markGuide],
@@ -4773,7 +4773,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
     () =>
       RAIL_STEPS.reduce(
         (acc, s) => {
-          acc[s.id] = guide[s.id]
+          acc[s.id] = stepDone(guide, s.id)
           return acc
         },
         {} as Record<RailStep['id'], boolean>,
@@ -8303,7 +8303,10 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
             // studio for the first time has no "since you were last here", and
             // a list of six things they have never not had is a worse welcome
             // than no list at all.
-            markGuide({ seen: true, newsSeen: NEWEST_NEWS_ID })
+            // And the upgrades tour is theirs already for the same reason:
+            // without this a new coach got "Training gear is here" on their
+            // second visit, for things they have always had.
+            markGuide({ seen: true, upgradesSeen: true, newsSeen: NEWEST_NEWS_ID })
           }}
         />
       )}

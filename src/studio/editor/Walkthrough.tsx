@@ -1,5 +1,5 @@
 /**
- * The welcome walkthrough — five screens, shown once.
+ * The welcome walkthrough — six screens, shown once.
  *
  * Deliberately NOT a spotlight tour that points at controls one by one. A tour
  * teaches where things are, and where things are is the part a coach can find
@@ -145,6 +145,44 @@ const ART: Record<string, React.ReactNode> = {
     </>
   ),
 
+  // The arrow on one phase, the ball arrived on the next.
+  moves: (
+    <>
+      <MiniPitch x={10} y={26} w={135} h={100} />
+      <text x={77} y={18} textAnchor="middle" fontSize={10} fontWeight={900} fill={BOARD.ink}>
+        PHASE 1
+      </text>
+      <Dot x={40} y={76} />
+      <Dot x={113} y={49} />
+      <circle cx={47} cy={83} r={3.2} fill="#FFFFFF" stroke={BOARD.ink} strokeWidth={1.2} />
+      <path d="M 50 72 L 97 55.5" stroke={ARROW_STYLE.pass.color} strokeWidth={2.2} fill="none" />
+      <path d="M 94.9 50.6 L 106 52 L 98.1 60 Z" fill={ARROW_STYLE.pass.color} />
+
+      <path d="M 156 76 L 178 76" stroke={BOARD.ink} strokeWidth={2} opacity={0.35} />
+      <path d="M 172 70 L 180 76 L 172 82 Z" fill={BOARD.ink} opacity={0.35} />
+
+      <MiniPitch x={190} y={26} w={135} h={100} />
+      <text x={257} y={18} textAnchor="middle" fontSize={10} fontWeight={900} fill={BOARD.ink}>
+        PHASE 2
+      </text>
+      <Dot x={220} y={76} />
+      <Dot x={293} y={49} />
+      <path
+        d="M 228 80 L 283 55"
+        stroke={BOARD.goldDeep}
+        strokeWidth={1.8}
+        strokeDasharray="3 3"
+        fill="none"
+        opacity={0.7}
+      />
+      <circle cx={287} cy={54} r={3.2} fill="#FFFFFF" stroke={BOARD.ink} strokeWidth={1.2} />
+
+      <text x={167} y={148} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={BOARD.ink} opacity={0.62}>
+        the arrow says it, the next phase moves it
+      </text>
+    </>
+  ),
+
   // Play: the phase strip with a playhead running through it.
   play: (
     <>
@@ -175,7 +213,7 @@ const ART: Record<string, React.ReactNode> = {
     </>
   ),
 
-  // Saved: a board with a tick, no cloud — it is on their machine, not ours.
+  // Saved: a board with a tick. It goes to their account as they work.
   saved: (
     <>
       <MiniPitch x={60} y={20} w={200} h={100} />
@@ -193,7 +231,7 @@ const ART: Record<string, React.ReactNode> = {
         fill="none"
       />
       <text x={160} y={148} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={BOARD.ink} opacity={0.62}>
-        saved on this computer as you type
+        saved to your account as you work
       </text>
     </>
   ),

@@ -44,6 +44,7 @@ import { hydrateProfile } from './profile'
 import { profileCompletion, shouldNudge, type Completion } from './completion'
 import { EMPTY_PROFILE } from './cloud'
 import { ProfileNudge } from './ProfileNudge'
+import { FirstSteps } from './FirstSteps'
 import { readGuide, writeGuide } from '../storage'
 import {
   deleteCloudSystem,
@@ -555,6 +556,10 @@ export default function Portal() {
             Try again
           </button>
         </Notice>
+      )}
+
+      {load === 'ready' && (
+        <FirstSteps systems={systems.filter((s) => !s.owner || s.owner === user?.id)} />
       )}
 
       {load === 'working' ? (

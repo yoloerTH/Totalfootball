@@ -2,8 +2,9 @@
  * The step-by-step rail.
  *
  * The walkthrough teaches the idea once and disappears. This is what teaches
- * the sequence, and it stays until it is not needed — five things to do, in the
- * order they make sense, with only the CURRENT one expanded.
+ * the sequence, and it stays until it is not needed — six things to do, in the
+ * order they make sense, with only the CURRENT one expanded. The same list is
+ * on the shelf (../account/FirstSteps.tsx), for between sessions.
  *
  * Why only the current one: a coach who opens the studio and finds five
  * paragraphs of instructions reads none of them. One instruction at a time,
@@ -15,7 +16,19 @@
  * deleting your only arrow does not un-teach you what arrows are.
  */
 
+import type { GuideState } from '../storage'
 import { RAIL_STEPS, type RailStep } from './guide'
+
+/**
+ * Whether a step is done, read off the latches.
+ *
+ * One place for it because `sent` arrived after accounts already had rows: a
+ * coach who has shared or exported before (`wins` above zero) has sent
+ * something, and must not see a finished list come back unfinished.
+ */
+export function stepDone(guide: GuideState, id: RailStep['id']): boolean {
+  return id === 'sent' ? Boolean(guide.sent) || guide.wins > 0 : Boolean(guide[id])
+}
 
 interface Props {
   done: Record<RailStep['id'], boolean>

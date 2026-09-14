@@ -91,6 +91,7 @@ function latchGuide(remote: Partial<GuideState>, local: GuideState): GuideState 
     phased: on('phased'),
     drew: on('drew'),
     played: on('played'),
+    sent: on('sent') || high('wins') > 0,
     smallOk: on('smallOk'),
     profileNudgeOff: on('profileNudgeOff'),
     wins: high('wins'),

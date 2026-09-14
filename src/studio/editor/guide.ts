@@ -47,7 +47,13 @@ export interface WalkStep {
 }
 
 /**
- * Five screens, shown once.
+ * Six screens, shown once.
+ *
+ * The fourth, `moves`, came across from the iOS tour. A coach can drag a Pass,
+ * press Play and watch the ball sit exactly where it started: nothing is broken,
+ * a dragged arrow is words on the board and the movement lives in the phases.
+ * One screen saying so is the difference between the studio working and
+ * seeming not to.
  *
  * Step 2 is the only one that matters. Everything else in the studio is
  * discoverable by poking at it; the idea that you build the SAME board twice
@@ -76,8 +82,17 @@ export const WALKTHROUGH: WalkStep[] = [
     id: 'marks',
     title: 'Say what you mean, not how to draw it',
     body: [
-      'Pick Pass, Run, Carry, Press or Switch, then drag on the board from where it starts to where it finishes.',
+      'Pick Pass, Run, Carry, Press or Switch at the top. Tap the player it starts with, then tap where it goes.',
       'You choose the intention. We choose the line, the arrowhead and the colour, so every board you make looks like the ones on the channel.',
+    ],
+  },
+  {
+    id: 'moves',
+    title: 'The arrow says it. The next phase does it',
+    body: [
+      'An arrow on its own moves nobody. It is what you are telling whoever watches, and the movement still comes from the next phase.',
+      'Draw it with two taps and that next phase is posed for you: the ball arrives, the runner gets there. Drag it instead and you get the arrow on its own, so move the players on the next phase yourself.',
+      'Bow an arrow and whatever it describes takes the curve, on Play and in the film.',
     ],
   },
   {
@@ -92,7 +107,7 @@ export const WALKTHROUGH: WalkStep[] = [
     id: 'saved',
     title: 'It saves itself',
     body: [
-      'Every change is kept on this computer as you make it. You can close the tab and come back to it.',
+      'Every change goes to your account as you make it. Close the tab, sign in on another computer, and it is all there.',
       'The step-by-step list on the right walks you through your first system. And if you ever cannot find something, press ? at the top and type what you are after: it will take you to it.',
     ],
   },
@@ -121,7 +136,7 @@ export const UPGRADES_WALKTHROUGH: WalkStep[] = [
     id: 'profile',
     title: 'Your own defaults',
     body: [
-      'Set up how your players should look in your Profile settings.',
+      'Set up how your players should look in Personal settings, on your shelf.',
       'When you add your own name and club, it goes on every board you share, making sure your work stays yours.',
     ],
   },
@@ -138,13 +153,25 @@ export const UPGRADES_WALKTHROUGH: WalkStep[] = [
 // ── the step-by-step rail ────────────────────────────────────────────────────
 
 export interface RailStep {
-  id: 'moved' | 'named' | 'phased' | 'drew' | 'played'
+  id: 'moved' | 'named' | 'drew' | 'phased' | 'played' | 'sent'
   /** One line, imperative. This is what shows when the step is done. */
   label: string
   /** The fuller version, shown only while this is the step they are on. */
   detail: string
 }
 
+/**
+ * Six steps, and the order is the quickest road to a board that moves.
+ *
+ * Drawing comes BEFORE adding a phase because two taps with an arrow tool pose
+ * the next phase themselves (../actions.ts), so a coach who follows the list
+ * ticks both at once and lands on Play. A coach who drags instead gets the arrow
+ * alone, and the phase step is still there with the manual way in it.
+ *
+ * Sending is last because a board nobody has seen has not done its job. It is
+ * the step the iOS app added, and it reads as done for anyone who has already
+ * shared or exported (`stepDone` in ./GuideRail.tsx).
+ */
 export const RAIL_STEPS: RailStep[] = [
   {
     id: 'moved',
@@ -159,20 +186,25 @@ export const RAIL_STEPS: RailStep[] = [
       'Type a name in the box at the top left: "Beating a low block", "Pressing from the front". It goes on the front of the finished deck.',
   },
   {
-    id: 'phased',
-    label: `Add a second ${PHASE.one}`,
-    detail: `Press + Add ${PHASE.one} at the bottom. You get a copy of what is on the board now. Move the players to where the ball takes them, and the movement between the two is worked out for you.`,
-  },
-  {
     id: 'drew',
     label: 'Draw a pass or a run',
-    detail:
-      'Pick Pass at the top, then drag on the pitch from the player with the ball to where it is going. Run, Carry, Press and Switch work the same way.',
+    detail: `Pick Pass at the top, tap the player with the ball, then tap who gets it. The arrow goes on this ${PHASE.one} and the next one is posed with the ball arrived. Run, Carry, Press and Switch work the same way. Drag instead of tapping and you get the arrow on its own.`,
+  },
+  {
+    id: 'phased',
+    label: `Add a second ${PHASE.one}`,
+    detail: `If your arrow has not made one already, press + Add ${PHASE.one} at the bottom. You get a copy of what is on the board now. Move the players to where the ball takes them, and the movement between the two is worked out for you.`,
   },
   {
     id: 'played',
     label: 'Press Play',
     detail: `With two ${PHASE.many} on the board, Play runs the whole thing through so you can see the movement as your players will.`,
+  },
+  {
+    id: 'sent',
+    label: 'Send it to someone',
+    detail:
+      'Press Share at the top. Whoever opens the link sees your board play through, on a phone or a laptop, with no account and nothing to install. Video, pictures and a PDF are on the same bar, for the places a link will not go.',
   },
 ]
 
@@ -846,7 +878,7 @@ export const SMALL = {
   title: 'This works better on a laptop',
   body: [
     'The studio is a board you drag players around on, with the controls down both sides. On a phone you get one thing at a time and a lot of scrolling.',
-    'Open it on a computer and everything is in front of you. Your systems are saved on the machine you build them on, so start where you mean to finish.',
+    'Open it on a computer and everything is in front of you. Your systems are kept on your account, so you can start one here and finish it there.',
   ],
   stayCta: 'Carry on here anyway',
   copyCta: 'Copy the link for later',

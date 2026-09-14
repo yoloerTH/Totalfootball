@@ -111,6 +111,12 @@ export interface GuideState {
   drew: boolean
   /** Has pressed Play. */
   played: boolean
+  /**
+   * Has sent something out: a share link, a video or pictures. Newer than the
+   * rest, so an account written before it existed reads it as done whenever
+   * `wins` is above zero. See `stepDone` in ./editor/GuideRail.tsx.
+   */
+  sent: boolean
   /** The step-by-step rail is open. Defaults on — this is a first-use tool. */
   railOpen: boolean
   /**
@@ -185,6 +191,7 @@ export const GUIDE_DEFAULTS: GuideState = {
   phased: false,
   drew: false,
   played: false,
+  sent: false,
   railOpen: true,
   newsSeen: '',
   wins: 0,
