@@ -185,7 +185,11 @@ const siteSchema = {
       media-query pair would have been for.
     */}
     <meta name="theme-color" content="#F4F4F2" />
+    {/* All three from scripts/brand-assets.mjs, all the official mark. The .ico
+        is for browsers and crawlers that never read the SVG. */}
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
 
     <title>{fullTitle}</title>

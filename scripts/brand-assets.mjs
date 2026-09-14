@@ -4,6 +4,12 @@
  *   public/og-default.png   1200x630  social share card
  *   public/logo.png          512x512  square mark, Organization schema
  *   public/apple-touch-icon.png 180x180
+ *   public/favicon.svg       the full mark on a paper disc, for modern tabs
+ *   public/favicon.ico       16, 32 and 48, for everything that asks /favicon.ico
+ *
+ * The favicon used to be a hand-simplified drawing (ring and four pentagons, no
+ * arrows) on the theory that the arrows turn to mud at 16px. It read as a
+ * different logo, which is worse than a busy one, so it is the real mark now.
  *
  * Everything is drawn from the same geometry as src/components/brand/Mark.astro,
  * which is itself a port of editor/src/branding/TotalFootballMark.tsx. One
@@ -164,6 +170,40 @@ for (const [name, svg, w, h] of jobs) {
   const { size } = await sharp(out).metadata().then(async (m) => ({ ...m, size: (await import('node:fs')).statSync(out).size }))
   console.log(`  ${name.padEnd(22)} ${w}x${h}  ${(size / 1024).toFixed(0)} KB`)
 }
+
+// ── favicon.svg + favicon.ico ───────────────────────────────────────────────
+// On a paper disc, not transparent: the ink ball vanishes on a dark tab strip.
+const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  ${mark({ id: 'fav-g', disc: true })}
+</svg>
+`
+await writeFile(join(PUBLIC, 'favicon.svg'), favicon)
+console.log(`  ${'favicon.svg'.padEnd(22)} vector`)
+
+// An .ico is a directory of PNGs: a 6 byte header, 16 bytes per entry, then the
+// images. Each size is rasterised from the vector, never scaled from another.
+const ICO_SIZES = [16, 32, 48]
+const pngs = await Promise.all(
+  ICO_SIZES.map((s) => sharp(Buffer.from(favicon), { density: 384 }).resize(s, s).png().toBuffer()),
+)
+const head = Buffer.alloc(6 + 16 * pngs.length)
+head.writeUInt16LE(0, 0)
+head.writeUInt16LE(1, 2)
+head.writeUInt16LE(pngs.length, 4)
+let offset = head.length
+pngs.forEach((png, i) => {
+  const e = 6 + 16 * i
+  head.writeUInt8(ICO_SIZES[i], e)
+  head.writeUInt8(ICO_SIZES[i], e + 1)
+  head.writeUInt16LE(1, e + 4)
+  head.writeUInt16LE(32, e + 6)
+  head.writeUInt32LE(png.length, e + 8)
+  head.writeUInt32LE(offset, e + 12)
+  offset += png.length
+})
+const ico = Buffer.concat([head, ...pngs])
+await writeFile(join(PUBLIC, 'favicon.ico'), ico)
+console.log(`  ${'favicon.ico'.padEnd(22)} ${ICO_SIZES.join('/')}  ${(ico.length / 1024).toFixed(0)} KB`)
 
 await writeFile(join(PUBLIC, '.brand-assets-generated'), new Date().toISOString() + '\n')
 console.log('\nRegenerate with: node scripts/brand-assets.mjs')
