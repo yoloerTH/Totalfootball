@@ -484,7 +484,7 @@ export type PersonField = (typeof PERSON_FIELDS)[number]
  * carry. The `kind` picks the house treatment (solid/dashed/squiggle + head),
  * so a coach chooses intent and we choose the drawing.
  */
-export type ArrowKind = 'pass' | 'run' | 'carry' | 'press' | 'switch' | 'line'
+export type ArrowKind = 'pass' | 'run' | 'carry' | 'press' | 'loft' | 'line'
 
 /**
  * 'line' IS THE ODD ONE OUT, and deliberately in this union rather than beside
@@ -544,6 +544,33 @@ export interface Arrow {
    * straight one, so it is part of the vocabulary rather than a decoration.
    */
   bend?: number
+  /**
+   * How high off the grass it is struck, 0..1. Undefined means the kind
+   * decides — see `heightOf` in ../arrows.ts, which is the only thing that
+   * should ever read this field raw.
+   *
+   * ── WHY IT IS NOT THE SAME NUMBER AS `bend` ─────────────────────────────
+   *
+   * `bend` is a bow IN the plane of the grass: the ball stays on the floor and
+   * curls around somebody. `height` is the arc OFF it. They are different axes
+   * and an out-swinging corner is both at once — bent away from the goal AND
+   * six metres in the air — so one number was never going to carry both.
+   *
+   * ── IT CHANGES NOTHING ABOUT WHERE THE BALL IS ───────────────────────────
+   *
+   * The ball's x and y stay the point on the grass for the whole flight. The
+   * height is spent at draw time, on three things at once: the ball rises off
+   * that point, it grows, and its shadow stays behind on the grass and
+   * spreads. The shadow is the one that matters — see `Ball` in
+   * ./board/Token.tsx for why a ball that only grows reads as a zoom.
+   *
+   * Keeping the grass point honest is not tidiness. ./camera.ts tracks a ball,
+   * ./audio.ts reads how far it travelled to decide how hard it was struck,
+   * and a set piece measures from it. A ball that really moved up the board
+   * would drag all three with it, and the camera would tilt at the sky every
+   * time somebody played a cross.
+   */
+  height?: number
   label?: string
   /**
    * How strongly it is drawn, 0..1. Undefined means 1, which is what every

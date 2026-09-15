@@ -17,7 +17,7 @@
 import { viewFor } from './board/pitch'
 import { lerpShot, pushAt, shotFor, type CameraFrame, type Shot } from './camera'
 import { DEFAULT_HOLD_MS, DEFAULT_MOVE_MS, moveRelax } from './pace'
-import { BALL_KINDS, TOKEN_KINDS, bendOver, travel, type Pt } from './arrows'
+import { BALL_KINDS, TOKEN_KINDS, flightOver, liftAt, travel, type Pt } from './arrows'
 import { ballsOf, type Act, type Arrow, type Band, type BallMark, type GearMark, type System, type TextMark, type Token } from './schema'
 
 export interface RenderToken extends Token {
@@ -86,6 +86,15 @@ export interface RenderGear extends GearMark {
 export interface RenderBall extends BallMark {
   opacity: number
   angle?: number
+  /**
+   * How far off the grass it is, 0..1. 0 on every ball that is not mid-flight.
+   *
+   * `x` and `y` are still the point on the GRASS, and stay that way for the
+   * whole flight. This is the only thing that says the ball is in the air, and
+   * only ./board/Token.tsx is allowed to spend it — see `Arrow.height` in
+   * ./schema.ts for why nothing that measures the board may read it.
+   */
+  lift: number
 }
 
 export interface RenderAct {
@@ -219,7 +228,9 @@ const span = (x: number, a: number, b: number) =>
 export function resolveAct(act: Act, system?: System): RenderAct {
   return {
     tokens: act.tokens.map((t) => ({ ...t, opacity: 1, scale: 1 })),
-    balls: ballsOf(act).map((b) => ({ ...b, opacity: 1 })),
+    // A pose is not a moment in a flight, it is a board at rest, and a ball at
+    // rest is on the grass. Nothing here is ever in the air.
+    balls: ballsOf(act).map((b) => ({ ...b, opacity: 1, lift: 0 })),
     arrows: act.arrows.map((a) => ({ ...a, opacity: drawnAt(a) })),
     bands: act.bands.map((b) => ({ ...b, opacity: 1 })),
     // `?? []` and not `act.texts.map`: the field is optional and absent on every
@@ -300,7 +311,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   for (const a of from.tokens) {
     const b = byId.get(a.id)
     if (b) {
-      const bend = bendOver(marks, from.tokens, to.tokens, { from: a, to: b }, TOKEN_KINDS, view)
+      const bend = flightOver(marks, from.tokens, to.tokens, { from: a, to: b }, TOKEN_KINDS, view).bend
       const at = travel(a, b, bend, t, view)
       if (bend) carried.push({ by: a.id, from: { x: a.x, y: a.y }, to: { x: b.x, y: b.y }, bend })
       tokens.push({
@@ -344,7 +355,7 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
   for (const a of fromBalls) {
     const b = toBalls.find((x) => x.id === a.id)
     if (!b) {
-      balls.push({ ...a, opacity: 1 - span(p, 0, 0.4) })
+      balls.push({ ...a, opacity: 1 - span(p, 0, 0.4), lift: 0 })
       continue
     }
     const move = { from: a, to: b }
@@ -360,19 +371,25 @@ export function tweenActs(from: Act, to: Act, p: number, system?: System): Rende
         Math.abs(c.to.x - c.from.x - (b.x - a.x)) < 0.05 &&
         Math.abs(c.to.y - c.from.y - (b.y - a.y)) < 0.05,
     )
-    const bend = rider
-      ? rider.bend
-      : bendOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
-    const at = travel(a, b, bend, t, view)
+    /*
+     * A ball being carried is at somebody's feet, so it takes his bow and no
+     * height whatever: a player cannot run with a ball six metres above him.
+     * Which is the second reason the rider is matched on the exact journey —
+     * a loose match here would put a runner's ball in the air.
+     */
+    const flight = rider
+      ? { bend: rider.bend, height: 0 }
+      : flightOver(marks, from.tokens, to.tokens, move, BALL_KINDS, view)
+    const at = travel(a, b, flight.bend, t, view)
     const dx = b.x - a.x
     const dy = b.y - a.y
     const dist = Math.hypot(dx, dy)
     const angle = dist * t * 15
-    balls.push({ id: a.id, x: at.x, y: at.y, opacity: 1, angle })
+    balls.push({ id: a.id, x: at.x, y: at.y, opacity: 1, angle, lift: liftAt(flight.height, t) })
   }
   for (const b of toBalls) {
     if (fromBalls.some((x) => x.id === b.id)) continue
-    balls.push({ ...b, opacity: span(p, 0.55, 0.85) })
+    balls.push({ ...b, opacity: span(p, 0.55, 0.85), lift: 0 })
   }
 
   const arrows: RenderArrow[] = [

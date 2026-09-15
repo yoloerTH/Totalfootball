@@ -609,6 +609,24 @@ export const BALL_R = 1.2
 const BALL_INK = '#161618'
 
 /**
+ * What a ball struck to full height does, drawn: it climbs this many of its own
+ * radii off the grass, and grows by this fraction on the way.
+ *
+ * READ OFF THE SHORTS, not invented. `EleventhManShort.tsx` draws its ball over
+ * the top at `size + 22` on a base of 42, so x1.52 at the apex; ThrowInShort is
+ * x1.46 and SwitchShort x1.36, and the rise in all three is a little over one
+ * ball diameter. x1.45 and 2.6 radii sit in the middle of that.
+ *
+ * SPREAD is the shadow's, in the same radii, and is deliberately well under the
+ * rise. A shadow that grew as fast as the ball climbed would read as the ball
+ * coming AT the camera rather than going up, which is the opposite of the thing
+ * being drawn.
+ */
+const BALL_GROW = 0.45
+const BALL_RISE = 2.6
+const BALL_SHADOW_SPREAD = 0.7
+
+/**
  * The ball.
  *
  * Two drawings behind one component. A chosen match ball is the photograph the
@@ -634,6 +652,7 @@ export function Ball({
   href,
   size = 1,
   angle = 0,
+  lift = 0,
   tracked = false,
 }: {
   idp: string
@@ -643,6 +662,15 @@ export function Ball({
   href?: string
   size?: number
   angle?: number
+  /**
+   * How far off the grass it is, 0..1, from `RenderBall.lift` in ../tween.ts.
+   *
+   * The ball is drawn off `cx`/`cy` as always; those stay the point on the
+   * GRASS, and this is the only thing that lifts it away from them. Absent
+   * means on the floor, which is every caller that has not been told otherwise
+   * and every ball on a still board.
+   */
+  lift?: number
   /**
    * The ball the camera is following, ringed in gold.
    *
@@ -657,11 +685,25 @@ export function Ball({
    */
   tracked?: boolean
 }) {
-  const r = u(BALL_R * size)
+  /*
+   * TWO RADII AND TWO CENTRES, and the split is the whole of the drawing.
+   *
+   * `r0`/`cy` are the truth: the ball's real size, on its real point on the
+   * grass. They are what the shadow is drawn from and they never move.
+   * `r`/`by` are what the eye is shown: bigger, and higher up the board.
+   *
+   * Everything below this line that draws the BALL uses `r` and `by`, and the
+   * one thing that draws the GROUND uses `r0` and `cy`. Getting that backwards
+   * is the failure mode — a shadow sized off `r` grows with the ball, which is
+   * a shadow moving toward the light, and the height stops reading at once.
+   */
+  const r0 = u(BALL_R * size)
+  const r = r0 * (1 + BALL_GROW * lift)
+  const by = cy - r0 * BALL_RISE * lift
   const gid = `${idp}-ball`
   const p = useSurface()
   return (
-    <g transform={angle ? `rotate(${angle} ${cx} ${cy})` : undefined}>
+    <g>
       <defs>
         <radialGradient id={gid} cx="0.36" cy="0.3" r="0.8">
           <stop offset="0%" stopColor="#FFFFFF" />
@@ -674,12 +716,28 @@ export function Ball({
           <stop offset="100%" stopColor="#141A16" stopOpacity="0" />
         </radialGradient>
       </defs>
+      {/*
+       * THE SHADOW, WHICH IS THE WHOLE TRICK.
+       *
+       * At rest it is a contact shadow: the ball is on the grass and the dark
+       * patch is under it, and that is all it has ever been. In flight it STAYS
+       * WHERE IT WAS, on the point the ball left, and spreads and fades while
+       * the ball climbs away from it.
+       *
+       * That separation is what the eye reads as height, and nothing else here
+       * is doing that work. Scaling the ball on its own does not read as height
+       * — editor/src/SwitchShort.tsx calls its own shadowless version "fake
+       * loft" for exactly this reason — because something getting bigger in the
+       * middle of a frame is a zoom. Something getting bigger while its shadow
+       * stays behind and softens is something coming off the floor.
+       */}
       <ellipse
         cx={cx}
-        cy={cy + r * 0.44}
-        rx={r * 1.2}
-        ry={r * 0.82}
+        cy={cy + r0 * 0.44}
+        rx={r0 * (1.2 + BALL_SHADOW_SPREAD * lift)}
+        ry={r0 * (0.82 + BALL_SHADOW_SPREAD * 0.68 * lift)}
         fill={`url(#${gid}-contact)`}
+        opacity={1 - 0.45 * lift}
       />
       {/*
        * The camera's ring. Dashed and OUTSIDE the ball, the same gold the
@@ -687,57 +745,73 @@ export function Ball({
        * than as anything drawn on it — a solid ring at this size would look
        * like part of the ball's own markings.
        *
-       * Counter-rotated: the ball spins on a pass (see `angle`), and a dashed
-       * ring spinning with it is a ball with a propeller on it.
+       * It does not spin, because a dashed ring turning with the ball is a ball
+       * with a propeller on it. It used to buy that with a counter-rotation
+       * inside the spinning group; now it simply sits outside the spin, which
+       * is the same picture with one transform instead of two.
        */}
       {tracked && (
-        <g transform={angle ? `rotate(${-angle} ${cx} ${cy})` : undefined}>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r * 2}
-            fill="none"
-            stroke={p.gold}
-            strokeWidth={r * 0.24}
-            strokeDasharray={`${r * 0.62} ${r * 0.5}`}
-            strokeLinecap="round"
-            opacity={0.95}
-          />
-        </g>
+        <circle
+          cx={cx}
+          cy={by}
+          r={r * 2}
+          fill="none"
+          stroke={p.gold}
+          strokeWidth={r * 0.24}
+          strokeDasharray={`${r * 0.62} ${r * 0.5}`}
+          strokeLinecap="round"
+          opacity={0.95}
+        />
       )}
-      {href ? (
-        // The asset is square and centred on the ball (see ../balls.ts), so the
-        // bounding box IS the ball and no preserveAspectRatio fudge is needed.
-        <image href={href} x={cx - r} y={cy - r} width={r * 2} height={r * 2} />
-      ) : (
-        // BALL_INK, not the surface's ink. The pentagons are markings on a white
-        // ball — a physical object that looks the same on every pitch — where
-        // the surface's ink is the colour we WRITE in, and on a dark surface that
-        // is nearly white. Following it would draw a white ball with white spots.
-        <>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill={`url(#${gid})`}
-            stroke={BALL_INK}
-            strokeWidth={r * 0.14}
-          />
-          <circle cx={cx} cy={cy} r={r * 0.3} fill={BALL_INK} />
-          {[0, 72, 144, 216, 288].map((deg) => {
-            const rad = ((deg - 90) * Math.PI) / 180
-            return (
-              <circle
-                key={deg}
-                cx={cx + Math.cos(rad) * r * 0.62}
-                cy={cy + Math.sin(rad) * r * 0.62}
-                r={r * 0.17}
-                fill={BALL_INK}
-              />
-            )
-          })}
-        </>
-      )}
+      {/*
+       * THE BALL ITSELF, AND THE ONLY THING HERE THAT SPINS.
+       *
+       * Everything above this line is deliberately outside the rotation, and
+       * the shadow is why. A shadow drawn inside the spin swings out from under
+       * the ball on a radius of its own offset — it is not a shadow any more,
+       * it is a moon. At rest that offset is `r0 * 0.44`, four or five pixels,
+       * and nobody ever saw it. On a ball lofted thirty-five pixels up, the
+       * pivot climbs with the ball and the shadow orbits in a visible arc.
+       *
+       * So the spin is pushed down to the one thing it describes: the ball
+       * turning about itself, which is why the pivot is `by` and not `cy`.
+       */}
+      <g transform={angle ? `rotate(${angle} ${cx} ${by})` : undefined}>
+        {href ? (
+          // The asset is square and centred on the ball (see ../balls.ts), so
+          // the bounding box IS the ball: no preserveAspectRatio fudge needed.
+          <image href={href} x={cx - r} y={by - r} width={r * 2} height={r * 2} />
+        ) : (
+          // BALL_INK, not the surface's ink. The pentagons are markings on a
+          // white ball — a physical object that looks the same on every pitch —
+          // where the surface's ink is the colour we WRITE in, and on a dark
+          // surface that is nearly white. Following it would draw a white ball
+          // with white spots.
+          <>
+            <circle
+              cx={cx}
+              cy={by}
+              r={r}
+              fill={`url(#${gid})`}
+              stroke={BALL_INK}
+              strokeWidth={r * 0.14}
+            />
+            <circle cx={cx} cy={by} r={r * 0.3} fill={BALL_INK} />
+            {[0, 72, 144, 216, 288].map((deg) => {
+              const rad = ((deg - 90) * Math.PI) / 180
+              return (
+                <circle
+                  key={deg}
+                  cx={cx + Math.cos(rad) * r * 0.62}
+                  cy={by + Math.sin(rad) * r * 0.62}
+                  r={r * 0.17}
+                  fill={BALL_INK}
+                />
+              )
+            })}
+          </>
+        )}
+      </g>
     </g>
   )
 }

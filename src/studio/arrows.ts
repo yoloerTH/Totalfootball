@@ -196,7 +196,7 @@ export function bindEnd(arrow: Arrow, end: 'from' | 'to', pt: Pt, tokenId: strin
 export const TOKEN_KINDS: readonly ArrowKind[] = ['run', 'carry', 'press']
 
 /** Kinds that move the ball on their own. A carry moves it by carrying it. */
-export const BALL_KINDS: readonly ArrowKind[] = ['pass', 'switch']
+export const BALL_KINDS: readonly ArrowKind[] = ['pass', 'loft']
 
 /**
  * How far out an arrow's ends may be, in metres, summed over both, and still be
@@ -225,31 +225,87 @@ export function arrowSpan(
 }
 
 /**
- * The bow a coach drew over this movement, or 0 for a straight one.
+ * How high a lofted ball flies when the coach has not said.
  *
- * Zero is not a special case anywhere downstream: a quadratic whose control
- * point sits on the midpoint IS the straight chord, exactly, so an unbowed
- * movement animates down the same numbers it always has.
+ * Mid-range on purpose. The vocabulary the videos settled on runs from about
+ * 0.1 for a cutback to about 0.5 for a whipped corner — the per-leg arcs in
+ * editor/src/counterCorner/geometry.ts are the reference — and the ball this
+ * tool gets reached for, a cross or a switch or a clipped diagonal, sits at the
+ * top of that range. Much higher starts to read as a goal kick, which is a real
+ * ball but not the one somebody drawing their first loft is asking for.
  */
-export function bendOver(
+export const DEFAULT_LOFT = 0.55
+
+/**
+ * How high this arrow's ball flies, 0..1, with the kind's default applied.
+ *
+ * THE ONLY PLACE `Arrow.height` IS READ RAW, and it has to be, for two reasons
+ * that pull in opposite directions. A loft drawn before the slider existed has
+ * no `height` on it and must still fly — that is every switch in every saved
+ * document. And a coach who drags the slider down to zero wants a driven ball,
+ * not the default handed back to them. So: `?? DEFAULT`, never `|| DEFAULT`,
+ * and in one place rather than at three call sites that could drift apart.
+ */
+export function heightOf(arrow: Pick<Arrow, 'kind' | 'height'>): number {
+  if (arrow.kind !== 'loft') return 0
+  return Math.min(1, Math.max(0, arrow.height ?? DEFAULT_LOFT))
+}
+
+/** What a movement does between its ends: how it bows, and how high it goes. */
+export interface Flight {
+  /** Bow in the plane of the grass, -1..1. 0 is the straight chord. */
+  bend: number
+  /** Arc off the grass, 0..1. 0 is along the floor. */
+  height: number
+}
+
+/** Straight, and on the floor. What everything that was never struck gets. */
+export const GROUNDED: Flight = { bend: 0, height: 0 }
+
+/**
+ * The path a coach drew over this movement: its bow, and its height.
+ *
+ * Zero bend is not a special case anywhere downstream: a quadratic whose
+ * control point sits on the midpoint IS the straight chord, exactly, so an
+ * unbowed movement animates down the same numbers it always has.
+ *
+ * ── ONE MATCH, TWO NUMBERS ──────────────────────────────────────────────────
+ *
+ * This answered only the bow until the loft existed, and the obvious way to add
+ * the height was a second function beside it doing the same search. That would
+ * have been a bug with a date on it: two independent searches over the same
+ * arrows can settle on two DIFFERENT arrows on a busy phase, and the ball would
+ * then fly the bow of one pass and the height of another. The arrow is picked
+ * once and both numbers come off the arrow that was picked.
+ *
+ * ── AND IT NO LONGER SKIPS STRAIGHT ARROWS ──────────────────────────────────
+ *
+ * The loop used to open `if (!arrow.bend) continue`, which was right when a bow
+ * was the only thing it could return: an unbowed arrow had nothing to say. A
+ * goal kick launched straight down the middle is unbowed and has a great deal
+ * to say, so the test is now "says nothing at all" — which an unbowed ground
+ * pass still fails, exactly as it always did.
+ */
+export function flightOver(
   arrows: readonly Arrow[],
   fromTokens: readonly Placed[],
   toTokens: readonly Placed[],
   move: { from: Pt; to: Pt },
   kinds: readonly ArrowKind[],
   view: PitchView,
-): number {
+): Flight {
   const a0 = toUnits(view, move.from.x, move.from.y)
   const b0 = toUnits(view, move.to.x, move.to.y)
   const travelled = Math.hypot(b0.x - a0.x, b0.y - a0.y)
-  // Nobody went anywhere, so there is no path to bow.
-  if (travelled < 1) return 0
+  // Nobody went anywhere, so there is no path to bow and nothing was struck.
+  if (travelled < 1) return GROUNDED
 
-  let best = 0
+  let best: Flight = GROUNDED
   let bestScore = GOVERN_M * 10
 
   for (const arrow of arrows) {
-    if (!arrow.bend) continue
+    const height = heightOf(arrow)
+    if (!arrow.bend && !height) continue
     if (!kinds.includes(arrow.kind)) continue
 
     const span = arrowSpan(arrow, fromTokens, toTokens)
@@ -263,10 +319,32 @@ export function bendOver(
     const score = Math.hypot(ua.x - a0.x, ua.y - a0.y) + Math.hypot(ub.x - b0.x, ub.y - b0.y)
     if (score < bestScore) {
       bestScore = score
-      best = arrow.bend
+      best = { bend: arrow.bend ?? 0, height }
     }
   }
   return best
+}
+
+/**
+ * How high off the grass a ball on this flight is at `t`, 0..1.
+ *
+ * `sin(t·π)`: on the floor at the foot, highest halfway, on the floor again
+ * where it lands. It is the arc every short in editor/src draws — one identical
+ * line in eleventhMan, fourTriggers, counterCorner and the throw-in — and the
+ * reason it is that rather than a real parabola is that a parabola needs a
+ * flight TIME and a phase does not have one. What a board has is a journey and
+ * a fraction of it completed, and this is the honest arc over that.
+ *
+ * `t` IS THE EASED PROGRESS, the same number the position is walked with, and
+ * not raw time. Hand it the eased one and the ball is high exactly when it is
+ * far along its path, so the climb and the travel are one gesture rather than
+ * two things happening at once. It also makes the two zeroes exact — an eased
+ * curve still starts at 0 and ends at 1 — so the ball is provably on the grass
+ * on the first and the last frame of every move it makes.
+ */
+export function liftAt(height: number, t: number): number {
+  if (!height) return 0
+  return height * Math.sin(Math.min(1, Math.max(0, t)) * Math.PI)
 }
 
 /**

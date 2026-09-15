@@ -61,10 +61,52 @@ import type { System } from './schema'
  * this exists to prevent, and that has not changed with where the bytes live.
  */
 export function migrate(system: System): System {
-  // Pitch views that were retired (`middle-third`, `final-third`) map to their
-  // nearest survivor. Marks are stored as percent-of-crop, so a view swap does
-  // move them relative to the grass — but the alternative is a document that
-  // names a view we no longer have, which renders as nothing at all.
+  return retireViews(renameSwitch(system))
+}
+
+/**
+ * `switch` became `loft`.
+ *
+ * The old name described one USE of the mark and the new one describes the
+ * mark. A switch is a long ball that changes the side of the pitch; a cross, a
+ * goal kick and a clipped ball over the top are the same EVENT — struck off the
+ * grass — and not one of them is a switch, so a coach reaching for the tool
+ * that lifts the ball had to reach for a word that meant something else. The
+ * mark never changed. Only its name was wrong.
+ *
+ * NOTHING IS ADDED WHILE RENAMING. An arrow with no `height` on it takes the
+ * kind's default from `heightOf` in ./arrows.ts, so every switch ever drawn
+ * opens as a loft and flies at 55% without a single stored byte being touched.
+ *
+ * Read-time and idempotent, like everything else here, and for the reason given
+ * above: the iOS app and scripts/push-system.mjs still write `switch` and will
+ * go on writing it until they are rebuilt, so a server sweep would be undone by
+ * the next save from an older client.
+ */
+function renameSwitch(system: System): System {
+  const acts = system.acts
+  if (!Array.isArray(acts)) return system
+  let touched = false
+  const next = acts.map((act) => {
+    const arrows = act?.arrows
+    if (!Array.isArray(arrows)) return act
+    if (!arrows.some((a) => (a?.kind as string) === 'switch')) return act
+    touched = true
+    return {
+      ...act,
+      arrows: arrows.map((a) => ((a?.kind as string) === 'switch' ? { ...a, kind: 'loft' as const } : a)),
+    }
+  })
+  return touched ? { ...system, acts: next } : system
+}
+
+/**
+ * Pitch views that were retired (`middle-third`, `final-third`) map to their
+ * nearest survivor. Marks are stored as percent-of-crop, so a view swap does
+ * move them relative to the grass — but the alternative is a document that
+ * names a view we no longer have, which renders as nothing at all.
+ */
+function retireViews(system: System): System {
   const pitch = resolveViewId(system.pitch)
   if (pitch === system.pitch) return system
   // The four fixed training boards became one board with a size, so the id

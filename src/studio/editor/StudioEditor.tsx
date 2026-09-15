@@ -45,7 +45,7 @@ import {
 } from '../board/Board'
 import { arrowRim, bendFor } from '../board/Overlays'
 import { alignSnap, snapTolerance, type Alignable, type SnapGuide } from '../board/align'
-import { arrowEnds, bindEnd, snapTarget } from '../arrows'
+import { arrowEnds, bindEnd, heightOf, snapTarget } from '../arrows'
 import { SET_PIECE_BY_ID, arrange, spotToPercent } from '../setpieces'
 import { perform, type ActionKind, type Target } from '../actions'
 import {
@@ -1920,7 +1920,10 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
          else if (k === 'r') setTool('run')
          else if (k === 'c') setTool('carry')
          else if (k === 'd') setTool('press')
-         else if (k === 's') setTool('switch')
+         // 'l' for what it is now, 's' for what it was called for a year. The
+         // tool was renamed; the finger that has been reaching for S all along
+         // was not, and there is nothing else it could mean.
+         else if (k === 'l' || k === 's') setTool('loft')
          else if (k === 't') setTool('text')
          else if (k === 'b') setTool('block')
          else if (k === 'z') setTool('zone')
@@ -4899,7 +4902,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
       {/* The mark vocabulary. Scrolls rather than wraps on a narrow screen, so
           the board never gets pushed off the bottom by a second row. */}
       {/* The tool rail is the single most valuable thing on a locked board.
-          It is the vocabulary — Move, Pass, Run, Carry, Press, Switch — and
+          It is the vocabulary — Move, Pass, Run, Carry, Press, Loft — and
           reading it is most of understanding what the studio does, which is why
           it stays on screen greyed rather than being taken away. */}
       {/*
@@ -7417,6 +7420,38 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
             />
             <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{ARROW_MARK.bow}</p>
           </Field>
+          {/*
+           * HEIGHT, AND ONLY ON A LOFT.
+           *
+           * Every other control in this panel is on every arrow, and this one
+           * is not, because height is the whole of what a loft is rather than a
+           * property a pass happens to have. A Height slider on a ground pass
+           * would be an invitation to make a pass that is secretly a cross,
+           * which would leave the board drawing a solid line along the floor
+           * while the ball went over everybody.
+           *
+           * Note the absence of the `|| undefined` the bend and the label are
+           * on. Zero is a REAL VALUE here — a loft driven flat — and undefined
+           * means "whatever the kind says", which is 0.55. Folding one into the
+           * other would make the slider refuse to go to the bottom.
+           */}
+          {selectedArrow.kind === 'loft' && (
+            <Field label={`Height: ${Math.round(heightOf(selectedArrow) * 100)}%`}>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={heightOf(selectedArrow)}
+                onChange={(e) => patchMark({ height: Number(e.target.value) })}
+                onPointerUp={seal}
+                onKeyUp={seal}
+                className="w-full accent-ink"
+                aria-label="How high off the grass the ball is struck"
+              />
+              <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">{ARROW_MARK.height}</p>
+            </Field>
+          )}
           <Field label={`Strength: ${Math.round((selectedArrow.opacity ?? 1) * 100)}%`}>
             <input
               type="range"
@@ -8107,7 +8142,7 @@ export default function StudioEditor({ systemId, initial, locked = false, stored
       <Panel title={`Marks on this ${PHASE.one}`}>
         {marks.length === 0 ? (
           <p className="text-[11px] leading-relaxed text-ink-faint">
-            Nothing drawn yet. Pick Pass, Run, Carry, Press, Switch or Line at the top and drag on the
+            Nothing drawn yet. Pick Pass, Run, Carry, Press, Loft or Line at the top and drag on the
             board, or pick Text and click where you want to write.
           </p>
         ) : (

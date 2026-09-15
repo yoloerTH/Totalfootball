@@ -71,7 +71,7 @@ const VARS = {
   TEXT_TOOL_ID: 'text',
 }
 
-const ARROW_TOOLS = ['pass', 'run', 'carry', 'press', 'switch']
+const ARROW_TOOLS = ['pass', 'run', 'carry', 'press', 'loft']
 
 const faults = []
 const anchors = new Set()

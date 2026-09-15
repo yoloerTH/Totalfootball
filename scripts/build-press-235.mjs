@@ -670,7 +670,7 @@ A({
   title: 'What It Costs',
   bands: bandSet('us'),
   cue: { 'us-RB': 'SPARE' },
-  arrows: () => [arrow('switch', 'them-LB', 'them-RW', { bend: 1 })],
+  arrows: () => [arrow('loft', 'them-LB', 'them-RW', { bend: 1 })],
   texts: () => [countText('3 v 2 THE OTHER WAY', { y: ['>', 60], x: ['<', 82], outfield: true }, { x: 40, y: 84 }, 'red', 'm', true)],
   notes: 'Be honest about the bill. Everything moved to one side, so the far side is theirs. If the switch reaches the far winger before we shift, they have three against two there.',
 })

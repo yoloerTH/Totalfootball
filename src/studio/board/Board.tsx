@@ -678,6 +678,7 @@ export function Board({
                 href={ballHref ?? resolveBall(system.matchBall).src ?? undefined}
                 size={system.matchBallSize}
                 angle={(system.matchBallAngle ?? 0) + (b.angle ?? 0)}
+                lift={b.lift}
                 tracked={trackedBallId === b.id}
               />
             </g>

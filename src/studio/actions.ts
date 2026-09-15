@@ -4,7 +4,7 @@
  * WHY THIS IS POSSIBLE AT ALL
  *
  * The five arrow tools were never five line styles. Pass, Run, Carry, Press and
- * Switch are five things that happen on a pitch, and ../editor/guide.ts has
+ * Loft are five things that happen on a pitch, and ../editor/guide.ts has
  * always said so in prose: "a ball played from one player to another", "a player
  * moving without the ball", "a player travelling with the ball at their feet".
  * The studio knew what each one meant and drew a line anyway.
@@ -245,7 +245,7 @@ export function perform(kind: ActionKind, cur: Act, next: Act, actorId: string, 
 
   switch (kind) {
     case 'pass':
-    case 'switch': {
+    case 'loft': {
       // The ball travels and nobody moves. It settles just short of the
       // receiver rather than under them, so the counter stays readable and the
       // ball reads as having arrived rather than as being part of the man.

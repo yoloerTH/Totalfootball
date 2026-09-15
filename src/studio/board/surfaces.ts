@@ -372,7 +372,18 @@ export function arrowStyle(p: BoardPalette) {
     run: { color: p.greenDeep, dash: [1.5, 1.05] as [number, number] | null, width: 0.42, wavy: false, head: true },
     carry: { color: p.ink, dash: null as [number, number] | null, width: 0.42, wavy: true, head: true },
     press: { color: p.goldDeep, dash: null as [number, number] | null, width: 0.5, wavy: false, head: true },
-    switch: { color: p.ink, dash: [2.4, 1.3] as [number, number] | null, width: 0.5, wavy: false, head: true },
+    /*
+     * The loft. DASHED, and the dash is not decoration — it is the videos'
+     * standing convention for a ball that is off the ground, kept because it
+     * already reads: "dashed and airborne, or solid and along the floor" is the
+     * comment over the delivery in editor/src/AttackTheBoxShort.tsx, and
+     * BackwardPassShort draws the same distinction on the same phase.
+     *
+     * It is also the only signal the STILL has. A phase drawn on paper has no
+     * `t` to put the ball halfway up an arc, so an exported board has to say
+     * "this one leaves the floor" in the line itself or not at all.
+     */
+    loft: { color: p.ink, dash: [2.4, 1.3] as [number, number] | null, width: 0.5, wavy: false, head: true },
     /*
      * The divider. Solid ink, no head, and THINNER than a pass on purpose.
      *

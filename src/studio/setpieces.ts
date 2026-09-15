@@ -52,7 +52,7 @@
 
 import { PITCH, toPercent } from './board/pitch'
 import type { PitchView, PitchViewId } from './board/pitch'
-import type {Side, Token } from './schema'
+import type { ArrowKind, Side, Token } from './schema'
 
 /** Clear metres wanted between two counters on the SAME side. Two counters plus air. */
 export const CLEAR_SAME = 4.6
@@ -113,7 +113,7 @@ export interface SetPiece {
    * somewhere for the picture to mean anything, and because a bowed delivery is
    * the mark that says in-swinger rather than "a ball, at a corner".
    */
-  delivery?: { d: number; s: number; bend: number; kind: 'pass' | 'run' | 'carry' | 'press' | 'switch' | 'line' }
+  delivery?: { d: number; s: number; bend: number; kind: ArrowKind; height?: number }
 }
 
 /* ── THE CASTS ──────────────────────────────────────────────────────────────
@@ -251,7 +251,11 @@ export const SET_PIECES: SetPiece[] = [
     ball: { d: 0.8, s: 66.5 },
     attack: INSWINGER,
     defend: ZONAL,
-    delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'pass' },
+    // A corner is struck off the floor, and it always was — it was drawn as a
+    // ground pass only because nothing on the board could lift a ball yet. Bent
+    // AND high: the bend takes it towards the goal, the height takes it over
+    // the first defender. 0.5 is the whipped delivery in the shorts.
+    delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'loft', height: 0.5 },
     tokenSize: 0.75,
     bands: [
       { kind: 'danger', rect: { d: 4, s: 30, w: 12, h: 6 }, tone: 'red', shape: 'ellipse' },
@@ -271,7 +275,10 @@ export const SET_PIECES: SetPiece[] = [
     ball: { d: 0.8, s: 66.5 },
     attack: CORNER_SHORT,
     defend: ZONAL,
-    delivery: { d: 7.0, s: 60.0, bend: 0, kind: 'pass' },
+    // The cross that comes after the short one, from the improved angle. Flat
+    // trajectory, still off the floor: a ball driven along the goal rather than
+    // hung across it, which is the entire argument for taking it short.
+    delivery: { d: 7.0, s: 60.0, bend: 0, kind: 'loft', height: 0.32 },
     tokenSize: 0.75,
     bands: [
       { kind: 'zone', rect: { d: 2, s: 55, w: 10, h: 10 }, tone: 'blue', shape: 'round' },
@@ -290,7 +297,9 @@ export const SET_PIECES: SetPiece[] = [
     ball: { d: 0.8, s: 66.5 },
     attack: INSWINGER,
     defend: ZONAL,
-    delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'pass' },
+    // The same ball as `corner-in`, seen from the other end. It has to be the
+    // same numbers or the two boards teach a different corner.
+    delivery: { d: 8.5, s: 36.0, bend: 0.35, kind: 'loft', height: 0.5 },
     tokenSize: 0.75,
     bands: [
       { kind: 'zone', rect: { d: 1, s: 26, w: 16, h: 8 }, tone: 'blue', shape: 'box' },
@@ -306,7 +315,8 @@ export const SET_PIECES: SetPiece[] = [
     ball: { d: 24.0, s: 56.0 },
     attack: FK_WIDE_ON,
     defend: FK_WIDE_OFF,
-    delivery: { d: 9.0, s: 34.0, bend: 0.3, kind: 'pass' },
+    // Wide free kick into the box: hung up for the runners rather than driven.
+    delivery: { d: 9.0, s: 34.0, bend: 0.3, kind: 'loft', height: 0.46 },
     tokenSize: 0.75,
     bands: [
       { kind: 'danger', rect: { d: 6, s: 28, w: 16, h: 6 }, tone: 'red', shape: 'round' },
@@ -325,7 +335,10 @@ export const SET_PIECES: SetPiece[] = [
     ball: { d: 23.0, s: 34.0 },
     attack: FK_DIRECT_ON,
     defend: FK_DIRECT_OFF,
-    delivery: { d: 0.5, s: 37.0, bend: 0.25, kind: 'pass' },
+    // Direct at goal over a five-man wall. The lowest of the five, because it
+    // has to come DOWN inside the frame: this is a ball lifted over nine metres
+    // of defender and dropped, not one floated into a box.
+    delivery: { d: 0.5, s: 37.0, bend: 0.25, kind: 'loft', height: 0.3 },
     tokenSize: 0.75,
     gear: [
       { d: 13.9, s: 29.5, gear: 'dummy-mannequin' },

@@ -267,11 +267,11 @@ export const TOOL_DOC = {
     when: 'Use it out of possession, to show who goes and, just as important, from which angle they approach.',
     drag: 'Tap the player pressing, then tap who they go after. Or drag to draw the line and move nobody.',
   },
-  switch: {
-    label: 'Switch',
-    what: 'A long ball that changes the side of the pitch.',
-    when: 'Save it for the one ball that moves the whole opposition. If every pass is a switch, none of them reads as one.',
-    drag: 'Tap the player switching it, then tap who receives it on the far side. Or drag to draw the line.',
+  loft: {
+    label: 'Loft',
+    what: 'A ball struck off the grass: a cross, a switch, a goal kick, a clipped ball over the top.',
+    when: 'Use it when the ball leaving the floor IS the point. A ball that beats people by going above them is a different idea from one that beats them along the ground, and a board should not draw the two the same. It was called Switch, which named one thing you can do with it; a cross and a goal kick are the same event and neither is a switch.',
+    drag: 'Tap the player striking it, then tap who attacks it or the space it drops into. Or drag to draw the line. Height, in the panel, sets how far off the grass it goes: low for a cutback, high for a goal kick.',
   },
   line: {
     label: 'Line',
@@ -318,7 +318,7 @@ export type ToolId = keyof typeof TOOL_DOC
  * would have handed it to the two-tap path, where it has no case and no
  * meaning.
  */
-export const ARROW_TOOL_IDS = ['pass', 'run', 'carry', 'press', 'switch'] as const
+export const ARROW_TOOL_IDS = ['pass', 'run', 'carry', 'press', 'loft'] as const
 export const ZONE_TOOL_IDS = ['danger', 'zone'] as const
 
 /**
@@ -730,14 +730,14 @@ export const ACTION = {
     run: 'Tap the player making the run.',
     carry: 'Tap the player carrying it.',
     press: 'Tap the player going to press.',
-    switch: 'Tap the player switching it.',
+    loft: 'Tap the player striking it.',
   },
   aim: {
     pass: 'Now tap who receives it, or the space to play it into.',
     run: 'Now tap where the run finishes.',
     carry: 'Now tap where they let it go.',
     press: 'Now tap who they are going after.',
-    switch: 'Now tap who receives it, or the space to find.',
+    loft: 'Now tap who attacks it, or the space it drops into.',
   },
   /** What the two taps will actually change, said before they are made. */
   also: `Both taps together draw the arrow AND pose the next ${PHASE.one}. Drag instead of tapping to draw a line that moves nobody.`,
@@ -772,6 +772,13 @@ export const ARROW_MARK = {
    * takes, and the one place they will find that out is here.
    */
   bow: 'A bowed arrow is a bowed path. Whatever it describes travels along the curve you draw, on Play and in the film.',
+  /**
+   * Said in terms of what the coach will SEE, because the thing this changes is
+   * invisible on a still board: the height is spent on Play and in the film,
+   * and the phase they are looking at while they drag the slider does not move.
+   */
+  height:
+    'How far off the grass it is struck. On Play the ball climbs, and its shadow stays behind on the spot it left. Low for a cutback, high for a goal kick. It changes nothing else: the camera, the distances and the sound all still read the ball on the floor.',
   /**
    * Strength, and what it is FOR. Nobody sets an arrow to 40% for its own sake:
    * they set it because they want the board to say one thing at a time, and
@@ -1001,7 +1008,13 @@ const ARROW_TERMS: Record<(typeof TWO_POINT_TOOL_IDS)[number], string[]> = {
   run: ['off the ball', 'overlap', 'underlap', 'in behind', 'dashed', 'movement', 'third man'],
   carry: ['dribble', 'drive', 'travel', 'take on', 'squiggle', 'step in', 'on the ball'],
   press: ['pressure', 'closing down', 'press trigger', 'hunt', 'out of possession', 'jump'],
-  switch: ['long ball', 'cross field', 'diagonal', 'change the point', 'far side', 'wide'],
+  /*
+   * 'switch' is FIRST and stays first. It was this tool's name for the whole of
+   * the studio's life so far, so it is the word the coach who used it will type
+   * — and a search that cannot answer the old name has renamed the tool out
+   * from under everybody who already learned it.
+   */
+  loft: ['switch', 'cross', 'long ball', 'goal kick', 'corner', 'diagonal', 'over the top', 'in the air', 'chip', 'clipped', 'change the point', 'far side', 'wide', 'lofted', 'aerial'],
   /*
    * "no arrowhead" and "plain line" are in here because that is what a coach
    * types when they have tried Pass and got a head they did not want. The
