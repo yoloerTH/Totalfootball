@@ -64,6 +64,23 @@ export interface NewsEntry {
 /** Newest first. The order is load-bearing — see the authoring rules. */
 export const WHATS_NEW: NewsEntry[] = [
   {
+    id: 'loft-ball-off-the-ground',
+    date: '2026-09-15',
+    kind: 'new',
+    title: 'The ball can now come off the ground',
+    body:
+      'Switch has become Loft, because it finally does what it always looked like it did: draw one and the ball climbs off the grass, grows as it rises, and leaves its shadow behind on the spot it left. Select the arrow and a Height slider sets how far off the floor it goes, low for a ball pulled back across the box, high for a goal kick. Every switch you have already drawn is a loft now and flies on its own, with nothing for you to redo.',
+    where: 'Loft, at the top of the board',
+  },
+  {
+    id: 'ball-shadow-holds-still',
+    date: '2026-09-15',
+    kind: 'fixed',
+    title: 'The ball sits still under itself as it travels',
+    body: 'The shadow under the ball used to turn with the ball while it was being played, so a pass carried a faint wobble under it the whole way. The shadow now stays put under the ball on every pass, and stays on the grass under a lofted one.',
+    where: 'Play, on any phase where the ball moves',
+  },
+  {
     id: 'drag-drop-phases',
     date: '2026-09-13',
     kind: 'better',
